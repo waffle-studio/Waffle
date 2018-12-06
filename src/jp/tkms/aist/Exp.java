@@ -93,6 +93,14 @@ public class Exp {
 
     public void resultSubmit() {
         if (status == Status.FINISHED) {
+            Submitter submitter = new Submitter();
+            submitter.start();
+        }
+    }
+
+    private class Submitter extends Thread {
+        @Override
+        public void run() {
             ResultSubmitter.post(getExpSet().seriesName, getResult());
         }
     }
