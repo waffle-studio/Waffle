@@ -11,8 +11,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class SshSession {
-    private final int waitTime = 100;
-    private final int maxOfWait = 100;
+    private final int waitTime = 25;
+    private final int maxOfWait = 400;
 
     protected JSch jsch;
     protected Session session;
