@@ -73,17 +73,20 @@ public class Exp {
     }
 
     public void updateResult(SshSession ssh) throws JSchException {
-        System.out.println("Exp[" + uuid.toString() + "/" + getUuid().toString() + "]");
         for (int c = 0; c <= Config.MAX_CAT_RECHECK; c++) {
             ssh.exec("cat " + getUuid().toString() + "/_output.json");
             if (ssh.getExitStatus() == 0) {
                 status = Status.FINISHED;
                 setResult(ssh.getStdout());
-                System.out.println(ssh.getStdout());
                 resultSubmit();
+
+                System.out.println("Exp[" + uuid.toString() + "/" + getUuid().toString() + "]");
+                System.out.println(ssh.getStdout());
                 break;
             } else {
                 status = Status.FAILED;
+
+                System.out.println("Exp[" + uuid.toString() + "/" + getUuid().toString() + "]");
             }
         }
     }
