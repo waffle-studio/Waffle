@@ -8,7 +8,7 @@ public class Config {
     public static final int MAX_RERUN = 10;
 
     public static final String GROUP_ID = "gaa50073";
-    public static final String WALLTIME = "1:00:00";
+    public static final String WALLTIME = "0:30:00";
 
     public static final String WORKBASE_DIR = "~/tmp/";
 

@@ -47,32 +47,31 @@ public class ExpPack {
         ssh.setWorkDir(workDir);
 
         ssh.exec("rm -f run.txt");
+        String runtxt = "";
         for (Exp exp : expList) {
-            ssh.exec("echo '" + exp.getUuid().toString() + " " +
-                    "\"" + exp.getExpSet().script + "\" " + exp.getArgs() + "' >> run.txt");
+            runtxt += "echo '" + exp.getUuid().toString() + " " +
+                    "\"" + exp.getExpSet().script + "\" " + exp.getArgs() + "' >> run.txt;";
             exp.setStatus(Exp.Status.SUBMITTED);
         }
+        ssh.exec(runtxt);
 
         ssh.exec("echo '#!/bin/bash\n\n" +
                 "mkdir -p $1\n" +
                 "cd $1\n" +
                 "CMD=$2\n" +
                 "shift 2\n" +
-                "$CMD $*\n' > run.sh");
-        ssh.exec("chmod a+x run.sh");
-
-        ssh.exec("echo '#!/bin/bash\n\n" +
+                "$CMD $*\n' > run.sh && " +
+                "chmod a+x run.sh && " +
+                "echo '#!/bin/bash\n\n" +
                 "#$ -l " + AbciResourceSelector.getResourceText(expList.size()) + "\n" +
                 "#$ -l h_rt=" + Config.WALLTIME + "\n" +
                 "#$ -o ' \"`pwd`/abci-stdout.txt\" '\n" +
-                "#$ -j y\n\n' > batch.sh");
+                "#$ -j y\n\n' > batch.sh && " +
+                "chmod a+x batch.sh && " +
+                "echo 'source ~/.bash_profile' >> batch.sh && " +
+                "echo 'cd " + workDir + "' >> batch.sh && " +
+                "echo 'xargs -a run.txt -P " + expList.size() + " -L 1 ./run.sh' >> batch.sh");
 
-        ssh.exec("echo 'source ~/.bash_profile' >> batch.sh");
-        ssh.exec("echo 'cd " + workDir + "' >> batch.sh");
-
-        ssh.exec("echo 'xargs -a run.txt -P " + expList.size() + " -L 1 ./run.sh' >> batch.sh");
-
-        ssh.exec("chmod a+x batch.sh");
         ssh.exec("qsub -g " + Config.GROUP_ID + " batch.sh");
         String jobId = ssh.getStdout().replaceAll("[\r\n]", " ").replaceFirst("Your job (\\d*) .*", "$1");
         System.out.println("[" + jobId + "] " + expList.size());
