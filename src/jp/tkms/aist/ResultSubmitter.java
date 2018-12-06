@@ -9,7 +9,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 
 public class ResultSubmitter {
-    public static String post(String seriesName, String resultJson) {
+    public static synchronized String post(String seriesName, String resultJson) {
 
         HttpURLConnection con = null;
         StringBuffer result = new StringBuffer();
