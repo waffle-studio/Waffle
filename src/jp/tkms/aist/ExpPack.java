@@ -64,9 +64,14 @@ public class ExpPack {
         ssh.exec("echo '#!/bin/bash\n\n" +
                 "mkdir -p $1\n" +
                 "cd $1\n" +
+                "RESDIR=`pwd`\n" +
                 "CMD=$2\n" +
+                "cd $SGE_LOCALDIR\n" +
+                "mkdir -p $1\n" +
+                "cd $1\n" +
                 "shift 2\n" +
-                "$CMD $*\n' > run.sh && " +
+                "$CMD $*\n" +
+                "cp _output.json ${RESDIR}/\n' > run.sh && " +
                 "chmod a+x run.sh && " +
                 "echo '#!/bin/bash\n\n" +
                 "#$ -l " + AbciResourceSelector.getResourceText(expList.size()) + "\n" +

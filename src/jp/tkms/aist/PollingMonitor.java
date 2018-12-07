@@ -7,6 +7,7 @@ import java.util.ArrayList;
 public class PollingMonitor extends Thread {
     private boolean isAlive = false;
     private ArrayList<ExpPack> expPackList = new ArrayList<>();
+    private String prevQstatText = "";
 
     public void addExpPack(ExpPack expPack) {
         expPackList.add(expPack);
@@ -37,18 +38,25 @@ public class PollingMonitor extends Thread {
                     ArrayList<ExpPack> currentExpPackList = new ArrayList<>(expPackList);
                     ArrayList<ExpPack> finishedExpPackList = new ArrayList<>();
 
-                    for (ExpPack expPack : currentExpPackList) {
+                    if (currentExpPackList.size() > 0) {
                         try {
-                            SshChannel ch = ssh.exec("qstat -j " + expPack.getJobId(), "~/");
-                            //System.out.println("Polling Result (qstat): " + ch.getExitStatus());
+                            SshChannel ch = ssh.exec("qstat", "~/");
+                            if (!prevQstatText.equals(ch.getStdout())) {
+                                prevQstatText = ch.getStdout();
 
-                            if (ch.getExitStatus() == 1) {
-                                ch = ssh.exec("qacct -j " + expPack.getJobId(), "~/");
-                                //System.out.println("Polling Result (qacct): " + ch.getExitStatus());
+                                for (ExpPack expPack : currentExpPackList) {
+                                    ch = ssh.exec("qstat -j " + expPack.getJobId(), "~/");
+                                    //System.out.println("Polling Result (qstat): " + ch.getExitStatus());
 
-                                if (ch.getExitStatus() == 0) {
-                                    expPack.updateResults(ssh);
-                                    finishedExpPackList.add(expPack);
+                                    if (ch.getExitStatus() == 1) {
+                                        ch = ssh.exec("qacct -j " + expPack.getJobId(), "~/");
+                                        //System.out.println("Polling Result (qacct): " + ch.getExitStatus());
+
+                                        if (ch.getExitStatus() == 0) {
+                                            expPack.updateResults(ssh);
+                                            finishedExpPackList.add(expPack);
+                                        }
+                                    }
                                 }
                             }
                         } catch (JSchException e) {
