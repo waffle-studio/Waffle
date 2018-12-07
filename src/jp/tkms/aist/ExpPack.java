@@ -4,6 +4,9 @@ import com.jcraft.jsch.JSchException;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ExpPack {
     public static enum Status{
@@ -36,24 +39,27 @@ public class ExpPack {
         return status;
     }
 
-    public void run(PollingMonitor monitor) throws JSchException {
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void run(PollingMonitor monitor, SshSession ssh) throws JSchException {
         if (expList.isEmpty()) { return; }
 
         String workDir = Config.WORKBASE_DIR + uuid.toString() + "/";
 
-        SshSession ssh = new AbciSshSession();
+        //SshSession ssh = new AbciSshSession();
 
-        ssh.exec("mkdir -p " + workDir);
-        ssh.setWorkDir(workDir);
+        ssh.exec("mkdir -p " + workDir, "~/");
 
-        ssh.exec("rm -f run.txt");
+        ssh.exec("rm -f run.txt", workDir);
         String runtxt = "";
         for (Exp exp : expList) {
             runtxt += "echo '" + exp.getUuid().toString() + " " +
                     "\"" + exp.getExpSet().script + "\" " + exp.getArgs() + "' >> run.txt;";
             exp.setStatus(Exp.Status.SUBMITTED);
         }
-        ssh.exec(runtxt);
+        ssh.exec(runtxt, workDir);
 
         ssh.exec("echo '#!/bin/bash\n\n" +
                 "mkdir -p $1\n" +
@@ -70,28 +76,51 @@ public class ExpPack {
                 "chmod a+x batch.sh && " +
                 "echo 'source ~/.bash_profile' >> batch.sh && " +
                 "echo 'cd " + workDir + "' >> batch.sh && " +
-                "echo 'xargs -a run.txt -P " + expList.size() + " -L 1 ./run.sh' >> batch.sh");
+                "echo 'xargs -a run.txt -P " + expList.size() + " -L 1 ./run.sh' >> batch.sh", workDir);
 
-        ssh.exec("qsub -g " + Config.GROUP_ID + " batch.sh");
-        String jobId = ssh.getStdout().replaceAll("[\r\n]", " ").replaceFirst("Your job (\\d*) .*", "$1");
+        SshChannel ch = ssh.exec("qsub -g " + Config.GROUP_ID + " batch.sh", workDir);
+        String jobId = ch.getStdout().replaceAll("[\r\n]", " ").replaceFirst("Your job (\\d*) .*", "$1");
         System.out.println("[" + jobId + "] " + expList.size());
         this.jobId = jobId;
 
-        ssh.disconnect();
+        //ssh.disconnect();
 
         status = Status.SUBMITTED;
 
         monitor.addExpPack(this);
     }
 
-    public void updateResults(SshSession ssh) throws JSchException {
-        String workDir = Config.WORKBASE_DIR + uuid.toString() + "/";
-        ssh.setWorkDir(workDir);
-
+    public void updateResults(SshSession ssh) {
+        ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
         for (Exp exp : expList) {
-            exp.updateResult(ssh);
+            exec.submit(new Collector(exp, ssh));
+        }
+        exec.shutdown();
+        try {
+            exec.awaitTermination(1, TimeUnit.DAYS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         status = Status.FINISHED;
+    }
+
+    class Collector implements Runnable {
+        private Exp exp;
+        private SshSession sshSession;
+
+        public Collector(Exp exp, SshSession sshSession) {
+            this.exp = exp;
+            this.sshSession = sshSession;
+        }
+
+        @Override
+        public void run() {
+            try {
+                exp.updateResult(sshSession);
+            } catch (JSchException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

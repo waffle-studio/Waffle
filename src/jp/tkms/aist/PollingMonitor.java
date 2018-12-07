@@ -39,14 +39,14 @@ public class PollingMonitor extends Thread {
 
                     for (ExpPack expPack : currentExpPackList) {
                         try {
-                            ssh.exec("qstat -j " + expPack.getJobId());
-                            //System.out.println("Polling Result (qstat): " + ssh.getExitStatus());
+                            SshChannel ch = ssh.exec("qstat -j " + expPack.getJobId(), "~/");
+                            //System.out.println("Polling Result (qstat): " + ch.getExitStatus());
 
-                            if (ssh.getExitStatus() == 1) {
-                                ssh.exec("qacct -j " + expPack.getJobId());
-                                //System.out.println("Polling Result (qacct): " + ssh.getExitStatus());
+                            if (ch.getExitStatus() == 1) {
+                                ch = ssh.exec("qacct -j " + expPack.getJobId(), "~/");
+                                //System.out.println("Polling Result (qacct): " + ch.getExitStatus());
 
-                                if (ssh.getExitStatus() == 0) {
+                                if (ch.getExitStatus() == 0) {
                                     expPack.updateResults(ssh);
                                     finishedExpPackList.add(expPack);
                                 }

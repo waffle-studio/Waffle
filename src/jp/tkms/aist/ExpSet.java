@@ -3,6 +3,9 @@ package jp.tkms.aist;
 import com.jcraft.jsch.JSchException;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ExpSet {
     String seriesName;
@@ -51,13 +54,18 @@ public class ExpSet {
         return expPackList;
     }
 
-    public void run(PollingMonitor monitor) throws JSchException {
+    public void run(PollingMonitor monitor) throws JSchException, InterruptedException {
         for (int c = 0; c <= Config.MAX_RERUN; c++) {
             expPackList = makeExpPacks();
 
+            SshSession ssh = new AbciSshSession();
+            ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
             for (ExpPack expPack : expPackList) {
-                expPack.run(monitor);
+                exec.submit(new Submitter(expPack, monitor, ssh));
             }
+            exec.shutdown();
+            exec.awaitTermination(1, TimeUnit.DAYS);
+            ssh.disconnect();
 
             while (true) {
                 int finished = 0;
@@ -85,6 +93,26 @@ public class ExpSet {
             }
             if (finishedCount == expList.size()) {
                 break;
+            }
+        }
+    }
+
+    class Submitter implements Runnable {
+        private ExpPack expPack;
+        private PollingMonitor pollingMonitor;
+        private SshSession sshSession;
+
+        public Submitter (ExpPack expPack, PollingMonitor pollingMonitor, SshSession sshSession) {
+            this.expPack = expPack;
+            this.pollingMonitor = pollingMonitor;
+            this.sshSession = sshSession;
+        }
+
+        public void run() {
+            try {
+                expPack.run(pollingMonitor, sshSession);
+            } catch (JSchException e) {
+                e.printStackTrace();
             }
         }
     }
