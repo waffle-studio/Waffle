@@ -1,15 +1,16 @@
 package jp.tkms.aist;
 
+import java.io.IOException;
 import java.util.*;
 
 public class Daemon extends Thread {
     private boolean isAlive = false;
-    private PollingMonitor pollingMonitor;
+    private CommonComponent commonComponent;
     private ArrayList<String> commandArray;
     private HashMap<String, String> varMap;
 
-    public Daemon(PollingMonitor pollingMonitor) {
-        this.pollingMonitor = pollingMonitor;
+    public Daemon(CommonComponent commonComponent) {
+        this.commonComponent = commonComponent;
         commandArray = new ArrayList<>();
         varMap = new HashMap<>();
     }
@@ -38,8 +39,57 @@ public class Daemon extends Thread {
                         }
                         System.out.println();
                         break;
+                    case "SLEEP":
+                        try { Thread.sleep(Integer.valueOf(args.get(0))); } catch (InterruptedException e) { e.printStackTrace(); }
+                        break;
                     case "DEFINE":
                         defineVar(args.get(0), args.get(1));
+                        break;
+                    case "ADD":
+                        defineVar(args.get(0), String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(2))));
+                        break;
+                    case "SAVE":
+                        try {
+                            if (args.size() >= 1) {
+                                commonComponent.save(args.get(0));
+                            } else {
+                                commonComponent.save(Config.DATA_FILE);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case "HIBERNATE":
+                        try {
+                            commonComponent.save(Config.DATA_FILE);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        shutdown();
+                        break;
+                    case "IF":
+                        switch (args.get(1)) {
+                            case "==":
+                                if (Double.valueOf(args.get(0)).doubleValue() == Double.valueOf(args.get(2)).doubleValue()) {
+                                    for (i = 0; i < commandArray.size(); i++) {
+                                        if (commandArray.get(i).equals("LABEL " + args.get(3))) {
+                                            break;
+                                        }
+                                    }
+                                }
+                                break;
+                            case "!=":
+                                if (Double.valueOf(args.get(0)).doubleValue() != Double.valueOf(args.get(2)).doubleValue()) {
+                                    for (i = 0; i < commandArray.size(); i++) {
+                                        if (commandArray.get(i).equals("LABEL " + args.get(3))) {
+                                            break;
+                                        }
+                                    }
+                                }
+                                break;
+                        }
+                        break;
+                    case "LABEL":
                         break;
                     case "SHUTDOWN":
                         shutdown();

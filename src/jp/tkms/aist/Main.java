@@ -15,7 +15,7 @@ public class Main {
         PollingMonitor monitor = commonComponent.getPollingMonitor();
         monitor.start();
 
-        Daemon daemon = new Daemon(monitor);
+        Daemon daemon = new Daemon(commonComponent);
         daemon.start();
 
         if (commonComponent.getExpSetList().size() > 0) {
