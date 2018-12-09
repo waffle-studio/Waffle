@@ -2,9 +2,10 @@ package jp.tkms.aist;
 
 import com.jcraft.jsch.JSchException;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public class Exp {
+public class Exp implements Serializable {
     public static enum Status{
         CREATED,
         SUBMITTED,
@@ -105,5 +106,10 @@ public class Exp {
         public void run() {
             ResultSubmitter.post(getExpSet().seriesName, getResult());
         }
+    }
+
+    @Override
+    public String toString() {
+        return "(Exp:" + uuid.toString() + ") " + args;
     }
 }

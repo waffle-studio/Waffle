@@ -14,4 +14,6 @@ public class Config {
     public static final String WORKBASE_DIR = "~/tmp/";
 
     public static final String UPLOAD_URL = "http://localhost:8001/";
+
+    public static final String DATA_FILE = "waffle.dat";
 }

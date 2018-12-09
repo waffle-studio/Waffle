@@ -2,9 +2,10 @@ package jp.tkms.aist;
 
 import com.jcraft.jsch.JSchException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class PollingMonitor extends Thread {
+public class PollingMonitor extends Thread implements Serializable {
     private boolean isAlive = false;
     private ArrayList<ExpPack> expPackList = new ArrayList<>();
     private String prevQstatText = "";
