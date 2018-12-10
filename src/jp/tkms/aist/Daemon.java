@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
@@ -14,11 +15,15 @@ public class Daemon extends Thread {
     private CommonComponent commonComponent;
     private ArrayList<String> commandArray;
     private HashMap<String, String> varMap;
+    private ArrayList<String> resultArray;
+    SocketChannel channel;
 
     public Daemon(CommonComponent commonComponent) {
         this.commonComponent = commonComponent;
         commandArray = new ArrayList<>();
         varMap = new HashMap<>();
+        resultArray = new ArrayList<>();
+        channel = null;
     }
 
     public boolean eval() {
@@ -40,10 +45,11 @@ public class Daemon extends Thread {
             try {
                 switch (command) {
                     case "ECHO":
+                        String val = "";
                         for (String str : args) {
-                            System.out.print(str + ' ');
+                            val += str + ' ';
                         }
-                        System.out.println();
+                        addResult(val);
                         break;
                     case "SLEEP":
                         try { Thread.sleep(Integer.valueOf(args.get(0))); } catch (InterruptedException e) { e.printStackTrace(); }
@@ -123,15 +129,22 @@ public class Daemon extends Thread {
                         shutdown();
                         break;
                     default:
-                        System.out.println("INVALID COMMAND: " + commandArray.get(i));
+                        addResult("#INVALID COMMAND: " + commandArray.get(i));
                 }
             } catch (IndexOutOfBoundsException e) {
-                System.out.println("INVALID COMMAND(IOoB): " + commandArray.get(i));
+                addResult("#INVALID COMMAND(IOoB): " + commandArray.get(i));
+            } catch (NullPointerException e) {
+                addResult("#INVALID COMMAND(NP): " + commandArray.get(i));
             }
         }
 
         commandArray.clear();
         return result;
+    }
+
+    private void addResult(String result) {
+        System.out.println(result);
+        resultArray.add(result);
     }
 
     private int gotoLabel(String label) {
@@ -145,11 +158,8 @@ public class Daemon extends Thread {
     }
 
     private String defineVar(String name, String value) {
-        if (name.length() > 0 && name.charAt(0) == '$') {
-            varMap.put(name, value);
-            return value;
-        }
-        return "";
+        varMap.put('$' + name, value);
+        return value;
     }
 
     private String appearVar(String org) {
@@ -166,6 +176,13 @@ public class Daemon extends Thread {
             if (command.equals("EVAL")) {
                 eval();
                 break;
+            } else if (command.equals("EXIT")) {
+                try {
+                    channel.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
             } else if (command.equals("")) {
                 continue;
             }
@@ -179,6 +196,7 @@ public class Daemon extends Thread {
             String command = scanner.nextLine();
             input(command);
         } catch (NoSuchElementException e) {
+            //input("EVAL");
         }
     }
 
@@ -207,20 +225,26 @@ public class Daemon extends Thread {
         try (ServerSocketChannel listener = ServerSocketChannel.open();) {
             listener.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
             listener.bind(new InetSocketAddress(Config.CONTROL_PORT));
-            System.out.println("Server listening on port " + Config.CONTROL_PORT + "...");
+            System.out.println("[Server listening on port " + Config.CONTROL_PORT + "...]");
             while (isAlive) {
-                try (SocketChannel channel = listener.accept();) {
-                    System.out.printf("ACCEPT %s%n", channel);
-                    ByteBuffer buffer = ByteBuffer.allocate(1024);
-                    channel.read(buffer);
-                    buffer.flip();
-                    String in = Charset.forName("UTF-8").decode(buffer).toString();
-                    input(in);
-                    System.out.println(in);
-                    //Bytes.copy(channel, channel);
-                    //System.out.printf("CLOSE %s%n", channel);
+                if (channel == null || !channel.isConnected()) {
+                    channel = listener.accept();
+                    System.out.printf("[ACCEPT %s]%n", channel);
                 }
+                ByteBuffer buffer = ByteBuffer.allocate(1024);
+                channel.read(buffer);
+                buffer.flip();
+                String in = Charset.forName("UTF-8").decode(buffer).toString();
+                input(in);
+                System.out.println("> " + in);
+                for (String result : resultArray) {
+                    channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(result + "\n")));
+                }
+                resultArray.clear();
+                //Bytes.copy(channel, channel);
+                //System.out.printf("CLOSE %s%n", channel);
             }
+            channel.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
