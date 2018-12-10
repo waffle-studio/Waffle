@@ -16,4 +16,6 @@ public class Config {
     public static final String UPLOAD_URL = "http://localhost:8001/";
 
     public static final String DATA_FILE = "waffle.dat";
+
+    public static final int CONTROL_PORT = 8002;
 }

@@ -1,6 +1,12 @@
 package jp.tkms.aist;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
+import java.nio.ByteBuffer;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.*;
 
 public class Daemon extends Thread {
@@ -125,6 +131,8 @@ public class Daemon extends Thread {
             if (command.equals("EVAL")) {
                 eval();
                 break;
+            } else if (command.equals("")) {
+                continue;
             }
             this.commandArray.add(command);
         }
@@ -155,9 +163,31 @@ public class Daemon extends Thread {
 
     @Override
     public void run() {
+        /*
         while (isAlive) {
             input();
             try { Thread.sleep(Config.SHORT_POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
+        }
+        */
+        try (ServerSocketChannel listener = ServerSocketChannel.open();) {
+            listener.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
+            listener.bind(new InetSocketAddress(Config.CONTROL_PORT));
+            System.out.println("Server listening on port " + Config.CONTROL_PORT + "...");
+            while (isAlive) {
+                try (SocketChannel channel = listener.accept();) {
+                    System.out.printf("ACCEPT %s%n", channel);
+                    ByteBuffer buffer = ByteBuffer.allocate(1024);
+                    channel.read(buffer);
+                    buffer.flip();
+                    String in = Charset.forName("UTF-8").decode(buffer).toString();
+                    input(in);
+                    System.out.println(in);
+                    //Bytes.copy(channel, channel);
+                    //System.out.printf("CLOSE %s%n", channel);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
