@@ -75,22 +75,44 @@ public class Daemon extends Thread {
                         break;
                     case "IF":
                         switch (args.get(1)) {
+                            case "eq":
+                                if (args.get(0).equals(args.get(2))) {
+                                    i = gotoLabel(args.get(3));
+                                }
+                                break;
+                            case "ne":
+                                if (!args.get(0).equals(args.get(2))) {
+                                    i = gotoLabel(args.get(3));
+                                }
+                                break;
                             case "==":
                                 if (Double.valueOf(args.get(0)).doubleValue() == Double.valueOf(args.get(2)).doubleValue()) {
-                                    for (i = 0; i < commandArray.size(); i++) {
-                                        if (commandArray.get(i).equals("LABEL " + args.get(3))) {
-                                            break;
-                                        }
-                                    }
+                                    i = gotoLabel(args.get(3));
                                 }
                                 break;
                             case "!=":
                                 if (Double.valueOf(args.get(0)).doubleValue() != Double.valueOf(args.get(2)).doubleValue()) {
-                                    for (i = 0; i < commandArray.size(); i++) {
-                                        if (commandArray.get(i).equals("LABEL " + args.get(3))) {
-                                            break;
-                                        }
-                                    }
+                                    i = gotoLabel(args.get(3));
+                                }
+                                break;
+                            case ">=":
+                                if (Double.valueOf(args.get(0)).doubleValue() >= Double.valueOf(args.get(2)).doubleValue()) {
+                                    i = gotoLabel(args.get(3));
+                                }
+                                break;
+                            case "<=":
+                                if (Double.valueOf(args.get(0)).doubleValue() <= Double.valueOf(args.get(2)).doubleValue()) {
+                                    i = gotoLabel(args.get(3));
+                                }
+                                break;
+                            case ">":
+                                if (Double.valueOf(args.get(0)).doubleValue() > Double.valueOf(args.get(2)).doubleValue()) {
+                                    i = gotoLabel(args.get(3));
+                                }
+                                break;
+                            case "<":
+                                if (Double.valueOf(args.get(0)).doubleValue() < Double.valueOf(args.get(2)).doubleValue()) {
+                                    i = gotoLabel(args.get(3));
                                 }
                                 break;
                         }
@@ -112,9 +134,22 @@ public class Daemon extends Thread {
         return result;
     }
 
+    private int gotoLabel(String label) {
+        int i = 0;
+        for (; i < commandArray.size(); i++) {
+            if (commandArray.get(i).equals("LABEL " + label)) {
+                return i;
+            }
+        }
+        return i;
+    }
+
     private String defineVar(String name, String value) {
-        varMap.put('$' + name, value);
-        return value;
+        if (name.length() > 0 && name.charAt(0) == '$') {
+            varMap.put(name, value);
+            return value;
+        }
+        return "";
     }
 
     private String appearVar(String org) {
