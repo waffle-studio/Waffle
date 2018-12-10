@@ -9,6 +9,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class Daemon extends Thread {
     private boolean isAlive = false;
@@ -57,8 +58,9 @@ public class Daemon extends Thread {
                     case "DEFINE":
                         defineVar(args.get(0), args.get(1));
                         break;
+
                     case "ADD":
-                        defineVar(args.get(0), String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(2))));
+                        defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(2)))).replaceFirst(""));
                         break;
                     case "SAVE":
                         try {
