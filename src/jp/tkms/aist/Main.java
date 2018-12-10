@@ -12,13 +12,6 @@ public class Main {
 
         CommonComponent commonComponent = CommonComponent.load(Config.DATA_FILE);
 
-<<<<<<< HEAD
-        ExpSet expSet = new ExpSet("test13","", "",
-                "/home/aaa10259dp/gaa50073/moji/exe/crtest_moji_happy_cmaes_map24.sh");
-
-        for (int test1 = 0; test1 < 5; test1++) {
-            expSet.addExp(new Exp("HAPPY10000_MAP24 0 " + test1));
-=======
         PollingMonitor monitor = commonComponent.getPollingMonitor();
         monitor.start();
 
@@ -45,7 +38,6 @@ public class Main {
             System.exit(0);
 
             expSet.run(monitor);
->>>>>>> 25c432f374e9e15894964d8639d072dce426640b
         }
 
         monitor.shutdown();
