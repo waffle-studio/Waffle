@@ -54,6 +54,8 @@ public class PollingMonitor extends Thread {
                                     if (ch.getExitStatus() == 0) {
                                         expPack.updateResults(ssh);
                                         finishedExpPackList.add(expPack);
+                                    } else {
+                                        prevQstatText += "@QACCT";
                                     }
                                 }
                             }
