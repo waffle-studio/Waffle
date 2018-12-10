@@ -2,13 +2,14 @@ package jp.tkms.aist;
 
 import com.jcraft.jsch.JSchException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class ExpPack {
+public class ExpPack implements Serializable {
     public static enum Status{
         CREATED,
         SUBMITTED,

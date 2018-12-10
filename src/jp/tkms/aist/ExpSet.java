@@ -2,12 +2,13 @@ package jp.tkms.aist;
 
 import com.jcraft.jsch.JSchException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class ExpSet {
+public class ExpSet implements Serializable {
     String seriesName;
     String preScript;
     String postScript;
