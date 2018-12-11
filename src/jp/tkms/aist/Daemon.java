@@ -326,12 +326,6 @@ public class Daemon extends Thread {
 
     @Override
     public void run() {
-        /*
-        while (isAlive) {
-            input();
-            try { Thread.sleep(Config.SHORT_POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
-        }
-        */
         try (ServerSocketChannel listener = ServerSocketChannel.open();) {
             listener.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
             listener.bind(new InetSocketAddress(Config.CONTROL_PORT));
@@ -352,8 +346,6 @@ public class Daemon extends Thread {
                     channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(result + "\n")));
                 }
                 resultArray.clear();
-                //Bytes.copy(channel, channel);
-                //System.out.printf("CLOSE %s%n", channel);
             }
             channel.close();
         } catch (IOException e) {
