@@ -85,8 +85,9 @@ public class Daemon extends Thread {
                         break;
                     }
 
+
                     // COMPLEX
-                    case "LIST": {
+                    case "SHOW": {
                         switch (args.get(0).toUpperCase()) {
                             case "SET":
                                 for (ExpSet expSet : currentWork.getExpSetMap().values()) {
@@ -99,7 +100,7 @@ public class Daemon extends Thread {
                                 }
                                 break;
                             default:
-                                addResult("#INVALID COMMAND(LIST): " + commandArray.get(i));
+                                addResult("#INVALID COMMAND(show): " + commandArray.get(i));
 
                         }
                         break;
@@ -125,6 +126,24 @@ public class Daemon extends Thread {
                         break;
                     case "DEFINE":
                         defineVar(args.get(0), args.get(1));
+                        break;
+                    case "COMPUTE":
+                        switch (args.get(2)) {
+                            case "/":
+                                defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) / Double.valueOf(args.get(3)))).replaceFirst(""));
+                                break;
+                            case "*":
+                                defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) * Double.valueOf(args.get(3)))).replaceFirst(""));
+                                break;
+                            case "-":
+                                defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) - Double.valueOf(args.get(3)))).replaceFirst(""));
+                                break;
+                            case "+":
+                                defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(3)))).replaceFirst(""));
+                                break;
+                            default:
+                                addResult("#INVALID COMMAND(compute): " + commandArray.get(i));
+                        }
                         break;
                     case "ADD":
                         defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(2)))).replaceFirst(""));
@@ -183,6 +202,8 @@ public class Daemon extends Thread {
                                     i = gotoLabel(args.get(3));
                                 }
                                 break;
+                            default:
+                                addResult("#INVALID COMMAND(if): " + commandArray.get(i));
                         }
                         break;
                     case "LABEL":
