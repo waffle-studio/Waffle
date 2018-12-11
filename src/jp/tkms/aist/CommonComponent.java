@@ -1,20 +1,36 @@
 package jp.tkms.aist;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.util.HashMap;
 
 public class CommonComponent implements Serializable {
     private PollingMonitor pollingMonitor;
-    private ArrayList<ExpSet> expSetList;
+    private HashMap<String, Work> workMap;
 
     public CommonComponent(){
         pollingMonitor = null;
-        expSetList = new ArrayList<>();
+        workMap = new HashMap<>();
     }
 
-    public ArrayList<ExpSet> addExpSet(ExpSet expSet){
-        expSetList.add(expSet);
-        return expSetList;
+    public HashMap<String, Work> addWork(Work work) {
+        workMap.put(work.getName(), work);
+        return workMap;
+    }
+
+    public Work getWork(String name) {
+        Work work = workMap.get(name);
+        if (work == null) {
+            File workDir = new File(Config.LOCAL_WORKBASE_DIR + "/" + name);
+            if (workDir.isDirectory()) {
+                work = Work.load(name);
+            }
+        }
+        return work;
+    }
+
+    public void unloadWork(Work work) {
+        work.save();
+        workMap.remove(work.getName());
     }
 
     public PollingMonitor getPollingMonitor() {
@@ -22,10 +38,6 @@ public class CommonComponent implements Serializable {
             pollingMonitor = new PollingMonitor();
         }
         return pollingMonitor;
-    }
-
-    public ArrayList<ExpSet> getExpSetList() {
-        return expSetList;
     }
 
     public void save(String fileName) throws IOException {

@@ -17,7 +17,9 @@ public class Daemon extends Thread {
     private ArrayList<String> commandArray;
     private HashMap<String, String> varMap;
     private ArrayList<String> resultArray;
-    SocketChannel channel;
+    private SocketChannel channel;
+    private Work currentWork;
+    private boolean isQuickMode;
 
     public Daemon(CommonComponent commonComponent) {
         this.commonComponent = commonComponent;
@@ -25,10 +27,13 @@ public class Daemon extends Thread {
         varMap = new HashMap<>();
         resultArray = new ArrayList<>();
         channel = null;
+        currentWork = null;
+        isQuickMode = Config.ENABLE_QUICKMODE;
     }
 
     public boolean eval() {
         boolean result = true;
+        String loadedScript = "";
 
         for (int i = 0; i < commandArray.size(); i++) {
             ArrayList<String> line = new ArrayList<>(Arrays.asList(commandArray.get(i).split("\\s")));
@@ -45,33 +50,74 @@ public class Daemon extends Thread {
 
             try {
                 switch (command.toUpperCase()) {
+                    //WORK
+                    case "SETUP":
+                        currentWork.setup();
+                        break;
+                    case "SAVE":
+                        currentWork.save();
+                        break;
+                    case "UNLOAD":
+                        commonComponent.unloadWork(currentWork);
+                        currentWork = null;
+                        break;
+                    case "SCRIPT":
+                        loadedScript += (currentWork.getTextFile(args.get(0)) + "\n");
+                        break;
+                    case "NEWSET":
+                        UUID expSetId = currentWork.newExpSet(args.get(1), args.get(2), args.get(3), args.get(4)).getUuid();
+                        defineVar(args.get(0), expSetId.toString());
+                        break;
+                    case "ADDEXP": {
+                        ExpSet expSet = currentWork.getExpSet(args.get(0));
+                        args.remove(0);
+                        String val = "";
+                        for (String str : args) {
+                            val += str + ' ';
+                        }
+                        val = val.substring(0, val.length() - 1);
+                        expSet.addExp(new Exp(val));
+                        break;
+                    }
+                    case "RUNEXP": {
+                        ExpSet expSet = currentWork.getExpSet(args.get(0));
+                        expSet.run(commonComponent.getPollingMonitor());
+                        break;
+                    }
+                    case "LIST": {
+                        switch (args.get(0).toUpperCase()) {
+                            case "SET":
+                                for (ExpSet expSet : currentWork.getExpSetMap().values()) {
+                                    addResult(expSet.toString());
+                                }
+                                break;
+                        }
+                        break;
+                    }
+
+
+                    //COMMON
                     case "ECHO":
                         String val = "";
                         for (String str : args) {
                             val += str + ' ';
                         }
+                        val = val.substring(0, val.length()-1);
                         addResult(val);
                         break;
-                    case "SLEEP":
-                        try { Thread.sleep(Integer.valueOf(args.get(0))); } catch (InterruptedException e) { e.printStackTrace(); }
+                    case "CHWORK":
+                        currentWork = commonComponent.getWork(args.get(0));
+                        break;
+                    case "MKWORK":
+                        currentWork = new Work(args.get(0));
+                        currentWork.setup();
+                        commonComponent.addWork(currentWork);
                         break;
                     case "DEFINE":
                         defineVar(args.get(0), args.get(1));
                         break;
-
                     case "ADD":
                         defineVar(args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(2)))).replaceFirst(""));
-                        break;
-                    case "SAVE":
-                        try {
-                            if (args.size() >= 1) {
-                                commonComponent.save(args.get(0));
-                            } else {
-                                commonComponent.save(Config.DATA_FILE);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
                         break;
                     case "HIBERNATE":
                         try {
@@ -141,6 +187,9 @@ public class Daemon extends Thread {
         }
 
         commandArray.clear();
+
+        input(loadedScript);
+
         return result;
     }
 
@@ -152,7 +201,7 @@ public class Daemon extends Thread {
     private int gotoLabel(String label) {
         int i = 0;
         for (; i < commandArray.size(); i++) {
-            if (commandArray.get(i).equals("LABEL " + label)) {
+            if (commandArray.get(i).toUpperCase().equals("LABEL " + label.toUpperCase())) {
                 return i;
             }
         }
@@ -171,6 +220,13 @@ public class Daemon extends Thread {
         return org;
     }
 
+    public String getCurrentWorkName() {
+        if (currentWork == null) {
+            return "(null)";
+        }
+        return currentWork.getName();
+    }
+
     public void input(String commands) {
         Scanner scanner = new Scanner(commands);
         while (scanner.hasNextLine()) {
@@ -181,12 +237,18 @@ public class Daemon extends Thread {
             } else if (command.toUpperCase().equals("EXIT")) {
                 try {
                     channel.close();
+                    commandArray.clear();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 break;
             } else if (command.equals("")) {
-                continue;
+                if (isQuickMode) {
+                    eval();
+                    break;
+                } else {
+                    continue;
+                }
             }
             this.commandArray.add(command);
         }
@@ -198,7 +260,7 @@ public class Daemon extends Thread {
             String command = scanner.nextLine();
             input(command);
         } catch (NoSuchElementException e) {
-            //input("EVAL");
+            //if (isQuickMode) { input("EVAL"); }
         }
     }
 
@@ -233,12 +295,13 @@ public class Daemon extends Thread {
                     channel = listener.accept();
                     System.out.printf("[ACCEPT %s]%n", channel);
                 }
+                channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(getCurrentWorkName() + "> ")));
                 ByteBuffer buffer = ByteBuffer.allocate(1024);
                 channel.read(buffer);
                 buffer.flip();
                 String in = Charset.forName("UTF-8").decode(buffer).toString();
                 input(in);
-                System.out.println("> " + in);
+                System.out.println(getCurrentWorkName() + "> " + in + "");
                 for (String result : resultArray) {
                     channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(result + "\n")));
                 }
@@ -250,5 +313,7 @@ public class Daemon extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        commonComponent.getPollingMonitor().shutdown();
     }
 }

@@ -4,33 +4,52 @@ import com.jcraft.jsch.JSchException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ExpSet implements Serializable {
+    Work work;
+    private UUID uuid;
     String seriesName;
     String preScript;
     String postScript;
-    String script;
+    String exec;
     ArrayList<Exp> expList;
     ArrayList<ExpPack> expPackList;
 
-    public ExpSet(String seriesName, String preScript, String postScript, String script, ArrayList<Exp> expList) {
+    @Override
+    public String toString() {
+        return uuid.toString() + "\n" +
+                "# " + seriesName + ": Pack(" + expPackList.size() + "), Exp(" + expList.size() + ")";
+    }
+
+    public ExpSet(Work work, String seriesName, String preScript, String postScript, String exec, ArrayList<Exp> expList) {
+        uuid = UUID.randomUUID();
+        this.work = work;
         this.seriesName = seriesName;
         this.preScript = preScript;
         this.postScript = postScript;
-        this.script = script;
+        this.exec = exec;
         this.expList = expList;
     }
 
-    public ExpSet(String seriesName, String preScript, String postScript, String script) {
-        this(seriesName, preScript, postScript, script, new ArrayList<>());
+    public ExpSet(Work work, String seriesName, String preScript, String postScript, String exec) {
+        this(work, seriesName, preScript, postScript, exec, new ArrayList<>());
     }
 
     public void addExp(Exp exp) {
         exp.setExpSet(this);
         expList.add(exp);
+    }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public Work getWork() {
+        return work;
     }
 
     private ArrayList<ExpPack> makeExpPacks() {
@@ -55,18 +74,24 @@ public class ExpSet implements Serializable {
         return expPackList;
     }
 
-    public void run(PollingMonitor monitor) throws JSchException, InterruptedException {
+    public void run(PollingMonitor monitor) {
         for (int c = 0; c <= Config.MAX_RERUN; c++) {
             expPackList = makeExpPacks();
 
-            SshSession ssh = new AbciSshSession();
-            ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
-            for (ExpPack expPack : expPackList) {
-                exec.submit(new Submitter(expPack, monitor, ssh));
+            try {
+                SshSession ssh = new AbciSshSession();
+                ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
+                for (ExpPack expPack : expPackList) {
+                    exec.submit(new Submitter(expPack, monitor, ssh));
+                }
+                exec.shutdown();
+                exec.awaitTermination(1, TimeUnit.DAYS);
+                ssh.disconnect();
+            } catch (JSchException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            exec.shutdown();
-            exec.awaitTermination(1, TimeUnit.DAYS);
-            ssh.disconnect();
 
             while (true) {
                 int finished = 0;

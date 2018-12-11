@@ -74,7 +74,7 @@ public class Exp implements Serializable {
     }
 
     public void updateResult(SshSession ssh) throws JSchException {
-        String workDir = Config.WORKBASE_DIR + getExpPack().getUuid().toString() + "/";
+        String workDir = Config.REMOTE_WORKDIR + "/" + getExpPack().getUuid().toString() + "/";
 
         for (int c = 0; c <= Config.MAX_CAT_RECHECK; c++) {
             SshChannel ch = ssh.exec("cat " + getUuid().toString() + "/_output.json", workDir);

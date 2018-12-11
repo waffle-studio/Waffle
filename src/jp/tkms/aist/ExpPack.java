@@ -47,7 +47,7 @@ public class ExpPack implements Serializable {
     public void run(PollingMonitor monitor, SshSession ssh) throws JSchException {
         if (expList.isEmpty()) { return; }
 
-        String workDir = Config.WORKBASE_DIR + uuid.toString() + "/";
+        String workDir = Config.REMOTE_WORKDIR + "/" + uuid.toString() + "/";
 
         //SshSession ssh = new AbciSshSession();
 
@@ -56,8 +56,12 @@ public class ExpPack implements Serializable {
         ssh.exec("rm -f run.txt", workDir);
         String runtxt = "";
         for (Exp exp : expList) {
+            String exec = exp.getExpSet().exec;
+            if (exec.length() > 0 && exec.charAt(0) != '/') {
+                exec = exp.getExpSet().getWork().getRemoteWorkBase() + "/" + exec;
+            }
             runtxt += "echo '" + exp.getUuid().toString() + " " +
-                    "\"" + exp.getExpSet().script + "\" " + exp.getArgs() + "' >> run.txt;";
+                    "\"" + exec + "\" " + exp.getArgs() + "' >> run.txt;";
             exp.setStatus(Exp.Status.SUBMITTED);
         }
         ssh.exec(runtxt, workDir);
@@ -71,6 +75,7 @@ public class ExpPack implements Serializable {
                 "mkdir -p $1\n" +
                 "cd $1\n" +
                 "shift 2\n" +
+                "chmod a+x $CMD\n" +
                 "$CMD $*\n" +
                 "cp _output.json ${RESDIR}/\n' > run.sh && " +
                 "chmod a+x run.sh && " +
