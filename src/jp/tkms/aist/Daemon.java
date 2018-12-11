@@ -27,7 +27,7 @@ public class Daemon extends Thread {
         varMap = new HashMap<>();
         resultArray = new ArrayList<>();
         channel = null;
-        currentWork = null;
+        currentWork = commonComponent.getWork(commonComponent.getHibernateWork());
         isQuickMode = Config.ENABLE_QUICKMODE;
     }
 
@@ -84,6 +84,8 @@ public class Daemon extends Thread {
                         expSet.run(commonComponent.getPollingMonitor());
                         break;
                     }
+
+                    // COMPLEX
                     case "LIST": {
                         switch (args.get(0).toUpperCase()) {
                             case "SET":
@@ -91,6 +93,14 @@ public class Daemon extends Thread {
                                     addResult(expSet.toString());
                                 }
                                 break;
+                            case "WORK":
+                                for (Work work : commonComponent.getWorkMap().values()) {
+                                    addResult(work.toString());
+                                }
+                                break;
+                            default:
+                                addResult("#INVALID COMMAND(LIST): " + commandArray.get(i));
+
                         }
                         break;
                     }
@@ -121,6 +131,10 @@ public class Daemon extends Thread {
                         break;
                     case "HIBERNATE":
                         try {
+                            for (Work work: commonComponent.getWorkMap().values()) {
+                                work.save();
+                            }
+                            commonComponent.setHibernateWork(currentWork.getName());
                             commonComponent.save(Config.DATA_FILE);
                         } catch (IOException e) {
                             e.printStackTrace();

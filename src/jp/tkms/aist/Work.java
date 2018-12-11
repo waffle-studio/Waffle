@@ -14,6 +14,12 @@ public class Work implements Serializable {
 
     private HashMap<UUID, ExpSet> expSetMap;
 
+    @Override
+    public String toString() {
+        return name + "\n" +
+                "# Set(" + expSetMap.size() + ")";
+    }
+
     public Work(String name) {
         this.name = name;
         workBase = new File(Config.LOCAL_WORKBASE_DIR + "/" + name);

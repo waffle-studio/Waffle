@@ -6,10 +6,24 @@ import java.util.HashMap;
 public class CommonComponent implements Serializable {
     private PollingMonitor pollingMonitor;
     private HashMap<String, Work> workMap;
+    private String hibernateWork;
 
     public CommonComponent(){
         pollingMonitor = null;
         workMap = new HashMap<>();
+        hibernateWork = null;
+    }
+
+    public String getHibernateWork() {
+        return hibernateWork;
+    }
+
+    public void setHibernateWork(String hibernateWork) {
+        this.hibernateWork = hibernateWork;
+    }
+
+    public HashMap<String, Work> getWorkMap() {
+        return workMap;
     }
 
     public HashMap<String, Work> addWork(Work work) {
@@ -23,6 +37,7 @@ public class CommonComponent implements Serializable {
             File workDir = new File(Config.LOCAL_WORKBASE_DIR + "/" + name);
             if (workDir.isDirectory()) {
                 work = Work.load(name);
+                addWork(work);
             }
         }
         return work;
