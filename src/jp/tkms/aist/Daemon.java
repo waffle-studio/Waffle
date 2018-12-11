@@ -44,7 +44,7 @@ public class Daemon extends Thread {
             }
 
             try {
-                switch (command) {
+                switch (command.toUpperCase()) {
                     case "ECHO":
                         String val = "";
                         for (String str : args) {
@@ -175,10 +175,10 @@ public class Daemon extends Thread {
         Scanner scanner = new Scanner(commands);
         while (scanner.hasNextLine()) {
             String command = scanner.nextLine();
-            if (command.equals("EVAL")) {
+            if (command.toUpperCase().equals("EVAL")) {
                 eval();
                 break;
-            } else if (command.equals("EXIT")) {
+            } else if (command.toUpperCase().equals("EXIT")) {
                 try {
                     channel.close();
                 } catch (IOException e) {
