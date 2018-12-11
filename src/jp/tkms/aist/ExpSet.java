@@ -9,7 +9,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class ExpSet implements Serializable {
+public class ExpSet extends Thread implements Serializable {
+    PollingMonitor pollingMonitor;
     Work work;
     private UUID uuid;
     String seriesName;
@@ -25,7 +26,7 @@ public class ExpSet implements Serializable {
                 "# " + seriesName + ": Pack(" + expPackList.size() + "), Exp(" + expList.size() + ")";
     }
 
-    public ExpSet(Work work, String seriesName, String preScript, String postScript, String exec, ArrayList<Exp> expList) {
+    public ExpSet(PollingMonitor pollingMonitor, Work work, String seriesName, String preScript, String postScript, String exec, ArrayList<Exp> expList) {
         uuid = UUID.randomUUID();
         this.work = work;
         this.seriesName = seriesName;
@@ -35,8 +36,8 @@ public class ExpSet implements Serializable {
         this.expList = expList;
     }
 
-    public ExpSet(Work work, String seriesName, String preScript, String postScript, String exec) {
-        this(work, seriesName, preScript, postScript, exec, new ArrayList<>());
+    public ExpSet(PollingMonitor pollingMonitor, Work work, String seriesName, String preScript, String postScript, String exec) {
+        this(pollingMonitor, work, seriesName, preScript, postScript, exec, new ArrayList<>());
     }
 
     public void addExp(Exp exp) {
@@ -74,7 +75,8 @@ public class ExpSet implements Serializable {
         return expPackList;
     }
 
-    public void run(PollingMonitor monitor) {
+    @Override
+    public void run() {
         for (int c = 0; c <= Config.MAX_RERUN; c++) {
             expPackList = makeExpPacks();
 
@@ -82,7 +84,7 @@ public class ExpSet implements Serializable {
                 SshSession ssh = new AbciSshSession();
                 ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
                 for (ExpPack expPack : expPackList) {
-                    exec.submit(new Submitter(expPack, monitor, ssh));
+                    exec.submit(new Submitter(expPack, pollingMonitor, ssh));
                 }
                 exec.shutdown();
                 exec.awaitTermination(1, TimeUnit.DAYS);

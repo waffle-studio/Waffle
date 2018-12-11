@@ -31,8 +31,8 @@ public class Work implements Serializable {
         return name;
     }
 
-    public ExpSet newExpSet(String seriesName, String preScript, String postScript, String exec) {
-        ExpSet expSet = new ExpSet(this, getName() + "_" + seriesName, preScript, postScript, exec);
+    public ExpSet newExpSet(PollingMonitor pollingMonitor, String seriesName, String preScript, String postScript, String exec) {
+        ExpSet expSet = new ExpSet(pollingMonitor, this, getName() + "_" + seriesName, preScript, postScript, exec);
         expSetMap.put(expSet.getUuid(), expSet);
         return expSet;
     }

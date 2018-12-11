@@ -65,7 +65,7 @@ public class Daemon extends Thread {
                         loadedScript += (currentWork.getTextFile(args.get(0)) + "\n");
                         break;
                     case "NEWSET":
-                        UUID expSetId = currentWork.newExpSet(args.get(1), args.get(2), args.get(3), args.get(4)).getUuid();
+                        UUID expSetId = currentWork.newExpSet(commonComponent.getPollingMonitor(), args.get(1), args.get(2), args.get(3), args.get(4)).getUuid();
                         defineVar(args.get(0), expSetId.toString());
                         break;
                     case "ADDEXP": {
@@ -81,7 +81,7 @@ public class Daemon extends Thread {
                     }
                     case "RUNEXP": {
                         ExpSet expSet = currentWork.getExpSet(args.get(0));
-                        expSet.run(commonComponent.getPollingMonitor());
+                        expSet.start();
                         break;
                     }
 
