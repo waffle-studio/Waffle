@@ -108,14 +108,15 @@ public class Daemon extends Thread {
 
 
                     //COMMON
-                    case "ECHO":
+                    case "ECHO": {
                         String val = "";
                         for (String str : args) {
                             val += str + ' ';
                         }
-                        val = val.substring(0, val.length()-1);
+                        val = val.substring(0, val.length() - 1);
                         addResult(val);
                         break;
+                    }
                     case "CHWORK":
                         currentWork = commonComponent.getWork(args.get(0));
                         break;
@@ -127,6 +128,16 @@ public class Daemon extends Thread {
                     case "DEFINE":
                         defineVar(args.get(0), args.get(1));
                         break;
+                    case "STRCAT": {
+                        String name = args.get(0);
+                        args.remove(0);
+                        String val = "";
+                        for (String str : args) {
+                            val += str;
+                        }
+                        defineVar(name, val);
+                        break;
+                    }
                     case "COMPUTE":
                         switch (args.get(2)) {
                             case "/":
