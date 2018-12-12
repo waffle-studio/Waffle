@@ -1,4 +1,6 @@
-define cycle 0
+add cycle $cycle 1
+echo cycle $cycle
+if $cycle >= 3 end
 define count 0
 define a2 10
 strcat testname test $cycle
@@ -11,3 +13,4 @@ add count $count 1
 if $count < 5 loop1
 echo END
 RUNEXP $set0
+label end

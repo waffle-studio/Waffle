@@ -14,7 +14,8 @@ public class Main {
         PollingMonitor monitor = commonComponent.getPollingMonitor();
         monitor.start();
 
-        Daemon daemon = new Daemon(commonComponent);
+        Daemon daemon = Daemon.getInstance(commonComponent);
+
         daemon.start();
 
         //Date endDate = new Date();

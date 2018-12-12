@@ -23,6 +23,7 @@ public class Exp implements Serializable {
     private Status status;
     private String result;
 
+
     public Exp(String args) {
         uuid = UUID.randomUUID();
         this.args = args;
@@ -116,6 +117,7 @@ public class Exp implements Serializable {
 
     @Override
     public String toString() {
-        return "(Exp:" + uuid.toString() + ") " + args;
+        return uuid.toString() + "\n" +
+                "# " + args;
     }
 }

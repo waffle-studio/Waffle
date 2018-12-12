@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class ExpSet extends Thread implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    PollingMonitor pollingMonitor;
+    CommonComponent commonComponent;
     Work work;
     private UUID uuid;
     String seriesName;
@@ -28,9 +28,9 @@ public class ExpSet extends Thread implements Serializable {
                 "# " + seriesName + ": Pack(" + expPackList.size() + "), Exp(" + expList.size() + ")";
     }
 
-    public ExpSet(PollingMonitor pollingMonitor, Work work, String seriesName, String preScript, String postScript, String exec, ArrayList<Exp> expList) {
+    public ExpSet(CommonComponent commonComponent, Work work, String seriesName, String preScript, String postScript, String exec, ArrayList<Exp> expList) {
         uuid = UUID.randomUUID();
-        this.pollingMonitor = pollingMonitor;
+        this.commonComponent = commonComponent;
         this.work = work;
         this.seriesName = seriesName;
         this.preScript = preScript;
@@ -39,8 +39,8 @@ public class ExpSet extends Thread implements Serializable {
         this.expList = expList;
     }
 
-    public ExpSet(PollingMonitor pollingMonitor, Work work, String seriesName, String preScript, String postScript, String exec) {
-        this(pollingMonitor, work, seriesName, preScript, postScript, exec, new ArrayList<>());
+    public ExpSet(CommonComponent commonComponent, Work work, String seriesName, String preScript, String postScript, String exec) {
+        this(commonComponent, work, seriesName, preScript, postScript, exec, new ArrayList<>());
     }
 
     public void addExp(Exp exp) {
@@ -80,6 +80,8 @@ public class ExpSet extends Thread implements Serializable {
 
     @Override
     public void run() {
+        Daemon.getInstance(commonComponent).eval(work, preScript);
+
         for (int c = 0; c <= Config.MAX_RERUN; c++) {
             expPackList = makeExpPacks();
 
@@ -87,7 +89,7 @@ public class ExpSet extends Thread implements Serializable {
                 SshSession ssh = new AbciSshSession();
                 ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
                 for (ExpPack expPack : expPackList) {
-                    exec.submit(new Submitter(expPack, pollingMonitor, ssh));
+                    exec.submit(new Submitter(expPack, commonComponent.getPollingMonitor(), ssh));
                 }
                 exec.shutdown();
                 exec.awaitTermination(1, TimeUnit.DAYS);
@@ -126,6 +128,8 @@ public class ExpSet extends Thread implements Serializable {
                 break;
             }
         }
+
+        Daemon.getInstance(commonComponent).eval(work, postScript);
     }
 
     class Submitter implements Runnable {
