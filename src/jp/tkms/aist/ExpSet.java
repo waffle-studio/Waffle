@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ExpSet extends Thread implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     PollingMonitor pollingMonitor;
     Work work;
     private UUID uuid;

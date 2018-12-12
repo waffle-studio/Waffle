@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.util.UUID;
 
 public class Exp implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public static enum Status{
         CREATED,
         SUBMITTED,

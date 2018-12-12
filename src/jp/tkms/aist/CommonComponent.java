@@ -4,6 +4,8 @@ import java.io.*;
 import java.util.HashMap;
 
 public class CommonComponent implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private PollingMonitor pollingMonitor;
     private HashMap<String, Work> workMap;
     private String hibernateWork;

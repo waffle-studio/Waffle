@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ExpPack implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public static enum Status{
         CREATED,
         SUBMITTED,

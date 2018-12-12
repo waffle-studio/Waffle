@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 public class PollingMonitor extends Thread implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private boolean isAlive = false;
     private ArrayList<ExpPack> expPackList = new ArrayList<>();
     private String prevQstatText = "";
