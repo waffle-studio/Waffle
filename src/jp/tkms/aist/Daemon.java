@@ -97,6 +97,20 @@ public class Daemon extends Thread {
                         expSet.start();
                         break;
                     }
+                    case "LOCALEXEC": {
+                        String c = args.get(0);
+                        args.remove(0);
+                        String[] a = (String[]) args.toArray();
+                        addResult(resultArray, "EXITCODE:" + currentWork.execOnLocal(c, a));
+                        break;
+                    }
+                    case "REMOTEEXEC": {
+                        String c = args.get(0);
+                        args.remove(0);
+                        String[] a = (String[]) args.toArray();
+                        addResult(resultArray, "EXITCODE:" + currentWork.execOnRemote(c, a));
+                        break;
+                    }
 
 
                     // COMPLEX

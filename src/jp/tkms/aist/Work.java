@@ -95,6 +95,42 @@ public class Work implements Serializable {
         return "";
     }
 
+    public int execOnLocal(String exec, String... args) {
+        String execCommand = exec;
+        int res = -1;
+        File exeFile = new File(workBase.getPath() + "/" + exec);
+        if (exeFile.exists() && !exeFile.canExecute()) {
+            exeFile.setExecutable(true);
+            execCommand = exeFile.getPath();
+        }
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process process = runtime.exec(exec, args, workBase);
+            res = process.exitValue();
+            process.destroy();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    public int execOnRemote(String exec, String... args) {
+        int res = -1;
+
+        String arg = "";
+        for (String a: args) { arg += " " + a; }
+
+        try {
+            SshSession ssh = new AbciSshSession();
+            SshChannel channel = ssh.exec(exec+arg, getRemoteWorkBase());
+            res = channel.getExitStatus();
+        } catch (JSchException e) {
+            e.printStackTrace();
+        }
+
+        return res;
+    }
+
     public void save() {
         try {
             FileOutputStream fileOutputStream = new FileOutputStream(getWorkDatFileName(getName()));
