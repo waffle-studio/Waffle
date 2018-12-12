@@ -133,12 +133,12 @@ public class Daemon extends Thread {
                     case "LIST": {
                         switch (args.get(0).toUpperCase()) {
                             case "EXP":
-                                for (Exp exp : currentWork.getExpSetMap().get(args.get(1)).expList) {
+                                for (Exp exp : currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expList) {
                                     addResult(resultArray, exp.toString());
                                 }
                                 break;
                             case "PACK":
-                                for (ExpPack expPack : currentWork.getExpSetMap().get(args.get(1)).expPackList) {
+                                for (ExpPack expPack : currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expPackList) {
                                     addResult(resultArray, expPack.toString());
                                 }
                                 break;
