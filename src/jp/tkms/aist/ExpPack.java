@@ -23,6 +23,12 @@ public class ExpPack implements Serializable {
     private String jobId;
     private Status status;
 
+    @Override
+    public String toString() {
+        return uuid.toString() + "\n" +
+                "# jobid: " + jobId;
+    }
+
     public ExpPack() {
         uuid = UUID.randomUUID();
         expList = new ArrayList<>();

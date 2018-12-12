@@ -9,12 +9,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 
 public class ResultSubmitter {
-    public static synchronized String post(String seriesName, String resultJson) {
+    public static synchronized String post(String workName, String resultJson) {
 
         HttpURLConnection con = null;
         StringBuffer result = new StringBuffer();
         try {
-            String postText = "app=upload&name=" + seriesName + "&json=" + URLEncoder.encode(resultJson, "UTF-8");
+            String postText = "app=upload&name=" + workName + "&json=" + URLEncoder.encode(resultJson, "UTF-8");
 
             URL url = new URL(Config.UPLOAD_URL);
             con = (HttpURLConnection) url.openConnection();

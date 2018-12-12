@@ -94,6 +94,11 @@ public class Daemon extends Thread {
                                     addResult(expSet.toString());
                                 }
                                 break;
+                            case "POLLING":
+                                for (ExpPack expPack : commonComponent.getPollingMonitor().getExpPackList()) {
+                                    addResult(expPack.toString());
+                                }
+                                break;
                             case "WORK":
                                 for (Work work : commonComponent.getWorkMap().values()) {
                                     addResult(work.toString());

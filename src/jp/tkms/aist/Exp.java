@@ -75,6 +75,10 @@ public class Exp implements Serializable {
         return uuid;
     }
 
+    public Work getWork() {
+        return expSet.work;
+    }
+
     public void updateResult(SshSession ssh) throws JSchException {
         String workDir = Config.REMOTE_WORKDIR + "/" + getExpPack().getUuid().toString() + "/";
 
@@ -106,7 +110,7 @@ public class Exp implements Serializable {
     private class Submitter extends Thread {
         @Override
         public void run() {
-            ResultSubmitter.post(getExpSet().seriesName, getResult());
+            ResultSubmitter.post(getWork().getName(), getResult());
         }
     }
 

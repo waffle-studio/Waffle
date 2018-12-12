@@ -16,6 +16,10 @@ public class PollingMonitor extends Thread implements Serializable {
         expPackList.add(expPack);
     }
 
+    public ArrayList<ExpPack> getExpPackList() {
+        return expPackList;
+    }
+
     public void shutdown() {
         isAlive = false;
     }

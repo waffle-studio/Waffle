@@ -30,6 +30,7 @@ public class ExpSet extends Thread implements Serializable {
 
     public ExpSet(PollingMonitor pollingMonitor, Work work, String seriesName, String preScript, String postScript, String exec, ArrayList<Exp> expList) {
         uuid = UUID.randomUUID();
+        this.pollingMonitor = pollingMonitor;
         this.work = work;
         this.seriesName = seriesName;
         this.preScript = preScript;
