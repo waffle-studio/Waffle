@@ -136,6 +136,7 @@ public class Work implements Serializable {
             SshSession ssh = new AbciSshSession();
             SshChannel channel = ssh.exec(arg, getRemoteWorkBase());
             res = channel.getExitStatus();
+            ssh.disconnect();
         } catch (JSchException e) {
             e.printStackTrace();
         }
