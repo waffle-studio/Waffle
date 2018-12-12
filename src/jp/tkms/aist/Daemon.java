@@ -256,12 +256,22 @@ public class Daemon extends Thread {
 
     private String defineVar(String name, String value) {
         varMap.put('$' + name, value);
+        if (currentWork != null) {
+            currentWork.getVarMap().put('$' + name, value);
+        }
         return value;
     }
 
     private String appearVar(String org) {
         if (org.length() > 0 && org.charAt(0) == '$') {
-            return varMap.get(org);
+            String result = null;
+            if (currentWork != null) {
+                result = currentWork.getVarMap().get(org);
+            }
+            if (result == null) {
+                result = varMap.get(org);
+            }
+            return result;
         }
         return org;
     }

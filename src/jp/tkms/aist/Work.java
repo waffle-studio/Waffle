@@ -13,6 +13,7 @@ public class Work implements Serializable {
     private File workBase;
 
     private HashMap<UUID, ExpSet> expSetMap;
+    private HashMap<String, String> varMap;
 
     @Override
     public String toString() {
@@ -25,6 +26,7 @@ public class Work implements Serializable {
         workBase = new File(Config.LOCAL_WORKBASE_DIR + "/" + name);
 
         expSetMap = new HashMap<>();
+        varMap = new HashMap<>();
     }
 
     public String getName() {
@@ -39,6 +41,10 @@ public class Work implements Serializable {
 
     public HashMap<UUID, ExpSet> getExpSetMap() {
         return expSetMap;
+    }
+
+    public HashMap<String, String> getVarMap() {
+        return varMap;
     }
 
     public ExpSet getExpSet(String id) {
