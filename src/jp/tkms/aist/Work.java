@@ -95,34 +95,46 @@ public class Work implements Serializable {
         return "";
     }
 
-    public int execOnLocal(String exec, String... args) {
-        String execCommand = exec;
+    public int execOnLocal(String... commands) {
         int res = -1;
-        File exeFile = new File(workBase.getPath() + "/" + exec);
+        File exeFile = new File(workBase.getPath() + "/" + commands[0]);
         if (exeFile.exists() && !exeFile.canExecute()) {
             exeFile.setExecutable(true);
-            execCommand = exeFile.getPath();
+            commands[0] = exeFile.getPath();
         }
         Runtime runtime = Runtime.getRuntime();
         try {
-            Process process = runtime.exec(exec, args, workBase);
+            Process process = runtime.exec(commands, null, workBase);
+            process.waitFor();
             res = process.exitValue();
+            BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            try {
+                for (;;) {
+                    String line = br.readLine();
+                    if (line == null) break;
+                    System.out.println(line);
+                }
+            } finally {
+                br.close();
+            }
             process.destroy();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return res;
     }
 
-    public int execOnRemote(String exec, String... args) {
+    public int execOnRemote(String... commands) {
         int res = -1;
 
-        String arg = "";
-        for (String a: args) { arg += " " + a; }
+        String arg = "if [ -e " +commands[0]+ " -a ! -x " +commands[0]+ " ]; then chmod a+x " + commands[0] + ";fi;";
+        for (String a: commands) { arg += " " + a; }
 
         try {
             SshSession ssh = new AbciSshSession();
-            SshChannel channel = ssh.exec(exec+arg, getRemoteWorkBase());
+            SshChannel channel = ssh.exec(arg, getRemoteWorkBase());
             res = channel.getExitStatus();
         } catch (JSchException e) {
             e.printStackTrace();
