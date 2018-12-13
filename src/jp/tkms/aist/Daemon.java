@@ -374,6 +374,11 @@ public class Daemon extends Thread {
         Scanner scanner = new Scanner(commands);
         while (scanner.hasNextLine()) {
             String command = scanner.nextLine();
+
+            if (command.equals(".")) {
+                command = prevInput;
+            }
+
             if (command.toUpperCase().equals("EVAL")) {
                 resultArray = eval(currentWork, commandArray);
                 break;
@@ -393,9 +398,6 @@ public class Daemon extends Thread {
                 } else {
                     continue;
                 }
-            } else if (command.equals(".")) {
-                command = prevInput;
-                break;
             }
             this.commandArray.add(command);
             prevInput = command;
