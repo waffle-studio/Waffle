@@ -4,6 +4,6 @@ LABEL loop1
 echo HAPPY10000 0 $count
 ADDEXP $set0 HAPPY10000 0 $count 
 add count $count 1
-if $count < 10000 loop1
+if $count < 1 loop1
 echo END
 RUNEXP $set0

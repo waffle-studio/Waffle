@@ -113,11 +113,12 @@ public class Work implements Serializable {
 
             BufferedReader brOut = new BufferedReader(new InputStreamReader(process.getInputStream()));
             try {
-                for (;;) {
+                for (; ; ) {
                     String line = brOut.readLine();
                     if (line == null) break;
                     out += line + "\n";
                 }
+            } catch (IOException e) {
             } finally {
                 brOut.close();
             }
@@ -129,6 +130,7 @@ public class Work implements Serializable {
                     if (line == null) break;
                     out += line + "\n";
                 }
+            } catch (IOException e) {
             } finally {
                 brErr.close();
             }
