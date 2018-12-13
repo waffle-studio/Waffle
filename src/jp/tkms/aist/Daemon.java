@@ -69,11 +69,14 @@ public class Daemon extends Thread {
                         commonComponent.unloadWork(currentWork);
                         currentWork = this.currentWork = null;
                         break;
-                    case "SCRIPT":
+                    case "SCRIPT": {
                         String loadedScript = currentWork.getTextFile(args.get(0));
-                        addResult(resultArray, loadedScript);
-                        eval(currentWork, loadedScript);
+                        ArrayList<String> result = eval(currentWork, loadedScript);
+                        for (String r : result) {
+                            addResult(resultArray, r);
+                        }
                         break;
+                    }
                     case "NEWSET":
                         UUID expSetId = currentWork.newExpSet(commonComponent,
                                 args.get(1),
