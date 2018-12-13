@@ -294,6 +294,9 @@ public class Daemon extends Thread {
                         break;
                     case "LABEL":
                         break;
+                    case "POLLING_FORCECHECK":
+                        commonComponent.getPollingMonitor().forceCheck();
+                        break;
                     case "SHUTDOWN":
                         shutdown();
                         break;

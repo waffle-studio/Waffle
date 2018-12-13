@@ -10,7 +10,7 @@ public class PollingMonitor extends Thread implements Serializable {
 
     private boolean isAlive = false;
     private ArrayList<ExpPack> expPackList = new ArrayList<>();
-    private String prevQstatText = "";
+    private String prevQstatText = "FIRST_TIME";
 
     public void addExpPack(ExpPack expPack) {
         expPackList.add(expPack);
@@ -20,7 +20,7 @@ public class PollingMonitor extends Thread implements Serializable {
         return expPackList;
     }
 
-    public void forceCheck() { prevQstatText = "FORCECHECK"; }
+    public void forceCheck() { prevQstatText = "FORCE_CHECK"; }
 
     public void shutdown() {
         isAlive = false;
