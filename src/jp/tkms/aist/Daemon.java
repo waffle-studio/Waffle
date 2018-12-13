@@ -23,6 +23,7 @@ public class Daemon extends Thread {
     private SocketChannel channel;
     private Work currentWork;
     private boolean isQuickMode;
+    private String prevInput;
 
     public static Daemon getInstance(CommonComponent commonComponent) {
         if (instance == null) {
@@ -38,6 +39,7 @@ public class Daemon extends Thread {
         channel = null;
         currentWork = commonComponent.getWork(commonComponent.getHibernateWork());
         isQuickMode = Config.ENABLE_QUICKMODE;
+        prevInput = "";
     }
 
     public ArrayList<String> eval(Work currentWork, ArrayList<String> commandArray) {
@@ -379,6 +381,7 @@ public class Daemon extends Thread {
                 try {
                     channel.close();
                     commandArray.clear();
+                    prevInput = "";
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -390,8 +393,12 @@ public class Daemon extends Thread {
                 } else {
                     continue;
                 }
+            } else if (command.equals(".")) {
+                command = prevInput;
+                break;
             }
             this.commandArray.add(command);
+            prevInput = command;
         }
         return resultArray;
     }
