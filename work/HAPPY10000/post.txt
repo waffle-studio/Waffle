@@ -1,2 +1,2 @@
-echo pre script
+echo post script
 localexec ./timestamp.sh
