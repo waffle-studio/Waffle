@@ -20,6 +20,8 @@ public class PollingMonitor extends Thread implements Serializable {
         return expPackList;
     }
 
+    public void forceCheck() { prevQstatText = "FORCECHECK"; }
+
     public void shutdown() {
         isAlive = false;
     }
