@@ -95,8 +95,9 @@ public class Work implements Serializable {
         return "";
     }
 
-    public int execOnLocal(String... commands) {
+    public ExecuteResult execOnLocal(String... commands) {
         int res = -1;
+        String out = "";
         File exeFile = new File(workBase.getPath() + "/" + commands[0]);
         if (exeFile.exists()) {
             if (!exeFile.canExecute()) {
@@ -109,27 +110,41 @@ public class Work implements Serializable {
             Process process = runtime.exec(commands, null, workBase);
             process.waitFor();
             res = process.exitValue();
-            BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            BufferedReader brOut = new BufferedReader(new InputStreamReader(process.getInputStream()));
             try {
                 for (;;) {
-                    String line = br.readLine();
+                    String line = brOut.readLine();
                     if (line == null) break;
-                    System.out.println(line);
+                    out += line + "\n";
                 }
             } finally {
-                br.close();
+                brOut.close();
             }
+
+            BufferedReader brErr = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            try {
+                for (;;) {
+                    String line = brErr.readLine();
+                    if (line == null) break;
+                    out += line + "\n";
+                }
+            } finally {
+                brErr.close();
+            }
+
             process.destroy();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return res;
+        return new ExecuteResult(res, out, null);
     }
 
-    public int execOnRemote(String... commands) {
+    public ExecuteResult execOnRemote(String... commands) {
         int res = -1;
+        String out = "";
 
         String arg = "if [ -e " +commands[0]+ " -a ! -x " +commands[0]+ " ]; then chmod a+x " + commands[0] + ";fi;";
         for (String a: commands) { arg += " " + a; }
@@ -138,12 +153,14 @@ public class Work implements Serializable {
             SshSession ssh = new AbciSshSession();
             SshChannel channel = ssh.exec(arg, getRemoteWorkBase());
             res = channel.getExitStatus();
+            out += channel.getStdout();
+            out += channel.getStderr();
             ssh.disconnect();
         } catch (JSchException e) {
             e.printStackTrace();
         }
 
-        return res;
+        return new ExecuteResult(res, out, null);
     }
 
     public void save() {

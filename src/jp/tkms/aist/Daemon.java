@@ -98,11 +98,15 @@ public class Daemon extends Thread {
                         break;
                     }
                     case "LOCALEXEC": {
-                        addResult(resultArray, "EXITCODE:" + currentWork.execOnLocal(args.toArray(new String[args.size()])));
+                        ExecuteResult result = currentWork.execOnLocal(args.toArray(new String[args.size()]));
+                        addResult(resultArray, result.getOut());
+                        addResult(resultArray, "EXITCODE:" + result.getExitCode());
                         break;
                     }
                     case "REMOTEEXEC": {
-                        addResult(resultArray, "EXITCODE:" + currentWork.execOnRemote(args.toArray(new String[args.size()])));
+                        ExecuteResult result = currentWork.execOnRemote(args.toArray(new String[args.size()]));
+                        addResult(resultArray, result.getOut());
+                        addResult(resultArray, "EXITCODE:" + result.getExitCode());
                         break;
                     }
 

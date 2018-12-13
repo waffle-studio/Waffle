@@ -42,7 +42,8 @@ pydir="${datadir}exe/python/"
 
 ## in ~/oacis_work/XXXXXXXX/
 currentdir="`pwd`/"
-simlocaldir="${currentdir}sim/"
+localsimdir="${currentdir}sim/"
+localanadir="${currentdir}ana/"
 
 echo "${testno} ${cycno}" > input.txt 
 
@@ -68,10 +69,10 @@ cat << _PROP_ > prop.json
   "all_agent_speed_zero_break":true,
 
   "create_log_dirs":true,
-  "agent_movement_history_file":"${simlocaldir}agent_movement_history.csv",
+  "agent_movement_history_file":"${localsimdir}agent_movement_history.csv",
   "checkpoints_of_agent_movement_history_log": "R0-1,J1,G1-3,G1-2,R1-3,R2-1,R2-2,X_R2-R3,J2,G2-2,R2-3,G3-2,G3-1,G4,R1R2-R3_JUNCTION",
-  "individual_pedestrians_log_dir":"${simlocaldir}",
-  "evacuated_agents_log_file":"${simlocaldir}evacuatedAgent.csv",
+  "individual_pedestrians_log_dir":"${localsimdir}",
+  "evacuated_agents_log_file":"${localsimdir}evacuatedAgent.csv",
   "node_order_of_evacuated_agents_log":"EXIT_R1,EXIT_R2,EXIT_R3",
 
   "clear_screenshot_dir":false,
@@ -144,9 +145,8 @@ if [ ! -e ${evacfile} ]; then
     exit -1
 fi
 
-mkdir -p ${simlocaldir}
-mkdir -p ${simdir}
-mkdir -p ${anadir}
+mkdir -p ${localsimdir}
+mkdir -p ${localanadir}
 #mkdir -p ${happydir}
 
 \cp -v ${evacfile} evacuatedAgent_base.csv
@@ -186,26 +186,20 @@ fi
 
 echo `date +"%Y%m%d%k%M%S"`" sim end ${stt} & ana start"
 
-echo rm -rf ${simdir:0:-1}
-rm -rf ${simdir:0:-1}
-
-echo "ruby ${exedir}extract_route.rb ${simlocaldir}"
-ruby ${exedir}extract_route.rb ${simlocaldir}
+echo "ruby ${exedir}extract_route.rb ${localsimdir}"
+ruby ${exedir}extract_route.rb ${localsimdir}
 stt=$?
 if [ ${stt} != 0 ]; then
     echo `date`" extract_route.rb error ${stt}" 1>&2
     exit ${stt}
 fi
 
-echo cp -r ${simlocaldir:0:-1} ${simdir:0:-1}
-cp -r ${simlocaldir:0:-1} ${simdir:0:-1}
-
-\cp -v ${simdir}analyzeAgent.csv ${simdir}route*.csv ${simdir}agent_movement_history.csv .
-\cp -v ${simdir}analyzeAgent.csv ${simdir}route*.csv ${simdir}agent_movement_history.csv ${anadir}
+\cp -v ${localsimdir}analyzeAgent.csv ${localsimdir}route*.csv ${localsimdir}agent_movement_history.csv .
+\cp -v ${localsimdir}analyzeAgent.csv ${localsimdir}route*.csv ${localsimdir}agent_movement_history.csv ${localanadir}
 
 cd ${exedir}java
-echo "java CMA_Analyze_map24 ${simdir} ${anadir} ${datadir}ana/cyc${cycno}/ ${pydir} < ${currentdir}input.txt"
-java CMA_Analyze_map24 ${simdir} ${anadir} ${datadir}ana/cyc${cycno}/ ${pydir} < ${currentdir}input.txt
+echo "java CMA_Analyze_map24 ${localsimdir} ${localanadir} ${datadir}ana/cyc${cycno}/ ${pydir} < ${currentdir}input.txt"
+java CMA_Analyze_map24 ${localsimdir} ${localanadir} ${datadir}ana/cyc${cycno}/ ${pydir} < ${currentdir}input.txt
 stt=$?
 if [ ${stt} != 0 ]; then
     cd -
@@ -214,19 +208,28 @@ if [ ${stt} != 0 ]; then
 fi
 cd -
 
-echo cp ${simdir}evacuatedAgent.csv ${anadir}evacuatedAgentO.csv
-cp ${simdir}evacuatedAgent.csv ${anadir}evacuatedAgentO.csv
+echo cp ${localsimdir}evacuatedAgent.csv ${localanadir}evacuatedAgentO.csv
+cp ${localsimdir}evacuatedAgent.csv ${localanadir}evacuatedAgentO.csv
 
-echo "ruby ${exedir}rough_plot_Happy_cma.rb ${exedir} ${anadir} ${scendir} ${cycno} ${testno}"
-ruby ${exedir}rough_plot_happy_cma.rb ${exedir} ${anadir} ${scendir} ${cycno} ${testno}
+echo "ruby ${exedir}rough_plot_Happy_cma.rb ${exedir} ${localanadir} ${scendir} ${cycno} ${testno}"
+ruby ${exedir}rough_plot_happy_cma.rb ${exedir} ${localanadir} ${scendir} ${cycno} ${testno}
 stt=$?
 if [ ${stt} != 0 ]; then
     echo `date`" rough_plot.rb error ${stt}" 1>&2
     exit ${stt}
 fi
 
-cd ${anadir}
+cd ${localanadir}
 tar --remove-files -czf Route.tar.gz Route?_*.csv ???_Ave_Var.csv goalagent_raw.* goalagent_filt.* move_line.png *_bar.png agent_movement_history.csv route.csv route_all.csv
+cd -
+
+
+mkdir -p ${simdir}
+mkdir -p ${anadir}
+cd ${localsimdir}
+tar zcf ${simdir}contents.tar.gz *
+cd ${localanadir}
+tar zcf ${anadir}contents.tar.gz *
 cd -
 
 tail -1 Happy.csv | sed -E 's/^(.*),(.*),(.*),(.*),(.*),(.*),(.*)$/{ "no":"\1", "stop_pow":\2, "stop":\3, "ave-sum":\4, "diff-sum":\5, "ave-max":\6, "diff-max":\7}/' > _output.json
