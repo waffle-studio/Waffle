@@ -1,0 +1,2 @@
+echo pre script
+localexec timestamp.sh

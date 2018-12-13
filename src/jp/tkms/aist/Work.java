@@ -98,8 +98,10 @@ public class Work implements Serializable {
     public int execOnLocal(String... commands) {
         int res = -1;
         File exeFile = new File(workBase.getPath() + "/" + commands[0]);
-        if (exeFile.exists() && !exeFile.canExecute()) {
-            exeFile.setExecutable(true);
+        if (exeFile.exists()) {
+            if (!exeFile.canExecute()) {
+                exeFile.setExecutable(true);
+            }
             commands[0] = exeFile.getPath();
         }
         Runtime runtime = Runtime.getRuntime();
