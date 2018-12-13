@@ -49,7 +49,7 @@ public class PollingMonitor extends Thread implements Serializable {
 
                     try {
                         SshChannel ch = ssh.exec("qstat", "~/");
-                        if (!prevQstatText.equals(ch.getStdout())) {
+                        if (ch.getStdout().equals("") || !prevQstatText.equals(ch.getStdout())) {
                             prevQstatText = ch.getStdout();
 
                             for (ExpPack expPack : currentExpPackList) {
