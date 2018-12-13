@@ -1,2 +1,2 @@
 echo pre script
-localexec timestamp.sh
+localexec ./timestamp.sh

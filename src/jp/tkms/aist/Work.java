@@ -5,6 +5,7 @@ import com.jcraft.jsch.JSchException;
 import java.io.*;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class Work implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -97,6 +98,7 @@ public class Work implements Serializable {
 
     public int execOnLocal(String... commands) {
         int res = -1;
+        commands[0] = Pattern.compile("^\\./").matcher(commands[0]).replaceFirst("");
         File exeFile = new File(workBase.getPath() + "/" + commands[0]);
         if (exeFile.exists()) {
             if (!exeFile.canExecute()) {

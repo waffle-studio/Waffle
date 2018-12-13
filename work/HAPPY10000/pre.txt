@@ -1,2 +1,3 @@
 echo post script
-localexec timestamp.sh
+localexec ./timestamp.sh
+remoteexec ./exe/setup.sh
