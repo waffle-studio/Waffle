@@ -82,7 +82,7 @@ public class PollingMonitor extends Thread implements Serializable {
 
                 ssh.disconnect();
             } else {
-                System.out.print(".");
+                //System.out.print(".");
             }
 
             try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }

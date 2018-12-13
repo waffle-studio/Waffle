@@ -153,26 +153,36 @@ public class Daemon extends Thread {
                                 for (Exp exp : currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expList) {
                                     addResult(resultArray, exp.toString());
                                 }
+                                addResult(resultArray, "-----");
+                                addResult(resultArray, "TOTAL: " + currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expList.size());
                                 break;
                             case "PACK":
                                 for (ExpPack expPack : currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expPackList) {
                                     addResult(resultArray, expPack.toString());
                                 }
+                                addResult(resultArray, "-----");
+                                addResult(resultArray, "TOTAL: " + currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expPackList.size());
                                 break;
                             case "SET":
                                 for (ExpSet expSet : currentWork.getExpSetMap().values()) {
                                     addResult(resultArray, expSet.toString());
                                 }
+                                addResult(resultArray, "-----");
+                                addResult(resultArray, "TOTAL: " + currentWork.getExpSetMap().size());
                                 break;
                             case "POLLING":
                                 for (ExpPack expPack : commonComponent.getPollingMonitor().getExpPackList()) {
                                     addResult(resultArray, expPack.toString());
                                 }
+                                addResult(resultArray, "-----");
+                                addResult(resultArray, "TOTAL: " + commonComponent.getPollingMonitor().getExpPackList().size());
                                 break;
                             case "WORK":
                                 for (Work work : commonComponent.getWorkMap().values()) {
                                     addResult(resultArray, work.toString());
                                 }
+                                addResult(resultArray, "-----");
+                                addResult(resultArray, "TOTAL: " + commonComponent.getWorkMap().size());
                                 break;
                             default:
                                 addResult(resultArray, "#INVALID COMMAND(list): " + commandArray.get(i));

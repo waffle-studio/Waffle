@@ -24,7 +24,7 @@ public class ExpSet extends Thread implements Serializable {
 
     @Override
     public String toString() {
-        return uuid.toString() + "\n" +
+        return "@" + uuid.toString() + "\n" +
                 "# " + seriesName + ": Pack(" + expPackList.size() + "), Exp(" + expList.size() + ")";
     }
 

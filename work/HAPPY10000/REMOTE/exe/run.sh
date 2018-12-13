@@ -182,7 +182,6 @@ if [ ${stt} != 0 ]; then
     echo `date`" sim error ${stt}" 1>&2
     exit ${stt}
 fi
-#\cp -v ${simdir}evacuatedAgent.csv .
 
 echo `date +"%Y%m%d%k%M%S"`" sim end ${stt} & ana start"
 
@@ -230,7 +229,7 @@ cd ${localsimdir}
 tar zcf ${simdir}contents.tar.gz *
 cd ${localanadir}
 tar zcf ${anadir}contents.tar.gz *
-cd -
+cd ${currentdir}
 
 tail -1 Happy.csv | sed -E 's/^(.*),(.*),(.*),(.*),(.*),(.*),(.*)$/{ "no":"\1", "stop_pow":\2, "stop":\3, "ave-sum":\4, "diff-sum":\5, "ave-max":\6, "diff-max":\7}/' > _output.json
 #tail -1 Happy.csv | sed -E 's/^(.*),(.*),(.*),(.*),(.*),(.*)$/{ "no":"\1","stop":\2, "ave-sum":\3, "diff-sum":\4, "ave-max":\5, "diff-max":\6}/' > _output.json

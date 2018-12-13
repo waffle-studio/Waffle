@@ -25,7 +25,7 @@ public class ExpPack implements Serializable {
 
     @Override
     public String toString() {
-        return uuid.toString() + "\n" +
+        return "@" + uuid.toString() + "\n" +
                 "# jobid: " + jobId;
     }
 
