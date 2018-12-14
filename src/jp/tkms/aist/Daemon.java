@@ -103,7 +103,11 @@ public class Daemon extends Thread {
                         break;
                     }
                     case "WALLTIME": {
-                        addResult(resultArray, currentWork.setWallTime(args.get(0)));
+                        if (args.size() >= 1) {
+                            addResult(resultArray, currentWork.setWallTime(args.get(0)));
+                        } else {
+                            addResult(resultArray, currentWork.getWallTime());
+                        }
                         break;
                     }
                     case "LOCALEXEC": {
