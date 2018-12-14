@@ -21,6 +21,7 @@ public class ExpSet extends Thread implements Serializable {
     String exec;
     ArrayList<Exp> expList;
     ArrayList<ExpPack> expPackList;
+    private int rerunCount;
 
     @Override
     public String toString() {
@@ -37,6 +38,7 @@ public class ExpSet extends Thread implements Serializable {
         this.postScript = postScript;
         this.exec = exec;
         this.expList = expList;
+        rerunCount = 0;
     }
 
     public ExpSet(CommonComponent commonComponent, Work work, String seriesName, String preScript, String postScript, String exec) {
@@ -68,7 +70,7 @@ public class ExpSet extends Thread implements Serializable {
 
         for (int i = 0; i < nonFinishedExpList.size();) {
             int packSize = AbciResourceSelector.getPackSize(nonFinishedExpList.size() - i);
-            ExpPack expPack = new ExpPack();
+            ExpPack expPack = new ExpPack(this);
             for (int n = 0; n < packSize && i < nonFinishedExpList.size(); n++) {
                 expPack.addExp(nonFinishedExpList.get(i++));
             }
@@ -80,56 +82,49 @@ public class ExpSet extends Thread implements Serializable {
 
     @Override
     public void run() {
-        Daemon.getInstance(commonComponent).eval(work, preScript);
-
-        for (int c = 0; c <= Config.MAX_RERUN; c++) {
-            expPackList = makeExpPacks();
-
-            try {
-                SshSession ssh = new AbciSshSession();
-                ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
-                for (ExpPack expPack : expPackList) {
-                    exec.submit(new Submitter(expPack, commonComponent.getPollingMonitor(), ssh));
-                }
-                exec.shutdown();
-                exec.awaitTermination(1, TimeUnit.DAYS);
-                ssh.disconnect();
-            } catch (JSchException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            while (true) {
-                int finished = 0;
-                for (ExpPack expPack : expPackList) {
-                    if (expPack.getStatus() == ExpPack.Status.FINISHED) {
-                        finished++;
-                    }
-                }
-                if (finished >= expPackList.size()) {
-                    break;
-                }
-
-                try {
-                    Thread.sleep(Config.SHORT_POLLING_TIME);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            int finishedCount = 0;
-            for (Exp exp : expList) {
-                if (exp.getStatus() == Exp.Status.FINISHED) {
-                    finishedCount++;
-                }
-            }
-            if (finishedCount == expList.size()) {
-                break;
-            }
+        if (rerunCount <= 0) {
+            Daemon.getInstance(commonComponent).eval(work, preScript);
         }
 
-        Daemon.getInstance(commonComponent).eval(work, postScript);
+        expPackList = makeExpPacks();
+
+        try {
+            SshSession ssh = new AbciSshSession();
+            ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
+            for (ExpPack expPack : expPackList) {
+                exec.submit(new Submitter(expPack, commonComponent.getPollingMonitor(), ssh));
+            }
+            exec.shutdown();
+            exec.awaitTermination(1, TimeUnit.DAYS);
+            ssh.disconnect();
+        } catch (JSchException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void updateResults() {
+        int finishedPack = 0;
+        for (ExpPack expPack : expPackList) {
+            if (expPack.getStatus() == ExpPack.Status.FINISHED) {
+                finishedPack++;
+            }
+        }
+        if (finishedPack >= expPackList.size()) {
+            int finishedExp = 0;
+            for (Exp exp : expList) {
+                if (exp.getStatus() == Exp.Status.FINISHED) {
+                    finishedExp++;
+                }
+            }
+            if (finishedExp >= expList.size()) {
+                Daemon.getInstance(commonComponent).eval(work, postScript);
+            } else {
+                rerunCount++;
+                this.start();
+            }
+        }
     }
 
     class Submitter implements Runnable {

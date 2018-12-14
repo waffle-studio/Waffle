@@ -1,0 +1,40 @@
+{
+  "agentHandler": {
+    "zeroSpeedThreshold": 0.0,
+    "logColumnsOfIndividualPedestrians": [
+      "pedestrianID",
+      "current_time",
+      "current_position_in_model_x",
+      "current_position_in_model_y",
+      "current_traveling_period",
+      "current_linkID",
+      "next_assigned_passage_node",
+      "pedestrian_tag"
+    ],
+    "tickIntervalForIndividualPedestriansLog": 1,
+    "logAgentsOfIndividualPedestrians": {
+        "tags": [ "/^INDEXA/" ],
+        "exclusion": false,
+        "_": null
+    },
+    "_": null
+  },
+  "generation": {
+    "rule": "EACH",
+    "conditions":null,
+    "speedModel": "LANE",
+    "_": null
+  },
+  "agent": {
+    "className": "RubyAgent",
+    "rubyAgentClass":"SampleAgent",
+    "weight": 0.0,
+    "trail":  0.0,
+    "margin": 0.0,
+    "rule": [
+  
+    ],
+    "_": null
+  },
+  "_": null
+}

@@ -102,6 +102,10 @@ public class Daemon extends Thread {
                         expSet.start();
                         break;
                     }
+                    case "WALLTIME": {
+                        addResult(resultArray, currentWork.setWallTime(args.get(0)));
+                        break;
+                    }
                     case "LOCALEXEC": {
                         ExecuteResult result = currentWork.execOnLocal(args.toArray(new String[args.size()]));
                         addResult(resultArray, result.getOut());

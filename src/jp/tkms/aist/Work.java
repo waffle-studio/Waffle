@@ -8,9 +8,11 @@ import java.util.UUID;
 
 public class Work implements Serializable {
     private static final long serialVersionUID = 1L;
+    private static final String wallTimePattern = "^[0-9]+:[0-6][0-9]:[0-6][0-9]$";
 
     private String name;
     private File workBase;
+    private String wallTime;
 
     private HashMap<UUID, ExpSet> expSetMap;
     private HashMap<String, String> varMap;
@@ -24,6 +26,7 @@ public class Work implements Serializable {
     public Work(String name) {
         this.name = name;
         workBase = new File(Config.LOCAL_WORKBASE_DIR + "/" + name);
+        wallTime = Config.WALLTIME;
 
         expSetMap = new HashMap<>();
         varMap = new HashMap<>();
@@ -37,6 +40,17 @@ public class Work implements Serializable {
         ExpSet expSet = new ExpSet(commonComponent, this, getName() + "_" + seriesName, preScript, postScript, exec);
         expSetMap.put(expSet.getUuid(), expSet);
         return expSet;
+    }
+
+    public String getWallTime() {
+        return wallTime;
+    }
+
+    public String setWallTime(String wallTime) {
+        if (wallTime.matches(wallTimePattern)) {
+            this.wallTime = wallTime;
+        }
+        return this.wallTime;
     }
 
     public HashMap<UUID, ExpSet> getExpSetMap() {

@@ -19,6 +19,7 @@ public class ExpPack implements Serializable {
     }
 
     private UUID uuid;
+    private ExpSet parentExpSet;
     private ArrayList<Exp> expList;
     private String jobId;
     private Status status;
@@ -29,8 +30,9 @@ public class ExpPack implements Serializable {
                 "# jobid: " + jobId;
     }
 
-    public ExpPack() {
+    public ExpPack(ExpSet parent) {
         uuid = UUID.randomUUID();
+        parentExpSet = parent;
         expList = new ArrayList<>();
         status = Status.CREATED;
     }
@@ -89,7 +91,7 @@ public class ExpPack implements Serializable {
                 "chmod a+x run.sh && " +
                 "echo '#!/bin/bash\n\n" +
                 "#$ -l " + AbciResourceSelector.getResourceText(expList.size()) + "\n" +
-                "#$ -l h_rt=" + Config.WALLTIME + "\n" +
+                "#$ -l h_rt=" + parentExpSet.getWork().getWallTime() + "\n" +
                 "#$ -o ' \"`pwd`/abci-stdout.txt\" '\n" +
                 "#$ -j y\n\n' > batch.sh && " +
                 "chmod a+x batch.sh && " +
@@ -122,6 +124,8 @@ public class ExpPack implements Serializable {
         }
 
         status = Status.FINISHED;
+
+        parentExpSet.updateResults();
     }
 
     class Collector implements Runnable {
