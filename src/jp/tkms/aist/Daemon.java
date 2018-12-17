@@ -305,10 +305,8 @@ public class Daemon extends Thread {
                         break;
                     case "HIBERNATE":
                         commonComponent.getPollingMonitor().shutdown();
-                        try {
-                            commonComponent.getPollingMonitor().wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                        while (!commonComponent.getPollingMonitor().isStoped()) {
+                            try { Thread.sleep(Config.SHORT_POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
                         }
 
                         try {
