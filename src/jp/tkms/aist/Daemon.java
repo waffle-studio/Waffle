@@ -252,18 +252,6 @@ public class Daemon extends Thread {
                     case "ADD":
                         defineVar(currentWork, args.get(0), Pattern.compile("\\.0$").matcher(String.valueOf(Double.valueOf(args.get(1)) + Double.valueOf(args.get(2)))).replaceFirst(""));
                         break;
-                    case "HIBERNATE":
-                        try {
-                            for (Work work: commonComponent.getWorkMap().values()) {
-                                work.save();
-                            }
-                            commonComponent.setHibernateWork(currentWork.getName());
-                            commonComponent.save(Config.DATA_FILE);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        shutdown();
-                        break;
                     case "IF":
                         switch (args.get(1)) {
                             case "eq":
@@ -315,7 +303,27 @@ public class Daemon extends Thread {
                     case "POLLING_FORCECHECK":
                         commonComponent.getPollingMonitor().forceCheck();
                         break;
+                    case "HIBERNATE":
+                        commonComponent.getPollingMonitor().shutdown();
+                        try {
+                            commonComponent.getPollingMonitor().wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            for (Work work: commonComponent.getWorkMap().values()) {
+                                work.save();
+                            }
+                            commonComponent.setHibernateWork(currentWork.getName());
+                            commonComponent.save(Config.DATA_FILE);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        shutdown();
+                        break;
                     case "SHUTDOWN":
+                        commonComponent.getPollingMonitor().shutdown();
                         shutdown();
                         break;
                     default:

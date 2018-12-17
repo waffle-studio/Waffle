@@ -45,7 +45,6 @@ public class PollingMonitor extends Thread implements Serializable {
 
                 if (ssh != null) {
                     ArrayList<ExpPack> currentExpPackList = new ArrayList<>(expPackList);
-                    ArrayList<ExpPack> finishedExpPackList = new ArrayList<>();
 
                     try {
                         SshChannel ch = ssh.exec("qstat", "~/");
@@ -53,6 +52,8 @@ public class PollingMonitor extends Thread implements Serializable {
                             prevQstatText = ch.getStdout();
 
                             for (ExpPack expPack : currentExpPackList) {
+                                if (!isAlive) { break; }
+
                                 ch = ssh.exec("qstat -j " + expPack.getJobId(), "~/");
                                 //System.out.println("Polling Result (qstat): " + ch.getExitStatus());
 
@@ -62,7 +63,7 @@ public class PollingMonitor extends Thread implements Serializable {
 
                                     if (ch.getExitStatus() == 0) {
                                         expPack.updateResults(ssh);
-                                        finishedExpPackList.add(expPack);
+                                        expPackList.remove(expPack);
                                     } else {
                                         prevQstatText += "@QACCT";
                                     }
@@ -76,8 +77,6 @@ public class PollingMonitor extends Thread implements Serializable {
                     } catch (JSchException e) {
                         e.printStackTrace();
                     }
-
-                    expPackList.removeAll(finishedExpPackList);
                 }
 
                 ssh.disconnect();
@@ -87,5 +86,7 @@ public class PollingMonitor extends Thread implements Serializable {
 
             try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
         }
+
+        notifyAll();
     }
 }
