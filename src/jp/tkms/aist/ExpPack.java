@@ -112,7 +112,7 @@ public class ExpPack implements Serializable {
     }
 
     public void updateResults(SshSession ssh) {
-        ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
+        ExecutorService exec = Executors.newFixedThreadPool(parentExpSet.commonComponent.getMaxSshChannel());
         for (Exp exp : expList) {
             exec.submit(new Collector(exp, ssh));
         }

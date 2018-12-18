@@ -102,7 +102,7 @@ public class Daemon extends Thread {
                         expSet.start();
                         break;
                     }
-                    case "WALLTIME": {
+                    case "DEFAULT_WALLTIME": {
                         if (args.size() >= 1) {
                             addResult(resultArray, currentWork.setWallTime(args.get(0)));
                         } else {

@@ -26,7 +26,7 @@ public class Work implements Serializable {
     public Work(String name) {
         this.name = name;
         workBase = new File(Config.LOCAL_WORKBASE_DIR + "/" + name);
-        wallTime = Config.WALLTIME;
+        wallTime = Config.DEFAULT_WALLTIME;
 
         expSetMap = new HashMap<>();
         varMap = new HashMap<>();

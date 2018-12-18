@@ -9,11 +9,20 @@ public class CommonComponent implements Serializable {
     private PollingMonitor pollingMonitor;
     private HashMap<String, Work> workMap;
     private String hibernateWork;
+    private int maxSshChannel = Config.DEFUALT_MAX_SSH_CHANNEL;
 
     public CommonComponent(){
         pollingMonitor = null;
         workMap = new HashMap<>();
         hibernateWork = null;
+    }
+
+    public int getMaxSshChannel() {
+        return maxSshChannel;
+    }
+
+    public void setMaxSshChannel(int maxSshChannel) {
+        this.maxSshChannel = maxSshChannel;
     }
 
     public String getHibernateWork() {

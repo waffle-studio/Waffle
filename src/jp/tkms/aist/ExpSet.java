@@ -90,7 +90,7 @@ public class ExpSet extends Thread implements Serializable {
 
         try {
             SshSession ssh = new AbciSshSession();
-            ExecutorService exec = Executors.newFixedThreadPool(Config.MAX_SSH_CHANNEL);
+            ExecutorService exec = Executors.newFixedThreadPool(commonComponent.getMaxSshChannel());
             for (ExpPack expPack : expPackList) {
                 exec.submit(new Submitter(expPack, commonComponent.getPollingMonitor(), ssh));
             }
@@ -122,7 +122,9 @@ public class ExpSet extends Thread implements Serializable {
                 Daemon.getInstance(commonComponent).eval(work, postScript);
             } else {
                 rerunCount++;
-                this.start();
+                if (rerunCount <= Config.MAX_RERUN) {
+                    this.start();
+                }
             }
         }
     }
