@@ -111,13 +111,15 @@ public class Daemon extends Thread {
                         }
                         break;
                     }
-                    case "LOCALEXEC": {
+                    case "LOCALEXEC":
+                    case "`LE": {
                         ExecuteResult result = currentWork.execOnLocal(args.toArray(new String[args.size()]));
                         addResult(resultArray, result.getOut());
                         addResult(resultArray, "EXITCODE:" + result.getExitCode());
                         break;
                     }
-                    case "REMOTEEXEC": {
+                    case "REMOTEEXEC":
+                    case "`RE": {
                         ExecuteResult result = currentWork.execOnRemote(args.toArray(new String[args.size()]));
                         addResult(resultArray, result.getOut());
                         addResult(resultArray, "EXITCODE:" + result.getExitCode());
@@ -156,7 +158,8 @@ public class Daemon extends Thread {
                         }
                         break;
                     }
-                    case "LIST": {
+                    case "LIST":
+                    case "`L": {
                         switch (args.get(0).toUpperCase()) {
                             case "EXP":
                                 for (Exp exp : currentWork.getExpSetMap().get(UUID.fromString(args.get(1))).expList) {
@@ -212,9 +215,11 @@ public class Daemon extends Thread {
                         break;
                     }
                     case "CHWORK":
+                    case "`CW":
                         currentWork = this.currentWork = commonComponent.getWork(args.get(0));
                         break;
                     case "MKWORK":
+                    case "`MW":
                         currentWork = this.currentWork = new Work(args.get(0));
                         currentWork.setup();
                         commonComponent.addWork(this.currentWork);
@@ -310,6 +315,7 @@ public class Daemon extends Thread {
                                         commonComponent.setMaxSshChannel(Integer.valueOf(args.get(0))));
                         break;
                     case "HIBERNATE":
+                    case "`H":
                         commonComponent.getPollingMonitor().shutdown();
                         while (!commonComponent.getPollingMonitor().isStoped()) {
                             try { Thread.sleep(Config.SHORT_POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
