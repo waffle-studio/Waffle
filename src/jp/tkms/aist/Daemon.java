@@ -359,7 +359,7 @@ public class Daemon extends Thread {
 
     private void addResult(ArrayList<String> resultArray, String result) {
         System.out.println(result);
-        if (resultArray.size() > 2) {
+        if (resultArray.size() >= 2) {
             String prev1 = resultArray.get(resultArray.size() -1);
             String prev2 = resultArray.get(resultArray.size() -2);
             if (prev1.length() > 1 && prev2.length() > 1 && result.length() > 1) {
