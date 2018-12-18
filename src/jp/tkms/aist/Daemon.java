@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 public class Daemon extends Thread {
     private static Daemon instance = null;
     private static final long serialVersionUID = 1L;
+    private static final char omitPrefix = '~';
 
     private static final ArrayList<String> emptyStringArrayList = new ArrayList<>();
     private boolean isAlive = false;
@@ -358,6 +359,16 @@ public class Daemon extends Thread {
 
     private void addResult(ArrayList<String> resultArray, String result) {
         System.out.println(result);
+        if (resultArray.size() > 2) {
+            String prev1 = resultArray.get(resultArray.size() -1);
+            String prev2 = resultArray.get(resultArray.size() -2);
+            if (prev1.length() > 1 && prev2.length() > 1 && result.length() > 1) {
+                if (prev1.charAt(0) == omitPrefix && prev2.charAt(0) == omitPrefix && result.charAt(0) == omitPrefix) {
+                    resultArray.set(resultArray.size() -1, result);
+                    return;
+                }
+            }
+        }
         resultArray.add(result);
     }
 
