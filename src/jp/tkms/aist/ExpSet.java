@@ -123,7 +123,7 @@ public class ExpSet extends Thread implements Serializable {
             } else {
                 rerunCount++;
                 if (rerunCount <= Config.MAX_RERUN) {
-                    this.start();
+                    run();
                 }
             }
         }
