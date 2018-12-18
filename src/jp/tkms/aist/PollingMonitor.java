@@ -90,6 +90,6 @@ public class PollingMonitor extends Thread implements Serializable {
 
             try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
         }
-
+        System.out.println("PollingMonitor terminated");
     }
 }

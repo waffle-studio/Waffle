@@ -321,7 +321,6 @@ public class Daemon extends Thread {
                         shutdown();
                         break;
                     case "SHUTDOWN":
-                        commonComponent.getPollingMonitor().shutdown();
                         shutdown();
                         break;
                     default:
@@ -484,5 +483,7 @@ public class Daemon extends Thread {
         }
 
         commonComponent.getPollingMonitor().shutdown();
+
+        System.out.println("Daemon terminated");
     }
 }
