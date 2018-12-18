@@ -30,6 +30,7 @@ public class Work implements Serializable {
 
         expSetMap = new HashMap<>();
         varMap = new HashMap<>();
+        varMap.put("$_WORKNAME", name);
     }
 
     public String getName() {
