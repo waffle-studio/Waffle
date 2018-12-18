@@ -303,6 +303,11 @@ public class Daemon extends Thread {
                     case "POLLING_FORCECHECK":
                         commonComponent.getPollingMonitor().forceCheck();
                         break;
+                    case "MAX_SSH_CHANNEL":
+                        addResult(resultArray,
+                                "MAX SSH CHANELL: " +
+                                        commonComponent.setMaxSshChannel(Integer.valueOf(args.get(0))));
+                        break;
                     case "HIBERNATE":
                         commonComponent.getPollingMonitor().shutdown();
                         while (!commonComponent.getPollingMonitor().isStoped()) {

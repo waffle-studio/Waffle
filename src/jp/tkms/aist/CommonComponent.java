@@ -21,8 +21,11 @@ public class CommonComponent implements Serializable {
         return maxSshChannel;
     }
 
-    public void setMaxSshChannel(int maxSshChannel) {
-        this.maxSshChannel = maxSshChannel;
+    public int setMaxSshChannel(int maxSshChannel) {
+        if (maxSshChannel > 0) {
+            this.maxSshChannel = maxSshChannel;
+        }
+        return this.maxSshChannel;
     }
 
     public String getHibernateWork() {
