@@ -9,7 +9,6 @@ public class PollingMonitor extends Thread implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private boolean isAlive = false;
-    private boolean isStoped = true;
     private ArrayList<ExpPack> expPackList = new ArrayList<>();
     private String prevQstatText = "FIRST_TIME";
 
@@ -28,13 +27,12 @@ public class PollingMonitor extends Thread implements Serializable {
     }
 
     public boolean isStoped() {
-        return isStoped;
+        return getState() == State.TERMINATED;
     }
 
     @Override
     public synchronized void start() {
         isAlive = true;
-        isStoped = false;
         super.start();
     }
 
@@ -93,6 +91,5 @@ public class PollingMonitor extends Thread implements Serializable {
             try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
         }
 
-        isStoped = true;
     }
 }
