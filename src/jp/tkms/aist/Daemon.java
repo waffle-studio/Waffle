@@ -72,7 +72,8 @@ public class Daemon extends Thread {
                         commonComponent.unloadWork(currentWork);
                         currentWork = this.currentWork = null;
                         break;
-                    case "SCRIPT": {
+                    case "SCRIPT":
+                    case "`S": {
                         String loadedScript = currentWork.getTextFile(args.get(0));
                         ArrayList<String> result = eval(currentWork, loadedScript);
                         for (String r : result) {
@@ -220,6 +221,12 @@ public class Daemon extends Thread {
                         break;
                     case "MKWORK":
                     case "`MW":
+                        for (Work work : commonComponent.getWorkMap().values()) {
+                            if (work.getName().equals(args.get((0)))) {
+                                addResult(resultArray, "#INVALID COMMAND(mkwork): " + commandArray.get(i));
+                                break;
+                            }
+                        }
                         currentWork = this.currentWork = new Work(args.get(0));
                         currentWork.setup();
                         commonComponent.addWork(this.currentWork);

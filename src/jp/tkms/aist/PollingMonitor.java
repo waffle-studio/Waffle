@@ -24,6 +24,7 @@ public class PollingMonitor extends Thread implements Serializable {
 
     public void shutdown() {
         isAlive = false;
+        this.interrupt();
     }
 
     public boolean isStoped() {
@@ -88,7 +89,7 @@ public class PollingMonitor extends Thread implements Serializable {
                 //System.out.print(".");
             }
 
-            try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
+            try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e) { }
         }
         System.out.println("PollingMonitor terminated");
     }
