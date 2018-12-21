@@ -24,7 +24,6 @@ public class PollingMonitor extends Thread implements Serializable {
 
     public void shutdown() {
         isAlive = false;
-        this.interrupt();
     }
 
     public boolean isStoped() {

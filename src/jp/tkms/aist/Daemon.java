@@ -317,9 +317,15 @@ public class Daemon extends Thread {
                         commonComponent.getPollingMonitor().forceCheck();
                         break;
                     case "MAX_SSH_CHANNEL":
-                        addResult(resultArray,
-                                "MAX SSH CHANELL: " +
-                                        commonComponent.setMaxSshChannel(Integer.valueOf(args.get(0))));
+                        if (args.size() >= 1) {
+                            addResult(resultArray,
+                                    "MAX SSH CHANNEL: " +
+                                            commonComponent.setMaxSshChannel(Integer.valueOf(args.get(0))));
+                        } else {
+                            addResult(resultArray,
+                                    "MAX SSH CHANNEL: " +
+                                            commonComponent.getMaxSshChannel());
+                        }
                         break;
                     case "HIBERNATE":
                     case "`H":
@@ -512,6 +518,7 @@ public class Daemon extends Thread {
         }
 
         commonComponent.getPollingMonitor().shutdown();
+        ResultSubmitter.shutdown();
 
         System.out.println("Daemon terminated");
     }

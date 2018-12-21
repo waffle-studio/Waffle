@@ -103,15 +103,7 @@ public class Exp implements Serializable {
 
     public void resultSubmit() {
         if (status == Status.FINISHED) {
-            Submitter submitter = new Submitter();
-            submitter.start();
-        }
-    }
-
-    private class Submitter extends Thread {
-        @Override
-        public void run() {
-            ResultSubmitter.post(getWork().getName(), getResult());
+            ResultSubmitter.asyncPost(getWork().getName(), getResult());
         }
     }
 

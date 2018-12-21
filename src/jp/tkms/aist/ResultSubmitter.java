@@ -7,8 +7,34 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ResultSubmitter {
+    private static ExecutorService executorService = Executors.newFixedThreadPool(50);
+    public static synchronized void asyncPost(String workName, String resultJson) {
+        executorService.submit(new Submitter(workName, resultJson));
+    }
+
+    public static void shutdown() {
+        executorService.shutdown();
+    }
+
+    static class Submitter implements Runnable {
+        private String workName;
+        private String resultJson;
+
+        public Submitter(String workName, String resultJson) {
+            this.workName = workName;
+            this.resultJson = resultJson;
+        }
+
+        @Override
+        public void run() {
+            post(workName, resultJson);
+        }
+    }
+
     public static synchronized String post(String workName, String resultJson) {
 
         HttpURLConnection con = null;
