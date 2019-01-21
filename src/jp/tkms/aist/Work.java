@@ -182,6 +182,7 @@ public class Work implements Serializable {
                 out += channel.getStdout();
                 out += channel.getStderr();
                 ssh.disconnect();
+                done = true;
             } catch (JSchException e) {
                 System.out.println("SSH CONNECTION FAILED: work 2: sleep "
                         + Config.POLLING_TIME + " seconds and retry");
