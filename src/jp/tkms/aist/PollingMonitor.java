@@ -44,42 +44,78 @@ public class PollingMonitor extends Thread implements Serializable {
                 try {
                     ssh = new AbciSshSession();
                 } catch (JSchException e) {
-                    e.printStackTrace();
+                    //e.printStackTrace();
+                    System.out.println("SSH CONNECTION FAILED: polling 1: sleep "
+                            + Config.POLLING_TIME + " seconds and retry");
+                    try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                    continue;
                 }
 
                 if (ssh != null) {
                     ArrayList<ExpPack> currentExpPackList = new ArrayList<>(expPackList);
 
-                    try {
-                        SshChannel ch = ssh.exec("qstat", "~/");
-                        if (ch.getStdout().equals("") || !prevQstatText.equals(ch.getStdout())) {
-                            prevQstatText = ch.getStdout();
+                    SshChannel ch = null;
+                    while (ch == null) {
+                        try {
+                            ch = ssh.exec("qstat", "~/");
+                        } catch (JSchException e) {
+                            //e.printStackTrace();
+                            ch = null;
+                            System.out.println("SSH CONNECTION FAILED: polling 2: sleep "
+                                    + Config.POLLING_TIME + " seconds and retry");
+                            try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                            continue;
+                        }
+                    }
+                    if (ch.getStdout().equals("") || !prevQstatText.equals(ch.getStdout())) {
+                        prevQstatText = ch.getStdout();
 
-                            for (ExpPack expPack : currentExpPackList) {
-                                if (!isAlive) { break; }
+                        for (ExpPack expPack : currentExpPackList) {
+                            if (!isAlive) { break; }
 
-                                ch = ssh.exec("qstat -j " + expPack.getJobId(), "~/");
-                                //System.out.println("Polling Result (qstat): " + ch.getExitStatus());
-
-                                if (ch.getExitStatus() == 1) {
-                                    ch = ssh.exec("qacct -j " + expPack.getJobId(), "~/");
-                                    //System.out.println("Polling Result (qacct): " + ch.getExitStatus());
-
-                                    if (ch.getExitStatus() == 0) {
-                                        expPack.updateResults(ssh);
-                                        expPackList.remove(expPack);
-                                    } else {
-                                        prevQstatText += "@QACCT";
-                                    }
+                            ch = null;
+                            while (ch == null) {
+                                try {
+                                    ch = ssh.exec("qstat -j " + expPack.getJobId(), "~/");
+                                } catch (JSchException e) {
+                                    //e.printStackTrace();
+                                    ch = null;
+                                    System.out.println("SSH CONNECTION FAILED: polling 3: sleep "
+                                            + Config.POLLING_TIME + " seconds and retry");
+                                    try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                                    continue;
                                 }
                             }
+                            //System.out.println("Polling Result (qstat): " + ch.getExitStatus());
 
-                            System.out.print("+");
-                        } else {
-                            System.out.print("-");
+                            if (ch.getExitStatus() == 1) {
+                                ch = null;
+                                while (ch == null) {
+                                    try {
+                                        ch = ssh.exec("qacct -j " + expPack.getJobId(), "~/");
+                                    } catch (JSchException e) {
+                                        //e.printStackTrace();
+                                        ch = null;
+                                        System.out.println("SSH CONNECTION FAILED: polling 4: sleep "
+                                                + Config.POLLING_TIME + " seconds and retry");
+                                        try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                                        continue;
+                                    }
+                                }
+                                //System.out.println("Polling Result (qacct): " + ch.getExitStatus());
+
+                                if (ch.getExitStatus() == 0) {
+                                    expPack.updateResults(ssh);
+                                    expPackList.remove(expPack);
+                                } else {
+                                    prevQstatText += "@QACCT";
+                                }
+                            }
                         }
-                    } catch (JSchException e) {
-                        e.printStackTrace();
+
+                        System.out.print("+");
+                    } else {
+                        System.out.print("-");
                     }
                 }
 

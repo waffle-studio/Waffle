@@ -54,16 +54,37 @@ public class ExpPack implements Serializable {
         return uuid;
     }
 
-    public void run(PollingMonitor monitor, SshSession ssh) throws JSchException {
+    public void run(PollingMonitor monitor, SshSession ssh) {
         if (expList.isEmpty()) { return; }
 
         String workDir = Config.REMOTE_WORKDIR + "/" + uuid.toString() + "/";
 
-        //SshSession ssh = new AbciSshSession();
+        boolean done = false;
+        while (!done) {
+            try {
+                ssh.exec("mkdir -p " + workDir, "~/");
+                done = true;
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: pack 1: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
+        }
 
-        ssh.exec("mkdir -p " + workDir, "~/");
+        done = false;
+        while (!done) {
+            try {
+                ssh.exec("rm -f run.txt", workDir);
+                done = true;
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: pack 2: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
+        }
 
-        ssh.exec("rm -f run.txt", workDir);
         String runtxt = "";
         for (Exp exp : expList) {
             String exec = exp.getExpSet().exec;
@@ -74,32 +95,65 @@ public class ExpPack implements Serializable {
                     "\"" + exec + "\" " + exp.getArgs() + "' >> run.txt;";
             exp.setStatus(Exp.Status.SUBMITTED);
         }
-        ssh.exec(runtxt, workDir);
 
-        ssh.exec("echo '#!/bin/bash\n\n" +
-                "mkdir -p $1\n" +
-                "cd $1\n" +
-                "RESDIR=`pwd`\n" +
-                "CMD=$2\n" +
-                "cd $SGE_LOCALDIR\n" +
-                "mkdir -p $1\n" +
-                "cd $1\n" +
-                "shift 2\n" +
-                "chmod a+x $CMD\n" +
-                "$CMD $*\n" +
-                "cp _output.json ${RESDIR}/\n' > run.sh && " +
-                "chmod a+x run.sh && " +
-                "echo '#!/bin/bash\n\n" +
-                "#$ -l " + AbciResourceSelector.getResourceText(expList.size()) + "\n" +
-                "#$ -l h_rt=" + parentExpSet.getWork().getWallTime() + "\n" +
-                "#$ -o ' \"`pwd`/abci-stdout.txt\" '\n" +
-                "#$ -j y\n\n' > batch.sh && " +
-                "chmod a+x batch.sh && " +
-                "echo 'source ~/.bash_profile' >> batch.sh && " +
-                "echo 'cd " + workDir + "' >> batch.sh && " +
-                "echo 'xargs -a run.txt -P " + expList.size() + " -L 1 ./run.sh' >> batch.sh", workDir);
+        done = false;
+        while (!done) {
+            try {
+                ssh.exec(runtxt, workDir);
+                done = true;
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: pack 2: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
+        }
 
-        SshChannel ch = ssh.exec("qsub -g " + Config.GROUP_ID + " batch.sh", workDir);
+        done = false;
+        while (!done) {
+            try {
+                ssh.exec("echo '#!/bin/bash\n\n" +
+                        "mkdir -p $1\n" +
+                        "cd $1\n" +
+                        "RESDIR=`pwd`\n" +
+                        "CMD=$2\n" +
+                        "cd $SGE_LOCALDIR\n" +
+                        "mkdir -p $1\n" +
+                        "cd $1\n" +
+                        "shift 2\n" +
+                        "chmod a+x $CMD\n" +
+                        "$CMD $*\n" +
+                        "cp _output.json ${RESDIR}/\n' > run.sh && " +
+                        "chmod a+x run.sh && " +
+                        "echo '#!/bin/bash\n\n" +
+                        "#$ -l " + AbciResourceSelector.getResourceText(expList.size()) + "\n" +
+                        "#$ -l h_rt=" + parentExpSet.getWork().getWallTime() + "\n" +
+                        "#$ -o ' \"`pwd`/abci-stdout.txt\" '\n" +
+                        "#$ -j y\n\n' > batch.sh && " +
+                        "chmod a+x batch.sh && " +
+                        "echo 'source ~/.bash_profile' >> batch.sh && " +
+                        "echo 'cd " + workDir + "' >> batch.sh && " +
+                        "echo 'xargs -a run.txt -P " + expList.size() + " -L 1 ./run.sh' >> batch.sh", workDir);
+                done = true;
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: pack 3: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
+        }
+
+        SshChannel ch = null;
+        while (ch == null) {
+            try {
+                ch = ssh.exec("qsub -g " + Config.GROUP_ID + " batch.sh", workDir);
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: pack 4: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
+        }
         String jobId = ch.getStdout().replaceAll("[\r\n]", " ").replaceFirst("Your job (\\d*) .*", "$1");
         System.out.println("[" + jobId + "] " + expList.size());
         this.jobId = jobId;
@@ -139,10 +193,18 @@ public class ExpPack implements Serializable {
 
         @Override
         public void run() {
-            try {
-                exp.updateResult(sshSession);
-            } catch (JSchException e) {
-                e.printStackTrace();
+            boolean done = false;
+            while (!done) {
+                try {
+                    exp.updateResult(sshSession);
+                    done = true;
+                } catch (JSchException e) {
+                    //e.printStackTrace();
+                    System.out.println("SSH CONNECTION FAILED: pack 0: sleep "
+                            + Config.POLLING_TIME + " seconds and retry");
+                    try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                    continue;
+                }
             }
         }
     }

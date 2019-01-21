@@ -89,7 +89,19 @@ public class ExpSet extends Thread implements Serializable {
         expPackList = makeExpPacks();
 
         try {
-            SshSession ssh = new AbciSshSession();
+            SshSession ssh = null;
+            while (ssh == null) {
+                try {
+                    ssh = new AbciSshSession();
+                } catch (JSchException e) {
+                    //e.printStackTrace();
+                    ssh = null;
+                    System.out.println("SSH CONNECTION FAILED: set 1: sleep "
+                            + Config.POLLING_TIME + " seconds and retry");
+                    try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                    continue;
+                }
+            }
             ExecutorService exec = Executors.newFixedThreadPool(commonComponent.getMaxSshChannel());
             for (ExpPack expPack : expPackList) {
                 exec.submit(new Submitter(expPack, commonComponent.getPollingMonitor(), ssh));
@@ -97,8 +109,6 @@ public class ExpSet extends Thread implements Serializable {
             exec.shutdown();
             exec.awaitTermination(1, TimeUnit.DAYS);
             ssh.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -141,11 +151,7 @@ public class ExpSet extends Thread implements Serializable {
         }
 
         public void run() {
-            try {
-                expPack.run(pollingMonitor, sshSession);
-            } catch (JSchException e) {
-                e.printStackTrace();
-            }
+            expPack.run(pollingMonitor, sshSession);
         }
     }
 }

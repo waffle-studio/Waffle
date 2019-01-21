@@ -492,29 +492,32 @@ public class Daemon extends Thread {
 
     @Override
     public void run() {
-        try (ServerSocketChannel listener = ServerSocketChannel.open();) {
-            listener.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
-            listener.bind(new InetSocketAddress(Config.CONTROL_PORT));
-            System.out.println("[Server listening on port " + Config.CONTROL_PORT + "...]");
-            while (isAlive) {
-                if (channel == null || !channel.isConnected()) {
-                    channel = listener.accept();
-                    System.out.printf("[ACCEPT %s]%n", channel);
+        while (isAlive) {
+            try (ServerSocketChannel listener = ServerSocketChannel.open();) {
+                listener.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
+                listener.bind(new InetSocketAddress(Config.CONTROL_PORT));
+                System.out.println("[Server listening on port " + Config.CONTROL_PORT + "...]");
+                while (isAlive) {
+                    if (channel == null || !channel.isConnected()) {
+                        channel = listener.accept();
+                        System.out.printf("[ACCEPT %s]%n", channel);
+                    }
+                    channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(getCurrentWorkName() + "> ")));
+                    ByteBuffer buffer = ByteBuffer.allocate(1024);
+                    channel.read(buffer);
+                    buffer.flip();
+                    String in = Charset.forName("UTF-8").decode(buffer).toString();
+                    ArrayList<String> resultArray = input(in);
+                    System.out.println(getCurrentWorkName() + "> " + in + "");
+                    for (String result : resultArray) {
+                        channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(result + "\n")));
+                    }
                 }
-                channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(getCurrentWorkName() + "> ")));
-                ByteBuffer buffer = ByteBuffer.allocate(1024);
-                channel.read(buffer);
-                buffer.flip();
-                String in = Charset.forName("UTF-8").decode(buffer).toString();
-                ArrayList<String> resultArray = input(in);
-                System.out.println(getCurrentWorkName() + "> " + in + "");
-                for (String result : resultArray) {
-                    channel.write(Charset.forName("UTF-8").encode(CharBuffer.wrap(result + "\n")));
-                }
+                channel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                continue;
             }
-            channel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
         commonComponent.getPollingMonitor().shutdown();

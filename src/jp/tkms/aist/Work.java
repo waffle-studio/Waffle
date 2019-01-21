@@ -71,13 +71,20 @@ public class Work implements Serializable {
         File localBaseRemote = new File(Config.LOCAL_WORKBASE_DIR + "/" + name + "/REMOTE");
         localBaseRemote.mkdirs();
         String remoteBase = Config.REMOTE_WORKBASE_DIR + "/" + name;
-        try {
-            SshSession sshSession = new AbciSshSession();
-            sshSession.mkdir(getRemoteWorkBase(), Config.REMOTE_WORKBASE_DIR);
-            sshSession.scp(localBaseRemote, remoteBase, Config.REMOTE_WORKBASE_DIR);
-            sshSession.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
+        boolean done = false;
+        while (!done) {
+            try {
+                SshSession sshSession = new AbciSshSession();
+                sshSession.mkdir(getRemoteWorkBase(), Config.REMOTE_WORKBASE_DIR);
+                sshSession.scp(localBaseRemote, remoteBase, Config.REMOTE_WORKBASE_DIR);
+                sshSession.disconnect();
+                done = true;
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: work 1: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
         }
     }
 
@@ -166,15 +173,21 @@ public class Work implements Serializable {
         String arg = "if [ -e " +commands[0]+ " -a ! -x " +commands[0]+ " ]; then chmod a+x " + commands[0] + ";fi;";
         for (String a: commands) { arg += " " + a; }
 
-        try {
-            SshSession ssh = new AbciSshSession();
-            SshChannel channel = ssh.exec(arg, getRemoteWorkBase());
-            res = channel.getExitStatus();
-            out += channel.getStdout();
-            out += channel.getStderr();
-            ssh.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
+        boolean done = false;
+        while (!done) {
+            try {
+                SshSession ssh = new AbciSshSession();
+                SshChannel channel = ssh.exec(arg, getRemoteWorkBase());
+                res = channel.getExitStatus();
+                out += channel.getStdout();
+                out += channel.getStderr();
+                ssh.disconnect();
+            } catch (JSchException e) {
+                System.out.println("SSH CONNECTION FAILED: work 2: sleep "
+                        + Config.POLLING_TIME + " seconds and retry");
+                try { Thread.sleep(Config.POLLING_TIME); } catch (InterruptedException e2) { }
+                continue;
+            }
         }
 
         return new ExecuteResult(res, out, null);
