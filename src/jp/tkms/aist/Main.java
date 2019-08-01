@@ -16,6 +16,16 @@ public class Main {
 
         Daemon daemon = Daemon.getInstance(commonComponent);
 
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (daemon.isAlive()) {
+                    commonComponent.save(Config.DATA_FILE);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }));
+
         daemon.start();
 
         //Date endDate = new Date();

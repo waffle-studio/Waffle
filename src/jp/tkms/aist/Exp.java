@@ -90,13 +90,15 @@ public class Exp implements Serializable {
                 setResult(ch.getStdout());
                 resultSubmit();
 
-                System.out.println("Exp[" + getExpPack().getUuid().toString() + "/" + getUuid().toString() + "]");
-                System.out.println(ch.getStdout());
+                //System.out.println("Exp[" + getExpPack().getUuid().toString() + "/" + getUuid().toString() + "]");
+                //System.out.println(ch.getStdout());
+                System.out.print('-');
                 break;
             } else {
                 status = Status.FAILED;
 
-                System.out.println("Exp[" + getExpPack().getUuid().toString() + "/" + getUuid().toString() + "]");
+                //System.out.println("Exp[" + getExpPack().getUuid().toString() + "/" + getUuid().toString() + "]");
+                System.out.print('X');
             }
         }
     }
