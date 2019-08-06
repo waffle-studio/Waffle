@@ -117,6 +117,7 @@ public class Daemon extends Thread {
                         ExecuteResult result = currentWork.execOnLocal(args.toArray(new String[args.size()]));
                         addResult(resultArray, result.getOut());
                         addResult(resultArray, "EXITCODE:" + result.getExitCode());
+                        defineVar(currentWork, "?", String.valueOf(result.getExitCode()));
                         break;
                     }
                     case "REMOTEEXEC":
@@ -124,6 +125,7 @@ public class Daemon extends Thread {
                         ExecuteResult result = currentWork.execOnRemote(args.toArray(new String[args.size()]));
                         addResult(resultArray, result.getOut());
                         addResult(resultArray, "EXITCODE:" + result.getExitCode());
+                        defineVar(currentWork, "?", String.valueOf(result.getExitCode()));
                         break;
                     }
 
