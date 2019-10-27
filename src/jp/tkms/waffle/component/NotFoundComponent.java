@@ -1,28 +1,35 @@
 package jp.tkms.waffle.component;
 
-import jp.tkms.waffle.component.template.Lte;
+import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.MainTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class TestComponent extends AbstractComponent {
+public class NotFoundComponent extends AbstractComponent {
     @Override
     public void controller() {
+        logger.warn("NotFound: " + request.url());
+
         new MainTemplate() {
             @Override
             protected String pageTitle() {
-                return "Test";
+                return "404";
+            }
+
+            @Override
+            protected String pageSubTitle() {
+                return "NotFound";
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(new String[]{"Test"}));
+                return new ArrayList<String>(Arrays.asList(new String[]{"NotFound"}));
             }
 
             @Override
             protected String pageContent() {
-                return Lte.sampleCard();
+                return Html.h1("text-center", Html.faIcon("question"));
             }
         }.render(this);
     }

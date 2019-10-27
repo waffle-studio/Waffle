@@ -1,4 +1,7 @@
 package jp.tkms.waffle.component.template;
 
-public class Template {
+import jp.tkms.waffle.component.AbstractComponent;
+
+abstract public class AbstractTemplate {
+    abstract public void render(AbstractComponent component);
 }

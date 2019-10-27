@@ -1,10 +1,14 @@
 package jp.tkms.waffle.component;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 import spark.Route;
 
-abstract public class Component implements Route {
+abstract public class AbstractComponent implements Route {
+    static Logger logger = LoggerFactory.getLogger("Component");
+
     public Request request;
     public Response response;
 
@@ -20,11 +24,19 @@ abstract public class Component implements Route {
         return response.body();
     }
 
-    public void bufferWrite(String text) {
-        response.body(response.body() + text);
+    public void setBody(String body) {
+        response.body(body);
     }
 
-    public void bufferClean() {
-        response.body();
+    private String buffer = "";
+
+    public void bufferWrite(String text) {
+        buffer += text;
+    }
+
+    public String bufferFlush() {
+        String result = buffer;
+        buffer = "";
+        return result;
     }
 }

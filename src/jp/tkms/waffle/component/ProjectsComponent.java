@@ -6,18 +6,18 @@ import jp.tkms.waffle.component.template.MainTemplate;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class TestComponent extends AbstractComponent {
+public class ProjectsComponent extends AbstractComponent {
     @Override
     public void controller() {
         new MainTemplate() {
             @Override
             protected String pageTitle() {
-                return "Test";
+                return "Projects";
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(new String[]{"Test"}));
+                return new ArrayList<String>(Arrays.asList(new String[]{"Projects"}));
             }
 
             @Override
