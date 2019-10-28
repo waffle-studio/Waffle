@@ -15,7 +15,7 @@ public class Main {
 
         staticFiles.location("/static");
 
-        notFound(new NotFoundComponent());
+        NotFoundComponent.register();
 
         get("/test/:test", (req, res) -> {
             for (Map.Entry<String, String> entry : req.params().entrySet()) {
@@ -28,7 +28,7 @@ public class Main {
             return "";
         });
 
-        get("/test", new TestComponent());
-        get("/projects", new ProjectsComponent());
+        TestComponent.register();
+        ProjectsComponent.register();
     }
 }

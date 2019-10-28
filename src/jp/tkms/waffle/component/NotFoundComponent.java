@@ -2,11 +2,16 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.MainTemplate;
+import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class NotFoundComponent extends AbstractComponent {
+    static public void register() {
+        Spark.notFound(new NotFoundComponent());
+    }
+
     @Override
     public void controller() {
         logger.warn("NotFound: " + request.url());

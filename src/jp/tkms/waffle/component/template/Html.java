@@ -1,5 +1,7 @@
 package jp.tkms.waffle.component.template;
 
+import org.w3c.dom.Attr;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -9,7 +11,7 @@ public class Html {
         String result = (attribute == null
             ? attribute(tag) : attribute(tag, attribute.toArray(new String[attribute.size()])));
         for (String value : values) {
-            result += value;
+            result += removeNull(value);
         }
         result += "</" + tag + ">\n";
         return result;
@@ -18,14 +20,14 @@ public class Html {
     public static String attribute(String tag, String... attributes) {
         String result = '<' + tag;
         for (String value : attributes) {
-            result += ' ' + value;
+            result += ' ' + removeNull(value);
         }
         result += ">\n";
         return result;
     }
 
     public static String value(String name, String value) {
-        return name + "=\"" + value + "\"";
+        return name + "=\"" + removeNull(value) + "\"";
     }
 
     public static class Attributes extends ArrayList<String> {
@@ -55,7 +57,7 @@ public class Html {
     }
 
     public static String link(String rel, String href) {
-        return attribute("link", value("rel", "stylesheet"), value("href", href));
+        return attribute("link", value("rel", rel), value("href", href));
     }
 
     public static String body(String classValue, String... values) {
@@ -114,4 +116,25 @@ public class Html {
     public static String p(String... values) {
         return element("p", null, values);
     }
+
+    public enum Method {Post, Get};
+
+    public static String form(String action, Method method, String values) {
+        return element("form",
+            new Attributes(value("action", action),
+                value("method", method.name().toLowerCase())
+            ),
+            values
+        );
+    }
+
+    public static String formHidden(String name, String value) {
+        return attribute("input",
+            value("type", "hidden"),
+            value("name", name),
+            value("value", value)
+        );
+    }
+
+    static String removeNull(String string) { return (string == null ? "" : string); }
 }
