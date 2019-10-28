@@ -2,6 +2,7 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Database;
+import jp.tkms.waffle.data.Project;
 import spark.Spark;
 
 import java.sql.SQLException;
@@ -12,8 +13,10 @@ import java.util.UUID;
 import static jp.tkms.waffle.component.template.Html.*;
 
 public class TestComponent extends AbstractComponent {
+    public static final String ROOT = "/test";
+
     static public void register() {
-        Spark.get("/test", new TestComponent());
+        Spark.get(ROOT, new TestComponent());
     }
 
     @Override
@@ -41,7 +44,14 @@ public class TestComponent extends AbstractComponent {
 
         try {
             Database db = Database.getMainDB();
-            db.execute("insert into project(id,name) values('"+ UUID.randomUUID()+"','TEST');");
+            Project project = new Project(UUID.randomUUID(), "Test_project");
+            db.execute("insert into project(id,name,location) values('"
+                    + project.getId()
+                    + "','"
+                    + project.getName()
+                    + "','"
+                    + project.getLocation().toString()
+                    + "');");
             db.commit();
             db.close();
         } catch (SQLException e) {

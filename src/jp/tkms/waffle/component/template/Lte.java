@@ -1,6 +1,8 @@
 package jp.tkms.waffle.component.template;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -65,7 +67,7 @@ public class Lte {
             contentsValue += element("tr", null, rowValue);
         }
 
-        return elementWithClass("table", classValue,
+        return elementWithClass("table", "table" + (classValue == null ? "" : " " + classValue),
             element("thead", null, element("tr", null , headerValue)),
             element("tbody", null, contentsValue)
         );
@@ -82,6 +84,8 @@ public class Lte {
     }
 
     public static class TableRow extends ArrayList<String> {
-
+        public TableRow(String... list) {
+            addAll(Arrays.asList(list));
+        }
     }
 }

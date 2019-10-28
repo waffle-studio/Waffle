@@ -99,6 +99,10 @@ public class Html {
         return element("a", attribute, values);
     }
 
+    public static String a(String href, String value) {
+        return a(href, null, null, value);
+    }
+
     public static String faIcon(String fa) {
         return elementWithClass("i", "fas fa-" + fa, "");
     }

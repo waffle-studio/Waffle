@@ -1,8 +1,6 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.component.NotFoundComponent;
-import jp.tkms.waffle.component.ProjectsComponent;
-import jp.tkms.waffle.component.TestComponent;
+import jp.tkms.waffle.component.*;
 
 import java.util.Map;
 
@@ -17,18 +15,10 @@ public class Main {
 
         NotFoundComponent.register();
 
-        get("/test/:test", (req, res) -> {
-            for (Map.Entry<String, String> entry : req.params().entrySet()) {
-                System.out.println(entry.getKey() + ":" + entry.getValue());
-            }
-            for (Map.Entry<String, String[]> entry : req.queryMap().toMap().entrySet()) {
-                System.out.println(entry.getKey() + ":" + entry.getValue()[0]);
-            }
-            res.body("body");
-            return "";
-        });
+        redirect.get("/", Environment.ROOT_PAGE);
 
         TestComponent.register();
         ProjectsComponent.register();
+        ProjectComponent.register();
     }
 }

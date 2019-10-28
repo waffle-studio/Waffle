@@ -9,80 +9,68 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ProjectsComponent extends AbstractComponent {
-    public static final String ROOT = "/projects";
+public class ProjectComponent extends AbstractComponent {
+    public static final String ROOT = "/project";
 
-    public enum Mode {Default, Create};
+    public enum Mode {Default, NotFound};
 
     private Mode mode;
+    private String requestedId;
+    private Project project;
 
-    public ProjectsComponent(Mode mode) {
+    public ProjectComponent(Mode mode) {
         super();
         this.mode = mode;
     }
 
-    public ProjectsComponent() {
+    public ProjectComponent() {
         this(Mode.Default);
     }
 
     static public void register() {
-        Spark.get(ROOT, new ProjectsComponent());
-        Spark.get(ROOT + "/create", new ProjectsComponent(ProjectsComponent.Mode.Create));
-        Spark.post(ROOT + "/create", new ProjectsComponent(ProjectsComponent.Mode.Create));
+        Spark.get( ROOT + "/:id", new ProjectComponent());
     }
 
     @Override
     public void controller() {
-        if (mode == Mode.Create) {
-            if (request.requestMethod().toLowerCase().equals("post")) {
-                ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
-                if (errors.isEmpty()) {
-                    createProject();
-                    response.redirect("/projects");
-                } else {
-                    renderCreateProjectForm(errors);
-                }
-            } else {
-                renderCreateProjectForm(new ArrayList<>());
-            }
+        requestedId = request.params("id");
+        project = new Project(requestedId);
+
+        if (!project.isValid()) {
+            mode = Mode.NotFound;
+        }
+
+        if (mode == Mode.NotFound) {
+            renderProjectNotFound();
         } else {
             renderProjectsList();
         }
     }
 
-    private void renderCreateProjectForm(ArrayList<Lte.FormError> errors) {
+    private void renderProjectNotFound() {
         new MainTemplate() {
             @Override
-            protected String pageTitle() {
-                return "Projects";
+            protected String pageTitle(){
+                return "Project";
             }
 
             @Override
             protected String pageSubTitle() {
-                return "Create";
+                return "[" + requestedId + "]";
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(
-                    Html.a("/projects", null, null ,"Projects"),
-                    "Create")
-                );
+                return new ArrayList<String>(Arrays.asList(Html.a(ProjectsComponent.ROOT, "Projects"), "NotFound"));
             }
 
             @Override
             protected String pageContent() {
-                return
-                    Html.form("/projects/create", Html.Method.Post,
-                        Lte.card("New Project", null,
-                            Html.div(null,
-                                Html.formHidden("cmd", "create"),
-                                Lte.formInputGroup("text", "projectName", "Name", "", errors)
-                            ),
-                            Lte.formSubmitButton("success", "Create"),
-                            "card-warning", null
-                        )
-                    );
+                ArrayList<Project> projectList = Project.getProjectList();
+                return Lte.card(null, null,
+                        Html.h1("text-center", Html.faIcon("question")),
+                        null
+                );
             }
         }.render(this);
     }
@@ -90,13 +78,18 @@ public class ProjectsComponent extends AbstractComponent {
     private void renderProjectsList() {
         new MainTemplate() {
             @Override
-            protected String pageTitle() {
-                return "Projects";
+            protected String pageTitle(){
+                return "Project";
+            }
+
+            @Override
+            protected String pageSubTitle() {
+                return project.getName();
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList("Projects"));
+                return new ArrayList<String>(Arrays.asList(Html.a(ProjectsComponent.ROOT, "Projects"), project.getId()));
             }
 
             @Override
@@ -104,14 +97,14 @@ public class ProjectsComponent extends AbstractComponent {
                 ArrayList<Project> projectList = Project.getProjectList();
                 if (projectList.size() <= 0) {
                     return Lte.card(null, null,
-                        Html.a("/projects/create", null, null,
+                        Html.a("/project/create", null, null,
                             Html.faIcon("plus-square") + "Create new project"
                         ),
                         null
                     );
                 }
                 return Lte.card(null,
-                        Html.a("/projects/create",
+                        Html.a("/project/create",
                                 null, null, Html.faIcon("plus-square")
                         ),
                         Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
