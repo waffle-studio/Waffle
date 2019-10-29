@@ -38,7 +38,6 @@ public class ProjectsComponent extends AbstractComponent {
                 ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
                 if (errors.isEmpty()) {
                     createProject();
-                    response.redirect("/projects");
                 } else {
                     renderCreateProjectForm(errors);
                 }
@@ -73,7 +72,7 @@ public class ProjectsComponent extends AbstractComponent {
             @Override
             protected String pageContent() {
                 return
-                    Html.form("/projects/create", Html.Method.Post,
+                    Html.form(ROOT  + "/create", Html.Method.Post,
                         Lte.card("New Project", null,
                             Html.div(null,
                                 Html.formHidden("cmd", "create"),
@@ -85,6 +84,10 @@ public class ProjectsComponent extends AbstractComponent {
                     );
             }
         }.render(this);
+    }
+
+    private ArrayList<Lte.FormError> checkCreateProjectFormError() {
+        return new ArrayList<>();
     }
 
     private void renderProjectsList() {
@@ -120,10 +123,6 @@ public class ProjectsComponent extends AbstractComponent {
         }.render(this);
     }
 
-    private ArrayList<Lte.FormError> checkCreateProjectFormError() {
-        return new ArrayList<>();
-    }
-
     private ArrayList<Lte.TableHeader> getProjectTableHeader() {
         ArrayList<Lte.TableHeader> list = new ArrayList<>();
         list.add(new Lte.TableHeader("width:8em;", "ID"));
@@ -143,6 +142,8 @@ public class ProjectsComponent extends AbstractComponent {
     }
 
     private void createProject() {
-
+        String name = request.queryParams("projectName");
+        Project project = Project.create(name);
+        response.redirect(ProjectComponent.ROOT + "/" + project.getId());
     }
 }

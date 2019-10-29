@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.crypto.Data;
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
@@ -24,14 +25,24 @@ public class Database {
         }
     }
 
-    public static Database getDB(Path path) throws SQLException {
+    public static Database getDB(Path path) {
         initialize();
+        Database db = null;
         String url = "jdbc:sqlite:" + path.toAbsolutePath().toString();
-        return new Database(DriverManager.getConnection(url));
+        try {
+            db = new Database(DriverManager.getConnection(url));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return db;
     }
 
-    public static Database getMainDB() throws SQLException {
+    public static Database getMainDB() {
         return getDB(Paths.get(Environment.MAIN_DB_NAME));
+    }
+
+    public static Database getWorkDB(Project project) {
+        return getDB(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
     }
 
     private Connection connection;

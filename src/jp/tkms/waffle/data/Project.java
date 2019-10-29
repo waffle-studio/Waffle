@@ -2,7 +2,8 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Environment;
 
-import javax.xml.crypto.Data;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.PreparedStatement;
@@ -21,13 +22,12 @@ public class Project {
         this.id = id;
         this.shortId = id.toString().replaceFirst("-.*$", "");
         this.name = name;
-        this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst("$\\{NAME\\}", name + '_' + shortId));
+        this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst("\\$\\{NAME\\}", name + '_' + shortId));
     }
 
     public Project(String id) {
         try {
-            Database db = Database.getMainDB();
-            updateDatabase(db);
+            Database db = getMainDB();
             PreparedStatement statement = db.preparedStatement("select id,name,location from project where id=?;");
             statement.setString(1, id);
             ResultSet resultSet = statement.executeQuery();
@@ -64,9 +64,7 @@ public class Project {
     public static ArrayList<Project> getProjectList() {
         ArrayList<Project> projectList = new ArrayList<>();
         try {
-            Database db = Database.getMainDB();
-            updateDatabase(db);
-
+            Database db = getMainDB();
             ResultSet resultSet = db.executeQuery("select id,name from project;");
             while (resultSet.next()) {
                 projectList.add(new Project(
@@ -82,17 +80,76 @@ public class Project {
         return projectList;
     }
 
-    private static void updateDatabase(Database database) {
+    public static Project create(String name) {
+        Project project = new Project(UUID.randomUUID(), name);
         try {
-            int currentVersion = database.getVersion();
+            Database db = getMainDB();
+            PreparedStatement statement
+                = db.preparedStatement("insert into project(id,name,location) values(?,?,?);");
+            statement.setString(1, project.getId());
+            statement.setString(2, project.getName());
+            statement.setString(3, project.getLocation().toString());
+            statement.execute();
+            db.commit();
+            db.close();
+
+            Files.createDirectories(project.getLocation());
+
+            project.getWorkDB().close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return project;
+    }
+
+    private Database getWorkDB() {
+        Database db = Database.getWorkDB(this);
+        updateWorkDB(db);
+        return db;
+    }
+
+    private void updateWorkDB(Database db) {
+        try {
+            int currentVersion = db.getVersion();
             int version = 0;
 
             if (currentVersion <= version++) {
-                database.execute("create table project(id,name,location);");
+                PreparedStatement statement
+                    = db.preparedStatement("insert into system(name,value) values('id',?);");
+                statement.setString(1, getId());
+                statement.execute();
+
+                statement = db.preparedStatement("insert into system(name,value) values('name',?);");
+                statement.setString(1, getName());
+                statement.execute();
             }
 
-            database.setVersion(version);
-            database.commit();
+            db.setVersion(version);
+            db.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Database getMainDB() {
+        Database db = Database.getMainDB();
+        updateMainDB(db);
+        return db;
+    }
+
+    private static void updateMainDB(Database db) {
+        try {
+            int currentVersion = db.getVersion();
+            int version = 0;
+
+            if (currentVersion <= version++) {
+                db.execute("create table project(id,name,location);");
+            }
+
+            db.setVersion(version);
+            db.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
