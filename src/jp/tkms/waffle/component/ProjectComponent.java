@@ -29,6 +29,7 @@ public class ProjectComponent extends AbstractComponent {
         Spark.get(getUrl() , new ProjectComponent());
 
         SimulatorsComponent.register();
+        TrialsComponent.register();
     }
 
     public static String getUrl(String... values) {
@@ -98,7 +99,8 @@ public class ProjectComponent extends AbstractComponent {
                 String content = Lte.divRow(
                         Lte.infoBox(Lte.DivSize.F12Md12Sm6,"layer-group", "bg-info",
                                 Html.a(SimulatorsComponent.getUrl(project.getId()), "Simulators"), ""),
-                        Lte.infoBox(Lte.DivSize.F12Md12Sm6,"project-diagram", "bg-danger", "Trials", "")
+                        Lte.infoBox(Lte.DivSize.F12Md12Sm6,"project-diagram", "bg-danger",
+                                Html.a(TrialsComponent.getUrl(project.getId()), "Trials"), "")
                 );
 
                 content += Lte.card(Html.faIcon("user-tie") + "Conductors", null, null, null);

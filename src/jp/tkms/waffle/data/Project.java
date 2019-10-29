@@ -124,6 +124,8 @@ public class Project {
                 statement = db.preparedStatement("insert into system(name,value) values('name',?);");
                 statement.setString(1, getName());
                 statement.execute();
+
+                db.execute("insert into system(name,value) values('timestamp_create',(DATETIME('now','localtime')));");
             }
 
             db.setVersion(version);
