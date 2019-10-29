@@ -7,12 +7,13 @@ import spark.Response;
 import spark.Route;
 
 abstract public class AbstractComponent implements Route {
-    static Logger logger = LoggerFactory.getLogger("Component");
+  static Logger logger = LoggerFactory.getLogger("Component");
 
-    public Request request;
-    public Response response;
+  public Request request;
+  public Response response;
+  private String buffer = "";
 
-    public static void register() {};
+  ;
 
     /*
     public static String getUrl(String... values) {
@@ -20,31 +21,32 @@ abstract public class AbstractComponent implements Route {
     }
     */
 
-    abstract public void controller();
+  public static void register() {
+  }
 
-    @Override
-    public Object handle(Request request, Response response) throws Exception {
-        this.request = request;
-        this.response = response;
+  abstract public void controller();
 
-        controller();
+  @Override
+  public Object handle(Request request, Response response) throws Exception {
+    this.request = request;
+    this.response = response;
 
-        return response.body();
-    }
+    controller();
 
-    public void setBody(String body) {
-        response.body(body);
-    }
+    return response.body();
+  }
 
-    private String buffer = "";
+  public void setBody(String body) {
+    response.body(body);
+  }
 
-    public void bufferWrite(String text) {
-        buffer += text;
-    }
+  public void bufferWrite(String text) {
+    buffer += text;
+  }
 
-    public String bufferFlush() {
-        String result = buffer;
-        buffer = "";
-        return result;
-    }
+  public String bufferFlush() {
+    String result = buffer;
+    buffer = "";
+    return result;
+  }
 }
