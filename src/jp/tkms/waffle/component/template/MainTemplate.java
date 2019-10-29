@@ -62,7 +62,26 @@ abstract public class MainTemplate extends AbstractTemplate {
                                                 faIcon("folder-open", "nav-icon"),
                                                 p("Projects")
                                             )
-                                        )/*,
+                                        ),
+                                        elementWithClass("li", "nav-item",
+                                            a(ProjectsComponent.getUrl(), "nav-link", null,
+                                                faIcon("running", "nav-icon"),
+                                                p("Jobs")
+                                            )
+                                        ),
+                                        elementWithClass("li", "nav-item",
+                                            a(ProjectsComponent.getUrl(), "nav-link", null,
+                                                faIcon("server", "nav-icon"),
+                                                p("Hosts")
+                                            )
+                                        )
+                                        /*,
+                                        elementWithClass("li", "nav-item",
+                                            a(ProjectsComponent.getUrl(), "nav-link", null,
+                                                faIcon("comment-alt", "nav-icon"),
+                                                p("Logs")
+                                            )
+                                        ),
                                         elementWithClass("li", "nav-header",
                                             "TEST-header"
                                         ),

@@ -1,11 +1,13 @@
 package jp.tkms.waffle.component.template;
 
-import org.w3c.dom.Attr;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Html {
+
+    protected String content() { return ""; }
+
+    public String render() { return content(); }
 
     public static String element(String tag, Attributes attribute, String... values) {
         String result = (attribute == null
@@ -117,6 +119,10 @@ public class Html {
         return element("span", attribute, values);
     }
 
+    public static String hr() {
+        return attribute("hr");
+    }
+
     public static String p(String... values) {
         return element("p", null, values);
     }
@@ -132,7 +138,7 @@ public class Html {
         );
     }
 
-    public static String formHidden(String name, String value) {
+    public static String inputHidden(String name, String value) {
         return attribute("input",
             value("type", "hidden"),
             value("name", name),

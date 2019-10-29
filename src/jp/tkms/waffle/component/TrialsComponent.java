@@ -4,18 +4,19 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.Trials;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class TrialsComponent extends AbstractComponent {
-    public enum Mode {Default, Add};
+    public enum Mode {Default};
 
     private Mode mode;
 
-    private String requestedId;
     private Project project;
+    private Trials trials;
 
     public TrialsComponent(Mode mode) {
         super();
@@ -27,69 +28,23 @@ public class TrialsComponent extends AbstractComponent {
     }
 
     static public void register() {
-        Spark.get(getUrl(), new TrialsComponent());
+        Spark.get(getUrl(null), new TrialsComponent());
     }
 
-    public static String getUrl(String... values) {
-        return "/trials/" + (values.length == 0 ? ":project" : values[0]);
+
+    public static String getUrl(Project project) {
+        return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/ROOT");
+    }
+
+    public static String getUrl(Project project, String mode) {
+        return getUrl(project) + "/" + mode;
     }
 
     @Override
     public void controller() {
-        requestedId = request.params("project");
-        project = new Project(requestedId);
+        project = new Project(request.params("project"));
 
-        if (mode == Mode.Add) {
-            if (request.requestMethod().toLowerCase().equals("post")) {
-                ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
-                if (errors.isEmpty()) {
-                    createProject();
-                } else {
-                    renderCreateProjectForm(errors);
-                }
-            } else {
-                renderCreateProjectForm(new ArrayList<>());
-            }
-        } else {
-            renderProjectsList();
-        }
-    }
-
-    private void renderCreateProjectForm(ArrayList<Lte.FormError> errors) {
-        new MainTemplate() {
-            @Override
-            protected String pageTitle() {
-                return "Projects";
-            }
-
-            @Override
-            protected String pageSubTitle() {
-                return "Add";
-            }
-
-            @Override
-            protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(
-                    Html.a("/projects", null, null ,"Projects"),
-                    "Add")
-                );
-            }
-
-            @Override
-            protected String pageContent() {
-                return
-                    Html.form("/create", Html.Method.Post,
-                        Lte.card("New Project", null,
-                            Html.div(null,
-                                Html.formHidden("cmd", "create"),
-                                Lte.formInputGroup("text", "projectName", "Name", "", errors)
-                            ),
-                            Lte.formSubmitButton("success", "Add"),
-                            "card-warning", null
-                        )
-                    );
-            }
-        }.render(this);
+        renderProjectsList();
     }
 
     private ArrayList<Lte.FormError> checkCreateProjectFormError() {
@@ -105,26 +60,18 @@ public class TrialsComponent extends AbstractComponent {
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList("Projects",
-                        Html.a(ProjectComponent.getUrl(project.getId()), project.getShortId()),
-                        "Trials"));
+                return new ArrayList<String>(Arrays.asList(
+                        Html.a(ProjectsComponent.getUrl(), "Projects"),
+                        Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+                        "Trials",
+                        request.params("id")
+                        ));
             }
 
             @Override
             protected String pageContent() {
                 ArrayList<Project> projectList = Project.getProjectList();
-                if (projectList.size() <= 0) {
-                    return Lte.card(null, null,
-                        Html.a("/projects/create", null, null,
-                            Html.faIcon("plus-square") + "Add new project"
-                        ),
-                        null
-                    );
-                }
-                return Lte.card(null,
-                        Html.a("/projects/create",
-                                null, null, Html.faIcon("plus-square")
-                        ),
+                return Lte.card(null, null,
                         Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
                         , null, null, "p-0");
             }
@@ -147,11 +94,5 @@ public class TrialsComponent extends AbstractComponent {
             );
         }
         return list;
-    }
-
-    private void createProject() {
-        String name = request.queryParams("projectName");
-        Project project = Project.create(name);
-        response.redirect(ProjectComponent.getUrl(project.getId()));
     }
 }

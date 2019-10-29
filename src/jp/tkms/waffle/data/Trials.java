@@ -1,7 +1,5 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.Environment;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,21 +11,21 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class Simulator {
+public class Trials {
     private UUID id = null;
     private String shortId;
     private String name;
 
     private Project project;
 
-    public Simulator(Project project, UUID id, String name) {
+    public Trials(Project project, UUID id, String name) {
         this.project = project;
         this.id = id;
         this.shortId = id.toString().replaceFirst("-.*$", "");
         this.name = name;
     }
 
-    public Simulator(Project project, String id) {
+    public Trials(Project project, String id) {
         this.project = project;
         try {
             Database db = getWorkDB(project);
@@ -45,13 +43,28 @@ public class Simulator {
         }
     }
 
+    private String getFromDB(String key) {
+        String result = null;
+        try {
+            Database db = getWorkDB(project);
+            PreparedStatement statement = db.preparedStatement("select " + key + " from simulator where id=?;");
+            statement.setString(1, getId());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                result = resultSet.getString(key);
+            }
+            db.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     public boolean isValid() { return id != null; }
 
     public String getName() {
         return name;
     }
-
-    public UUID getIdValue() { return id; }
 
     public String getId() {
         return id.toString();
@@ -70,13 +83,13 @@ public class Simulator {
         return path;
     }
 
-    public static ArrayList<Simulator> getSimulatorList(Project project) {
-        ArrayList<Simulator> simulatorList = new ArrayList<>();
+    public static ArrayList<Trials> getSimulatorList(Project project) {
+        ArrayList<Trials> simulatorList = new ArrayList<>();
         try {
             Database db = getWorkDB(project);
             ResultSet resultSet = db.executeQuery("select id,name from simulator;");
             while (resultSet.next()) {
-                simulatorList.add(new Simulator(
+                simulatorList.add(new Trials(
                         project,
                         UUID.fromString(resultSet.getString("id")),
                         resultSet.getString("name"))
@@ -90,8 +103,8 @@ public class Simulator {
         return simulatorList;
     }
 
-    public static Simulator create(Project project, String name) {
-        Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
+    public static Trials create(Project project, String name) {
+        Trials simulator = new Trials(project, UUID.randomUUID(), name);
         System.out.println(simulator.getName());
         System.out.println(simulator.name);
         try {

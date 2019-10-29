@@ -14,9 +14,11 @@ abstract public class AbstractComponent implements Route {
 
     public static void register() {};
 
+    /*
     public static String getUrl(String... values) {
         return "/";
     }
+    */
 
     abstract public void controller();
 

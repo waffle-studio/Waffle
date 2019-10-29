@@ -66,7 +66,8 @@ public class Lte {
                                         String placeholder, ArrayList<FormError> errors) {
         String id = "input" + name;
         return div("form-group",
-            element("label", new Attributes(value("for", id)), label),
+            (label != null?
+                element("label", new Attributes(value("for", id)), label) :null),
             attribute("input",
                 value("type", type),
                 value("class", "form-control"),
@@ -83,14 +84,27 @@ public class Lte {
             value);
     }
 
+    public static String disabledTextInput(String value) {
+        return div("form-group",
+            attribute("input",
+                value("type", "text"),
+                value("value", value),
+                value("class", "form-control"),
+                value("disabled", null)
+                )
+        );
+    }
+
     public static class FormError {
 
     }
 
     public static String table(String classValue, ArrayList<TableHeader> tableHeaders, ArrayList<TableRow> tableRows) {
         String headerValue = "";
-        for (TableHeader header : tableHeaders) {
-            headerValue += element("th", new Attributes(value("style", header.style)), header.value);
+        if (tableHeaders != null) {
+            for (TableHeader header : tableHeaders) {
+                headerValue += element("th", new Attributes(value("style", header.style)), header.value);
+            }
         }
         String contentsValue = "";
         for (TableRow row : tableRows) {
@@ -102,7 +116,8 @@ public class Lte {
         }
 
         return elementWithClass("table", listBySpace("table", classValue),
-            element("thead", null, element("tr", null , headerValue)),
+            (tableHeaders != null?
+                element("thead", null, element("tr", null , headerValue)) :null),
             element("tbody", null, contentsValue)
         );
     }

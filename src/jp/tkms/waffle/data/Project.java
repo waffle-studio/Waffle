@@ -22,7 +22,8 @@ public class Project {
         this.id = id;
         this.shortId = id.toString().replaceFirst("-.*$", "");
         this.name = name;
-        this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst("\\$\\{NAME\\}", name + '_' + shortId));
+        this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst(
+                "\\$\\{NAME\\}", name + '_' + shortId));
     }
 
     public Project(String id) {
@@ -43,13 +44,28 @@ public class Project {
         }
     }
 
+    private String getFromDB(String key) {
+        String result = null;
+        try {
+            Database db = getWorkDB();
+            PreparedStatement statement = db.preparedStatement("select " + key + " from project where id=?;");
+            statement.setString(1, getId());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                result = resultSet.getString(key);
+            }
+            db.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     public boolean isValid() { return id != null; }
 
     public String getName() {
         return name;
     }
-
-    public UUID getIdValue() { return id; }
 
     public String getId() {
         return id.toString();
@@ -59,6 +75,14 @@ public class Project {
 
     public Path getLocation() {
         return location;
+    }
+
+    public ArrayList<Simulator> getSimulatorList() {
+        return Simulator.getSimulatorList(this);
+    }
+
+    public Simulator getSimulator(String id) {
+        return new Simulator(this, id);
     }
 
     public static ArrayList<Project> getProjectList() {
@@ -95,7 +119,7 @@ public class Project {
 
             Files.createDirectories(project.getLocation());
 
-            project.getWorkDB().close();
+            project.getWorkDB().close(); // initialize database
         } catch (SQLException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -104,7 +128,7 @@ public class Project {
         return project;
     }
 
-    private Database getWorkDB() {
+    Database getWorkDB() {
         Database db = Database.getWorkDB(this);
         updateWorkDB(db);
         return db;
@@ -125,7 +149,8 @@ public class Project {
                 statement.setString(1, getName());
                 statement.execute();
 
-                db.execute("insert into system(name,value) values('timestamp_create',(DATETIME('now','localtime')));");
+                db.execute("insert into system(name,value)" +
+                        " values('timestamp_create',(DATETIME('now','localtime')));");
             }
 
             db.setVersion(version);

@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Environment;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,35 +13,59 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class Project {
+public class Simulator {
+    private static final String KEY_SIMULATION_COMMAND = "simulation_command";
+    private static final String KEY_VERSION_COMMAND = "version_command";
+
     private UUID id = null;
     private String shortId;
     private String name;
-    private Path location;
 
-    public Project(UUID id, String name) {
+    private String simulationCommand = null;
+    private String versionCommand = null;
+
+    private Project project;
+
+    public Simulator(Project project, UUID id, String name) {
+        this.project = project;
         this.id = id;
         this.shortId = id.toString().replaceFirst("-.*$", "");
         this.name = name;
-        this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst("\\$\\{NAME\\}", name + '_' + shortId));
     }
 
-    public Project(String id) {
+    public Simulator(Project project, String id) {
+        this.project = project;
         try {
-            Database db = getMainDB();
-            PreparedStatement statement = db.preparedStatement("select id,name,location from project where id=?;");
+            Database db = getWorkDB(project);
+            PreparedStatement statement = db.preparedStatement("select id,name from simulator where id=?;");
             statement.setString(1, id);
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 this.id = UUID.fromString(resultSet.getString("id"));
                 this.shortId = this.id.toString().replaceFirst("-.*$", "");
                 this.name = resultSet.getString("name");
-                this.location = Paths.get(resultSet.getString("location"));
             }
             db.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getFromDB(String key) {
+        String result = null;
+        try {
+            Database db = getWorkDB(project);
+            PreparedStatement statement = db.preparedStatement("select " + key + " from simulator where id=?;");
+            statement.setString(1, getId());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                result = resultSet.getString(key);
+            }
+            db.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     public boolean isValid() { return id != null; }
@@ -49,27 +74,47 @@ public class Project {
         return name;
     }
 
-    public UUID getIdValue() { return id; }
-
     public String getId() {
         return id.toString();
     }
 
     public String getShortId() { return shortId; }
 
-    public Path getLocation() {
-        return location;
+    public Project getProject() {
+        return project;
     }
 
-    public static ArrayList<Project> getProjectList() {
-        ArrayList<Project> projectList = new ArrayList<>();
+    public Path getLocation() {
+        Path path = Paths.get(project.getLocation().toAbsolutePath() + File.separator +
+                "simulator" + File.separator + name + '_' + shortId
+        );
+        return path;
+    }
+
+    public String getSimulationCommand() {
+        if (simulationCommand == null) {
+            simulationCommand = getFromDB(KEY_SIMULATION_COMMAND);
+        }
+        return simulationCommand;
+    }
+
+    public String getVersionCommand() {
+        if (versionCommand == null) {
+            versionCommand = getFromDB(KEY_VERSION_COMMAND);
+        }
+        return versionCommand;
+    }
+
+    public static ArrayList<Simulator> getSimulatorList(Project project) {
+        ArrayList<Simulator> simulatorList = new ArrayList<>();
         try {
-            Database db = getMainDB();
-            ResultSet resultSet = db.executeQuery("select id,name from project;");
+            Database db = getWorkDB(project);
+            ResultSet resultSet = db.executeQuery("select id,name from simulator;");
             while (resultSet.next()) {
-                projectList.add(new Project(
-                    UUID.fromString(resultSet.getString("id")),
-                    resultSet.getString("name"))
+                simulatorList.add(new Simulator(
+                        project,
+                        UUID.fromString(resultSet.getString("id")),
+                        resultSet.getString("name"))
                 );
             }
 
@@ -77,80 +122,55 @@ public class Project {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return projectList;
+        return simulatorList;
     }
 
-    public static Project create(String name) {
-        Project project = new Project(UUID.randomUUID(), name);
+    public static Simulator create(Project project, String name, String simulationCommand, String versionCommand) {
+        Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
+        System.out.println(simulator.getName());
+        System.out.println(simulator.name);
         try {
-            Database db = getMainDB();
+            Database db = getWorkDB(project);
             PreparedStatement statement
-                = db.preparedStatement("insert into project(id,name,location) values(?,?,?);");
-            statement.setString(1, project.getId());
-            statement.setString(2, project.getName());
-            statement.setString(3, project.getLocation().toString());
+                = db.preparedStatement("insert into simulator(id,name,"
+                + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND
+                + ") values(?,?,?,?);");
+            statement.setString(1, simulator.getId());
+            statement.setString(2, simulator.getName());
+            statement.setString(3, simulationCommand);
+            statement.setString(4, versionCommand);
             statement.execute();
             db.commit();
             db.close();
 
-            Files.createDirectories(project.getLocation());
-
-            project.getWorkDB().close();
+            Files.createDirectories(simulator.getLocation());
         } catch (SQLException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return project;
+        return simulator;
     }
 
-    private Database getWorkDB() {
-        Database db = Database.getWorkDB(this);
+    private static Database getWorkDB(Project project) {
+        Database db = Database.getWorkDB(project);
         updateWorkDB(db);
         return db;
     }
 
-    private void updateWorkDB(Database db) {
+    private static void updateWorkDB(Database db) {
         try {
-            int currentVersion = db.getVersion();
+            int currentVersion = db.getVersion("simulator");
             int version = 0;
 
             if (currentVersion <= version++) {
-                PreparedStatement statement
-                    = db.preparedStatement("insert into system(name,value) values('id',?);");
-                statement.setString(1, getId());
-                statement.execute();
-
-                statement = db.preparedStatement("insert into system(name,value) values('name',?);");
-                statement.setString(1, getName());
-                statement.execute();
-
-                db.execute("insert into system(name,value) values('timestamp_create',(DATETIME('now','localtime')));");
+                db.execute("create table simulator(" +
+                        "id,name," + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND + "," +
+                        "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                        ");");
             }
 
-            db.setVersion(version);
-            db.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static Database getMainDB() {
-        Database db = Database.getMainDB();
-        updateMainDB(db);
-        return db;
-    }
-
-    private static void updateMainDB(Database db) {
-        try {
-            int currentVersion = db.getVersion();
-            int version = 0;
-
-            if (currentVersion <= version++) {
-                db.execute("create table project(id,name,location);");
-            }
-
-            db.setVersion(version);
+            db.setVersion("simulator", version);
             db.commit();
         } catch (SQLException e) {
             e.printStackTrace();

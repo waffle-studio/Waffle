@@ -60,9 +60,9 @@ public class Database {
         connection.close();
     }
 
-    public int getVersion() {
+    public int getVersion(String tag) {
         int version = -1;
-        try (ResultSet resultSet = executeQuery("select value from system where name='version';")) {
+        try (ResultSet resultSet = executeQuery("select value from system where name='version-" + tag + "';")) {
             while (resultSet.next()){
                 version = resultSet.getInt(1);
             }
@@ -71,8 +71,8 @@ public class Database {
         }
         if (version == -1) {
             try {
-                execute("create table system(name,value);");
-                execute("insert into system(name,value) values('version',0);");
+                execute("create table if not exists system(name,value);");
+                execute("insert into system(name,value) values('version-" + tag + "',0);");
                 version = 0;
                 commit();
             } catch (SQLException e) {
@@ -82,12 +82,20 @@ public class Database {
         return version;
     }
 
-    public void setVersion(int version) {
+    public int getVersion() {
+        return getVersion("main");
+    }
+
+    public void setVersion(String tag, int version) {
         try {
-            execute("update system set value=" + version + " where name='version';");
+            execute("update system set value=" + version + " where name='version-" + tag + "';");
         } catch (SQLException e) {
             logger.error(e.getMessage());
         }
+    }
+
+    public void setVersion(int version) {
+        setVersion("main", version);
     }
 
     public void execute(String sql) throws SQLException {

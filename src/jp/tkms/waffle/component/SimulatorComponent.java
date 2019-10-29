@@ -4,109 +4,98 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ProjectComponent extends AbstractComponent {
-    public enum Mode {Default, NotFound, EditConstModel};
+public class SimulatorComponent extends AbstractComponent {
+    public enum Mode {Default, EditConstModel};
 
     private Mode mode;
-    private String requestedId;
     private Project project;
+    private Simulator simulator;
 
-    public ProjectComponent(Mode mode) {
+    public SimulatorComponent(Mode mode) {
         super();
         this.mode = mode;
     }
 
-    public ProjectComponent() {
+    public SimulatorComponent() {
         this(Mode.Default);
     }
 
     static public void register() {
-        Spark.get(getUrl(null) , new ProjectComponent());
-        Spark.get(getUrl(null, "edit_const_model") , new ProjectComponent());
+        Spark.get(getUrl(null) , new SimulatorComponent());
+        Spark.get(getUrl(null, "edit_const_model") , new SimulatorComponent());
 
         SimulatorsComponent.register();
         TrialsComponent.register();
     }
 
-    public static String getUrl(Project project) {
-        return "/project/" + (project == null ? ":id" : project.getId());
+    public static String getUrl(Simulator simulator) {
+        return "/simulator/" + (simulator == null ? ":project/:id" : simulator.getProject().getId() + '/' + simulator.getId());
     }
 
-    public static String getUrl(Project project, String mode) {
-        return getUrl(project) + '/' + mode;
+    public static String getUrl(Simulator simulator, String mode) {
+        return getUrl(simulator) + '/' + mode;
     }
 
     @Override
     public void controller() {
-        requestedId = request.params("id");
-        project = new Project(requestedId);
-
+        project = new Project(request.params("project"));
         if (!project.isValid()) {
-            mode = Mode.NotFound;
         }
 
-        if (mode == Mode.NotFound) {
-            renderProjectNotFound();
-        } else {
-            renderProject();
-        }
+        simulator = project.getSimulator(request.params("id"));
+
+        renderSimulator();
     }
 
-    private void renderProjectNotFound() {
-        new MainTemplate() {
-            @Override
-            protected String pageTitle() {
-                return "[" + requestedId + "]";
-            }
-
-            @Override
-            protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(
-                        Html.a(ProjectsComponent.getUrl(), "Projects"), "NotFound"));
-            }
-
-            @Override
-            protected String pageContent() {
-                ArrayList<Project> projectList = Project.getProjectList();
-                return Lte.card(null, null,
-                        Html.h1("text-center", Html.faIcon("question")),
-                        null
-                );
-            }
-        }.render(this);
-    }
-
-    private void renderProject() {
+    private void renderSimulator() {
         new MainTemplate() {
             @Override
             protected String pageTitle(){
-                return project.getName();
+                return simulator.getName();
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
                 return new ArrayList<String>(Arrays.asList(
-                        Html.a(ProjectsComponent.getUrl(), "Projects"), project.getId()));
+                        Html.a(ProjectsComponent.getUrl(), "Projects"),
+                        Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+                        Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
+                        simulator.getId()
+                        ));
             }
 
             @Override
             protected String pageContent() {
-                String content = Lte.divRow(
-                        Lte.infoBox(Lte.DivSize.F12Md12Sm6,"layer-group", "bg-info",
-                                Html.a(SimulatorsComponent.getUrl(project.getId()), "Simulators"), ""),
-                        Lte.infoBox(Lte.DivSize.F12Md12Sm6,"project-diagram", "bg-danger",
-                                Html.a(TrialsComponent.getUrl(project.getId()), "Trials"), "")
+                String content = "";
+
+                content += Lte.card(Html.faIcon("terminal") + "Basic",
+                    Html.a("", Html.faIcon("edit")),
+                    Html.div(null,
+                        Html.div(null,
+                            "Simulation Command",
+                            Lte.disabledTextInput(simulator.getSimulationCommand())
+                        ),
+                        Html.div(null,
+                            "Version Command",
+                            Lte.disabledTextInput(simulator.getVersionCommand())
+                        )
+                    )
+                    ,null);
+
+                content += Lte.divRow(
+                    Lte.infoBox(Lte.DivSize.F12Md12Sm6,"file-import", "",
+                        Html.a(SimulatorsComponent.getUrl(project), "Parameter extractor"), ""),
+                    Lte.infoBox(Lte.DivSize.F12Md12Sm6,"pencil-ruler", "",
+                        Html.a(TrialsComponent.getUrl(project), "Parameter modifier"), "")
                 );
 
-                content += Lte.card(Html.faIcon("user-tie") + "Conductors", null, null, null);
-
-                content += Lte.card(Html.faIcon("list") + "Constant sets", null, null,
-                        Html.a(getUrl(project,"edit_const_model"), Html.faIcon("pencil") + "Edit model"));
+                content += Lte.card(Html.faIcon("list-alt") + "Parameter models", null, null, null);
 
                 return content;
             }

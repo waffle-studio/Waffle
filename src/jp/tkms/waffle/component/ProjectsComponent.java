@@ -29,29 +29,33 @@ public class ProjectsComponent extends AbstractComponent {
         Spark.post(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
     }
 
-    public static String getUrl(String... values) {
-        return "/projects/" + (values.length == 0 ? "" : "/" + values[0]);
+    public static String getUrl() {
+        return "/projects";
+    }
+
+    public static String getUrl(String mode) {
+        return "/projects/" + mode;
     }
 
     @Override
     public void controller() {
         if (mode == Mode.Add) {
             if (request.requestMethod().toLowerCase().equals("post")) {
-                ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+                ArrayList<Lte.FormError> errors = checkAddFormError();
                 if (errors.isEmpty()) {
-                    createProject();
+                    addProject();
                 } else {
-                    renderCreateProjectForm(errors);
+                    renderAddForm(errors);
                 }
             } else {
-                renderCreateProjectForm(new ArrayList<>());
+                renderAddForm(new ArrayList<>());
             }
         } else {
-            renderProjectsList();
+            renderProjectList();
         }
     }
 
-    private void renderCreateProjectForm(ArrayList<Lte.FormError> errors) {
+    private void renderAddForm(ArrayList<Lte.FormError> errors) {
         new MainTemplate() {
             @Override
             protected String pageTitle() {
@@ -77,8 +81,8 @@ public class ProjectsComponent extends AbstractComponent {
                     Html.form(getUrl("add"), Html.Method.Post,
                         Lte.card("New Project", null,
                             Html.div(null,
-                                Html.formHidden("cmd", "create"),
-                                Lte.formInputGroup("text", "projectName", "Name", "", errors)
+                                Html.inputHidden("cmd", "add"),
+                                Lte.formInputGroup("text", "name", null, "Name", errors)
                             ),
                             Lte.formSubmitButton("success", "Add"),
                             "card-warning", null
@@ -88,11 +92,11 @@ public class ProjectsComponent extends AbstractComponent {
         }.render(this);
     }
 
-    private ArrayList<Lte.FormError> checkCreateProjectFormError() {
+    private ArrayList<Lte.FormError> checkAddFormError() {
         return new ArrayList<>();
     }
 
-    private void renderProjectsList() {
+    private void renderProjectList() {
         new MainTemplate() {
             @Override
             protected String pageTitle() {
@@ -136,16 +140,16 @@ public class ProjectsComponent extends AbstractComponent {
         ArrayList<Lte.TableRow> list = new ArrayList<>();
         for (Project project : Project.getProjectList()) {
             list.add(new Lte.TableRow(
-                    Html.a(ProjectComponent.getUrl(project.getId()), null, null,project.getShortId()),
+                    Html.a(ProjectComponent.getUrl(project), null, null,project.getShortId()),
                     project.getName())
             );
         }
         return list;
     }
 
-    private void createProject() {
-        String name = request.queryParams("projectName");
+    private void addProject() {
+        String name = request.queryParams("name");
         Project project = Project.create(name);
-        response.redirect(ProjectComponent.getUrl(project.getId()));
+        response.redirect(ProjectComponent.getUrl(project));
     }
 }

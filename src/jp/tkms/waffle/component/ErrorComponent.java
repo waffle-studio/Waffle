@@ -7,10 +7,10 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class NotFoundComponent extends AbstractComponent {
+public class ErrorComponent extends AbstractComponent {
     static public void register() {
-        Spark.notFound(new NotFoundComponent());
-        Spark.internalServerError(new NotFoundComponent());
+        Spark.notFound(new ErrorComponent());
+        Spark.internalServerError(new ErrorComponent());
     }
 
     @Override

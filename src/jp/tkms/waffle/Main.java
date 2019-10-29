@@ -2,8 +2,6 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 
-import java.util.Map;
-
 import static spark.Spark.*;
 
 public class Main {
@@ -13,7 +11,7 @@ public class Main {
 
         staticFiles.location("/static");
 
-        NotFoundComponent.register();
+        ErrorComponent.register();
 
         redirect.get("/", Environment.ROOT_PAGE);
 

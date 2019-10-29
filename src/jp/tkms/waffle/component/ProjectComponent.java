@@ -4,13 +4,14 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ProjectComponent extends AbstractComponent {
-    public enum Mode {Default, NotFound};
+    public enum Mode {Default, NotFound, EditConstModel};
 
     private Mode mode;
     private String requestedId;
@@ -26,14 +27,20 @@ public class ProjectComponent extends AbstractComponent {
     }
 
     static public void register() {
-        Spark.get(getUrl() , new ProjectComponent());
+        Spark.get(getUrl(null) , new ProjectComponent());
+        Spark.get(getUrl(null, "edit_const_model") , new ProjectComponent());
 
         SimulatorsComponent.register();
+        SimulatorComponent.register();
         TrialsComponent.register();
     }
 
-    public static String getUrl(String... values) {
-        return "/project/" + (values.length == 0 ? ":id" : values[0]);
+    public static String getUrl(Project project) {
+        return "/project/" + (project == null ? ":id" : project.getId());
+    }
+
+    public static String getUrl(Project project, String mode) {
+        return getUrl(project) + '/' + mode;
     }
 
     @Override
@@ -55,12 +62,7 @@ public class ProjectComponent extends AbstractComponent {
     private void renderProjectNotFound() {
         new MainTemplate() {
             @Override
-            protected String pageTitle(){
-                return "Project";
-            }
-
-            @Override
-            protected String pageSubTitle() {
+            protected String pageTitle() {
                 return "[" + requestedId + "]";
             }
 
@@ -98,14 +100,15 @@ public class ProjectComponent extends AbstractComponent {
             protected String pageContent() {
                 String content = Lte.divRow(
                         Lte.infoBox(Lte.DivSize.F12Md12Sm6,"layer-group", "bg-info",
-                                Html.a(SimulatorsComponent.getUrl(project.getId()), "Simulators"), ""),
+                                Html.a(SimulatorsComponent.getUrl(project), "Simulators"), ""),
                         Lte.infoBox(Lte.DivSize.F12Md12Sm6,"project-diagram", "bg-danger",
-                                Html.a(TrialsComponent.getUrl(project.getId()), "Trials"), "")
+                                Html.a(TrialsComponent.getUrl(project), "Trials"), "")
                 );
 
                 content += Lte.card(Html.faIcon("user-tie") + "Conductors", null, null, null);
 
-                content += Lte.card(Html.faIcon("list") + "Constant set", null, null, null);
+                content += Lte.card(Html.faIcon("list") + "Constant sets", null, null,
+                        Html.a(getUrl(project,"edit_const_model"), Html.faIcon("pencil") + "Edit model"));
 
                 return content;
             }

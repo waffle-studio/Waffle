@@ -4,6 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -27,11 +28,17 @@ public class SimulatorsComponent extends AbstractComponent {
     }
 
     static public void register() {
-        Spark.get(getUrl(), new SimulatorsComponent());
+        Spark.get(getUrl(null), new SimulatorsComponent());
+        Spark.get(getUrl(null, "add") , new SimulatorsComponent(Mode.Add));
+        Spark.post(getUrl(null, "add") , new SimulatorsComponent(Mode.Add));
     }
 
-    public static String getUrl(String... values) {
-        return "/simulators/" + (values.length == 0 ? ":project" : values[0]);
+    public static String getUrl(Project project) {
+        return "/simulators/" + (project == null ? ":project" : project.getId());
+    }
+
+    public static String getUrl(Project project, String mode) {
+        return getUrl(project) + '/' + mode;
     }
 
     @Override
@@ -43,23 +50,23 @@ public class SimulatorsComponent extends AbstractComponent {
             if (request.requestMethod().toLowerCase().equals("post")) {
                 ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
                 if (errors.isEmpty()) {
-                    createProject();
+                    addSimulator();
                 } else {
-                    renderCreateProjectForm(errors);
+                    renderAddForm(errors);
                 }
             } else {
-                renderCreateProjectForm(new ArrayList<>());
+                renderAddForm(new ArrayList<>());
             }
         } else {
-            renderProjectsList();
+            renderSimulatorList();
         }
     }
 
-    private void renderCreateProjectForm(ArrayList<Lte.FormError> errors) {
+    private void renderAddForm(ArrayList<Lte.FormError> errors) {
         new MainTemplate() {
             @Override
             protected String pageTitle() {
-                return "Projects";
+                return "Simulators";
             }
 
             @Override
@@ -70,19 +77,23 @@ public class SimulatorsComponent extends AbstractComponent {
             @Override
             protected ArrayList<String> pageBreadcrumb() {
                 return new ArrayList<String>(Arrays.asList(
-                    Html.a("/projects", null, null ,"Projects"),
-                    "Add")
-                );
+                        Html.a(ProjectsComponent.getUrl(), "Projects"),
+                        Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+                        Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
+                        "Add"));
             }
 
             @Override
             protected String pageContent() {
                 return
-                    Html.form("/create", Html.Method.Post,
-                        Lte.card("New Project", null,
+                    Html.form(getUrl(project, "add"), Html.Method.Post,
+                        Lte.card("New Simulator", null,
                             Html.div(null,
-                                Html.formHidden("cmd", "create"),
-                                Lte.formInputGroup("text", "projectName", "Name", "", errors)
+                                Html.inputHidden("cmd", "add"),
+                                Lte.formInputGroup("text", "name", null, "Name", errors),
+                                Html.hr(),
+                                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", errors),
+                                Lte.formInputGroup("text", "ver_cmd", "Version command", "", errors)
                             ),
                             Lte.formSubmitButton("success", "Add"),
                             "card-warning", null
@@ -96,7 +107,7 @@ public class SimulatorsComponent extends AbstractComponent {
         return new ArrayList<>();
     }
 
-    private void renderProjectsList() {
+    private void renderSimulatorList() {
         new MainTemplate() {
             @Override
             protected String pageTitle() {
@@ -105,8 +116,9 @@ public class SimulatorsComponent extends AbstractComponent {
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList("Projects",
-                        Html.a(ProjectComponent.getUrl(project.getId()), project.getShortId()),
+                return new ArrayList<String>(Arrays.asList(
+                        Html.a(ProjectsComponent.getUrl(), "Projects"),
+                        Html.a(ProjectComponent.getUrl(project), project.getShortId()),
                         "Simulators"));
             }
 
@@ -115,43 +127,46 @@ public class SimulatorsComponent extends AbstractComponent {
                 ArrayList<Project> projectList = Project.getProjectList();
                 if (projectList.size() <= 0) {
                     return Lte.card(null, null,
-                        Html.a("/projects/create", null, null,
-                            Html.faIcon("plus-square") + "Add new project"
+                        Html.a(getUrl(project,"add"), null, null,
+                            Html.faIcon("plus-square") + "Add simulator"
                         ),
                         null
                     );
                 }
                 return Lte.card(null,
-                        Html.a("/projects/create",
+                        Html.a(getUrl(project, "add"),
                                 null, null, Html.faIcon("plus-square")
                         ),
-                        Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
+                        Lte.table("table-condensed", getSimulatorTableHeader(), getSimulatorTableRow())
                         , null, null, "p-0");
             }
         }.render(this);
     }
 
-    private ArrayList<Lte.TableHeader> getProjectTableHeader() {
+    private ArrayList<Lte.TableHeader> getSimulatorTableHeader() {
         ArrayList<Lte.TableHeader> list = new ArrayList<>();
         list.add(new Lte.TableHeader("width:8em;", "ID"));
         list.add(new Lte.TableHeader("", "Name"));
         return list;
     }
 
-    private ArrayList<Lte.TableRow> getProjectTableRow() {
+    private ArrayList<Lte.TableRow> getSimulatorTableRow() {
         ArrayList<Lte.TableRow> list = new ArrayList<>();
-        for (Project project : Project.getProjectList()) {
+        for (Simulator simulator : Simulator.getSimulatorList(project)) {
             list.add(new Lte.TableRow(
-                    Html.a("/project/" + project.getId(), null, null,project.getShortId()),
-                    project.getName())
+                    Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
+                    simulator.getName())
             );
         }
         return list;
     }
 
-    private void createProject() {
-        String name = request.queryParams("projectName");
-        Project project = Project.create(name);
-        response.redirect(ProjectComponent.getUrl(project.getId()));
+    private void addSimulator() {
+        Simulator simulator = Simulator.create(project,
+            request.queryParams("name"),
+            request.queryParams("sim_cmd"),
+            request.queryParams("ver_cmd")
+        );
+        response.redirect(SimulatorComponent.getUrl(simulator));
     }
 }
