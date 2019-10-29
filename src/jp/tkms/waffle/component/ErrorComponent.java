@@ -10,26 +10,22 @@ import java.util.Arrays;
 public class NotFoundComponent extends AbstractComponent {
     static public void register() {
         Spark.notFound(new NotFoundComponent());
+        Spark.internalServerError(new NotFoundComponent());
     }
 
     @Override
     public void controller() {
-        logger.warn("NotFound: " + request.url());
+        logger.warn(response.status() + ": " + request.url());
 
         new MainTemplate() {
             @Override
             protected String pageTitle() {
-                return "404";
-            }
-
-            @Override
-            protected String pageSubTitle() {
-                return "NotFound";
+                return "" + response.status();
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(new String[]{"NotFound"}));
+                return new ArrayList<String>(Arrays.asList(new String[]{ "" + response.status()}));
             }
 
             @Override
