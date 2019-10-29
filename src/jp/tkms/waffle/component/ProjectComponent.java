@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ProjectComponent extends AbstractComponent {
-    public static final String ROOT = "/project";
-
     public enum Mode {Default, NotFound};
 
     private Mode mode;
@@ -28,7 +26,13 @@ public class ProjectComponent extends AbstractComponent {
     }
 
     static public void register() {
-        Spark.get( ROOT + "/:id", new ProjectComponent());
+        Spark.get(getUrl() , new ProjectComponent());
+
+        SimulatorsComponent.register();
+    }
+
+    public static String getUrl(String... values) {
+        return "/project/" + (values.length == 0 ? ":id" : values[0]);
     }
 
     @Override
@@ -43,7 +47,7 @@ public class ProjectComponent extends AbstractComponent {
         if (mode == Mode.NotFound) {
             renderProjectNotFound();
         } else {
-            renderProjectsList();
+            renderProject();
         }
     }
 
@@ -61,7 +65,8 @@ public class ProjectComponent extends AbstractComponent {
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(Html.a(ProjectsComponent.ROOT, "Projects"), "NotFound"));
+                return new ArrayList<String>(Arrays.asList(
+                        Html.a(ProjectsComponent.getUrl(), "Projects"), "NotFound"));
             }
 
             @Override
@@ -75,40 +80,32 @@ public class ProjectComponent extends AbstractComponent {
         }.render(this);
     }
 
-    private void renderProjectsList() {
+    private void renderProject() {
         new MainTemplate() {
             @Override
             protected String pageTitle(){
-                return "Project";
-            }
-
-            @Override
-            protected String pageSubTitle() {
                 return project.getName();
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList(Html.a(ProjectsComponent.ROOT, "Projects"), project.getId()));
+                return new ArrayList<String>(Arrays.asList(
+                        Html.a(ProjectsComponent.getUrl(), "Projects"), project.getId()));
             }
 
             @Override
             protected String pageContent() {
-                ArrayList<Project> projectList = Project.getProjectList();
-                if (projectList.size() <= 0) {
-                    return Lte.card(null, null,
-                        Html.a("/project/create", null, null,
-                            Html.faIcon("plus-square") + "Create new project"
-                        ),
-                        null
-                    );
-                }
-                return Lte.card(null,
-                        Html.a("/project/create",
-                                null, null, Html.faIcon("plus-square")
-                        ),
-                        Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
-                        , null, null, "p-0");
+                String content = Lte.divRow(
+                        Lte.infoBox(Lte.DivSize.F12Md12Sm6,"layer-group", "bg-info",
+                                Html.a(SimulatorsComponent.getUrl(project.getId()), "Simulators"), ""),
+                        Lte.infoBox(Lte.DivSize.F12Md12Sm6,"project-diagram", "bg-danger", "Trials", "")
+                );
+
+                content += Lte.card(Html.faIcon("user-tie") + "Conductors", null, null, null);
+
+                content += Lte.card(Html.faIcon("list") + "Constant set", null, null, null);
+
+                return content;
             }
         }.render(this);
     }
@@ -128,7 +125,7 @@ public class ProjectComponent extends AbstractComponent {
         ArrayList<Lte.TableRow> list = new ArrayList<>();
         for (Project project : Project.getProjectList()) {
             list.add(new Lte.TableRow(
-                    Html.a("/project/" + project.getId(), null, null,project.getShortId()),
+                    Html.a("", null, null,project.getShortId()),
                     project.getName())
             );
         }

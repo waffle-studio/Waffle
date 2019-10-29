@@ -7,7 +7,31 @@ import java.util.List;
 import static jp.tkms.waffle.component.template.Html.*;
 
 public class Lte {
-    public static String card(String title, String tools, String body, String footer, String additionalClass, String additionalBodyClass) {
+    public enum DivSize {F12Md6Sm3, F12Md12Sm6};
+
+    private static String toDivSizeClass(DivSize divSize) {
+        switch (divSize) {
+            case F12Md6Sm3: return "col-md-3 col-sm-6 col-12";
+            case F12Md12Sm6: return "col-md-6 col-sm-12 col-12";
+        }
+
+        return "col-12";
+    }
+
+    public static String divContainerFluid(String... values) {
+        return div("container-fluid", values);
+    }
+
+    public static String divRow(String... values) {
+        return div("row", values);
+    }
+
+    public static String divCol(DivSize divSize, String... values) {
+        return div(toDivSizeClass(divSize), values);
+    }
+
+    public static String card(String title, String tools, String body, String footer, String additionalClass,
+                              String additionalBodyClass) {
         String innerContent = "";
         if (title != null || tools != null) {
             innerContent =
@@ -16,20 +40,30 @@ public class Lte {
                     div("card-tools", tools)
                 );
         }
-        innerContent += div("card-body" + (additionalBodyClass == null ? "" : " " + additionalBodyClass),
+        innerContent += div(listBySpace("card-body", additionalBodyClass),
             removeNull(body)
         );
         if (footer != null) {
             innerContent += div("card-footer", footer);
         }
-        return div("card" + (additionalClass == null ? "" : " " + additionalClass), innerContent);
+        return div(listBySpace("card", additionalClass), innerContent);
     }
 
     public static String card(String title, String tools, String body, String footer) {
         return card(title, tools, body, footer, null, null);
     }
 
-    public static String formInputGroup(String type, String name, String label, String placeholder, ArrayList<FormError> errors) {
+    public static String infoBox(DivSize divSize, String icon, String iconBgCLass, String text, String number) {
+        return divCol(divSize, div("info-box",
+                span(listBySpace("info-box-icon", iconBgCLass), null, faIcon(icon)),
+                div("info-box-content",
+                        span("info-box-text", null, text),
+                        span("info-box-number", null, number)
+                )));
+    }
+
+    public static String formInputGroup(String type, String name, String label,
+                                        String placeholder, ArrayList<FormError> errors) {
         String id = "input" + name;
         return div("form-group",
             element("label", new Attributes(value("for", id)), label),
@@ -67,7 +101,7 @@ public class Lte {
             contentsValue += element("tr", null, rowValue);
         }
 
-        return elementWithClass("table", "table" + (classValue == null ? "" : " " + classValue),
+        return elementWithClass("table", listBySpace("table", classValue),
             element("thead", null, element("tr", null , headerValue)),
             element("tbody", null, contentsValue)
         );

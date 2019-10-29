@@ -12,6 +12,12 @@ abstract public class AbstractComponent implements Route {
     public Request request;
     public Response response;
 
+    public static void register() {};
+
+    public static String getUrl(String... values) {
+        return "/";
+    }
+
     abstract public void controller();
 
     @Override

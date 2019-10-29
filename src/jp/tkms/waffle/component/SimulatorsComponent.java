@@ -9,32 +9,36 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ProjectsComponent extends AbstractComponent {
+public class SimulatorsComponent extends AbstractComponent {
     public enum Mode {Default, Add};
 
     private Mode mode;
 
-    public ProjectsComponent(Mode mode) {
+    private String requestedId;
+    private Project project;
+
+    public SimulatorsComponent(Mode mode) {
         super();
         this.mode = mode;
     }
 
-    public ProjectsComponent() {
+    public SimulatorsComponent() {
         this(Mode.Default);
     }
 
-    public static void register() {
-        Spark.get(getUrl(), new ProjectsComponent());
-        Spark.get(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
-        Spark.post(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
+    static public void register() {
+        Spark.get(getUrl(), new SimulatorsComponent());
     }
 
     public static String getUrl(String... values) {
-        return "/projects/" + (values.length == 0 ? "" : "/" + values[0]);
+        return "/simulators/" + (values.length == 0 ? ":project" : values[0]);
     }
 
     @Override
     public void controller() {
+        requestedId = request.params("project");
+        project = new Project(requestedId);
+
         if (mode == Mode.Add) {
             if (request.requestMethod().toLowerCase().equals("post")) {
                 ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
@@ -66,7 +70,7 @@ public class ProjectsComponent extends AbstractComponent {
             @Override
             protected ArrayList<String> pageBreadcrumb() {
                 return new ArrayList<String>(Arrays.asList(
-                    Html.a(getUrl(), null, null ,"Projects"),
+                    Html.a("/projects", null, null ,"Projects"),
                     "Add")
                 );
             }
@@ -74,7 +78,7 @@ public class ProjectsComponent extends AbstractComponent {
             @Override
             protected String pageContent() {
                 return
-                    Html.form(getUrl("add"), Html.Method.Post,
+                    Html.form("/create", Html.Method.Post,
                         Lte.card("New Project", null,
                             Html.div(null,
                                 Html.formHidden("cmd", "create"),
@@ -96,12 +100,14 @@ public class ProjectsComponent extends AbstractComponent {
         new MainTemplate() {
             @Override
             protected String pageTitle() {
-                return "Projects";
+                return "Simulators";
             }
 
             @Override
             protected ArrayList<String> pageBreadcrumb() {
-                return new ArrayList<String>(Arrays.asList("Projects"));
+                return new ArrayList<String>(Arrays.asList("Projects",
+                        Html.a(ProjectComponent.getUrl(project.getId()), project.getShortId()),
+                        "Simulators"));
             }
 
             @Override
@@ -109,14 +115,14 @@ public class ProjectsComponent extends AbstractComponent {
                 ArrayList<Project> projectList = Project.getProjectList();
                 if (projectList.size() <= 0) {
                     return Lte.card(null, null,
-                        Html.a(getUrl("add"), null, null,
+                        Html.a("/projects/create", null, null,
                             Html.faIcon("plus-square") + "Add new project"
                         ),
                         null
                     );
                 }
                 return Lte.card(null,
-                        Html.a(getUrl("add"),
+                        Html.a("/projects/create",
                                 null, null, Html.faIcon("plus-square")
                         ),
                         Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
@@ -136,7 +142,7 @@ public class ProjectsComponent extends AbstractComponent {
         ArrayList<Lte.TableRow> list = new ArrayList<>();
         for (Project project : Project.getProjectList()) {
             list.add(new Lte.TableRow(
-                    Html.a(ProjectComponent.getUrl(project.getId()), null, null,project.getShortId()),
+                    Html.a("/project/" + project.getId(), null, null,project.getShortId()),
                     project.getName())
             );
         }

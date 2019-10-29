@@ -13,11 +13,11 @@ import java.util.UUID;
 import static jp.tkms.waffle.component.template.Html.*;
 
 public class TestComponent extends AbstractComponent {
-    public static final String ROOT = "/test";
-
-    static public void register() {
-        Spark.get(ROOT, new TestComponent());
+    public static void register() {
+        Spark.get(getUrl(), new TestComponent());
     }
+
+    public static String getUrl(String... values) { return "/test"; }
 
     @Override
     public void controller() {

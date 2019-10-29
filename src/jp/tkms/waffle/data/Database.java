@@ -67,7 +67,7 @@ public class Database {
                 version = resultSet.getInt(1);
             }
         } catch (SQLException e) {
-            logger.info("Create new main database");
+            logger.info("Add new main database");
         }
         if (version == -1) {
             try {

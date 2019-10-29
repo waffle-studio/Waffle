@@ -2,6 +2,7 @@ package jp.tkms.waffle.component.template;
 
 import jp.tkms.waffle.Environment;
 import jp.tkms.waffle.component.AbstractComponent;
+import jp.tkms.waffle.component.ProjectsComponent;
 
 import java.util.ArrayList;
 
@@ -29,13 +30,13 @@ abstract public class MainTemplate extends AbstractTemplate {
                             elementWithClass("ul", "navbar-nav",
                                 elementWithClass("li", "nav-item",
                                     a("#", "nav-link", new Attributes(value("data-widget", "pushmenu")), faIcon("bars"))
-                                ),
+                                )/*,
                                 elementWithClass("li", "nav-item d-none d-sm-inline-block",
                                     a("#", "nav-link", null, "T0")
                                 ),
                                 elementWithClass("li", "nav-item d-none d-sm-inline-block",
                                     a("#", "nav-link", null, "T1")
-                                )
+                                )*/
                             )
                         ),
                         elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
@@ -57,11 +58,11 @@ abstract public class MainTemplate extends AbstractTemplate {
                                             value("data-accordion", "false")
                                         ),
                                         elementWithClass("li", "nav-item",
-                                            a("#", "nav-link", null,
-                                                faIcon("envelope", "nav-icon"),
-                                                p("TEST")
+                                            a(ProjectsComponent.getUrl(), "nav-link", null,
+                                                faIcon("folder-open", "nav-icon"),
+                                                p("Projects")
                                             )
-                                        ),
+                                        )/*,
                                         elementWithClass("li", "nav-header",
                                             "TEST-header"
                                         ),
@@ -70,7 +71,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                                                 faIcon("envelope", "nav-icon"),
                                                 p("TEST1")
                                             )
-                                        )
+                                        )*/
                                     )
                                 )
                             )

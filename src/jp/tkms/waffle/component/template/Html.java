@@ -108,7 +108,7 @@ public class Html {
     }
 
     public static String faIcon(String fa, String additionalClass) {
-        return elementWithClass("i", "fas fa-" + fa + ' ' + additionalClass, "");
+        return elementWithClass("i", listBySpace("fas fa-" + fa, additionalClass), "");
     }
 
     public static String span(String classValue, Attributes attribute, String... values) {
@@ -141,4 +141,15 @@ public class Html {
     }
 
     static String removeNull(String string) { return (string == null ? "" : string); }
+
+    static String listBySpace(String... values) {
+        String result = "";
+        for (int i = 0; i < values.length; i++) {
+            String value = values[i];
+            if (value != null) {
+                result += (result != ""?' ':"") + value;
+            }
+        }
+        return result;
+    }
 }
