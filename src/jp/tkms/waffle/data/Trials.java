@@ -32,7 +32,7 @@ public class Trials extends ProjectData {
   public static Trials getInstance(Project project, String id) {
     Trials trials = null;
     try {
-      Database db = getWorkDB(project);
+      Database db = getWorkDB(project, null);
       PreparedStatement statement = db.preparedStatement("select id,name from simulator where id=?;");
       statement.setString(1, id);
       ResultSet resultSet = statement.executeQuery();
@@ -53,7 +53,7 @@ public class Trials extends ProjectData {
   public static ArrayList<Trials> getList(Project project) {
     ArrayList<Trials> simulatorList = new ArrayList<>();
     try {
-      Database db = getWorkDB(project);
+      Database db = getWorkDB(project, null);
       ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
       while (resultSet.next()) {
         simulatorList.add(new Trials(
@@ -75,7 +75,7 @@ public class Trials extends ProjectData {
     System.out.println(simulator.getName());
     System.out.println(simulator.name);
     try {
-      Database db = getWorkDB(project);
+      Database db = getWorkDB(project, null);
       PreparedStatement statement
         = db.preparedStatement("insert into simulator(id,name) values(?,?);");
       statement.setString(1, simulator.getId());

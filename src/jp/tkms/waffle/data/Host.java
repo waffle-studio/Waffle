@@ -15,11 +15,13 @@ import java.util.UUID;
 public class Host extends Data {
   private static final String TABLE_NAME = "host";
   private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-  private static final String KEY_WORKBASE = "workbase";
-  private static final String KEY_POLLING = "polling";
+  private static final String KEY_WORKBASE = "work_base_dir";
+  private static final String KEY_POLLING = "polling_interval";
+  private static final String KEY_MAX_JOBS = "maximum_jobs";
 
-  private String simulationCommand = null;
-  private String versionCommand = null;
+  private String workBaseDirectory = null;
+  private Integer pollingInterval = null;
+  private Integer maximumNumberOfJobs = null;
 
   public Host(UUID id, String name) {
     super(id, name);
@@ -51,12 +53,12 @@ public class Host extends Data {
   }
 
   public static ArrayList<Host> getList() {
-    ArrayList<Host> simulatorList = new ArrayList<>();
+    ArrayList<Host> list = new ArrayList<>();
     try {
       Database db = getMainDB(mainDatabaseUpdater);
       ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
       while (resultSet.next()) {
-        simulatorList.add(new Host(
+        list.add(new Host(
           UUID.fromString(resultSet.getString("id")),
           resultSet.getString("name"))
         );
@@ -66,7 +68,7 @@ public class Host extends Data {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    return simulatorList;
+    return list;
   }
 
   public static Host create(String name, String simulationCommand, String versionCommand) {
@@ -80,6 +82,27 @@ public class Host extends Data {
 
   public boolean isLocal() {
     return LOCAL_UUID.equals(id);
+  }
+
+  public String getWorkBaseDirectory() {
+    if (workBaseDirectory == null) {
+      workBaseDirectory = getFromDB(KEY_WORKBASE);
+    }
+    return workBaseDirectory;
+  }
+
+  public Integer getPollingInterval() {
+    if (pollingInterval == null) {
+      pollingInterval = Integer.valueOf(getFromDB(KEY_POLLING));
+    }
+    return pollingInterval;
+  }
+
+  public Integer getMaximumNumberOfJobs() {
+    if (maximumNumberOfJobs == null) {
+      maximumNumberOfJobs = Integer.valueOf(getFromDB(KEY_MAX_JOBS));
+    }
+    return maximumNumberOfJobs;
   }
 
   @Override
@@ -101,10 +124,16 @@ public class Host extends Data {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(id,name," +
                 KEY_WORKBASE + "," +
+                KEY_MAX_JOBS + "," +
                 KEY_POLLING + "," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
               db.execute("insert into " + TABLE_NAME
-                + "(id,name) values('" + LOCAL_UUID.toString() + "','LOCAL');");
+                + "(id,name," +
+                KEY_WORKBASE + "," +
+                KEY_MAX_JOBS + "," +
+                KEY_POLLING +
+                ") values('" + LOCAL_UUID.toString() + "','LOCAL','tmp',1,5);");
             }
           }
         ));

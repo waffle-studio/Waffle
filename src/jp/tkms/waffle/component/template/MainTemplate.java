@@ -3,6 +3,7 @@ package jp.tkms.waffle.component.template;
 import jp.tkms.waffle.Environment;
 import jp.tkms.waffle.component.AbstractComponent;
 import jp.tkms.waffle.component.HostsComponent;
+import jp.tkms.waffle.component.JobsComponent;
 import jp.tkms.waffle.component.ProjectsComponent;
 
 import java.util.ArrayList;
@@ -67,7 +68,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     elementWithClass("li", "nav-item",
-                      a(ProjectsComponent.getUrl(), "nav-link", null,
+                      a(JobsComponent.getUrl(), "nav-link", null,
                         faIcon("running", "nav-icon"),
                         p("Jobs")
                       )

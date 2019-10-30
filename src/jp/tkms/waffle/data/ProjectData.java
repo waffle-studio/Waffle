@@ -10,10 +10,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 abstract public class ProjectData extends Data {
-  protected UUID id = null;
-  protected String shortId;
-  protected String name;
-
   protected Project project;
 
   public ProjectData(Project project, UUID id, String name) {
@@ -61,7 +57,7 @@ abstract public class ProjectData extends Data {
     String result = null;
     try {
       Database db = getWorkDB();
-      PreparedStatement statement = db.preparedStatement("select " + key + " from project where id=?;");
+      PreparedStatement statement = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
       statement.setString(1, getId());
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
@@ -74,19 +70,19 @@ abstract public class ProjectData extends Data {
     return result;
   }
 
-  public static Database getWorkDB(Project project) {
+  private static Database getWorkDB(Project project) {
     return Database.getDB(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
   }
 
   protected static Database getWorkDB(Project project, DatabaseUpdater updater) {
     Database db = getWorkDB(project);
-    updater.update(db);
+    if (updater != null) {
+      updater.update(db);
+    }
     return db;
   }
 
   protected Database getWorkDB() {
-    Database db = getWorkDB(this.getProject());
-    getWorkDatabaseUpdater().update(db);
-    return db;
+    return getWorkDB(project, getWorkDatabaseUpdater());
   }
 }

@@ -70,12 +70,16 @@ public class HostComponent extends AbstractComponent {
           ( host.isLocal() ?  null : Html.a("", Html.faIcon("edit")) ),
           Html.div(null,
             Html.div(null,
-              "Simulation Command",
-              Lte.disabledTextInput(null)
+              "Work base directory on host",
+              Lte.disabledTextInput(host.getWorkBaseDirectory())
             ),
             Html.div(null,
-              "Version Command",
-              Lte.disabledTextInput(null)
+              "Maximum number of jobs",
+              Lte.disabledTextInput(host.getMaximumNumberOfJobs().toString())
+            ),
+            Html.div(null,
+              "Polling interval (seconds)",
+              Lte.disabledTextInput(host.getPollingInterval().toString())
             )
           )
           , null);

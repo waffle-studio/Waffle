@@ -155,7 +155,9 @@ public class Project extends Data {
         new UpdateTask() {
           @Override
           void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(id,name,location);");
+            db.execute("create table " + TABLE_NAME + "(id,name,location," +
+              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+              ");");
           }
         }
       ));

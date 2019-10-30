@@ -116,15 +116,6 @@ public class HostsComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Project> projectList = Project.getList();
-        if (projectList.size() <= 0) {
-          return Lte.card(null, null,
-            Html.a(getUrl("add"), null, null,
-              Html.faIcon("plus-square") + "Add host"
-            ),
-            null
-          );
-        }
         return Lte.card(null,
           Html.a(getUrl("add"),
             null, null, Html.faIcon("plus-square")

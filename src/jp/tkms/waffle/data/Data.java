@@ -68,7 +68,9 @@ abstract public class Data {
 
   protected static Database getMainDB(DatabaseUpdater updater) {
     Database db = Database.getMainDB();
-    updater.update(db);
+    if (updater != null) {
+      updater.update(db);
+    }
     return db;
   }
 }

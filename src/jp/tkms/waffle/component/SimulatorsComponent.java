@@ -101,6 +101,15 @@ public class SimulatorsComponent extends AbstractComponent {
     }.render(this);
   }
 
+  private void addSimulator() {
+    Simulator simulator = Simulator.create(project,
+      request.queryParams("name"),
+      request.queryParams("sim_cmd"),
+      request.queryParams("ver_cmd")
+    );
+    response.redirect(SimulatorComponent.getUrl(simulator));
+  }
+
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
   }
@@ -157,15 +166,6 @@ public class SimulatorsComponent extends AbstractComponent {
       );
     }
     return list;
-  }
-
-  private void addSimulator() {
-    Simulator simulator = Simulator.create(project,
-      request.queryParams("name"),
-      request.queryParams("sim_cmd"),
-      request.queryParams("ver_cmd")
-    );
-    response.redirect(SimulatorComponent.getUrl(simulator));
   }
 
   public enum Mode {Default, Add}

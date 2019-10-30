@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
@@ -95,7 +96,9 @@ public class SimulatorComponent extends AbstractComponent {
             Html.a(TrialsComponent.getUrl(project), "Parameter modifier"), "")
         );
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter models", null, null, null);
+        content += Lte.card(Html.faIcon("list-alt") + "Parameter models", null,
+          Lte.table(null, getConductorTableHeader(), getConductorTableRow())
+          , null, null, "p-0");
 
         return content;
       }
@@ -106,19 +109,19 @@ public class SimulatorComponent extends AbstractComponent {
     return new ArrayList<>();
   }
 
-  private ArrayList<Lte.TableHeader> getProjectTableHeader() {
+  private ArrayList<Lte.TableHeader> getConductorTableHeader() {
     ArrayList<Lte.TableHeader> list = new ArrayList<>();
     list.add(new Lte.TableHeader("width:8em;", "ID"));
     list.add(new Lte.TableHeader("", "Name"));
     return list;
   }
 
-  private ArrayList<Lte.TableRow> getProjectTableRow() {
+  private ArrayList<Lte.TableRow> getConductorTableRow() {
     ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Project project : Project.getList()) {
+    for (Conductor  conductor : Conductor.getList(project)) {
       list.add(new Lte.TableRow(
-        Html.a("", null, null, project.getShortId()),
-        project.getName())
+        Html.a("", null, null, conductor.getShortId()),
+        conductor.getName())
       );
     }
     return list;

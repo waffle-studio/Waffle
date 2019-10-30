@@ -18,6 +18,7 @@ public class Main {
 
     TestComponent.register();
     ProjectsComponent.register();
+    JobsComponent.register();
     HostsComponent.register();
   }
 }
