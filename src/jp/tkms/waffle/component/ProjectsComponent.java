@@ -27,6 +27,8 @@ public class ProjectsComponent extends AbstractComponent {
     Spark.get(getUrl(), new ProjectsComponent());
     Spark.get(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
     Spark.post(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
+
+    ProjectComponent.register();
   }
 
   public static String getUrl() {
@@ -110,7 +112,7 @@ public class ProjectsComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Project> projectList = Project.getProjectList();
+        ArrayList<Project> projectList = Project.getList();
         if (projectList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
@@ -138,7 +140,7 @@ public class ProjectsComponent extends AbstractComponent {
 
   private ArrayList<Lte.TableRow> getProjectTableRow() {
     ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Project project : Project.getProjectList()) {
+    for (Project project : Project.getList()) {
       list.add(new Lte.TableRow(
         Html.a(ProjectComponent.getUrl(project), null, null, project.getShortId()),
         project.getName())

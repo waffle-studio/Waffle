@@ -44,7 +44,7 @@ public class ProjectComponent extends AbstractComponent {
   @Override
   public void controller() {
     requestedId = request.params("id");
-    project = new Project(requestedId);
+    project = Project.getInstance(requestedId);
 
     if (!project.isValid()) {
       mode = Mode.NotFound;
@@ -72,7 +72,7 @@ public class ProjectComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Project> projectList = Project.getProjectList();
+        ArrayList<Project> projectList = Project.getList();
         return Lte.card(null, null,
           Html.h1("text-center", Html.faIcon("question")),
           null
@@ -126,7 +126,7 @@ public class ProjectComponent extends AbstractComponent {
 
   private ArrayList<Lte.TableRow> getProjectTableRow() {
     ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Project project : Project.getProjectList()) {
+    for (Project project : Project.getList()) {
       list.add(new Lte.TableRow(
         Html.a("", null, null, project.getShortId()),
         project.getName())

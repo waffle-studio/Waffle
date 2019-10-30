@@ -3,47 +3,45 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class SimulatorsComponent extends AbstractComponent {
+public class HostsComponent extends AbstractComponent {
   private Mode mode;
 
   ;
   private String requestedId;
-  private Project project;
-  public SimulatorsComponent(Mode mode) {
+  public HostsComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public SimulatorsComponent() {
+  public HostsComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new SimulatorsComponent());
-    Spark.get(getUrl(null, "add"), new SimulatorsComponent(Mode.Add));
-    Spark.post(getUrl(null, "add"), new SimulatorsComponent(Mode.Add));
+    Spark.get(getUrl(), new HostsComponent());
+    Spark.get(getUrl("add"), new HostsComponent(Mode.Add));
+    Spark.post(getUrl("add"), new HostsComponent(Mode.Add));
+
+    HostComponent.register();
   }
 
-  public static String getUrl(Project project) {
-    return "/simulators/" + (project == null ? ":project" : project.getId());
+  public static String getUrl() {
+    return "/hosts";
   }
 
-  public static String getUrl(Project project, String mode) {
-    return getUrl(project) + '/' + mode;
+  public static String getUrl(String mode) {
+    return "/hosts/" + mode;
   }
 
   @Override
   public void controller() {
-    requestedId = request.params("project");
-    project = Project.getInstance(requestedId);
-
     if (mode == Mode.Add) {
       if (request.requestMethod().toLowerCase().equals("post")) {
         ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
@@ -56,7 +54,7 @@ public class SimulatorsComponent extends AbstractComponent {
         renderAddForm(new ArrayList<>());
       }
     } else {
-      renderSimulatorList();
+      renderHostList();
     }
   }
 
@@ -64,7 +62,7 @@ public class SimulatorsComponent extends AbstractComponent {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
-        return "Simulators";
+        return "Hosts";
       }
 
       @Override
@@ -75,17 +73,15 @@ public class SimulatorsComponent extends AbstractComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
+          Html.a(HostsComponent.getUrl(), "Hosts"),
           "Add"));
       }
 
       @Override
       protected String pageContent() {
         return
-          Html.form(getUrl(project, "add"), Html.Method.Post,
-            Lte.card("New Simulator", null,
+          Html.form(getUrl("add"), Html.Method.Post,
+            Lte.card("New Host", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", errors),
@@ -105,19 +101,17 @@ public class SimulatorsComponent extends AbstractComponent {
     return new ArrayList<>();
   }
 
-  private void renderSimulatorList() {
+  private void renderHostList() {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
-        return "Simulators";
+        return "Hosts";
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          "Simulators"));
+          "Hosts"));
       }
 
       @Override
@@ -125,47 +119,47 @@ public class SimulatorsComponent extends AbstractComponent {
         ArrayList<Project> projectList = Project.getList();
         if (projectList.size() <= 0) {
           return Lte.card(null, null,
-            Html.a(getUrl(project, "add"), null, null,
-              Html.faIcon("plus-square") + "Add simulator"
+            Html.a(getUrl("add"), null, null,
+              Html.faIcon("plus-square") + "Add host"
             ),
             null
           );
         }
         return Lte.card(null,
-          Html.a(getUrl(project, "add"),
+          Html.a(getUrl("add"),
             null, null, Html.faIcon("plus-square")
           ),
-          Lte.table("table-condensed", getSimulatorTableHeader(), getSimulatorTableRow())
+          Lte.table("table-condensed", getHostTableHeader(), getHostTableRow())
           , null, null, "p-0");
       }
     }.render(this);
   }
 
-  private ArrayList<Lte.TableHeader> getSimulatorTableHeader() {
+  private ArrayList<Lte.TableHeader> getHostTableHeader() {
     ArrayList<Lte.TableHeader> list = new ArrayList<>();
     list.add(new Lte.TableHeader("width:8em;", "ID"));
     list.add(new Lte.TableHeader("", "Name"));
     return list;
   }
 
-  private ArrayList<Lte.TableRow> getSimulatorTableRow() {
+  private ArrayList<Lte.TableRow> getHostTableRow() {
     ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Simulator simulator : Simulator.getList(project)) {
+    for (Host host : Host.getList()) {
       list.add(new Lte.TableRow(
-        Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
-        simulator.getName())
+        Html.a(HostComponent.getUrl(host), null, null,  host.getShortId()),
+         host.getName())
       );
     }
     return list;
   }
 
   private void addSimulator() {
-    Simulator simulator = Simulator.create(project,
+    Host host = Host.create(
       request.queryParams("name"),
       request.queryParams("sim_cmd"),
       request.queryParams("ver_cmd")
     );
-    response.redirect(SimulatorComponent.getUrl(simulator));
+    response.redirect(HostComponent.getUrl(host));
   }
 
   public enum Mode {Default, Add}

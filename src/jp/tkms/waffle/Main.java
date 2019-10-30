@@ -1,9 +1,6 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.component.ErrorComponent;
-import jp.tkms.waffle.component.ProjectComponent;
-import jp.tkms.waffle.component.ProjectsComponent;
-import jp.tkms.waffle.component.TestComponent;
+import jp.tkms.waffle.component.*;
 
 import static spark.Spark.redirect;
 import static spark.Spark.staticFiles;
@@ -21,6 +18,6 @@ public class Main {
 
     TestComponent.register();
     ProjectsComponent.register();
-    ProjectComponent.register();
+    HostsComponent.register();
   }
 }

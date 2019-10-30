@@ -10,50 +10,67 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
-public class Project {
-  private UUID id = null;
-  private String shortId;
-  private String name;
+public class Project extends Data {
+  protected static final String TABLE_NAME = "project";
+
   private Path location;
 
   public Project(UUID id, String name) {
-    this.id = id;
-    this.shortId = id.toString().replaceFirst("-.*$", "");
-    this.name = name;
-    this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst(
-      "\\$\\{NAME\\}", name + '_' + shortId));
+    super(id, name);
+    this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst( "\\$\\{NAME\\}", getUnifiedName()));
   }
 
-  public Project(String id) {
+  @Override
+  protected String getTableName() {
+    return TABLE_NAME;
+  }
+
+  @Override
+  protected DatabaseUpdater getMainDatabaseUpdater() {
+    return mainDatabaseUpdater;
+  }
+
+  protected void setLocation(Path location) {
+    this.location = location;
+  }
+
+  public static Project getInstance(String id) {
+    Project project = null;
     try {
-      Database db = getMainDB();
-      PreparedStatement statement = db.preparedStatement("select id,name,location from project where id=?;");
+      Database db = getMainDB(mainDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("select id,name,location from " + TABLE_NAME + " where id=?;");
       statement.setString(1, id);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
-        this.id = UUID.fromString(resultSet.getString("id"));
-        this.shortId = this.id.toString().replaceFirst("-.*$", "");
-        this.name = resultSet.getString("name");
-        this.location = Paths.get(resultSet.getString("location"));
+        project = new Project(
+          UUID.fromString(resultSet.getString("id")),
+          resultSet.getString("name")
+        );
+        project.setLocation(Paths.get(resultSet.getString("location")));
       }
       db.close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
+    return project;
   }
 
-  public static ArrayList<Project> getProjectList() {
+  public static ArrayList<Project> getList() {
     ArrayList<Project> projectList = new ArrayList<>();
     try {
-      Database db = getMainDB();
-      ResultSet resultSet = db.executeQuery("select id,name from project;");
+      Database db = getMainDB(mainDatabaseUpdater);
+      ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
       while (resultSet.next()) {
-        projectList.add(new Project(
+        Project project = new Project(
           UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name"))
+          resultSet.getString("name")
         );
+        project.setLocation(null);
+        projectList.add(project);
       }
 
       db.close();
@@ -66,9 +83,9 @@ public class Project {
   public static Project create(String name) {
     Project project = new Project(UUID.randomUUID(), name);
     try {
-      Database db = getMainDB();
+      Database db = getMainDB(mainDatabaseUpdater);
       PreparedStatement statement
-        = db.preparedStatement("insert into project(id,name,location) values(?,?,?);");
+        = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,location) values(?,?,?);");
       statement.setString(1, project.getId());
       statement.setString(2, project.getName());
       statement.setString(3, project.getLocation().toString());
@@ -78,7 +95,34 @@ public class Project {
 
       Files.createDirectories(project.getLocation());
 
-      project.getWorkDB().close(); // initialize database
+      ProjectData.getWorkDB(project, new DatabaseUpdater() {
+        @Override
+        String tableName() {
+          return TABLE_NAME;
+        }
+
+        @Override
+        ArrayList<UpdateTask> updateTasks() {
+          return new ArrayList<UpdateTask> (Arrays.asList(
+            new UpdateTask() {
+              @Override
+              void task(Database db) throws SQLException {
+                PreparedStatement statement
+                  = db.preparedStatement("insert into system(name,value) values('id',?);");
+                statement.setString(1, project.getId());
+                statement.execute();
+
+                statement = db.preparedStatement("insert into system(name,value) values('name',?);");
+                statement.setString(1, project.getName());
+                statement.execute();
+
+                db.execute("insert into system(name,value)" +
+                  " values('timestamp_create',(DATETIME('now','localtime')));");
+              }
+            }
+          ));
+        }
+      }).close(); // initialize database
     } catch (SQLException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -87,102 +131,48 @@ public class Project {
     return project;
   }
 
-  private static Database getMainDB() {
-    Database db = Database.getMainDB();
-    updateMainDB(db);
-    return db;
-  }
-
-  private static void updateMainDB(Database db) {
-    try {
-      int currentVersion = db.getVersion();
-      int version = 0;
-
-      if (currentVersion <= version++) {
-        db.execute("create table project(id,name,location);");
-      }
-
-      db.setVersion(version);
-      db.commit();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private String getFromDB(String key) {
-    String result = null;
-    try {
-      Database db = getWorkDB();
-      PreparedStatement statement = db.preparedStatement("select " + key + " from project where id=?;");
-      statement.setString(1, getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        result = resultSet.getString(key);
-      }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return result;
-  }
-
-  public boolean isValid() {
-    return id != null;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public String getId() {
-    return id.toString();
-  }
-
-  public String getShortId() {
-    return shortId;
-  }
-
   public Path getLocation() {
     return location;
   }
 
   public ArrayList<Simulator> getSimulatorList() {
-    return Simulator.getSimulatorList(this);
+    return Simulator.getList(this);
   }
 
   public Simulator getSimulator(String id) {
-    return new Simulator(this, id);
+    return Simulator.getInstance(this, id);
   }
 
-  Database getWorkDB() {
-    Database db = Database.getWorkDB(this);
-    updateWorkDB(db);
-    return db;
-  }
-
-  private void updateWorkDB(Database db) {
-    try {
-      int currentVersion = db.getVersion();
-      int version = 0;
-
-      if (currentVersion <= version++) {
-        PreparedStatement statement
-          = db.preparedStatement("insert into system(name,value) values('id',?);");
-        statement.setString(1, getId());
-        statement.execute();
-
-        statement = db.preparedStatement("insert into system(name,value) values('name',?);");
-        statement.setString(1, getName());
-        statement.execute();
-
-        db.execute("insert into system(name,value)" +
-          " values('timestamp_create',(DATETIME('now','localtime')));");
-      }
-
-      db.setVersion(version);
-      db.commit();
-    } catch (SQLException e) {
-      e.printStackTrace();
+  private static DatabaseUpdater mainDatabaseUpdater = new DatabaseUpdater() {
+    @Override
+    String tableName() {
+      return TABLE_NAME;
     }
-  }
+
+    @Override
+    ArrayList<DatabaseUpdater.UpdateTask> updateTasks() {
+      return new ArrayList<DatabaseUpdater.UpdateTask> (Arrays.asList(
+        new UpdateTask() {
+          @Override
+          void task(Database db) throws SQLException {
+            db.execute("create table " + TABLE_NAME + "(id,name,location);");
+          }
+        }
+      ));
+    }
+  };
+
+  private static DatabaseUpdater workDatabaseUpdater = new DatabaseUpdater() {
+    @Override
+    String tableName() {
+      return TABLE_NAME;
+    }
+
+    @Override
+    ArrayList<DatabaseUpdater.UpdateTask> updateTasks() {
+      return new ArrayList<DatabaseUpdater.UpdateTask> (Arrays.asList(
+        null // reserved in create()
+      ));
+    }
+  };
 }

@@ -3,70 +3,62 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class SimulatorComponent extends AbstractComponent {
+public class HostComponent extends AbstractComponent {
   private Mode mode;
 
   ;
-  private Project project;
-  private Simulator simulator;
-  public SimulatorComponent(Mode mode) {
+  private Host host;
+  public HostComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public SimulatorComponent() {
+  public HostComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new SimulatorComponent());
-    Spark.get(getUrl(null, "edit_const_model"), new SimulatorComponent());
+    Spark.get(getUrl(null), new HostComponent());
+    Spark.get(getUrl(null, "edit_const_model"), new HostComponent());
 
     SimulatorsComponent.register();
     TrialsComponent.register();
   }
 
-  public static String getUrl(Simulator simulator) {
-    return "/simulator/"
-      + (simulator == null ? ":project/:id" : simulator.getProject().getId() + '/' + simulator.getId());
+  public static String getUrl(Host host) {
+    return "/host/" + (host == null ? ":id" : host.getId());
   }
 
-  public static String getUrl(Simulator simulator, String mode) {
-    return getUrl(simulator) + '/' + mode;
+  public static String getUrl(Host host, String mode) {
+    return getUrl(host) + '/' + mode;
   }
 
   @Override
   public void controller() {
-    project = Project.getInstance(request.params("project"));
-    if (!project.isValid()) {
-    }
+    host = Host.getInstance(request.params("id"));
 
-    simulator = project.getSimulator(request.params("id"));
-
-    renderSimulator();
+    renderHost();
   }
 
-  private void renderSimulator() {
+  private void renderHost() {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
-        return simulator.getName();
+        return host.getName();
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          simulator.getId()
+          Html.a(HostsComponent.getUrl(), "Hosts"),
+          host.getId()
         ));
       }
 
@@ -75,27 +67,18 @@ public class SimulatorComponent extends AbstractComponent {
         String content = "";
 
         content += Lte.card(Html.faIcon("terminal") + "Basic",
-          Html.a("", Html.faIcon("edit")),
+          ( host.isLocal() ?  null : Html.a("", Html.faIcon("edit")) ),
           Html.div(null,
             Html.div(null,
               "Simulation Command",
-              Lte.disabledTextInput(simulator.getSimulationCommand())
+              Lte.disabledTextInput(null)
             ),
             Html.div(null,
               "Version Command",
-              Lte.disabledTextInput(simulator.getVersionCommand())
+              Lte.disabledTextInput(null)
             )
           )
           , null);
-
-        content += Lte.divRow(
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "file-import", "",
-            Html.a(SimulatorsComponent.getUrl(project), "Parameter extractor"), ""),
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "pencil-ruler", "",
-            Html.a(TrialsComponent.getUrl(project), "Parameter modifier"), "")
-        );
-
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter models", null, null, null);
 
         return content;
       }

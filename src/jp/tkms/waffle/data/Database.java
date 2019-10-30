@@ -46,10 +46,6 @@ public class Database {
     return getDB(Paths.get(Environment.MAIN_DB_NAME));
   }
 
-  public static Database getWorkDB(Project project) {
-    return getDB(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
-  }
-
   public void commit() throws SQLException {
     connection.commit();
   }
@@ -78,14 +74,6 @@ public class Database {
       }
     }
     return version;
-  }
-
-  public int getVersion() {
-    return getVersion("main");
-  }
-
-  public void setVersion(int version) {
-    setVersion("main", version);
   }
 
   public void setVersion(String tag, int version) {

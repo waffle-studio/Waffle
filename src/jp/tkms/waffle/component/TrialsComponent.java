@@ -39,7 +39,7 @@ public class TrialsComponent extends AbstractComponent {
 
   @Override
   public void controller() {
-    project = new Project(request.params("project"));
+    project = Project.getInstance(request.params("project"));
 
     renderProjectsList();
   }
@@ -67,7 +67,7 @@ public class TrialsComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Project> projectList = Project.getProjectList();
+        ArrayList<Project> projectList = Project.getList();
         return Lte.card(null, null,
           Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
           , null, null, "p-0");
@@ -84,7 +84,7 @@ public class TrialsComponent extends AbstractComponent {
 
   private ArrayList<Lte.TableRow> getProjectTableRow() {
     ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Project project : Project.getProjectList()) {
+    for (Project project : Project.getList()) {
       list.add(new Lte.TableRow(
         Html.a("/project/" + project.getId(), null, null, project.getShortId()),
         project.getName())

@@ -2,6 +2,7 @@ package jp.tkms.waffle.component.template;
 
 import jp.tkms.waffle.Environment;
 import jp.tkms.waffle.component.AbstractComponent;
+import jp.tkms.waffle.component.HostsComponent;
 import jp.tkms.waffle.component.ProjectsComponent;
 
 import java.util.ArrayList;
@@ -72,27 +73,27 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     elementWithClass("li", "nav-item",
-                      a(ProjectsComponent.getUrl(), "nav-link", null,
+                      a(HostsComponent.getUrl(), "nav-link", null,
                         faIcon("server", "nav-icon"),
                         p("Hosts")
                       )
                     )
-                                        /*,
-                                        elementWithClass("li", "nav-item",
-                                            a(ProjectsComponent.getUrl(), "nav-link", null,
-                                                faIcon("comment-alt", "nav-icon"),
-                                                p("Logs")
-                                            )
-                                        ),
-                                        elementWithClass("li", "nav-header",
-                                            "TEST-header"
-                                        ),
-                                        elementWithClass("li", "nav-item",
-                                            a("#", "nav-link", null,
-                                                faIcon("envelope", "nav-icon"),
-                                                p("TEST1")
-                                            )
-                                        )*/
+                    /*,
+                    elementWithClass("li", "nav-item",
+                        a(ProjectsComponent.getUrl(), "nav-link", null,
+                            faIcon("comment-alt", "nav-icon"),
+                            p("Logs")
+                        )
+                    ),
+                    elementWithClass("li", "nav-header",
+                        "TEST-header"
+                    ),
+                    elementWithClass("li", "nav-item",
+                        a("#", "nav-link", null,
+                            faIcon("envelope", "nav-icon"),
+                            p("TEST1")
+                        )
+                    )*/
                   )
                 )
               )
