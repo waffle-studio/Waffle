@@ -121,32 +121,35 @@ public class ProjectsComponent extends AbstractComponent {
             null
           );
         }
+
         return Lte.card(null,
           Html.a(getUrl("add"),
             null, null, Html.faIcon("plus-square")
           ),
-          Lte.table("table-condensed", getProjectTableHeader(), getProjectTableRow())
+          Lte.table("table-condensed", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (Project project : Project.getList()) {
+                list.add(new Lte.TableRow(
+                  Html.a(ProjectComponent.getUrl(project), null, null, project.getShortId()),
+                  project.getName())
+                );
+              }
+              return list;
+            }
+          })
           , null, null, "p-0");
       }
     }.render(this);
-  }
-
-  private ArrayList<Lte.TableHeader> getProjectTableHeader() {
-    ArrayList<Lte.TableHeader> list = new ArrayList<>();
-    list.add(new Lte.TableHeader("width:8em;", "ID"));
-    list.add(new Lte.TableHeader("", "Name"));
-    return list;
-  }
-
-  private ArrayList<Lte.TableRow> getProjectTableRow() {
-    ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Project project : Project.getList()) {
-      list.add(new Lte.TableRow(
-        Html.a(ProjectComponent.getUrl(project), null, null, project.getShortId()),
-        project.getName())
-      );
-    }
-    return list;
   }
 
   private void addProject() {

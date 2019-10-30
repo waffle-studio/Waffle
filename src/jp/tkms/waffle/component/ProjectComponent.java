@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.Project;
 import spark.Spark;
 
@@ -31,6 +32,7 @@ public class ProjectComponent extends AbstractComponent {
     SimulatorsComponent.register();
     SimulatorComponent.register();
     TrialsComponent.register();
+    ConductorComponent.register();
   }
 
   public static String getUrl(Project project) {
@@ -103,7 +105,36 @@ public class ProjectComponent extends AbstractComponent {
             Html.a(TrialsComponent.getUrl(project), "Trials"), "")
         );
 
-        content += Lte.card(Html.faIcon("user-tie") + "Conductors", null, null, null);
+        content += Lte.card(Html.faIcon("user-tie") + "Conductors", null,
+          Lte.table(null, new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (Conductor conductor : Conductor.getList(project)) {
+                list.add(new Lte.TableRow(
+                  new Lte.TableValue("",
+                    Html.a(ConductorComponent.getUrl(conductor),
+                      null, null, conductor.getShortId())),
+                  new Lte.TableValue("", conductor.getName()),
+                  new Lte.TableValue("text-align:right;",
+                    Html.a(ConductorComponent.getUrl(conductor, "run"),
+                      Html.span("right badge badge-secondary", null, "run")
+                    )
+                  )
+                ));
+              }
+              return list;
+            }
+          })
+          , null, null, "p-0");
 
         content += Lte.card(Html.faIcon("list") + "Constant sets", null, null,
           Html.a(getUrl(project, "edit_const_model"), Html.faIcon("pencil") + "Edit model"));
@@ -115,28 +146,6 @@ public class ProjectComponent extends AbstractComponent {
 
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
-  }
-
-  private ArrayList<Lte.TableHeader> getProjectTableHeader() {
-    ArrayList<Lte.TableHeader> list = new ArrayList<>();
-    list.add(new Lte.TableHeader("width:8em;", "ID"));
-    list.add(new Lte.TableHeader("", "Name"));
-    return list;
-  }
-
-  private ArrayList<Lte.TableRow> getProjectTableRow() {
-    ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Project project : Project.getList()) {
-      list.add(new Lte.TableRow(
-        Html.a("", null, null, project.getShortId()),
-        project.getName())
-      );
-    }
-    return list;
-  }
-
-  private void createProject() {
-
   }
 
   public enum Mode {Default, NotFound, EditConstModel}

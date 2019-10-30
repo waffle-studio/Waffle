@@ -96,24 +96,24 @@ public class Lte {
     );
   }
 
-  public static String table(String classValue, ArrayList<TableHeader> tableHeaders, ArrayList<TableRow> tableRows) {
+  public static String table(String classValue, Table table) {
     String headerValue = "";
-    if (tableHeaders != null) {
-      for (TableHeader header : tableHeaders) {
+    if (table.tableHeaders() != null) {
+      for (TableValue header : table.tableHeaders()) {
         headerValue += element("th", new Attributes(value("style", header.style)), header.value);
       }
     }
     String contentsValue = "";
-    for (TableRow row : tableRows) {
+    for (TableRow row : table.tableRows()) {
       String rowValue = "";
-      for (String value : row) {
-        rowValue += element("td", null, value);
+      for (TableValue value : row) {
+        rowValue += element("td", new Attributes(value("style", value.style)), value.value);
       }
       contentsValue += element("tr", null, rowValue);
     }
 
     return elementWithClass("table", listBySpace("table", classValue),
-      (tableHeaders != null ?
+      (table.tableHeaders() != null ?
         element("thead", null, element("tr", null, headerValue)) : null),
       element("tbody", null, contentsValue)
     );
@@ -125,19 +125,30 @@ public class Lte {
 
   }
 
-  public static class TableHeader {
+  public static class TableValue {
     String style;
     String value;
 
-    public TableHeader(String style, String value) {
+    public TableValue(String style, String value) {
       this.style = style;
       this.value = value;
     }
   }
 
-  public static class TableRow extends ArrayList<String> {
-    public TableRow(String... list) {
-      addAll(Arrays.asList(list));
+  public static class TableRow extends ArrayList<TableValue> {
+    public TableRow(TableValue... list) {
+      super(Arrays.asList(list));
     }
+
+    public TableRow(String... list) {
+      for (String value : list) {
+        add(new TableValue(null, value));
+      }
+    }
+  }
+
+  public abstract static class Table {
+    public abstract ArrayList<TableValue> tableHeaders();
+    public abstract ArrayList<TableRow> tableRows();
   }
 }

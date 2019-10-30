@@ -11,36 +11,35 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class SimulatorComponent extends AbstractComponent {
+public class ConductorComponent extends AbstractComponent {
   private Mode mode;
 
-  ;
   private Project project;
-  private Simulator simulator;
-  public SimulatorComponent(Mode mode) {
+  private Conductor conductor;
+  public ConductorComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public SimulatorComponent() {
+  public ConductorComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new SimulatorComponent());
-    Spark.get(getUrl(null, "edit_const_model"), new SimulatorComponent());
+    Spark.get(getUrl(null), new ConductorComponent());
+    Spark.get(getUrl(null, "run"), new ConductorComponent(Mode.Run));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
   }
 
-  public static String getUrl(Simulator simulator) {
-    return "/simulator/"
-      + (simulator == null ? ":project/:id" : simulator.getProject().getId() + '/' + simulator.getId());
+  public static String getUrl(Conductor conductor) {
+    return "/conductor/"
+      + (conductor == null ? ":project/:id" : conductor.getProject().getId() + '/' + conductor.getId());
   }
 
-  public static String getUrl(Simulator simulator, String mode) {
-    return getUrl(simulator) + '/' + mode;
+  public static String getUrl(Conductor conductor, String mode) {
+    return getUrl(conductor) + '/' + mode;
   }
 
   @Override
@@ -49,7 +48,13 @@ public class SimulatorComponent extends AbstractComponent {
     if (!project.isValid()) {
     }
 
-    simulator = Simulator.getInstance(project, request.params("id"));
+    conductor = Conductor.getInstance(project, request.params("id"));
+
+    if (mode == Mode.Run) {
+      conductor.start();
+      response.redirect(JobsComponent.getUrl());
+      return;
+    }
 
     renderSimulator();
   }
@@ -58,7 +63,7 @@ public class SimulatorComponent extends AbstractComponent {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
-        return simulator.getName();
+        return conductor.getName();
       }
 
       @Override
@@ -66,8 +71,8 @@ public class SimulatorComponent extends AbstractComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          simulator.getId()
+          "Conductors",
+          conductor.getId()
         ));
       }
 
@@ -80,11 +85,11 @@ public class SimulatorComponent extends AbstractComponent {
           Html.div(null,
             Html.div(null,
               "Simulation Command",
-              Lte.disabledTextInput(simulator.getSimulationCommand())
+              Lte.disabledTextInput(null)
             ),
             Html.div(null,
               "Version Command",
-              Lte.disabledTextInput(simulator.getVersionCommand())
+              Lte.disabledTextInput(null)
             )
           )
           , null);
@@ -129,5 +134,5 @@ public class SimulatorComponent extends AbstractComponent {
     return new ArrayList<>();
   }
 
-  public enum Mode {Default, EditConstModel}
+  public enum Mode {Default, Run}
 }

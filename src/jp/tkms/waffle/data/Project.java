@@ -135,14 +135,6 @@ public class Project extends Data {
     return location;
   }
 
-  public ArrayList<Simulator> getSimulatorList() {
-    return Simulator.getList(this);
-  }
-
-  public Simulator getSimulator(String id) {
-    return Simulator.getInstance(this, id);
-  }
-
   private static DatabaseUpdater mainDatabaseUpdater = new DatabaseUpdater() {
     @Override
     String tableName() {

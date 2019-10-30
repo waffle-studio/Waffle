@@ -93,10 +93,10 @@ public class HostComponent extends AbstractComponent {
     return new ArrayList<>();
   }
 
-  private ArrayList<Lte.TableHeader> getProjectTableHeader() {
-    ArrayList<Lte.TableHeader> list = new ArrayList<>();
-    list.add(new Lte.TableHeader("width:8em;", "ID"));
-    list.add(new Lte.TableHeader("", "Name"));
+  private ArrayList<Lte.TableValue> getProjectTableHeader() {
+    ArrayList<Lte.TableValue> list = new ArrayList<>();
+    list.add(new Lte.TableValue("width:8em;", "ID"));
+    list.add(new Lte.TableValue("", "Name"));
     return list;
   }
 

@@ -120,28 +120,30 @@ public class HostsComponent extends AbstractComponent {
           Html.a(getUrl("add"),
             null, null, Html.faIcon("plus-square")
           ),
-          Lte.table("table-condensed", getHostTableHeader(), getHostTableRow())
+          Lte.table("table-condensed", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (Host host : Host.getList()) {
+                list.add(new Lte.TableRow(
+                  Html.a(HostComponent.getUrl(host), null, null,  host.getShortId()),
+                  host.getName())
+                );
+              }
+              return list;
+            }
+          })
           , null, null, "p-0");
       }
     }.render(this);
-  }
-
-  private ArrayList<Lte.TableHeader> getHostTableHeader() {
-    ArrayList<Lte.TableHeader> list = new ArrayList<>();
-    list.add(new Lte.TableHeader("width:8em;", "ID"));
-    list.add(new Lte.TableHeader("", "Name"));
-    return list;
-  }
-
-  private ArrayList<Lte.TableRow> getHostTableRow() {
-    ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Host host : Host.getList()) {
-      list.add(new Lte.TableRow(
-        Html.a(HostComponent.getUrl(host), null, null,  host.getShortId()),
-         host.getName())
-      );
-    }
-    return list;
   }
 
   private void addSimulator() {

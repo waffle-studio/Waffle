@@ -9,10 +9,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class Trials extends ProjectData {
   protected static final String TABLE_NAME = "trials";
+  public static final String ROOT_NAME = "ROOT";
+  private static final String KEY_PARENT = "parent";
 
   private UUID id = null;
   private String shortId;
@@ -32,8 +35,8 @@ public class Trials extends ProjectData {
   public static Trials getInstance(Project project, String id) {
     Trials trials = null;
     try {
-      Database db = getWorkDB(project, null);
-      PreparedStatement statement = db.preparedStatement("select id,name from simulator where id=?;");
+      Database db = getWorkDB(project, workDatabaseUpdater);
+      PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
       statement.setString(1, id);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
@@ -50,13 +53,36 @@ public class Trials extends ProjectData {
     return trials;
   }
 
-  public static ArrayList<Trials> getList(Project project) {
-    ArrayList<Trials> simulatorList = new ArrayList<>();
+  public static Trials getRootInstance(Project project) {
+    Trials trials = null;
     try {
-      Database db = getWorkDB(project, null);
-      ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+      Database db = getWorkDB(project, workDatabaseUpdater);
+      ResultSet resultSet
+        = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "';");
       while (resultSet.next()) {
-        simulatorList.add(new Trials(
+        trials = new Trials(
+          project,
+          UUID.fromString(resultSet.getString("id")),
+          resultSet.getString("name")
+        );
+      }
+      db.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return trials;
+  }
+
+  public static ArrayList<Trials> getList(Project project, Trials parent) {
+    ArrayList<Trials> list = new ArrayList<>();
+    try {
+      Database db = getWorkDB(project, workDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_PARENT + "=?;");
+      statement.setString(1, parent.getId());
+      ResultSet resultSet = statement.executeQuery();
+      while (resultSet.next()) {
+        list.add(new Trials(
           project,
           UUID.fromString(resultSet.getString("id")),
           resultSet.getString("name"))
@@ -67,30 +93,27 @@ public class Trials extends ProjectData {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    return simulatorList;
+    return list;
   }
 
-  public static Trials create(Project project, String name) {
-    Trials simulator = new Trials(project, UUID.randomUUID(), name);
-    System.out.println(simulator.getName());
-    System.out.println(simulator.name);
+  public static Trials create(Project project, Trials parent, String name) {
+    Trials trials = new Trials(project, UUID.randomUUID(), name);
     try {
-      Database db = getWorkDB(project, null);
+      Database db = getWorkDB(project, workDatabaseUpdater);
       PreparedStatement statement
-        = db.preparedStatement("insert into simulator(id,name) values(?,?);");
-      statement.setString(1, simulator.getId());
-      statement.setString(2, simulator.getName());
+        = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," + KEY_PARENT + ") values(?,?.?);");
+      statement.setString(1, trials.getId());
+      statement.setString(2, trials.getName());
+      statement.setString(2, parent.getId());
       statement.execute();
       db.commit();
       db.close();
 
-      Files.createDirectories(simulator.getLocation());
+      //Files.createDirectories(simulator.getLocation());
     } catch (SQLException e) {
       e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
     }
-    return simulator;
+    return trials;
   }
 
   public Path getLocation() {
@@ -107,6 +130,42 @@ public class Trials extends ProjectData {
 
   @Override
   protected DatabaseUpdater getWorkDatabaseUpdater() {
-    return null;
+    return workDatabaseUpdater;
   }
+
+  private static DatabaseUpdater workDatabaseUpdater = new DatabaseUpdater() {
+    @Override
+    String tableName() {
+      return TABLE_NAME;
+    }
+
+    @Override
+    ArrayList<UpdateTask> updateTasks() {
+      return new ArrayList<UpdateTask>(Arrays.asList(
+        new UpdateTask() {
+          @Override
+          void task(Database db) throws SQLException {
+            db.execute("create table " + TABLE_NAME + "(" +
+              "id,name," + KEY_PARENT + "," +
+              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+              ");");
+          }
+        },
+        new UpdateTask() {
+          @Override
+          void task(Database db) throws SQLException {
+            String scriptName = "test";
+            PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
+              "id,name," +
+              KEY_PARENT +
+              ") values(?,?,?);");
+            statement.setString(1, UUID.randomUUID().toString());
+            statement.setString(2, ROOT_NAME);
+            statement.setString(3, "");
+            statement.execute();
+          }
+        }
+      ));
+    }
+  };
 }

@@ -144,28 +144,30 @@ public class SimulatorsComponent extends AbstractComponent {
           Html.a(getUrl(project, "add"),
             null, null, Html.faIcon("plus-square")
           ),
-          Lte.table("table-condensed", getSimulatorTableHeader(), getSimulatorTableRow())
+          Lte.table("table-condensed", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (Simulator simulator : Simulator.getList(project)) {
+                list.add(new Lte.TableRow(
+                  Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
+                  simulator.getName())
+                );
+              }
+              return list;
+            }
+          })
           , null, null, "p-0");
       }
     }.render(this);
-  }
-
-  private ArrayList<Lte.TableHeader> getSimulatorTableHeader() {
-    ArrayList<Lte.TableHeader> list = new ArrayList<>();
-    list.add(new Lte.TableHeader("width:8em;", "ID"));
-    list.add(new Lte.TableHeader("", "Name"));
-    return list;
-  }
-
-  private ArrayList<Lte.TableRow> getSimulatorTableRow() {
-    ArrayList<Lte.TableRow> list = new ArrayList<>();
-    for (Simulator simulator : Simulator.getList(project)) {
-      list.add(new Lte.TableRow(
-        Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
-        simulator.getName())
-      );
-    }
-    return list;
   }
 
   public enum Mode {Default, Add}

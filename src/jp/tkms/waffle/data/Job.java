@@ -51,7 +51,7 @@ public class Job extends Data {
     ArrayList<Job> list = new ArrayList<>();
     try {
       Database db = getMainDB(mainDatabaseUpdater);
-      ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+      ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
       while (resultSet.next()) {
         list.add(new Job(
           UUID.fromString(resultSet.getString("id")),
@@ -66,8 +66,26 @@ public class Job extends Data {
     return list;
   }
 
-  public static Job create(String name, String simulationCommand, String versionCommand) {
-    return null;
+  public static void addRun(Run run) {
+    try {
+      Database db = getMainDB(mainDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
+        + KEY_PROJECT + ","
+        + KEY_HOST
+        + ") values(?,?,?);");
+      statement.setString(1, run.getId());
+      statement.setString(2, run.getProject().getId());
+      statement.setString(3, run.getHost().getId());
+      statement.execute();
+      db.commit();
+      db.close();
+
+      //Files.createDirectories(simulator.getLocation());
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return;
   }
 
   public Path getLocation() {

@@ -72,8 +72,6 @@ public class Simulator extends ProjectData {
 
   public static Simulator create(Project project, String name, String simulationCommand, String versionCommand) {
     Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
-    System.out.println(simulator.getName());
-    System.out.println(simulator.name);
     try {
       Database db = getWorkDB(project, workDatabaseUpdater);
       PreparedStatement statement

@@ -1,5 +1,8 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.conductor.AbstractConductor;
+import jp.tkms.waffle.conductor.TestConductor;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -111,6 +114,18 @@ public class Conductor extends ProjectData {
     return scriptFileName;
   }
 
+  public void start() {
+    AbstractConductor abstractConductor = null;
+    String type = getFromDB(KEY_CONDUCTOR_TYPE);
+    if (type.equals(ConductorType.Test.name())) {
+      abstractConductor = new TestConductor();
+    }
+
+    if (abstractConductor != null) {
+      abstractConductor.run(this);
+    }
+  }
+
   @Override
   protected DatabaseUpdater getMainDatabaseUpdater() {
     return null;
@@ -149,7 +164,7 @@ public class Conductor extends ProjectData {
               KEY_SCRIPT +
               ") values(?,?,?,?);");
             statement.setString(1, UUID.randomUUID().toString());
-            statement.setString(2, "Trial_submitter");
+            statement.setString(2, "Trial Submitter");
             statement.setString(3, ConductorType.Test.name());
             statement.setString(4, scriptName);
             statement.execute();
