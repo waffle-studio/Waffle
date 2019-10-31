@@ -6,6 +6,9 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 abstract public class Data {
+  protected static final String KEY_ID = "id";
+  protected static final String KEY_NAME = "name";
+
   protected UUID id = null;
   protected String shortId;
   protected String name;

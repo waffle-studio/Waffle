@@ -70,6 +70,10 @@ public class HostComponent extends AbstractComponent {
           ( host.isLocal() ?  null : Html.a("", Html.faIcon("edit")) ),
           Html.div(null,
             Html.div(null,
+              "Xsub directory on host",
+              Lte.disabledTextInput(host.getXsubDirectory())
+            ),
+            Html.div(null,
               "Work base directory on host",
               Lte.disabledTextInput(host.getWorkBaseDirectory())
             ),

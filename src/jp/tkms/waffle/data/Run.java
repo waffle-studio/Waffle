@@ -3,29 +3,52 @@ package jp.tkms.waffle.data;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.*;
 
 public class Run extends ProjectData{
   protected static final String TABLE_NAME = "run";
   private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_HOST = "host";
   private static final String KEY_TRIALS = "trials";
+  private static final String KEY_SIMULATOR = "simulator";
+  private static final String KEY_STATE = "state";
 
-  private String conductor;
-  private String host;
-  private String trials;
+  private static Map<Integer, State> stateMap = new HashMap<>();
+  enum State {
+    Prepared(0), Created(1), Submitted(2), Running(3), Finished(4), Failed(5);
 
-  private Run(Conductor conductor, Host host, Trials trials) {
-    this(conductor.getProject(), UUID.randomUUID(), conductor.getId(), host.getId(), trials.getId());
+    private final int id;
+
+    State(final int id) {
+      this.id = id;
+      stateMap.put(id, this);
+    }
+
+    int toInt() { return id; }
+
+    static State valueOf(int i) {
+      return stateMap.get(i);
+    }
   }
 
-  private Run(Project project, UUID id, String conductor, String host, String trials) {
+  private String conductor;
+  private String trials;
+  private String simulator;
+  private String host;
+  private State state;
+
+  private Run(Conductor conductor, Trials trials, Simulator simulator, Host host) {
+    this(conductor.getProject(), UUID.randomUUID(),
+      conductor.getId(), trials.getId(), simulator.getId(), host.getId(), State.Prepared);
+  }
+
+  private Run(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
     super(project, id, "");
     this.conductor = conductor;
-    this.host = host;
     this.trials = trials;
+    this.simulator = simulator;
+    this.host = host;
+    this.state = state;
   }
 
   public Conductor getConductor() {
@@ -40,22 +63,37 @@ public class Run extends ProjectData{
     return Trials.getInstance(project, trials);
   }
 
+  public Simulator getSimulator() {
+    return Simulator.getInstance(project, simulator);
+  }
+
+  public State getState() {
+    return state;
+  }
+
   public static ArrayList<Run> getList(Project project, Trials parent) {
     ArrayList<Run> list = new ArrayList<>();
     try {
       Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id,"
-        + KEY_CONDUCTOR + "," + KEY_HOST + "," + KEY_TRIALS
-        + " from " + TABLE_NAME + " where " + KEY_TRIALS + "=?;");
+      PreparedStatement statement = db.createSelect(TABLE_NAME,
+        KEY_ID,
+        KEY_CONDUCTOR,
+        KEY_TRIALS,
+        KEY_SIMULATOR,
+        KEY_HOST,
+        KEY_STATE
+        ).where(Sql.Value.state(KEY_TRIALS)).preparedStatement();
       statement.setString(1, parent.getId());
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
         list.add(new Run(
           project,
-          UUID.fromString(resultSet.getString("id")),
+          UUID.fromString(resultSet.getString(KEY_ID)),
           resultSet.getString(KEY_CONDUCTOR),
+          resultSet.getString(KEY_TRIALS),
+          resultSet.getString(KEY_SIMULATOR),
           resultSet.getString(KEY_HOST),
-          resultSet.getString(KEY_TRIALS)
+          State.valueOf(resultSet.getInt(KEY_STATE))
         ));
       }
 
@@ -66,26 +104,30 @@ public class Run extends ProjectData{
     return list;
   }
 
-  public static Run create(Conductor conductor, Host host, Trials trials) {
-    Run run = new Run(conductor, host, trials);
+  public static Run create(Conductor conductor, Trials trials, Simulator simulator, Host host) {
+    Run run = new Run(conductor, trials, simulator, host);
+
 
     try {
       Database db = getWorkDB(conductor.getProject(), workDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-        + KEY_CONDUCTOR + ","
-        + KEY_HOST + ","
-        + KEY_TRIALS
-        + ") values(?,?,?,?);");
+      PreparedStatement statement = db.createInsert(TABLE_NAME,
+        KEY_ID,
+        KEY_CONDUCTOR,
+        KEY_TRIALS,
+        KEY_SIMULATOR,
+        KEY_HOST,
+        KEY_STATE
+      ).preparedStatement();
       statement.setString(1, run.getId());
       statement.setString(2, run.getConductor().getId());
-      statement.setString(3, run.getHost().getId());
-      statement.setString(4, run.getTrials().getId());
+      statement.setString(3, run.getTrials().getId());
+      statement.setString(4, run.getSimulator().getId());
+      statement.setString(5, run.getHost().getId());
+      statement.setInt(6, run.getState().toInt());
       statement.execute();
       db.commit();
       db.close();
 
-      Job.addRun(run);
 
       //Files.createDirectories(simulator.getLocation());
     } catch (SQLException e) {
@@ -93,6 +135,10 @@ public class Run extends ProjectData{
     }
 
     return run;
+  }
+
+  public void start() {
+    Job.addRun(this);
   }
 
   @Override
@@ -125,8 +171,10 @@ public class Run extends ProjectData{
             db.execute("create table " + TABLE_NAME + "(" +
               "id," +
               KEY_CONDUCTOR + "," +
-              KEY_HOST + "," +
               KEY_TRIALS + "," +
+              KEY_SIMULATOR + "," +
+              KEY_HOST + "," +
+              KEY_STATE + "," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }

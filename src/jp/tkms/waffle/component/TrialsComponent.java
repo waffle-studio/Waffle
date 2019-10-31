@@ -110,6 +110,7 @@ public class TrialsComponent extends AbstractComponent {
                 ArrayList<Lte.TableValue> list = new ArrayList<>();
                 list.add(new Lte.TableValue("width:8em;", "ID"));
                 list.add(new Lte.TableValue("", "Conductor"));
+                list.add(new Lte.TableValue("", "Simulator"));
                 list.add(new Lte.TableValue("", "Host"));
                 return list;
               }
@@ -119,7 +120,10 @@ public class TrialsComponent extends AbstractComponent {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 for (Run run : Run.getList(project, trials)) {
                   list.add(new Lte.TableRow(
-                    run.getShortId(), run.getConductor().getName(), run.getHost().getName())
+                    run.getShortId(),
+                    run.getConductor().getName(),
+                    run.getSimulator().getName(),
+                    run.getHost().getName())
                   );
                 }
                 return list;

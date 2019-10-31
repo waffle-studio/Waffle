@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Environment;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,10 +18,14 @@ public class Host extends Data {
   private static final String TABLE_NAME = "host";
   private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
   private static final String KEY_WORKBASE = "work_base_dir";
+  private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
+  private static final String KEY_OS = "os";
 
   private String workBaseDirectory = null;
+  private String xsubDirectory = null;
+  private String os = null;
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
 
@@ -91,6 +97,28 @@ public class Host extends Data {
     return workBaseDirectory;
   }
 
+  public String getXsubDirectory() {
+    if (xsubDirectory == null) {
+      xsubDirectory = getFromDB(KEY_XSUB);
+    }
+    return xsubDirectory;
+  }
+
+  public String getOs() {
+    if (os == null) {
+      os = getFromDB(KEY_OS);
+    }
+    return os;
+  }
+
+  public String getDirectorySeparetor() {
+    String directorySeparetor = "/";
+    if (os.equals("U")) {
+      directorySeparetor = "/";
+    }
+    return directorySeparetor;
+  }
+
   public Integer getPollingInterval() {
     if (pollingInterval == null) {
       pollingInterval = Integer.valueOf(getFromDB(KEY_POLLING));
@@ -124,6 +152,7 @@ public class Host extends Data {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(id,name," +
                 KEY_WORKBASE + "," +
+                KEY_XSUB + "," +
                 KEY_MAX_JOBS + "," +
                 KEY_POLLING + "," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
@@ -131,12 +160,28 @@ public class Host extends Data {
               db.execute("insert into " + TABLE_NAME
                 + "(id,name," +
                 KEY_WORKBASE + "," +
+                KEY_XSUB + "," +
                 KEY_MAX_JOBS + "," +
                 KEY_POLLING +
-                ") values('" + LOCAL_UUID.toString() + "','LOCAL','tmp',1,5);");
+                ") values('" + LOCAL_UUID.toString() + "','LOCAL','"
+                + Environment.LOCAL_WORK_DIR + "','"
+                + Environment.LOCAL_XSUB_DIR
+                + "',1,5);");
+
+              try {
+                Files.createDirectories(Paths.get(Environment.LOCAL_WORK_DIR));
+              } catch (IOException e) {
+                e.printStackTrace();
+              }
+            }
+          },
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("alter table " + TABLE_NAME + " add " + KEY_OS + " default 'U';");
             }
           }
         ));
       }
-    };
+  };
 }

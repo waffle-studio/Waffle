@@ -4,6 +4,7 @@
 waffle.dat
 *.db
 work/
+tmp/
 
 
 

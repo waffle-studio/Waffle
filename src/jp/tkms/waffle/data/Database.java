@@ -4,7 +4,6 @@ import jp.tkms.waffle.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
@@ -96,5 +95,13 @@ public class Database {
 
   public PreparedStatement preparedStatement(String sql) throws SQLException {
     return connection.prepareStatement(sql);
+  }
+
+  public Sql.Insert createInsert(String table, String... keys) {
+    return new Sql.Insert(this, table, keys);
+  }
+
+  public Sql.Select createSelect(String table, String... keys) {
+    return new Sql.Select(this, table, keys);
   }
 }
