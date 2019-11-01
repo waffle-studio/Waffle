@@ -20,5 +20,7 @@ public class Main {
     ProjectsComponent.register();
     JobsComponent.register();
     HostsComponent.register();
+
+    PollingThread.startup();
   }
 }

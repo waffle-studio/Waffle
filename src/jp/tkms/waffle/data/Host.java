@@ -113,7 +113,7 @@ public class Host extends Data {
 
   public String getDirectorySeparetor() {
     String directorySeparetor = "/";
-    if (os.equals("U")) {
+    if (getOs().equals("U")) {
       directorySeparetor = "/";
     }
     return directorySeparetor;

@@ -54,6 +54,10 @@ public class Lte {
     return card(title, tools, body, footer, null, null);
   }
 
+  public static String badge(String colorType, Attributes attributes, String value) {
+    return Html.span("badge badge-" + colorType, attributes, value);
+  }
+
   public static String infoBox(DivSize divSize, String icon, String iconBgCLass, String text, String number) {
     return divCol(divSize, div("info-box",
       span(listBySpace("info-box-icon", iconBgCLass), null, faIcon(icon)),

@@ -13,5 +13,5 @@ public class Environment {
   static final public String ROOT_PAGE = ProjectsComponent.getUrl();
   static final public String DEFAULT_WD = "." + File.separator + "work" + File.separator + "${NAME}";
   static final public String LOCAL_WORK_DIR = "tmp";
-  static final public String LOCAL_XSUB_DIR = "xsub";
+  static final public String LOCAL_XSUB_DIR = "./xsub";
 }

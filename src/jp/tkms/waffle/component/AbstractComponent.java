@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.PollingThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
@@ -13,14 +14,6 @@ abstract public class AbstractComponent implements Route {
   public Response response;
   private String buffer = "";
 
-  ;
-
-    /*
-    public static String getUrl(String... values) {
-        return "/";
-    }
-    */
-
   public static void register() {
   }
 
@@ -32,6 +25,8 @@ abstract public class AbstractComponent implements Route {
     this.response = response;
 
     controller();
+
+    PollingThread.startup();
 
     return response.body();
   }

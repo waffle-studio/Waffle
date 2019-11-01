@@ -14,9 +14,12 @@ public class Job extends Data {
   private static final String TABLE_NAME = "job";
   private static final String KEY_PROJECT = "projrct";
   private static final String KEY_HOST = "host";
+  private static final String KEY_JOB_ID = "job_id";
 
   private Project project = null;
   private Host host = null;
+  private Run run = null;
+  private String jobId = null;
 
   public Job(UUID id, String name) {
     super(id, "");
@@ -28,14 +31,14 @@ public class Job extends Data {
   }
 
   public static Job getInstance(String id) {
-    Job host = null;
+    Job job = null;
     try {
       Database db = getMainDB(mainDatabaseUpdater);
       PreparedStatement statement = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
       statement.setString(1, id);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
-        host = new Job(
+        job = new Job(
           UUID.fromString(resultSet.getString("id")),
           null
         );
@@ -44,7 +47,7 @@ public class Job extends Data {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    return host;
+    return job;
   }
 
   public static ArrayList<Job> getList() {
@@ -59,6 +62,27 @@ public class Job extends Data {
         ));
       }
 
+      db.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return list;
+  }
+
+  public static ArrayList<Job> getList(Host host) {
+    ArrayList<Job> list = new ArrayList<>();
+    try {
+      Database db = getMainDB(mainDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
+      statement.setString(1, host.getId());
+      ResultSet resultSet = statement.executeQuery();
+      while (resultSet.next()) {
+        list.add(new Job(
+          UUID.fromString(resultSet.getString("id")),
+          null
+        ));
+      }
       db.close();
     } catch (SQLException e) {
       e.printStackTrace();
@@ -88,6 +112,35 @@ public class Job extends Data {
     return;
   }
 
+  public void remove() {
+    try {
+      Database db = getMainDB(mainDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("delete from " + getTableName() + " where id=?;");
+      statement.setString(1, getId());
+      statement.execute();
+      db.commit();
+      db.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void setJobId(String jobId) {
+    try {
+      Database db = getMainDB(mainDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("update " + getTableName() + " set " + KEY_JOB_ID + "=?" + " where id=?;");
+      statement.setString(1, jobId);
+      statement.setString(2, getId());
+      statement.execute();
+      db.commit();
+      db.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
+
   public Path getLocation() {
     Path path = Paths.get( TABLE_NAME + File.separator + name + '_' + shortId );
     return path;
@@ -105,6 +158,20 @@ public class Job extends Data {
       host = Host.getInstance(getFromDB(KEY_HOST));
     }
     return host;
+  }
+
+  public Run getRun() {
+    if (run == null) {
+      run = Run.getInstance(getProject(), getId());
+    }
+    return run;
+  }
+
+  public String getJobId() {
+    if (jobId == null) {
+      jobId = getFromDB(KEY_JOB_ID);
+    }
+    return jobId;
   }
 
   @Override
@@ -127,6 +194,7 @@ public class Job extends Data {
               db.execute("create table " + TABLE_NAME + "(id," +
                 KEY_PROJECT + "," +
                 KEY_HOST + "," +
+                KEY_JOB_ID + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

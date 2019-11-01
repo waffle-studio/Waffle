@@ -80,11 +80,11 @@ public class TrialsComponent extends AbstractComponent {
       @Override
       protected String pageContent() {
         return Lte.card(null, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("width:6.5em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
               return list;
             }
@@ -104,14 +104,15 @@ public class TrialsComponent extends AbstractComponent {
           , null, null, "p-0")
           +
           Lte.card(null, null,
-            Lte.table("table-condensed", new Lte.Table() {
+            Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
                 ArrayList<Lte.TableValue> list = new ArrayList<>();
-                list.add(new Lte.TableValue("width:8em;", "ID"));
+                list.add(new Lte.TableValue("width:6.5em;", "ID"));
                 list.add(new Lte.TableValue("", "Conductor"));
                 list.add(new Lte.TableValue("", "Simulator"));
                 list.add(new Lte.TableValue("", "Host"));
+                list.add(new Lte.TableValue("width:2em;", ""));
                 return list;
               }
 
@@ -123,8 +124,9 @@ public class TrialsComponent extends AbstractComponent {
                     run.getShortId(),
                     run.getConductor().getName(),
                     run.getSimulator().getName(),
-                    run.getHost().getName())
-                  );
+                    run.getHost().getName(),
+                    JobsComponent.getStatusBadge(run)
+                  ));
                 }
                 return list;
               }

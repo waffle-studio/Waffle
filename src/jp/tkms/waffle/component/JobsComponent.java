@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
+import jp.tkms.waffle.data.Run;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -64,13 +65,15 @@ public class JobsComponent extends AbstractComponent {
       @Override
       protected String pageContent() {
         return Lte.card(null, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("width:6.5em;", "ID"));
               list.add(new Lte.TableValue("", "Project"));
               list.add(new Lte.TableValue("", "Host"));
+              list.add(new Lte.TableValue("width:5em;", "JobID"));
+              list.add(new Lte.TableValue("width:3em;", ""));
               return list;
             }
 
@@ -80,8 +83,13 @@ public class JobsComponent extends AbstractComponent {
               for (Job job : Job.getList()) {
                 list.add(new Lte.TableRow(
                   job.getShortId(),
-                  job.getProject().getName(),
-                  job.getHost().getName()
+                  Html.a(
+                    ProjectComponent.getUrl(job.getProject()),
+                    job.getProject().getName()
+                  ),
+                  job.getHost().getName(),
+                  job.getJobId(),
+                  getStatusBadge(job.getRun())
                   )
                 );
               }
@@ -94,4 +102,20 @@ public class JobsComponent extends AbstractComponent {
   }
 
   public enum Mode {Default, Add}
+
+  public static String getStatusBadge(Run run) {
+    switch (run.getState()) {
+      case Created:
+        return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
+      case Submitted:
+        return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
+      case Running:
+        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
+      case Finished:
+        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
+      case Failed:
+        return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
+    }
+    return null;
+  }
 }

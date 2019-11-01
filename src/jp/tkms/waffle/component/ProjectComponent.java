@@ -99,10 +99,10 @@ public class ProjectComponent extends AbstractComponent {
       @Override
       protected String pageContent() {
         String content = Lte.divRow(
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
-            Html.a(SimulatorsComponent.getUrl(project), "Simulators"), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
-            Html.a(TrialsComponent.getUrl(project), "Trials"), "")
+            Html.a(TrialsComponent.getUrl(project), "Trials"), ""),
+          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
+            Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );
 
         content += Lte.card(Html.faIcon("user-tie") + "Conductors", null,
