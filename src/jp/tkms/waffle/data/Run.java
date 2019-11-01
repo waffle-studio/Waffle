@@ -179,6 +179,7 @@ public class Run extends ProjectData{
       statement.execute();
       db.commit();
       db.close();
+      this.state = state;
     } catch (SQLException e) {
       e.printStackTrace();
     }

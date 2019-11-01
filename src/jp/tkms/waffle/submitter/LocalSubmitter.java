@@ -13,7 +13,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   String getWorkDirectory(Run run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + run.getId() + host.getDirectorySeparetor();
+      + RUN_DIR + host.getDirectorySeparetor() + run.getId();
 
     try {
       Files.createDirectories(Paths.get(pathString + host.getDirectorySeparetor()));

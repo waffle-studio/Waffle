@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.Run;
 import org.json.JSONObject;
 
 abstract public class AbstractSubmitter {
+  protected static final String RUN_DIR = "run";
   protected static final String INNER_WORK_DIR = "WORK";
   protected static final String BATCH_FILE = "batch.sh";
 
@@ -28,9 +29,10 @@ abstract public class AbstractSubmitter {
     processXsubSubmit(job, exec(run, xsubSubmitCommand(job)));
   }
 
-  public void update(Job job) {
+  public Run.State update(Job job) {
     Run run = job.getRun();
     processXstat(job, exec(run, xstatCommand(job)));
+    return run.getState();
   }
 
   String makeBatchFileText(Run run) {
@@ -50,8 +52,8 @@ abstract public class AbstractSubmitter {
   }
 
   String xsubSubmitCommand(Job job) {
-    return xsubCommand(job) + " -d '" + getWorkDirectory(job.getRun())
-      + "' -l '" + getWorkDirectory(job.getRun()) + "' " + BATCH_FILE;
+    //return xsubCommand(job) + " -d '" + getWorkDirectory(job.getRun()) + "' " + BATCH_FILE;
+    return xsubCommand(job) + " " + BATCH_FILE;
   }
 
   String xsubCommand(Job job) {

@@ -136,6 +136,8 @@ public class Job extends Data {
       statement.execute();
       db.commit();
       db.close();
+
+      this.jobId = jobId;
     } catch (SQLException e) {
       e.printStackTrace();
     }

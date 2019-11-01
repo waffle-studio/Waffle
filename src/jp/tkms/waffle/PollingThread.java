@@ -25,18 +25,34 @@ public class PollingThread extends Thread {
     ArrayList<Job> jobList = Job.getList(host);
     while (jobList.size() > 0) {
       AbstractSubmitter submitter = AbstractSubmitter.getInstance(host);
+      int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
+
+      ArrayList<Job> queuedJobList = new ArrayList<>();
+      int submittedCount = 0;
 
       for (Job job : jobList) {
         Run run = job.getRun();
         switch (run.getState()) {
           case Created:
-            submitter.submit(job);
+            if (queuedJobList.size() < maximumNumberOfJobs) {
+              queuedJobList.add(job);
+            }
             break;
           case Submitted:
           case Running:
           case Finished:
-            submitter.update(job);
+             Run.State state = submitter.update(job);
+             if (!Run.State.Finished.equals(state)) {
+               submittedCount++;
+             }
             break;
+        }
+      }
+
+      for (Job job : queuedJobList) {
+        if (submittedCount < maximumNumberOfJobs) {
+          submitter.submit(job);
+          submittedCount++;
         }
       }
 
