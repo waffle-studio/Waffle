@@ -138,6 +138,10 @@ public class Html {
     );
   }
 
+  public static String javascript(String... values) {
+    return element("script", new Attributes(value("type", "text/javascript")), values);
+  }
+
   static String removeNull(String string) {
     return (string == null ? "" : string);
   }

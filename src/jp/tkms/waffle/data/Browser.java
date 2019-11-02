@@ -11,15 +11,10 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public class Browser extends Data {
-  private static final String TABLE_NAME = "browser";
-  private static final String KEY_TIMESTAMP_CREATED = "timestamp_created";
+  static final String TABLE_NAME = "browser";
+  private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
 
-  private Project project = null;
-  private Host host = null;
-  private Run run = null;
-  private String jobId = null;
-
-  public Browser(UUID id, String name) {
+  public Browser(UUID id) {
     super(id, "");
   }
 
@@ -29,23 +24,40 @@ public class Browser extends Data {
   }
 
   public static Browser getInstance(String id) {
-    Browser job = null;
+    Browser browser = null;
     try {
       Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
+      PreparedStatement statement
+        = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
       statement.setString(1, id);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
-        job = new Browser(
-          UUID.fromString(resultSet.getString("id")),
-          null
+        browser = new Browser(
+          UUID.fromString(resultSet.getString("id"))
         );
       }
       db.close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    return job;
+    return browser;
+  }
+
+  public static String getNewId() {
+    Browser browser = new Browser(UUID.randomUUID());
+    try {
+      Database db = getMainDB(mainDatabaseUpdater);
+      PreparedStatement statement
+        = db.preparedStatement("insert into " + TABLE_NAME + "(id) values(?);");
+      statement.setString(1, browser.getId());
+      statement.execute();
+      db.commit();
+      db.close();
+
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return browser.getId();
   }
 
   public static ArrayList<Browser> getList() {
@@ -55,8 +67,7 @@ public class Browser extends Data {
       ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
       while (resultSet.next()) {
         list.add(new Browser(
-          UUID.fromString(resultSet.getString("id")),
-              null
+          UUID.fromString(resultSet.getString("id"))
         ));
       }
 
@@ -67,56 +78,17 @@ public class Browser extends Data {
     return list;
   }
 
-  public static ArrayList<Browser> getList(Host host) {
-    ArrayList<Browser> list = new ArrayList<>();
+  public static void update(String id) {
     try {
       Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
-      statement.setString(1, host.getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        list.add(new Browser(
-          UUID.fromString(resultSet.getString("id")),
-          null
-        ));
-      }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return list;
-  }
-
-  public static void addRun(Run run) {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-        + KEY_PROJECT + ","
-        + KEY_HOST
-        + ") values(?,?,?);");
-      statement.setString(1, run.getId());
-      statement.setString(2, run.getProject().getId());
-      statement.setString(3, run.getHost().getId());
+      PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where id=?;");
+      statement.setString(1, id);
       statement.execute();
-      db.commit();
-      db.close();
 
-      //Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return;
-  }
-
-  public void remove() {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-      statement.setString(1, getId());
+      statement = db.preparedStatement("insert into " + TABLE_NAME + "(" + KEY_ID + ") values(?);");
+      statement.setString(1, id);
       statement.execute();
+
       db.commit();
       db.close();
     } catch (SQLException e) {
@@ -124,54 +96,18 @@ public class Browser extends Data {
     }
   }
 
-  public void setJobId(String jobId) {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("update " + getTableName() + " set " + KEY_JOB_ID + "=?" + " where id=?;");
-      statement.setString(1, jobId);
-      statement.setString(2, getId());
-      statement.execute();
-      db.commit();
-      db.close();
+  public static void removeExpired(Database db) throws SQLException {
+    db.execute("delete from " + TABLE_NAME
+      + " where " + KEY_TIMESTAMP_CREATE + " < datetime('now', '-5 seconds');");
+    db.commit();
+  }
 
-      this.jobId = jobId;
+  public static void updateDB() {
+    try {
+      getMainDB(mainDatabaseUpdater).close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
-  }
-
-  public Path getLocation() {
-    Path path = Paths.get( TABLE_NAME + File.separator + name + '_' + shortId );
-    return path;
-  }
-
-  public Project getProject() {
-    if (project == null) {
-      project = Project.getInstance(getFromDB(KEY_PROJECT));
-    }
-    return project;
-  }
-
-  public Host getHost() {
-    if (host == null) {
-      host = Host.getInstance(getFromDB(KEY_HOST));
-    }
-    return host;
-  }
-
-  public Run getRun() {
-    if (run == null) {
-      run = Run.getInstance(getProject(), getId());
-    }
-    return run;
-  }
-
-  public String getJobId() {
-    if (jobId == null) {
-      jobId = getFromDB(KEY_JOB_ID);
-    }
-    return jobId;
   }
 
   @Override
@@ -192,10 +128,7 @@ public class Browser extends Data {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(id," +
-                KEY_PROJECT + "," +
-                KEY_HOST + "," +
-                KEY_JOB_ID + " default 0," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                "timestamp_create timestamp default (DATETIME('now'))" +
                 ");");
             }
           }

@@ -65,6 +65,8 @@ public class JobsComponent extends AbstractComponent {
       @Override
       protected String pageContent() {
         return Lte.card(null, null,
+          Html.javascript("var runFinished = function(id) {location.reload();};")
+            +
           Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {

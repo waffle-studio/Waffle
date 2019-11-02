@@ -11,7 +11,7 @@ public class Run extends ProjectData{
   private static final String KEY_HOST = "host";
   private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
-  private static final String KEY_STATE = "state";
+  private static final String KEY_STATE = "equalP";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
   public enum State {
@@ -62,7 +62,7 @@ public class Run extends ProjectData{
         KEY_SIMULATOR,
         KEY_HOST,
         KEY_STATE
-      ).where(Sql.Value.state(KEY_ID)).preparedStatement();
+      ).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
       statement.setString(1, id);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
@@ -114,7 +114,7 @@ public class Run extends ProjectData{
         KEY_SIMULATOR,
         KEY_HOST,
         KEY_STATE
-        ).where(Sql.Value.state(KEY_TRIALS)).preparedStatement();
+        ).where(Sql.Value.equalP(KEY_TRIALS)).preparedStatement();
       statement.setString(1, parent.getId());
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {

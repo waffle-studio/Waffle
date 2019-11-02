@@ -26,7 +26,7 @@ public class Sql {
       return value;
     }
 
-    static Value state(String key) {
+    static Value equalP(String key) {
       return new Value(key + "=?");
     }
 

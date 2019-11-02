@@ -21,7 +21,7 @@ public class Job extends Data {
   private Run run = null;
   private String jobId = null;
 
-  public Job(UUID id, String name) {
+  public Job(UUID id) {
     super(id, "");
   }
 
@@ -39,8 +39,7 @@ public class Job extends Data {
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
         job = new Job(
-          UUID.fromString(resultSet.getString("id")),
-          null
+          UUID.fromString(resultSet.getString("id"))
         );
       }
       db.close();
@@ -57,8 +56,7 @@ public class Job extends Data {
       ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
       while (resultSet.next()) {
         list.add(new Job(
-          UUID.fromString(resultSet.getString("id")),
-              null
+          UUID.fromString(resultSet.getString("id"))
         ));
       }
 
@@ -79,8 +77,7 @@ public class Job extends Data {
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
         list.add(new Job(
-          UUID.fromString(resultSet.getString("id")),
-          null
+          UUID.fromString(resultSet.getString("id"))
         ));
       }
       db.close();

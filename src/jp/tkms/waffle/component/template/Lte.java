@@ -140,6 +140,8 @@ public class Lte {
   }
 
   public static class TableRow extends ArrayList<TableValue> {
+    Html.Attributes attributes = null;
+
     public TableRow(TableValue... list) {
       super(Arrays.asList(list));
     }

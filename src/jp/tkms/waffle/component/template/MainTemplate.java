@@ -127,7 +127,14 @@ abstract public class MainTemplate extends AbstractTemplate {
           ),
           element("script", new Attributes(value("src", "/js/jquery.min.js"))),
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),
-          element("script", new Attributes(value("src", "/js/adminlte.min.js")))
+          element("script", new Attributes(value("src", "/js/adminlte.min.js"))),
+          element("script", new Attributes(value("src", "/js/simpleimport.js"))),
+          element("script", new Attributes(value("type", "text/javascript")),
+            "var loadBrowserMessage = function() {" +
+              "simpleget('/bm', function(res) {try{eval(res)}catch(e){alert(e)}})" +
+              "}; " +
+              "setInterval(loadBrowserMessage, 2000);"
+            )
         )
       )
     );

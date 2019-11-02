@@ -1,5 +1,6 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.Run;
@@ -92,6 +93,7 @@ abstract public class AbstractSubmitter {
           if (true) {
             job.getRun().setState(Run.State.Finished);
             job.remove();
+            BrowserMessage.addMessage("runFinished('" + job.getRun().getId() + "')");
           } else {
 
           }
