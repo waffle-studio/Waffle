@@ -79,7 +79,13 @@ public class TrialsComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        return Lte.card(null, null,
+        return
+          Html.javascript(
+            "var runFinished = function(id) {location.reload();};",
+            "var runCreated = function(id) {location.reload();};"
+          )
+            +
+          Lte.card(null, null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {

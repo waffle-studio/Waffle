@@ -160,6 +160,7 @@ public class Run extends ProjectData{
       db.commit();
       db.close();
 
+      BrowserMessage.addMessage("runCreated('" + run.getId() + "')");
 
       //Files.createDirectories(simulator.getLocation());
     } catch (SQLException e) {

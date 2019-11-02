@@ -31,6 +31,9 @@ public class BrowserMessageComponent extends AbstractComponent {
 
     String browserId = null;
 
+    try {
+
+
     if (request.cookies().containsKey(KEY_BROWSER_ID)) {
       browserId = request.cookie(KEY_BROWSER_ID);
       Browser.update(browserId);
@@ -44,6 +47,10 @@ public class BrowserMessageComponent extends AbstractComponent {
       message.remove();
     }
 
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    
     response.body(result);
   }
 }
