@@ -19,7 +19,7 @@ abstract public class ProjectData extends Data {
 
   abstract protected String getTableName();
 
-  abstract protected DatabaseUpdater getWorkDatabaseUpdater();
+  abstract protected Updater getWorkUpdater();
 
   public static String getShortId(UUID id) {
     return id.toString().replaceFirst("-.*$", "");
@@ -54,27 +54,28 @@ abstract public class ProjectData extends Data {
   }
 
   protected String getFromDB(String key) {
-    String result = null;
-    try {
-      Database db = getWorkDB();
-      PreparedStatement statement = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
-      statement.setString(1, getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        result = resultSet.getString(key);
+    final String[] result = {null};
+
+    handleWorkDB(project, getWorkUpdater(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
+        statement.setString(1, getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          result[0] = resultSet.getString(key);
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return result;
+    });
+
+    return result[0];
   }
 
   private static Database getWorkDB(Project project) {
     return Database.getDB(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
   }
 
-  protected static Database getWorkDB(Project project, DatabaseUpdater updater) {
+  private static Database getWorkDB(Project project, Updater updater) {
     Database db = getWorkDB(project);
     if (updater != null) {
       updater.update(db);
@@ -82,7 +83,17 @@ abstract public class ProjectData extends Data {
     return db;
   }
 
-  protected Database getWorkDB() {
-    return getWorkDB(project, getWorkDatabaseUpdater());
+  synchronized protected static boolean handleWorkDB(Project project, Updater updater, Handler handler) {
+    boolean isSuccess = true;
+
+    try(Database db = getWorkDB(project, updater)) {
+      handler.handling(db);
+      db.commit();
+    } catch (SQLException e) {
+      isSuccess = false;
+      e.printStackTrace();
+    }
+
+    return isSuccess;
   }
 }

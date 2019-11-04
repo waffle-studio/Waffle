@@ -66,7 +66,7 @@ public class JobsComponent extends AbstractComponent {
       protected String pageContent() {
         return
           Html.javascript(
-            "var runFinished = function(id) {location.reload();};",
+            "var runUpdated = function(id) {location.reload();};",
             "var runCreated = function(id) {location.reload();};"
           )
             +

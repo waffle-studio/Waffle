@@ -11,7 +11,7 @@ public class Run extends ProjectData{
   private static final String KEY_HOST = "host";
   private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
-  private static final String KEY_STATE = "equalP";
+  private static final String KEY_STATE = "state";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
   public enum State {
@@ -52,35 +52,36 @@ public class Run extends ProjectData{
   }
 
   public static Run getInstance(Project project, String id) {
-    Run run = null;
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement = db.createSelect(TABLE_NAME,
-        KEY_ID,
-        KEY_CONDUCTOR,
-        KEY_TRIALS,
-        KEY_SIMULATOR,
-        KEY_HOST,
-        KEY_STATE
-      ).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        run = new Run(
-          project,
-          UUID.fromString(resultSet.getString(KEY_ID)),
-          resultSet.getString(KEY_CONDUCTOR),
-          resultSet.getString(KEY_TRIALS),
-          resultSet.getString(KEY_SIMULATOR),
-          resultSet.getString(KEY_HOST),
-          State.valueOf(resultSet.getInt(KEY_STATE))
-        );
+    final Run[] run = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.createSelect(TABLE_NAME,
+          KEY_ID,
+          KEY_CONDUCTOR,
+          KEY_TRIALS,
+          KEY_SIMULATOR,
+          KEY_HOST,
+          KEY_STATE
+        ).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          run[0] = new Run(
+            project,
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_CONDUCTOR),
+            resultSet.getString(KEY_TRIALS),
+            resultSet.getString(KEY_SIMULATOR),
+            resultSet.getString(KEY_HOST),
+            State.valueOf(resultSet.getInt(KEY_STATE))
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return run;
+    });
+
+    return run[0];
   }
 
   public Conductor getConductor() {
@@ -105,84 +106,83 @@ public class Run extends ProjectData{
 
   public static ArrayList<Run> getList(Project project, Trials parent) {
     ArrayList<Run> list = new ArrayList<>();
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement = db.createSelect(TABLE_NAME,
-        KEY_ID,
-        KEY_CONDUCTOR,
-        KEY_TRIALS,
-        KEY_SIMULATOR,
-        KEY_HOST,
-        KEY_STATE
-        ).where(Sql.Value.equalP(KEY_TRIALS)).preparedStatement();
-      statement.setString(1, parent.getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        list.add(new Run(
-          project,
-          UUID.fromString(resultSet.getString(KEY_ID)),
-          resultSet.getString(KEY_CONDUCTOR),
-          resultSet.getString(KEY_TRIALS),
-          resultSet.getString(KEY_SIMULATOR),
-          resultSet.getString(KEY_HOST),
-          State.valueOf(resultSet.getInt(KEY_STATE))
-        ));
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.createSelect(TABLE_NAME,
+          KEY_ID,
+          KEY_CONDUCTOR,
+          KEY_TRIALS,
+          KEY_SIMULATOR,
+          KEY_HOST,
+          KEY_STATE
+        ).where(Sql.Value.equalP(KEY_TRIALS)).preparedStatement();
+        statement.setString(1, parent.getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          list.add(new Run(
+            project,
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_CONDUCTOR),
+            resultSet.getString(KEY_TRIALS),
+            resultSet.getString(KEY_SIMULATOR),
+            resultSet.getString(KEY_HOST),
+            State.valueOf(resultSet.getInt(KEY_STATE))
+          ));
+        }
+      }
+    });
+
     return list;
   }
 
   public static Run create(Conductor conductor, Trials trials, Simulator simulator, Host host) {
     Run run = new Run(conductor, trials, simulator, host);
+    String conductorId = run.getConductor().getId();
+    String trialsId = run.getTrials().getId();
+    String simulatorId = run.getSimulator().getId();
+    String hostId = run.getHost().getId();
 
-
-    try {
-      Database db = getWorkDB(conductor.getProject(), workDatabaseUpdater);
-      PreparedStatement statement = db.createInsert(TABLE_NAME,
-        KEY_ID,
-        KEY_CONDUCTOR,
-        KEY_TRIALS,
-        KEY_SIMULATOR,
-        KEY_HOST,
-        KEY_STATE
-      ).preparedStatement();
-      statement.setString(1, run.getId());
-      statement.setString(2, run.getConductor().getId());
-      statement.setString(3, run.getTrials().getId());
-      statement.setString(4, run.getSimulator().getId());
-      statement.setString(5, run.getHost().getId());
-      statement.setInt(6, run.getState().toInt());
-      statement.execute();
-      db.commit();
-      db.close();
-
-      BrowserMessage.addMessage("runCreated('" + run.getId() + "')");
-
-      //Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleWorkDB(conductor.getProject(), workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.createInsert(TABLE_NAME,
+          KEY_ID,
+          KEY_CONDUCTOR,
+          KEY_TRIALS,
+          KEY_SIMULATOR,
+          KEY_HOST,
+          KEY_STATE
+        ).preparedStatement();
+        statement.setString(1, run.getId());
+        statement.setString(2, conductorId);
+        statement.setString(3, trialsId);
+        statement.setString(4, simulatorId);
+        statement.setString(5, hostId);
+        statement.setInt(6, run.getState().toInt());
+        statement.execute();
+      }
+    });
 
     return run;
   }
 
   public void setState(State state) {
-    try {
-      Database db = getWorkDB();
-      PreparedStatement statement
-        = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
-      statement.setInt(1, state.toInt());
-      statement.setString(2, getId());
-      statement.execute();
-      db.commit();
-      db.close();
+    if (
+      handleWorkDB(project, getWorkUpdater(), new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
+          statement.setInt(1, state.toInt());
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      })
+    ) {
       this.state = state;
-    } catch (SQLException e) {
-      e.printStackTrace();
+      BrowserMessage.addMessage("runUpdated('" + getId() + "')");
     }
   }
 
@@ -196,16 +196,16 @@ public class Run extends ProjectData{
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
+  protected Updater getMainUpdater() {
     return null;
   }
 
   @Override
-  protected DatabaseUpdater getWorkDatabaseUpdater() {
+  protected Updater getWorkUpdater() {
     return null;
   }
 
-  private static DatabaseUpdater workDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater workUpdater = new Updater() {
     @Override
     String tableName() {
       return TABLE_NAME;

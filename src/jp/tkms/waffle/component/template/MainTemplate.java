@@ -1,10 +1,8 @@
 package jp.tkms.waffle.component.template;
 
 import jp.tkms.waffle.Environment;
-import jp.tkms.waffle.component.AbstractComponent;
-import jp.tkms.waffle.component.HostsComponent;
-import jp.tkms.waffle.component.JobsComponent;
-import jp.tkms.waffle.component.ProjectsComponent;
+import jp.tkms.waffle.component.*;
+import jp.tkms.waffle.data.Browser;
 
 import java.util.ArrayList;
 
@@ -131,9 +129,9 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
             "var loadBrowserMessage = function() {" +
-              "simpleget('/bm', function(res) {try{eval(res)}catch(e){}})" +
+              "simpleget('" + BrowserMessageComponent.getUrl(Browser.getNewId()) + "', function(res) {try{eval(res)}catch(e){}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
-              "setInterval(loadBrowserMessage, 2000);"
+              "setTimeout(loadBrowserMessage, 2000);"
             )
         )
       )

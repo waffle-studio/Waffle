@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.UUID;
 
 abstract public class Data {
@@ -21,7 +22,7 @@ abstract public class Data {
 
   abstract protected String getTableName();
 
-  abstract protected DatabaseUpdater getMainDatabaseUpdater();
+  abstract protected Updater getMainUpdater();
 
   public static String getShortId(UUID id) {
     return id.toString().replaceFirst("-.*$", "");
@@ -54,7 +55,7 @@ abstract public class Data {
   protected String getFromDB(String key) {
     String result = null;
     try {
-      Database db = getMainDB(getMainDatabaseUpdater());
+      Database db = getMainDB(getMainUpdater());
       PreparedStatement statement
         = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
       statement.setString(1, getId());
@@ -69,11 +70,54 @@ abstract public class Data {
     return result;
   }
 
-  protected static Database getMainDB(DatabaseUpdater updater) {
+  private static Database getMainDB(Updater updater) {
     Database db = Database.getMainDB();
     if (updater != null) {
       updater.update(db);
     }
     return db;
+  }
+
+  synchronized protected static boolean handleMainDB(Updater updater, Handler handler) {
+    boolean isSuccess = true;
+
+    try(Database db = getMainDB(updater)) {
+      handler.handling(db);
+      db.commit();
+    } catch (SQLException e) {
+      isSuccess = false;
+      e.printStackTrace();
+    }
+
+    return isSuccess;
+  }
+
+  abstract static class Handler {
+    abstract void handling(Database db) throws SQLException;
+  }
+
+  public abstract static class Updater {
+    public abstract class UpdateTask {
+      abstract void task(Database db) throws SQLException;
+    }
+
+    abstract String tableName();
+
+    abstract ArrayList<UpdateTask> updateTasks();
+
+    void update(Database db) {
+      try {
+        int version = db.getVersion(tableName());
+
+        for (; version < updateTasks().size(); version++) {
+          updateTasks().get(version).task(db);
+        }
+
+        db.setVersion(tableName(), version);
+        db.commit();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }

@@ -31,112 +31,109 @@ public class Job extends Data {
   }
 
   public static Job getInstance(String id) {
-    Job job = null;
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        job = new Job(
-          UUID.fromString(resultSet.getString("id"))
-        );
+    final Job[] job = {null};
+
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          job[0] = new Job(
+            UUID.fromString(resultSet.getString("id"))
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return job;
+    });
+
+    return job[0];
   }
 
   public static ArrayList<Job> getList() {
     ArrayList<Job> list = new ArrayList<>();
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
-      while (resultSet.next()) {
-        list.add(new Job(
-          UUID.fromString(resultSet.getString("id"))
-        ));
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          list.add(new Job(
+            UUID.fromString(resultSet.getString("id"))
+          ));
+        }
+      }
+    });
+
     return list;
   }
 
   public static ArrayList<Job> getList(Host host) {
     ArrayList<Job> list = new ArrayList<>();
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
-      statement.setString(1, host.getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        list.add(new Job(
-          UUID.fromString(resultSet.getString("id"))
-        ));
+
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
+        statement.setString(1, host.getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          list.add(new Job(
+            UUID.fromString(resultSet.getString("id"))
+          ));
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    });
+
     return list;
   }
 
   public static void addRun(Run run) {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-        + KEY_PROJECT + ","
-        + KEY_HOST
-        + ") values(?,?,?);");
-      statement.setString(1, run.getId());
-      statement.setString(2, run.getProject().getId());
-      statement.setString(3, run.getHost().getId());
-      statement.execute();
-      db.commit();
-      db.close();
+    String hostId = run.getHost().getId();
 
-      //Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return;
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
+          + KEY_PROJECT + ","
+          + KEY_HOST
+          + ") values(?,?,?);");
+        statement.setString(1, run.getId());
+        statement.setString(2, run.getProject().getId());
+        statement.setString(3, hostId);
+        statement.execute();
+      }
+    });
   }
 
   public void remove() {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-      statement.setString(1, getId());
-      statement.execute();
-      db.commit();
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
+        statement.setString(1, getId());
+        statement.execute();
+      }
+    });
   }
 
   public void setJobId(String jobId) {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("update " + getTableName() + " set " + KEY_JOB_ID + "=?" + " where id=?;");
-      statement.setString(1, jobId);
-      statement.setString(2, getId());
-      statement.execute();
-      db.commit();
-      db.close();
-
+    if (
+      handleMainDB(mainUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("update " + getTableName() + " set " + KEY_JOB_ID + "=?" + " where id=?;");
+          statement.setString(1, jobId);
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      })
+    ) {
       this.jobId = jobId;
-    } catch (SQLException e) {
-      e.printStackTrace();
     }
   }
 
@@ -174,11 +171,11 @@ public class Job extends Data {
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
-    return mainDatabaseUpdater;
+  protected Updater getMainUpdater() {
+    return mainUpdater;
   }
 
-  private static DatabaseUpdater mainDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater mainUpdater = new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;

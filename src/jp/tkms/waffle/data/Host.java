@@ -39,41 +39,42 @@ public class Host extends Data {
   }
 
   public static Host getInstance(String id) {
-    Host host = null;
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        host = new Host(
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name")
-        );
+    final Host[] host = {null};
+
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          host[0] = new Host(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return host;
+    });
+
+    return host[0];
   }
 
   public static ArrayList<Host> getList() {
     ArrayList<Host> list = new ArrayList<>();
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-      while (resultSet.next()) {
-        list.add(new Host(
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name"))
-        );
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          list.add(new Host(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name"))
+          );
+        }
+      }
+    });
+
     return list;
   }
 
@@ -134,19 +135,19 @@ public class Host extends Data {
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
-    return mainDatabaseUpdater;
+  protected Updater getMainUpdater() {
+    return mainUpdater;
   }
 
-  private static DatabaseUpdater mainDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater mainUpdater = new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
       }
 
       @Override
-      ArrayList<DatabaseUpdater.UpdateTask> updateTasks() {
-        return new ArrayList<DatabaseUpdater.UpdateTask>(Arrays.asList(
+      ArrayList<Updater.UpdateTask> updateTasks() {
+        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {

@@ -1,8 +1,5 @@
 package jp.tkms.waffle.data;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,76 +21,73 @@ public class Browser extends Data {
   }
 
   public static Browser getInstance(String id) {
-    Browser browser = null;
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        browser = new Browser(
-          UUID.fromString(resultSet.getString("id"))
-        );
+    final Browser[] browser = {null};
+
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          browser[0] = new Browser(
+            UUID.fromString(resultSet.getString("id"))
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return browser;
+    });
+
+    return browser[0];
   }
 
   public static String getNewId() {
     Browser browser = new Browser(UUID.randomUUID());
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id) values(?);");
-      statement.setString(1, browser.getId());
-      statement.execute();
-      db.commit();
-      db.close();
 
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("insert into " + TABLE_NAME + "(id) values(?);");
+        statement.setString(1, browser.getId());
+        statement.execute();
+      }
+    });
+
     return browser.getId();
   }
 
   public static ArrayList<Browser> getList() {
     ArrayList<Browser> list = new ArrayList<>();
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
-      while (resultSet.next()) {
-        list.add(new Browser(
-          UUID.fromString(resultSet.getString("id"))
-        ));
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          list.add(new Browser(
+            UUID.fromString(resultSet.getString("id"))
+          ));
+        }
+      }
+    });
+
     return list;
   }
 
   public static void update(String id) {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      statement.execute();
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        statement.execute();
 
-      statement = db.preparedStatement("insert into " + TABLE_NAME + "(" + KEY_ID + ") values(?);");
-      statement.setString(1, id);
-      statement.execute();
-
-      db.commit();
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+        statement = db.preparedStatement("insert into " + TABLE_NAME + "(" + KEY_ID + ") values(?);");
+        statement.setString(1, id);
+        statement.execute();
+      }
+    });
   }
 
   public static void removeExpired(Database db) throws SQLException {
@@ -103,19 +97,19 @@ public class Browser extends Data {
   }
 
   public static void updateDB() {
-    try {
-      getMainDB(mainDatabaseUpdater).close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+      }
+    });
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
-    return mainDatabaseUpdater;
+  protected Updater getMainUpdater() {
+    return mainUpdater;
   }
 
-  private static DatabaseUpdater mainDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater mainUpdater = new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;

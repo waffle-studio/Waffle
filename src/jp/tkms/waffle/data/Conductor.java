@@ -34,69 +34,72 @@ public class Conductor extends ProjectData {
   }
 
   public static Conductor getInstance(Project project, String id) {
-    Conductor conductor = null;
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        conductor = new Conductor(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name")
-        );
+    final Conductor[] conductor = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          conductor[0] = new Conductor(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return conductor;
+    });
+
+    return conductor[0];
   }
 
   public static ArrayList<Conductor> getList(Project project) {
     ArrayList<Conductor> simulatorList = new ArrayList<>();
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-      while (resultSet.next()) {
-        simulatorList.add(new Conductor(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name"))
-        );
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          simulatorList.add(new Conductor(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name"))
+          );
+        }
+      }
+    });
+
     return simulatorList;
   }
 
   public static Conductor create(Project project, String name, String scriptFileName) {
     Conductor simulator = new Conductor(project, UUID.randomUUID(), name);
-    System.out.println(simulator.getName());
-    System.out.println(simulator.name);
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
-        + KEY_SCRIPT
-        + ") values(?,?,?);");
-      statement.setString(1, simulator.getId());
-      statement.setString(2, simulator.getName());
-      statement.setString(3, scriptFileName);
-      statement.execute();
-      db.commit();
-      db.close();
 
-      Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+    if (
+      handleWorkDB(project, workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
+            + KEY_SCRIPT
+            + ") values(?,?,?);");
+          statement.setString(1, simulator.getId());
+          statement.setString(2, simulator.getName());
+          statement.setString(3, scriptFileName);
+          statement.execute();
+        }
+      })
+    ) {
+      try {
+        Files.createDirectories(simulator.getLocation());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
+
     return simulator;
   }
 
@@ -127,16 +130,16 @@ public class Conductor extends ProjectData {
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
+  protected Updater getMainUpdater() {
     return null;
   }
 
   @Override
-  protected DatabaseUpdater getWorkDatabaseUpdater() {
-    return workDatabaseUpdater;
+  protected Updater getWorkUpdater() {
+    return workUpdater;
   }
 
-  private static DatabaseUpdater workDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater workUpdater = new Updater() {
     @Override
     String tableName() {
       return TABLE_NAME;

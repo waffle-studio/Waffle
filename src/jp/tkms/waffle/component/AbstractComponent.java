@@ -26,8 +26,6 @@ abstract public class AbstractComponent implements Route {
 
     controller();
 
-    PollingThread.startup();
-
     return response.body();
   }
 

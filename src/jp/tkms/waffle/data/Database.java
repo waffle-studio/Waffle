@@ -1,21 +1,28 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.component.template.Html;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.management.ThreadInfo;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.HashSet;
 
-public class Database {
+public class Database implements AutoCloseable {
   static Logger logger = LoggerFactory.getLogger("Database");
 
   private static boolean initialized = false;
   private Connection connection;
+  private String url;
 
-  public Database(Connection connection) throws SQLException {
-    this.connection = connection;
+  public Database(String url) throws SQLException {
+    this.url = url;
+    this.connection = DriverManager.getConnection(url);
     connection.setAutoCommit(false);
   }
 
@@ -29,15 +36,17 @@ public class Database {
     }
   }
 
-  public static Database getDB(Path path) {
+  public static synchronized Database getDB(Path path) {
     initialize();
     Database db = null;
     String url = "jdbc:sqlite:" + path.toAbsolutePath().toString();
+
     try {
-      db = new Database(DriverManager.getConnection(url));
+      db = new Database(url);
     } catch (SQLException e) {
       e.printStackTrace();
     }
+
     return db;
   }
 

@@ -30,68 +30,73 @@ public class Simulator extends ProjectData {
   }
 
   public static Simulator getInstance(Project project, String id) {
-    Simulator simulator = null;
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        simulator = new Simulator(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name")
-        );
+    final Simulator[] simulator = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          simulator[0] = new Simulator(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return simulator;
+    });
+
+    return simulator[0];
   }
 
   public static ArrayList<Simulator> getList(Project project) {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-      while (resultSet.next()) {
-        simulatorList.add(new Simulator(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name"))
-        );
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          simulatorList.add(new Simulator(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name"))
+          );
+        }
+      }
+    });
+
     return simulatorList;
   }
 
   public static Simulator create(Project project, String name, String simulationCommand, String versionCommand) {
     Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
-        + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND
-        + ") values(?,?,?,?);");
-      statement.setString(1, simulator.getId());
-      statement.setString(2, simulator.getName());
-      statement.setString(3, simulationCommand);
-      statement.setString(4, versionCommand);
-      statement.execute();
-      db.commit();
-      db.close();
 
-      Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+    if (
+      handleWorkDB(project, workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
+            + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND
+            + ") values(?,?,?,?);");
+          statement.setString(1, simulator.getId());
+          statement.setString(2, simulator.getName());
+          statement.setString(3, simulationCommand);
+          statement.setString(4, versionCommand);
+          statement.execute();
+        }
+      })
+    ) {
+      try {
+        Files.createDirectories(simulator.getLocation());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
+
     return simulator;
   }
 
@@ -117,24 +122,24 @@ public class Simulator extends ProjectData {
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
+  protected Updater getMainUpdater() {
     return null;
   }
 
   @Override
-  protected DatabaseUpdater getWorkDatabaseUpdater() {
-    return workDatabaseUpdater;
+  protected Updater getWorkUpdater() {
+    return workUpdater;
   }
 
-  private static DatabaseUpdater workDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater workUpdater = new Updater() {
     @Override
     String tableName() {
       return TABLE_NAME;
     }
 
     @Override
-    ArrayList<DatabaseUpdater.UpdateTask> updateTasks() {
-      return new ArrayList<DatabaseUpdater.UpdateTask>(Arrays.asList(
+    ArrayList<Updater.UpdateTask> updateTasks() {
+      return new ArrayList<Updater.UpdateTask>(Arrays.asList(
         new UpdateTask() {
           @Override
           void task(Database db) throws SQLException {

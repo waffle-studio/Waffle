@@ -74,11 +74,9 @@ abstract public class AbstractSubmitter {
 
   void processXsubSubmit(Job job, String json) {
     JSONObject object = new JSONObject(json);
-    try {
-      String jobId = object.getString("job_id");
-      job.setJobId(jobId);
-      job.getRun().setState(Run.State.Submitted);
-    } catch (Exception e) {}
+    String jobId = object.getString("job_id");
+    job.setJobId(jobId);
+    job.getRun().setState(Run.State.Submitted);
   }
 
   void processXstat(Job job, String json) {
@@ -93,7 +91,6 @@ abstract public class AbstractSubmitter {
           if (true) {
             job.getRun().setState(Run.State.Finished);
             job.remove();
-            BrowserMessage.addMessage("runFinished('" + job.getRun().getId() + "')");
           } else {
 
           }

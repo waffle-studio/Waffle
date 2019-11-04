@@ -18,39 +18,27 @@ public class BrowserMessageComponent extends AbstractComponent {
   private static final String KEY_BROWSER_ID = "bid";
 
   public static void register() {
-    Spark.get(getUrl(), new BrowserMessageComponent());
+    Spark.get(getUrl(null), new BrowserMessageComponent());
   }
 
-  public static String getUrl() {
-    return "/bm";
+  public static String getUrl(String session) {
+    return "/bm/" + (session == null ? ":bid": session);
   }
 
   @Override
   public void controller() {
+
     String result = "void(0);";
+    response.body(result);
 
-    String browserId = null;
-
-    try {
-
-
-    if (request.cookies().containsKey(KEY_BROWSER_ID)) {
-      browserId = request.cookie(KEY_BROWSER_ID);
-      Browser.update(browserId);
-    } else {
-      browserId = Browser.getNewId();
-      response.cookie(KEY_BROWSER_ID, browserId);
-    }
+    String browserId = request.params(KEY_BROWSER_ID);
+    Browser.update(browserId);
 
     for (BrowserMessage message : BrowserMessage.getList(browserId)) {
       result += message.getMessage() + ";";
       message.remove();
     }
 
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    
     response.body(result);
   }
 }

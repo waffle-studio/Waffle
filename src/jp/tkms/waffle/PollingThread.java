@@ -65,7 +65,7 @@ public class PollingThread extends Thread {
     threadMap.remove(host.getId());
   }
 
-  public static void startup() {
+  synchronized public static void startup() {
     for (Host host : Host.getList()) {
       if (!threadMap.containsKey(host.getId()) && Job.getList(host).size() > 0) {
         PollingThread pollingThread = new PollingThread(host);

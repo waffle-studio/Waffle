@@ -2,9 +2,9 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.data.Browser;
+import spark.Spark;
 
-import static spark.Spark.redirect;
-import static spark.Spark.staticFiles;
+import static spark.Spark.*;
 
 public class Main {
   public static void main(String[] args) {
@@ -16,6 +16,10 @@ public class Main {
     ErrorComponent.register();
 
     redirect.get("/", Environment.ROOT_PAGE);
+
+    after(((request, response) -> {
+      PollingThread.startup();
+    }));
 
     BrowserMessageComponent.register();
 

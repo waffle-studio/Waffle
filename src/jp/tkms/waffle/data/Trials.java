@@ -1,8 +1,6 @@
 package jp.tkms.waffle.data;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.PreparedStatement;
@@ -33,86 +31,86 @@ public class Trials extends ProjectData {
   }
 
   public static Trials getInstance(Project project, String id) {
-    Trials trials = null;
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-      statement.setString(1, id);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        trials = new Trials(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name")
-        );
+    final Trials[] trials = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          trials[0] = new Trials(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return trials;
+    });
+
+    return trials[0];
   }
 
   public static Trials getRootInstance(Project project) {
-    Trials trials = null;
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      ResultSet resultSet
-        = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "';");
-      while (resultSet.next()) {
-        trials = new Trials(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name")
-        );
+    final Trials[] trials = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet
+          = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "';");
+        while (resultSet.next()) {
+          trials[0] = new Trials(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return trials;
+    });
+
+    return trials[0];
   }
 
   public static ArrayList<Trials> getList(Project project, Trials parent) {
     ArrayList<Trials> list = new ArrayList<>();
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_PARENT + "=?;");
-      statement.setString(1, parent.getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        list.add(new Trials(
-          project,
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name"))
-        );
-      }
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_PARENT + "=?;");
+        statement.setString(1, parent.getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          list.add(new Trials(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name"))
+          );
+        }
+      }
+    });
+
     return list;
   }
 
   public static Trials create(Project project, Trials parent, String name) {
     Trials trials = new Trials(project, UUID.randomUUID(), name);
-    try {
-      Database db = getWorkDB(project, workDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," + KEY_PARENT + ") values(?,?.?);");
-      statement.setString(1, trials.getId());
-      statement.setString(2, trials.getName());
-      statement.setString(2, parent.getId());
-      statement.execute();
-      db.commit();
-      db.close();
 
-      //Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," + KEY_PARENT + ") values(?,?.?);");
+        statement.setString(1, trials.getId());
+        statement.setString(2, trials.getName());
+        statement.setString(2, parent.getId());
+        statement.execute();
+      }
+    });
+
     return trials;
   }
 
@@ -124,16 +122,16 @@ public class Trials extends ProjectData {
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
+  protected Updater getMainUpdater() {
     return null;
   }
 
   @Override
-  protected DatabaseUpdater getWorkDatabaseUpdater() {
-    return workDatabaseUpdater;
+  protected Updater getWorkUpdater() {
+    return workUpdater;
   }
 
-  private static DatabaseUpdater workDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater workUpdater = new Updater() {
     @Override
     String tableName() {
       return TABLE_NAME;

@@ -15,7 +15,7 @@ public class ErrorComponent extends AbstractComponent {
 
   @Override
   public void controller() {
-    logger.warn(response.status() + ": " + request.url());
+    logger.info(response.status() + ": " + request.url());
 
     new MainTemplate() {
       @Override

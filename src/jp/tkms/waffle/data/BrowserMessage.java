@@ -1,8 +1,5 @@
 package jp.tkms.waffle.data;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,26 +29,25 @@ public class BrowserMessage extends Data {
 
   public static ArrayList<BrowserMessage> getList(String browserId) {
     ArrayList<BrowserMessage> list = new ArrayList<>();
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
 
-      PreparedStatement statement = db.createSelect(TABLE_NAME,
-        KEY_ID, KEY_BROWSER_ID, KEY_MESSAGE
-      ).where(Sql.Value.equalP(KEY_BROWSER_ID)).preparedStatement();
-      statement.setString(1, browserId);
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        list.add(new BrowserMessage(
-          UUID.fromString(resultSet.getString(KEY_ID)),
-          resultSet.getString(KEY_BROWSER_ID),
-          resultSet.getString(KEY_MESSAGE)
-        ));
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.createSelect(TABLE_NAME,
+          KEY_ID, KEY_BROWSER_ID, KEY_MESSAGE
+        ).where(Sql.Value.equalP(KEY_BROWSER_ID)).preparedStatement();
+        statement.setString(1, browserId);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          list.add(new BrowserMessage(
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_BROWSER_ID),
+            resultSet.getString(KEY_MESSAGE)
+          ));
+        }
       }
+    });
 
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
     return list;
   }
 
@@ -62,57 +58,47 @@ public class BrowserMessage extends Data {
   }
 
   public static void addMessage(String message) {
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        Browser.removeExpired(db);
+        removeExpired(db);
 
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      Browser.removeExpired(db);
-      removeExpired(db);
-
-      PreparedStatement statement
-        = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-        + KEY_BROWSER_ID + ","
-        + KEY_MESSAGE
-        + ") values(?,(select id from " + Browser.TABLE_NAME + "),?);");
-      statement.setString(1, UUID.randomUUID().toString());
-      statement.setString(2, message);
-      statement.execute();
-      db.commit();
-      db.close();
-
-      //Files.createDirectories(simulator.getLocation());
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return;
+        PreparedStatement statement
+          = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
+          + KEY_BROWSER_ID + ","
+          + KEY_MESSAGE
+          + ") select ?,id,? from " + Browser.TABLE_NAME + ";");
+        statement.setString(1, UUID.randomUUID().toString());
+        statement.setString(2, message);
+        statement.execute();
+      }
+    });
   }
 
   public String getMessage() {
-    if (message == null) {
-      message = getFromDB(KEY_MESSAGE);
-    }
     return message;
   }
 
   public void remove() {
-    try {
-      Database db = getMainDB(mainDatabaseUpdater);
-      PreparedStatement statement
-        = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-      statement.setString(1, getId());
-      statement.execute();
-      db.commit();
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("delete from " + getTableName() + " where id=? and " + KEY_BROWSER_ID + "=?;");
+        statement.setString(1, getId());
+        statement.setString(2, browserId);
+        statement.execute();
+      }
+    });
   }
 
   @Override
-  protected DatabaseUpdater getMainDatabaseUpdater() {
-    return mainDatabaseUpdater;
+  protected Updater getMainUpdater() {
+    return mainUpdater;
   }
 
-  private static DatabaseUpdater mainDatabaseUpdater = new DatabaseUpdater() {
+  private static Updater mainUpdater = new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
