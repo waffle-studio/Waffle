@@ -65,7 +65,7 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   @Override
   int getExitStatus(Run run) {
-    int status = -255;
+    int status = -1;
 
     try {
       FileReader file

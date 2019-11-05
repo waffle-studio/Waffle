@@ -44,19 +44,11 @@ abstract public class AbstractSubmitter {
       "mkdir " + INNER_WORK_DIR + "\n" +
       "BATCH_WORKING_DIR=`pwd`\n" +
       "cd " + INNER_WORK_DIR + "\n" +
-      run.getSimulator().getSimulationCommand() + "\n" +
+      run.getSimulator().getSimulationCommand() + " >${BATCH_WORKING_DIR}/stdout.txt 2>${BATCH_WORKING_DIR}/stderr.txt\n" +
       "EXIT_STATUS=$?\n" +
       "cd ${BATCH_WORKING_DIR}\n" +
       "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" +
       "";
-  }
-
-  String getTemplate() {
-    String template = ". <%= _job_file %>";
-
-
-
-    return template;
   }
 
   String xsubSubmitCommand(Job job) {
@@ -79,6 +71,13 @@ abstract public class AbstractSubmitter {
       + "bin" + host.getDirectorySeparetor() + "xstat " + job.getJobId();
   }
 
+  String xdelCommand(Job job) {
+    Host host = job.getHost();
+    return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
+      + host.getXsubDirectory() + host.getDirectorySeparetor()
+      + "bin" + host.getDirectorySeparetor() + "xdel " + job.getJobId();
+  }
+
   void processXsubSubmit(Job job, String json) {
     JSONObject object = new JSONObject(json);
     String jobId = object.getString("job_id");
@@ -95,18 +94,21 @@ abstract public class AbstractSubmitter {
           job.getRun().setState(Run.State.Running);
           break;
         case "finished" :
-          if (true) {
+          int exitStatus = getExitStatus(job.getRun());
+          if (exitStatus == 0) {
             job.getRun().setState(Run.State.Finished);
-            job.remove();
           } else {
-
+            job.getRun().setState(Run.State.Failed);
           }
+          job.getRun().setExitStatus(exitStatus);
+          job.remove();
           break;
       }
     } catch (Exception e) {}
   }
 
-  void processXdel(Job job, String json) {}
+  void processXdel(Job job, String json) {
+  }
 
   @Override
   public String toString() {

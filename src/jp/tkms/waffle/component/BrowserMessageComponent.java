@@ -1,18 +1,8 @@
 package jp.tkms.waffle.component;
 
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Browser;
 import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.Database;
-import jp.tkms.waffle.data.Project;
 import spark.Spark;
-
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
-
-import static jp.tkms.waffle.component.template.Html.*;
 
 public class BrowserMessageComponent extends AbstractComponent {
   private static final String KEY_BROWSER_ID = "bid";

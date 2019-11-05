@@ -24,7 +24,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/ionicons.min.css"),
           link("stylesheet", "/css/gfonts.css")
         ),
-        body("hold-transition sidebar-mini sidebar-collapse",
+        body("hold-transition sidebar-mini",
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
               elementWithClass("ul", "navbar-nav",

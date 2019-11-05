@@ -1,8 +1,8 @@
 #!/bin/sh
 
-toush ok1.txt
+touch ok1.txt
 sleep 30
-toush ok2.txt
+touch ok2.txt
 echo OK
 
-exit 1
+exit 0

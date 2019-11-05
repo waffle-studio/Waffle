@@ -12,6 +12,7 @@ public class Run extends ProjectData{
   private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
+  private static final String KEY_EXIT_STATUS = "exit_status";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
   public enum State {
@@ -36,6 +37,7 @@ public class Run extends ProjectData{
   private String simulator;
   private String host;
   private State state;
+  private Integer exitStatus;
 
   private Run(Conductor conductor, Trials trials, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
@@ -169,21 +171,47 @@ public class Run extends ProjectData{
   }
 
   public void setState(State state) {
+    if (!this.state.equals(state)) {
+      if (
+        handleWorkDB(project, getWorkUpdater(), new Handler() {
+          @Override
+          void handling(Database db) throws SQLException {
+            PreparedStatement statement
+              = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
+            statement.setInt(1, state.toInt());
+            statement.setString(2, getId());
+            statement.execute();
+          }
+        })
+      ) {
+        this.state = state;
+        BrowserMessage.addMessage("runUpdated('" + getId() + "')");
+      }
+    }
+  }
+
+  public void setExitStatus(int exitStatus) {
     if (
       handleWorkDB(project, getWorkUpdater(), new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
-          statement.setInt(1, state.toInt());
+            = db.preparedStatement("update " + getTableName() + " set " + KEY_EXIT_STATUS + "=?" + " where id=?;");
+          statement.setInt(1, exitStatus);
           statement.setString(2, getId());
           statement.execute();
         }
       })
     ) {
-      this.state = state;
-      BrowserMessage.addMessage("runUpdated('" + getId() + "')");
+      this.exitStatus = exitStatus;
     }
+  }
+
+  public int getExitStatus() {
+    if (exitStatus == null) {
+      exitStatus = Integer.valueOf(getFromDB(KEY_EXIT_STATUS));
+    }
+    return exitStatus;
   }
 
   public void start() {
@@ -224,6 +252,7 @@ public class Run extends ProjectData{
               KEY_SIMULATOR + "," +
               KEY_HOST + "," +
               KEY_STATE + "," +
+              KEY_EXIT_STATUS + " default -1," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }
