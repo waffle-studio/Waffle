@@ -64,6 +64,28 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  int getExitStatus(Run run) {
+    int status = -255;
+
+    try {
+      FileReader file
+        = new FileReader(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + EXIT_STATUS_FILE);
+      BufferedReader r  = new BufferedReader(file);
+      String line;
+      while ((line = r.readLine()) != null) {
+        status = Integer.valueOf(line);
+        break;
+      }
+
+      r.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return status;
+  }
+
+  @Override
   public void close() {
 
   }

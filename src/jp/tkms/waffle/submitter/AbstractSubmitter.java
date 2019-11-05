@@ -10,10 +10,12 @@ abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
   protected static final String INNER_WORK_DIR = "WORK";
   protected static final String BATCH_FILE = "batch.sh";
+  protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract String getWorkDirectory(Run run);
   abstract void prepare(Run run);
   abstract String exec(Run run, String command);
+  abstract int getExitStatus(Run run);
   abstract public void close();
 
   public static AbstractSubmitter getInstance(Host host) {
@@ -40,8 +42,13 @@ abstract public class AbstractSubmitter {
     return "#!/bin/sh\n" +
       "\n" +
       "mkdir " + INNER_WORK_DIR + "\n" +
+      "BATCH_WORKING_DIR=`pwd`\n" +
       "cd " + INNER_WORK_DIR + "\n" +
-      run.getSimulator().getSimulationCommand() + "\n";
+      run.getSimulator().getSimulationCommand() + "\n" +
+      "EXIT_STATUS=$?\n" +
+      "cd ${BATCH_WORKING_DIR}\n" +
+      "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" +
+      "";
   }
 
   String getTemplate() {
