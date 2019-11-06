@@ -130,6 +130,7 @@ public class Project extends Data {
         }, new Handler() {
           @Override
           void handling(Database db) throws SQLException {
+            Conductor.create(project, "Trial Submitter", Conductor.ConductorType.Test, "test");
           }
         });
       } catch (IOException e) {

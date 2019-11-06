@@ -75,7 +75,7 @@ public class Conductor extends ProjectData {
     return simulatorList;
   }
 
-  public static Conductor create(Project project, String name, String scriptFileName) {
+  public static Conductor create(Project project, String name, ConductorType type, String scriptFileName) {
     Conductor simulator = new Conductor(project, UUID.randomUUID(), name);
 
     if (
@@ -83,12 +83,13 @@ public class Conductor extends ProjectData {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
-            + KEY_SCRIPT
-            + ") values(?,?,?);");
+            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," +
+            KEY_CONDUCTOR_TYPE + ","
+            + KEY_SCRIPT + ") values(?,?,?,?);");
           statement.setString(1, simulator.getId());
           statement.setString(2, simulator.getName());
-          statement.setString(3, scriptFileName);
+          statement.setString(3, type.name());
+          statement.setString(4, scriptFileName);
           statement.execute();
         }
       })
@@ -155,22 +156,6 @@ public class Conductor extends ProjectData {
               "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
-          }
-        },
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            String scriptName = "test";
-            PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
-              "id,name," +
-              KEY_CONDUCTOR_TYPE + "," +
-              KEY_SCRIPT +
-              ") values(?,?,?,?);");
-            statement.setString(1, UUID.randomUUID().toString());
-            statement.setString(2, "Trial Submitter");
-            statement.setString(3, ConductorType.Test.name());
-            statement.setString(4, scriptName);
-            statement.execute();
           }
         }
       ));

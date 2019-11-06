@@ -86,7 +86,33 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  void postProcess(Run run) {
+    try {
+      deleteDirectory(getWorkDirectory(run));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Override
   public void close() {
 
+  }
+
+  public static void deleteDirectory(final String dirPath) throws Exception {
+    File file = new File(dirPath);
+    recursiveDeleteFile(file);
+  }
+
+  private static void recursiveDeleteFile(final File file) throws Exception {
+    if (!file.exists()) {
+      return;
+    }
+    if (file.isDirectory()) {
+      for (File child : file.listFiles()) {
+        recursiveDeleteFile(child);
+      }
+    }
+    file.delete();
   }
 }

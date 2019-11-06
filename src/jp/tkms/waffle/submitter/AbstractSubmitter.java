@@ -16,6 +16,7 @@ abstract public class AbstractSubmitter {
   abstract void prepare(Run run);
   abstract String exec(Run run, String command);
   abstract int getExitStatus(Run run);
+  abstract void postProcess(Run run);
   abstract public void close();
 
   public static AbstractSubmitter getInstance(Host host) {
@@ -102,6 +103,7 @@ abstract public class AbstractSubmitter {
           }
           job.getRun().setExitStatus(exitStatus);
           job.remove();
+          postProcess(job.getRun());
           break;
       }
     } catch (Exception e) {}
