@@ -22,7 +22,9 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/adminlte.min.css"),
           link("stylesheet", "/css/fontawesome-free.min.css"),
           link("stylesheet", "/css/ionicons.min.css"),
-          link("stylesheet", "/css/gfonts.css")
+          link("stylesheet", "/css/gfonts.css"),
+          link("stylesheet", "/css/select2.min.css"),
+          element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
         body("hold-transition sidebar-mini",
           div("wrapper",
@@ -123,9 +125,9 @@ abstract public class MainTemplate extends AbstractTemplate {
               element("strong", null, "Copyright &copy; 2019 S.T.")
             )
           ),
-          element("script", new Attributes(value("src", "/js/jquery.min.js"))),
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),
           element("script", new Attributes(value("src", "/js/adminlte.min.js"))),
+          element("script", new Attributes(value("src", "/js/select2.min.js"))),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
             "var loadBrowserMessage = function() {" +

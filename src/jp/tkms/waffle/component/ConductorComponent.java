@@ -8,6 +8,7 @@ import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -56,10 +57,10 @@ public class ConductorComponent extends AbstractComponent {
       return;
     }
 
-    renderSimulator();
+    renderConductor();
   }
 
-  private void renderSimulator() {
+  private void renderConductor() {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
@@ -84,40 +85,29 @@ public class ConductorComponent extends AbstractComponent {
           Html.a("", Html.faIcon("edit")),
           Html.div(null,
             Html.div(null,
-              "Simulation Command",
-              Lte.disabledTextInput(null)
+              "Conductor Directory",
+              Lte.readonlyTextInput(conductor.getLocation().toAbsolutePath().toString())
             ),
             Html.div(null,
-              "Version Command",
-              Lte.disabledTextInput(null)
+              "Base Script",
+              Lte.readonlyTextInput(conductor.getScriptFileName())
             )
           )
           , null);
 
-        content += Lte.divRow(
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "file-import", "",
-            Html.a(SimulatorsComponent.getUrl(project), "Parameter extractor"), ""),
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "pencil-ruler", "",
-            Html.a(TrialsComponent.getUrl(project), "Parameter modifier"), "")
-        );
-
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter models", null,
-          Lte.table(null, new Lte.Table() {
+        content += Lte.card(Html.faIcon("file") + "Files", null,
+          Lte.table("table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
+              return null;
             }
 
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Simulator simulator : Simulator.getList(project)) {
+              for (File child : conductor.getLocation().toFile().listFiles()) {
                 list.add(new Lte.TableRow(
-                  Html.a("", null, null, simulator.getShortId()),
-                  simulator.getName())
+                  child.getName())
                 );
               }
               return list;

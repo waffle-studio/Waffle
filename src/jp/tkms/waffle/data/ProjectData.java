@@ -21,32 +21,8 @@ abstract public class ProjectData extends Data {
 
   abstract protected Updater getWorkUpdater();
 
-  public static String getShortId(UUID id) {
-    return id.toString().replaceFirst("-.*$", "");
-  }
-
-  public static String getUnifiedName(UUID id, String name) {
-    return name + '_' + getShortId(id);
-  }
-
-  public String getUnifiedName() {
-    return name + '_' + getShortId(id);
-  }
-
   public boolean isValid() {
     return id != null;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public String getId() {
-    return id.toString();
-  }
-
-  public String getShortId() {
-    return shortId;
   }
 
   public Project getProject() {

@@ -28,12 +28,17 @@ abstract public class Data {
     return id.toString().replaceFirst("-.*$", "");
   }
 
+  public static String getShortName(String name) {
+    String replacedName = name.replaceAll("[^0-9a-zA-Z_\\-]", "");
+    return replacedName.substring(0, (replacedName.length() < 8 ? replacedName.length() -1 : 8));
+  }
+
   public static String getUnifiedName(UUID id, String name) {
-    return name + '_' + getShortId(id);
+    return getShortName(name) + '_' + getShortId(id);
   }
 
   public String getUnifiedName() {
-    return name + '_' + getShortId(id);
+    return getShortName() + '_' + getShortId();
   }
 
   public boolean isValid() {
@@ -50,6 +55,10 @@ abstract public class Data {
 
   public String getShortId() {
     return shortId;
+  }
+
+  public String getShortName() {
+    return getShortName(name);
   }
 
   protected String getFromDB(String key) {

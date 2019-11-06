@@ -83,6 +83,19 @@ public class Lte {
     );
   }
 
+  public static String formSelectGroup(String name, String label, ArrayList<String> optionList, ArrayList<FormError> errors) {
+    String id = "input" + name;
+    String options = "";
+    for (String option : optionList) {
+      options += element("option", null, option);
+    }
+    return div("form-group",
+      (label != null ? element("label", new Attributes(value("for", id)), label) : null),
+      element("select", new Attributes(value("id", id)), options),
+      Html.javascript("$(document).ready(function(){$('#" + id + "').select2()});")
+    );
+  }
+
   public static String formSubmitButton(String color, String value) {
     return element("button",
       new Attributes(value("type", "submit"), value("class", "btn btn-" + color)),
@@ -96,6 +109,17 @@ public class Lte {
         value("value", value),
         value("class", "form-control"),
         value("disabled", null)
+      )
+    );
+  }
+
+  public static String readonlyTextInput(String value) {
+    return div("form-group",
+      attribute("input",
+        value("type", "text"),
+        value("value", value),
+        value("class", "form-control"),
+        value("readonly", null)
       )
     );
   }

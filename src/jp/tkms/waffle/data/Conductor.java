@@ -20,7 +20,9 @@ public class Conductor extends ProjectData {
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
 
-  enum ConductorType {Test}
+  enum ConductorType {Test, Ruby}
+
+  public static ArrayList<String> conductorTypeNameList = new ArrayList<>(Arrays.asList(ConductorType.Ruby.name()));
 
   private String scriptFileName = null;
 
@@ -106,7 +108,7 @@ public class Conductor extends ProjectData {
 
   public Path getLocation() {
     Path path = Paths.get(project.getLocation().toAbsolutePath() + File.separator +
-      TABLE_NAME + File.separator + name + '_' + shortId
+      TABLE_NAME + File.separator + getUnifiedName()
     );
     return path;
   }

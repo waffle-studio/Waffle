@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ProjectComponent extends AbstractComponent {
+  public enum Mode {Default, NotFound, EditConstModel, AddConductor}
   private Mode mode;
 
   ;
@@ -28,6 +29,7 @@ public class ProjectComponent extends AbstractComponent {
   static public void register() {
     Spark.get(getUrl(null), new ProjectComponent());
     Spark.get(getUrl(null, "edit_const_model"), new ProjectComponent());
+    Spark.get(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
 
     SimulatorsComponent.register();
     SimulatorComponent.register();
@@ -52,10 +54,18 @@ public class ProjectComponent extends AbstractComponent {
       mode = Mode.NotFound;
     }
 
-    if (mode == Mode.NotFound) {
-      renderProjectNotFound();
-    } else {
-      renderProject();
+    switch (mode) {
+      case EditConstModel:
+      case Default:
+        renderProject();
+        break;
+      case AddConductor:
+        ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+        renderConductorAddForm(errors);
+        break;
+      case NotFound:
+        renderProjectNotFound();
+        break;
     }
   }
 
@@ -83,6 +93,45 @@ public class ProjectComponent extends AbstractComponent {
     }.render(this);
   }
 
+  private void renderConductorAddForm(ArrayList<Lte.FormError> errors) {
+    new MainTemplate() {
+      @Override
+      protected String pageTitle() {
+        return "Conductors";
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return "Add";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          Html.a(ProjectsComponent.getUrl(), "Projects"),
+          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(SimulatorsComponent.getUrl(project), "Conductors"),
+          "Add"));
+      }
+
+      @Override
+      protected String pageContent() {
+        return
+          Html.form(getUrl(project, "add"), Html.Method.Post,
+            Lte.card("New Conductor", null,
+              Html.div(null,
+                Html.inputHidden("cmd", "add"),
+                Lte.formInputGroup("text", "name", null, "Name", errors),
+                Lte.formSelectGroup("type", "type", Conductor.conductorTypeNameList, errors)
+              ),
+              Lte.formSubmitButton("success", "Add"),
+              "card-warning", null
+            )
+          );
+      }
+    }.render(this);
+  }
+
   private void renderProject() {
     new MainTemplate() {
       @Override
@@ -105,7 +154,10 @@ public class ProjectComponent extends AbstractComponent {
             Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );
 
-        content += Lte.card(Html.faIcon("user-tie") + "Conductors", null,
+        content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+          Html.a(getUrl(project, "add_conductor"),
+            null, null, Html.faIcon("plus-square")
+          ),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -147,6 +199,4 @@ public class ProjectComponent extends AbstractComponent {
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
   }
-
-  public enum Mode {Default, NotFound, EditConstModel}
 }
