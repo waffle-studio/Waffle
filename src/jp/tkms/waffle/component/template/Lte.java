@@ -91,7 +91,8 @@ public class Lte {
     }
     return div("form-group",
       (label != null ? element("label", new Attributes(value("for", id)), label) : null),
-      element("select", new Attributes(value("id", id)), options),
+      element("select", new Attributes(value("id", id),value("style", "height:1.5em;"),
+        value("class", "form-control select2")), options),
       Html.javascript("$(document).ready(function(){$('#" + id + "').select2()});")
     );
   }
