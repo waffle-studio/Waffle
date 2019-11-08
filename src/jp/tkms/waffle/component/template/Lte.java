@@ -91,6 +91,18 @@ public class Lte {
     }
     return div("form-group",
       (label != null ? element("label", new Attributes(value("for", id)), label) : null),
+      element("select", new Attributes(value("name", name), value("id", id), value("class", "form-control")), options)
+    );
+  }
+
+  public static String formSelect2Group(String name, String label, ArrayList<String> optionList, ArrayList<FormError> errors) {
+    String id = "input" + name;
+    String options = "";
+    for (String option : optionList) {
+      options += element("option", null, option);
+    }
+    return div("form-group",
+      (label != null ? element("label", new Attributes(value("for", id)), label) : null),
       element("select", new Attributes(value("id", id),value("style", "height:1.5em;"),
         value("class", "form-control select2")), options),
       Html.javascript("$(document).ready(function(){$('#" + id + "').select2()});")
