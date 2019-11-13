@@ -5,7 +5,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Run;
-import jp.tkms.waffle.data.Trials;
+import jp.tkms.waffle.data.Trial;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ public class TrialsComponent extends AbstractComponent {
 
   ;
   private Project project;
-  private Trials trials;
+  private Trial trial;
   public TrialsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -34,12 +34,12 @@ public class TrialsComponent extends AbstractComponent {
     return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/ROOT");
   }
 
-  public static String getUrl(Project project, Trials trials) {
-    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + trials.getId());
+  public static String getUrl(Project project, Trial trial) {
+    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + trial.getId());
   }
 
-  public static String getUrl(Project project, Trials trials, String mode) {
-    return getUrl(project, trials) + "/" + mode;
+  public static String getUrl(Project project, Trial trial, String mode) {
+    return getUrl(project, trial) + "/" + mode;
   }
 
   @Override
@@ -47,10 +47,10 @@ public class TrialsComponent extends AbstractComponent {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
-    if (requestedId.equals(Trials.ROOT_NAME)){
-      trials = Trials.getRootInstance(project);
+    if (requestedId.equals(Trial.ROOT_NAME)){
+      trial = Trial.getRootInstance(project);
     } else {
-      trials = Trials.getInstance(project, requestedId);
+      trial = Trial.getInstance(project, requestedId);
     }
 
     renderTrialsList();
@@ -98,10 +98,10 @@ public class TrialsComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Trials trials : Trials.getList(project, trials)) {
+              for (Trial trial : Trial.getList(project, TrialsComponent.this.trial)) {
                 list.add(new Lte.TableRow(
-                  Html.a(getUrl(project, trials), null, null, trials.getShortId()),
-                  trials.getName())
+                  Html.a(getUrl(project, trial), null, null, trial.getShortId()),
+                  trial.getName())
                 );
               }
               return list;
@@ -125,7 +125,7 @@ public class TrialsComponent extends AbstractComponent {
               @Override
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
-                for (Run run : Run.getList(project, trials)) {
+                for (Run run : Run.getList(project, trial)) {
                   list.add(new Lte.TableRow(
                     run.getShortId(),
                     run.getConductor().getName(),

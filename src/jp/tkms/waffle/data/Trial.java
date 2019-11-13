@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class Trials extends ProjectData {
+public class Trial extends ProjectData {
   protected static final String TABLE_NAME = "trials";
   public static final String ROOT_NAME = "ROOT";
   private static final String KEY_PARENT = "parent";
@@ -21,7 +21,7 @@ public class Trials extends ProjectData {
 
   private Project project;
 
-  public Trials(Project project, UUID id, String name) {
+  public Trial(Project project, UUID id, String name) {
     super(project, id, name);
   }
 
@@ -30,8 +30,8 @@ public class Trials extends ProjectData {
     return TABLE_NAME;
   }
 
-  public static Trials getInstance(Project project, String id) {
-    final Trials[] trials = {null};
+  public static Trial getInstance(Project project, String id) {
+    final Trial[] trials = {null};
 
     handleWorkDB(project, workUpdater, new Handler() {
       @Override
@@ -40,7 +40,7 @@ public class Trials extends ProjectData {
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          trials[0] = new Trials(
+          trials[0] = new Trial(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
@@ -52,8 +52,8 @@ public class Trials extends ProjectData {
     return trials[0];
   }
 
-  public static Trials getRootInstance(Project project) {
-    final Trials[] trials = {null};
+  public static Trial getRootInstance(Project project) {
+    final Trial[] trials = {null};
 
     handleWorkDB(project, workUpdater, new Handler() {
       @Override
@@ -61,7 +61,7 @@ public class Trials extends ProjectData {
         ResultSet resultSet
           = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "';");
         while (resultSet.next()) {
-          trials[0] = new Trials(
+          trials[0] = new Trial(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
@@ -73,8 +73,8 @@ public class Trials extends ProjectData {
     return trials[0];
   }
 
-  public static ArrayList<Trials> getList(Project project, Trials parent) {
-    ArrayList<Trials> list = new ArrayList<>();
+  public static ArrayList<Trial> getList(Project project, Trial parent) {
+    ArrayList<Trial> list = new ArrayList<>();
 
     handleWorkDB(project, workUpdater, new Handler() {
       @Override
@@ -84,7 +84,7 @@ public class Trials extends ProjectData {
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          list.add(new Trials(
+          list.add(new Trial(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name"))
@@ -96,22 +96,22 @@ public class Trials extends ProjectData {
     return list;
   }
 
-  public static Trials create(Project project, Trials parent, String name) {
-    Trials trials = new Trials(project, UUID.randomUUID(), name);
+  public static Trial create(Project project, Trial parent, String name) {
+    Trial trial = new Trial(project, UUID.randomUUID(), name);
 
     handleWorkDB(project, workUpdater, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
           = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," + KEY_PARENT + ") values(?,?.?);");
-        statement.setString(1, trials.getId());
-        statement.setString(2, trials.getName());
+        statement.setString(1, trial.getId());
+        statement.setString(2, trial.getName());
         statement.setString(2, parent.getId());
         statement.execute();
       }
     });
 
-    return trials;
+    return trial;
   }
 
   public Path getLocation() {

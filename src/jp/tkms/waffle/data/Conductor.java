@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
+import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 
 import java.io.File;
@@ -20,11 +21,15 @@ public class Conductor extends ProjectData {
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
 
-  enum ConductorType {Test, Ruby}
-
-  public static ArrayList<String> conductorTypeNameList = new ArrayList<>(Arrays.asList(ConductorType.Ruby.name()));
-
+  private String conductorType = null;
   private String scriptFileName = null;
+
+  public static ArrayList<String> getConductorNameList() {
+    return new ArrayList<>(Arrays.asList(
+      RubyConductor.class.getCanonicalName(),
+      TestConductor.class.getCanonicalName()
+    ));
+  }
 
   public Conductor(Project project, UUID id, String name) {
     super(project, id, name);
@@ -77,7 +82,7 @@ public class Conductor extends ProjectData {
     return simulatorList;
   }
 
-  public static Conductor create(Project project, String name, ConductorType type, String scriptFileName) {
+  public static Conductor create(Project project, String name, Class<AbstractConductor> conductorClass, String scriptFileName) {
     Conductor simulator = new Conductor(project, UUID.randomUUID(), name);
 
     if (
@@ -90,7 +95,7 @@ public class Conductor extends ProjectData {
             + KEY_SCRIPT + ") values(?,?,?,?);");
           statement.setString(1, simulator.getId());
           statement.setString(2, simulator.getName());
-          statement.setString(3, type.name());
+          statement.setString(3, conductorClass.getCanonicalName());
           statement.setString(4, scriptFileName);
           statement.execute();
         }
@@ -120,16 +125,11 @@ public class Conductor extends ProjectData {
     return scriptFileName;
   }
 
-  public void start() {
-    AbstractConductor abstractConductor = null;
-    String type = getFromDB(KEY_CONDUCTOR_TYPE);
-    if (type.equals(ConductorType.Test.name())) {
-      abstractConductor = new TestConductor();
+  public String getConductorType() {
+    if (conductorType == null) {
+      conductorType = getFromDB(KEY_CONDUCTOR_TYPE);
     }
-
-    if (abstractConductor != null) {
-      abstractConductor.run(this);
-    }
+    return conductorType;
   }
 
   @Override

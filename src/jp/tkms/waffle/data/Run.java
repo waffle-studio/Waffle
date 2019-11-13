@@ -5,7 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
-public class Run extends ProjectData{
+public class Run extends AbstractRun {
   protected static final String TABLE_NAME = "run";
   private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_HOST = "host";
@@ -39,9 +39,9 @@ public class Run extends ProjectData{
   private State state;
   private Integer exitStatus;
 
-  private Run(Conductor conductor, Trials trials, Simulator simulator, Host host) {
+  private Run(Conductor conductor, Trial trial, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
-      conductor.getId(), trials.getId(), simulator.getId(), host.getId(), State.Created);
+      conductor.getId(), trial.getId(), simulator.getId(), host.getId(), State.Created);
   }
 
   private Run(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
@@ -94,8 +94,8 @@ public class Run extends ProjectData{
     return Host.getInstance(host);
   }
 
-  public Trials getTrials() {
-    return Trials.getInstance(project, trials);
+  public Trial getTrials() {
+    return Trial.getInstance(project, trials);
   }
 
   public Simulator getSimulator() {
@@ -106,7 +106,7 @@ public class Run extends ProjectData{
     return state;
   }
 
-  public static ArrayList<Run> getList(Project project, Trials parent) {
+  public static ArrayList<Run> getList(Project project, Trial parent) {
     ArrayList<Run> list = new ArrayList<>();
 
     handleWorkDB(project, workUpdater, new Handler() {
@@ -139,8 +139,8 @@ public class Run extends ProjectData{
     return list;
   }
 
-  public static Run create(Conductor conductor, Trials trials, Simulator simulator, Host host) {
-    Run run = new Run(conductor, trials, simulator, host);
+  public static Run create(Conductor conductor, Trial trial, Simulator simulator, Host host) {
+    Run run = new Run(conductor, trial, simulator, host);
     String conductorId = run.getConductor().getId();
     String trialsId = run.getTrials().getId();
     String simulatorId = run.getSimulator().getId();

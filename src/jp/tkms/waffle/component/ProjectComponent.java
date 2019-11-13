@@ -117,12 +117,12 @@ public class ProjectComponent extends AbstractComponent {
       @Override
       protected String pageContent() {
         return
-          Html.form(getUrl(project, "add"), Html.Method.Post,
+          Html.form(getUrl(project, "add_conductor"), Html.Method.Post,
             Lte.card("New Conductor", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", errors),
-                Lte.formSelectGroup("type", "type", Conductor.conductorTypeNameList, errors)
+                Lte.formSelectGroup("type", "type", Conductor.getConductorNameList(), errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null

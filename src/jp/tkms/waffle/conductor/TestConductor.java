@@ -4,10 +4,10 @@ import jp.tkms.waffle.data.*;
 
 public class TestConductor extends AbstractConductor {
   @Override
-  public void process(Conductor conductor) {
+  public void mainProcess(Conductor conductor) {
     for ( Simulator simulator : Simulator.getList(conductor.getProject()) ) {
-      Trials trials = Trials.getRootInstance(conductor.getProject());
-      Run run =  Run.create(conductor, trials, simulator, Host.getList().get(0));
+      Trial trial = Trial.getRootInstance(conductor.getProject());
+      Run run =  Run.create(conductor, trial, simulator, Host.getList().get(0));
       run.start();
     }
   }
