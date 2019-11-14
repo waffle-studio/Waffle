@@ -30,7 +30,7 @@ abstract public class Data {
 
   public static String getShortName(String name) {
     String replacedName = name.replaceAll("[^0-9a-zA-Z_\\-]", "");
-    return replacedName.substring(0, (replacedName.length() < 8 ? replacedName.length() -1 : 8));
+    return replacedName.substring(0, (replacedName.length() < 8 ? replacedName.length() : 8));
   }
 
   public static String getUnifiedName(UUID id, String name) {

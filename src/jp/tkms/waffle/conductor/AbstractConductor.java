@@ -8,8 +8,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 abstract public class AbstractConductor {
-  abstract public void mainProcess(ConductorRun run);
-  abstract public void eventHandler(ConductorRun run);
+  abstract protected void mainProcess(ConductorRun run);
+  abstract protected void eventHandler(ConductorRun run);
+  abstract protected void postProcess(ConductorRun run);
+  abstract public String defaultScriptName();
+  abstract public void prepareConductor(Conductor conductor);
 
   public AbstractConductor() {
   }
@@ -19,28 +22,33 @@ abstract public class AbstractConductor {
   }
 
   public void eventHandle(ConductorRun run) {
-
+    eventHandler(run);
+    if (! run.getTrial().isRunning()) {
+      run.remove();
+    }
   }
 
   public static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
 
   public static AbstractConductor getInstance(ConductorRun run) {
+    return getInstance(run.getConductor().getConductorType());
+  }
+
+  public static AbstractConductor getInstance(String className) {
     AbstractConductor conductor = null;
 
-    if (! instanceMap.containsKey(run.getConductor().getConductorType())) {
+    if (! instanceMap.containsKey(className)) {
       Class<AbstractConductor> clazz = null;
       try {
-        clazz = (Class<AbstractConductor>) Class.forName(run.getConductor().getConductorType());
+        clazz = (Class<AbstractConductor>) Class.forName(className);
       } catch (ClassNotFoundException e) {
         e.printStackTrace();
       }
 
-      Class<?>[] types = {ConductorRun.class};
       Constructor<AbstractConductor> constructor;
       try {
-        constructor = clazz.getConstructor(types);
-      } catch (SecurityException |
-        NoSuchMethodException e) {
+        constructor = clazz.getConstructor();
+      } catch (SecurityException | NoSuchMethodException e) {
         throw new RuntimeException(e);
       }
 
@@ -49,8 +57,10 @@ abstract public class AbstractConductor {
       } catch (IllegalArgumentException | ReflectiveOperationException e) {
         e.printStackTrace();
       }
-    } else {
 
+      instanceMap.put(className, conductor);
+    } else {
+      conductor = instanceMap.get(className);
     }
 
     return conductor;

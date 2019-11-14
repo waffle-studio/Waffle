@@ -1,16 +1,22 @@
 package jp.tkms.waffle.conductor;
 
-import jp.tkms.waffle.data.Conductor;
+import jp.tkms.waffle.data.*;
+
+import java.util.ArrayList;
 
 public abstract class CycleConductor extends AbstractConductor {
-  abstract void preProcess();
-  abstract void cycleProcess();
-  abstract void postProcess();
+  abstract protected void preProcess(ConductorRun run);
+  abstract protected void cycleProcess(ConductorRun run);
 
   @Override
-  public void mainProcess(Conductor conductor) {
-    preProcess();
+  protected void mainProcess(ConductorRun run) {
+    preProcess(run);
+    cycleProcess(run);
   }
 
+  @Override
+  protected void eventHandler(ConductorRun run) {
+    cycleProcess(run);
+  }
 
 }

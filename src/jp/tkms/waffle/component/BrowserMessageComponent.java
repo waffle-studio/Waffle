@@ -11,8 +11,8 @@ public class BrowserMessageComponent extends AbstractComponent {
     Spark.get(getUrl(null), new BrowserMessageComponent());
   }
 
-  public static String getUrl(String session) {
-    return "/bm/" + (session == null ? ":bid": session);
+  public static String getUrl(String id) {
+    return "/bm" + (id == null ? "/:bid" : "/" + id);
   }
 
   @Override
@@ -22,6 +22,7 @@ public class BrowserMessageComponent extends AbstractComponent {
     response.body(result);
 
     String browserId = request.params(KEY_BROWSER_ID);
+    System.out.println(browserId);
     Browser.update(browserId);
 
     for (BrowserMessage message : BrowserMessage.getList(browserId)) {

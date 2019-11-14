@@ -3,8 +3,10 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.Trial;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public class ProjectComponent extends AbstractComponent {
     Spark.get(getUrl(null), new ProjectComponent());
     Spark.get(getUrl(null, "edit_const_model"), new ProjectComponent());
     Spark.get(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
+    Spark.post(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
 
     SimulatorsComponent.register();
     SimulatorComponent.register();
@@ -60,8 +63,15 @@ public class ProjectComponent extends AbstractComponent {
         renderProject();
         break;
       case AddConductor:
-        ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
-        renderConductorAddForm(errors);
+        if (request.requestMethod().toLowerCase().equals("post")) {
+          ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+          if (errors.isEmpty()) {
+            addConductor();
+          } else {
+            renderConductorAddForm(errors);
+          }
+        }
+        renderConductorAddForm(new ArrayList<>());
         break;
       case NotFound:
         renderProjectNotFound();
@@ -177,7 +187,7 @@ public class ProjectComponent extends AbstractComponent {
                       null, null, conductor.getShortId())),
                   new Lte.TableValue("", conductor.getName()),
                   new Lte.TableValue("text-align:right;",
-                    Html.a(ConductorComponent.getUrl(conductor, "run"),
+                    Html.a(ConductorComponent.getUrl(conductor, "run", Trial.getRootInstance(project)),
                       Html.span("right badge badge-secondary", null, "run")
                     )
                   )
@@ -198,5 +208,13 @@ public class ProjectComponent extends AbstractComponent {
 
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
+  }
+
+  private void addConductor() {
+    String name = request.queryParams("name");
+    String type = request.queryParams("type");
+    AbstractConductor abstractConductor= AbstractConductor.getInstance(type);
+    Conductor.create(project, name, abstractConductor, abstractConductor.defaultScriptName());
+    response.redirect(ProjectComponent.getUrl(project));
   }
 }

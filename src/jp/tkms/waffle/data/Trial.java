@@ -114,11 +114,35 @@ public class Trial extends ProjectData {
     return trial;
   }
 
+  public ArrayList<Trial> getChildTrialList() {
+    return getList(getProject(), this);
+  }
+
+  public ArrayList<Run> getChildRunList() {
+    return Run.getList(getProject(), this);
+  }
+
   public Path getLocation() {
     Path path = Paths.get(project.getLocation().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + name + '_' + shortId
     );
     return path;
+  }
+
+  public boolean isRunning() {
+    for (Run run : getChildRunList()) {
+      if (run.isRunning()) {
+        return true;
+      }
+    }
+
+    for (Trial trial : getChildTrialList()) {
+      if (trial.isRunning()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @Override

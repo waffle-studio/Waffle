@@ -3,9 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.*;
 import spark.Spark;
 
 import java.io.File;
@@ -28,7 +26,7 @@ public class ConductorComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ConductorComponent());
-    Spark.get(getUrl(null, "run"), new ConductorComponent(Mode.Run));
+    Spark.get(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -39,8 +37,9 @@ public class ConductorComponent extends AbstractComponent {
       + (conductor == null ? ":project/:id" : conductor.getProject().getId() + '/' + conductor.getId());
   }
 
-  public static String getUrl(Conductor conductor, String mode) {
-    return getUrl(conductor) + '/' + mode;
+  public static String getUrl(Conductor conductor, String mode, Trial trial) {
+    return getUrl(conductor) + '/' + mode + '/'
+      + (trial == null ? ":trial" : trial.getId());
   }
 
   @Override
@@ -52,7 +51,8 @@ public class ConductorComponent extends AbstractComponent {
     conductor = Conductor.getInstance(project, request.params("id"));
 
     if (mode == Mode.Run) {
-      conductor.start();
+      Trial trial = Trial.getInstance(project, request.params("trial"));
+      ConductorRun.create(conductor.getProject(), trial, conductor).start();
       response.redirect(JobsComponent.getUrl());
       return;
     }

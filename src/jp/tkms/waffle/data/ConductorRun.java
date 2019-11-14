@@ -53,6 +53,28 @@ public class ConductorRun extends AbstractRun {
     return conductorRun[0];
   }
 
+  public static ArrayList<ConductorRun> getList(Trial trial) {
+    Project project = trial.getProject();
+    ArrayList<ConductorRun> list = new ArrayList<>();
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_TRIAL + "=?;");
+        statement.setString(1, trial.getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          list.add(new ConductorRun(
+            project,
+            UUID.fromString(resultSet.getString("id"))
+          ));
+        }
+      }
+    });
+
+    return list;
+  }
+
   public static ArrayList<ConductorRun> getList(Project project) {
     ArrayList<ConductorRun> list = new ArrayList<>();
 
@@ -64,7 +86,7 @@ public class ConductorRun extends AbstractRun {
           list.add(new ConductorRun(
             project,
             UUID.fromString(resultSet.getString("id"))
-          );
+          ));
         }
       }
     });
@@ -92,6 +114,18 @@ public class ConductorRun extends AbstractRun {
     return conductorRun;
   }
 
+  public void remove() {
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
+        statement.setString(1, getId());
+        statement.execute();
+      }
+    });
+  }
+
   public Trial getTrial() {
     if (trial == null) {
       trial = Trial.getInstance(getProject(), getFromDB(KEY_TRIAL));
@@ -107,15 +141,8 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void start() {
-    AbstractConductor abstractConductor = null;
-    String type = getFromDB(KEY_CONDUCTOR_TYPE);
-    if (type.equals(ConductorType.Test.name())) {
-      abstractConductor = new TestConductor();
-    }
-
-    if (abstractConductor != null) {
-      abstractConductor.start(this);
-    }
+    AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
+    abstractConductor.start(this);
   }
 
   @Override
@@ -141,7 +168,7 @@ public class ConductorRun extends AbstractRun {
           @Override
           void task(Database db) throws SQLException {
             db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," +
+              "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + "," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }

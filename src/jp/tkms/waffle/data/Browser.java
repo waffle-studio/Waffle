@@ -11,13 +11,18 @@ public class Browser extends Data {
   static final String TABLE_NAME = "browser";
   private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
 
-  public Browser(UUID id) {
-    super(id, "");
+  public Browser(String id) {
+    super(UUID.randomUUID(), id);
   }
 
   @Override
   protected String getTableName() {
     return TABLE_NAME;
+  }
+
+  @Override
+  public String getId() {
+    return name;
   }
 
   public static Browser getInstance(String id) {
@@ -32,7 +37,7 @@ public class Browser extends Data {
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           browser[0] = new Browser(
-            UUID.fromString(resultSet.getString("id"))
+            resultSet.getString("id")
           );
         }
       }
@@ -41,6 +46,7 @@ public class Browser extends Data {
     return browser[0];
   }
 
+  /*
   public static String getNewId() {
     Browser browser = new Browser(UUID.randomUUID());
 
@@ -56,6 +62,7 @@ public class Browser extends Data {
 
     return browser.getId();
   }
+  */
 
   public static ArrayList<Browser> getList() {
     ArrayList<Browser> list = new ArrayList<>();
@@ -66,7 +73,7 @@ public class Browser extends Data {
         ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
         while (resultSet.next()) {
           list.add(new Browser(
-            UUID.fromString(resultSet.getString("id"))
+            resultSet.getString("id")
           ));
         }
       }

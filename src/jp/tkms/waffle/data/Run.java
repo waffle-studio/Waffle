@@ -214,6 +214,10 @@ public class Run extends AbstractRun {
     return exitStatus;
   }
 
+  public boolean isRunning() {
+    return !(state.equals(State.Finished) || state.equals(State.Failed));
+  }
+
   public void start() {
     Job.addRun(this);
   }

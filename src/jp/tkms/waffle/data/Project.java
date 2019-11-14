@@ -1,6 +1,8 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.conductor.AbstractConductor;
+import jp.tkms.waffle.conductor.TestConductor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -130,7 +132,8 @@ public class Project extends Data {
         }, new Handler() {
           @Override
           void handling(Database db) throws SQLException {
-            Conductor.create(project, "Trial Submitter", Conductor.ConductorType.Test, "");
+            Conductor.create(project, "Trial Submitter",
+              AbstractConductor.getInstance(TestConductor.class.getCanonicalName()), "");
           }
         });
       } catch (IOException e) {

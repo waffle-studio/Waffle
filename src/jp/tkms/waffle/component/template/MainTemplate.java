@@ -24,6 +24,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/ionicons.min.css"),
           link("stylesheet", "/css/gfonts.css"),
           link("stylesheet", "/css/select2.min.css"),
+          link("stylesheet", "/css/toastr.min.css"),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
         body("hold-transition sidebar-mini",
@@ -128,10 +129,14 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),
           element("script", new Attributes(value("src", "/js/adminlte.min.js"))),
           element("script", new Attributes(value("src", "/js/select2.min.js"))),
+          element("script", new Attributes(value("src", "/js/toastr.min.js"))),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
-            "var loadBrowserMessage = function() {" +
-              "simpleget('" + BrowserMessageComponent.getUrl(Browser.getNewId()) + "', function(res) {try{eval(res)}catch(e){}setTimeout(loadBrowserMessage, 2000);})" +
+            "var bid=sessionStorage.getItem('bid');" +
+              "if (bid == null) {bid = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).substring(0,32);" +
+              "sessionStorage.setItem('bid',bid);}"+
+              "var loadBrowserMessage = function() {" +
+              "simpleget('" + BrowserMessageComponent.getUrl("") + "' + bid, function(res) {try{eval(res)}catch(e){}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
               "setTimeout(loadBrowserMessage, 2000);"
             )

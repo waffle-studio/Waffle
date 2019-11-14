@@ -82,8 +82,8 @@ public class Conductor extends ProjectData {
     return simulatorList;
   }
 
-  public static Conductor create(Project project, String name, Class<AbstractConductor> conductorClass, String scriptFileName) {
-    Conductor simulator = new Conductor(project, UUID.randomUUID(), name);
+  public static Conductor create(Project project, String name, AbstractConductor abstractConductor, String scriptFileName) {
+    Conductor conductor = new Conductor(project, UUID.randomUUID(), name);
 
     if (
       handleWorkDB(project, workUpdater, new Handler() {
@@ -93,22 +93,24 @@ public class Conductor extends ProjectData {
             = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," +
             KEY_CONDUCTOR_TYPE + ","
             + KEY_SCRIPT + ") values(?,?,?,?);");
-          statement.setString(1, simulator.getId());
-          statement.setString(2, simulator.getName());
-          statement.setString(3, conductorClass.getCanonicalName());
+          statement.setString(1, conductor.getId());
+          statement.setString(2, conductor.getName());
+          statement.setString(3, abstractConductor.getClass().getCanonicalName());
           statement.setString(4, scriptFileName);
           statement.execute();
         }
       })
     ) {
       try {
-        Files.createDirectories(simulator.getLocation());
+        Files.createDirectories(conductor.getLocation());
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
 
-    return simulator;
+    abstractConductor.prepareConductor(conductor);
+
+    return conductor;
   }
 
   public Path getLocation() {
@@ -123,6 +125,10 @@ public class Conductor extends ProjectData {
       scriptFileName = getFromDB(KEY_SCRIPT);
     }
     return scriptFileName;
+  }
+
+  public Path getScriptPath() {
+    return getLocation().resolve(getScriptFileName());
   }
 
   public String getConductorType() {
