@@ -22,7 +22,6 @@ public class BrowserMessageComponent extends AbstractComponent {
     response.body(result);
 
     String browserId = request.params(KEY_BROWSER_ID);
-    System.out.println(browserId);
     Browser.update(browserId);
 
     for (BrowserMessage message : BrowserMessage.getList(browserId)) {

@@ -103,10 +103,10 @@ public class Trial extends ProjectData {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
-          = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," + KEY_PARENT + ") values(?,?.?);");
+          = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," + KEY_PARENT + ") values(?,?,?);");
         statement.setString(1, trial.getId());
         statement.setString(2, trial.getName());
-        statement.setString(2, parent.getId());
+        statement.setString(3, parent.getId());
         statement.execute();
       }
     });

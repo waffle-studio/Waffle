@@ -2,6 +2,7 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public abstract class CycleConductor extends AbstractConductor {
@@ -10,13 +11,17 @@ public abstract class CycleConductor extends AbstractConductor {
 
   @Override
   protected void mainProcess(ConductorRun run) {
+    Trial trial = Trial.create(run.getProject(), run.getTrial(), LocalDateTime.now().toString());
+    run.setTrial(trial);
     preProcess(run);
     cycleProcess(run);
   }
 
   @Override
   protected void eventHandler(ConductorRun run) {
-    cycleProcess(run);
+    if (! run.getTrial().isRunning()) {
+      cycleProcess(run);
+    }
   }
 
 }

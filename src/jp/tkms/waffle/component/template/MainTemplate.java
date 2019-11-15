@@ -133,10 +133,10 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
             "var bid=sessionStorage.getItem('bid');" +
-              "if (bid == null) {bid = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).substring(0,32);" +
+              "if (bid == null) {bid = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/[^a-zA-Z0-9]/g,'').substring(0,32);" +
               "sessionStorage.setItem('bid',bid);}"+
               "var loadBrowserMessage = function() {" +
-              "simpleget('" + BrowserMessageComponent.getUrl("") + "' + bid, function(res) {try{eval(res)}catch(e){}setTimeout(loadBrowserMessage, 2000);})" +
+              "simpleget('" + BrowserMessageComponent.getUrl("") + "' + bid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
               "setTimeout(loadBrowserMessage, 2000);"
             )

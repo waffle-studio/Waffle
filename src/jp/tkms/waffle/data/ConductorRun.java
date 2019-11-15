@@ -126,6 +126,24 @@ public class ConductorRun extends AbstractRun {
     });
   }
 
+  public void setTrial(Trial trial) {
+    String trialId = trial.getId();
+    if (
+      handleWorkDB(project, workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("update " + getTableName() + " set " + KEY_TRIAL + "=?" + " where id=?;");
+          statement.setString(1, trialId);
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      })
+    ) {
+      this.trial = trial;
+    }
+  }
+
   public Trial getTrial() {
     if (trial == null) {
       trial = Trial.getInstance(getProject(), getFromDB(KEY_TRIAL));

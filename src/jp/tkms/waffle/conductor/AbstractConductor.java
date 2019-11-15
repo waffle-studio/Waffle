@@ -18,12 +18,20 @@ abstract public class AbstractConductor {
   }
 
   public void start(ConductorRun run) {
-    mainProcess(run);
+    (new Thread(){
+      @Override
+      public void run() {
+        super.run();
+        mainProcess(run);
+        return;
+      }
+    }).start();
   }
 
   public void eventHandle(ConductorRun run) {
     eventHandler(run);
     if (! run.getTrial().isRunning()) {
+      postProcess(run);
       run.remove();
     }
   }
