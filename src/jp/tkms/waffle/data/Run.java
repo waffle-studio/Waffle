@@ -16,7 +16,7 @@ public class Run extends AbstractRun {
 
   private static Map<Integer, State> stateMap = new HashMap<>();
   public enum State {
-    Created(1), Submitted(2), Running(3), Finished(4), Failed(5);
+    Created(0), Queued(1), Submitted(2), Running(3), Finished(4), Failed(5);
 
     private final int id;
 

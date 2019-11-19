@@ -51,6 +51,28 @@ public class Simulator extends ProjectData {
     return simulator[0];
   }
 
+  public static Simulator getInstanceByName(Project project, String name) {
+    final Simulator[] simulator = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          simulator[0] = new Simulator(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    return simulator[0];
+  }
+
   public static ArrayList<Simulator> getList(Project project) {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
 

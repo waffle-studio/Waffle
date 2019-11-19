@@ -17,7 +17,10 @@ public class RubyConductor extends CycleConductor {
     try {
       container.runScriptlet(getInitScript());
       container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
-      container.runScriptlet("preProcess(Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$default_project = Java::jp.tkms.waffle.data.Project.getInstance(\"" + run.getProject().getId() + "\")");
+      container.runScriptlet("$default_conductor = Java::jp.tkms.waffle.data.Conductor.getInstance($default_project, \"" + run.getConductor().getId() + "\")");
+      container.runScriptlet("$registry = Registry.new()");
+      container.runScriptlet("preProcess(Trial.new($default_project.id,\"" + run.getTrial().getId() + "\"))");
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }

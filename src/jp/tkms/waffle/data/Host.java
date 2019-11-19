@@ -59,6 +59,27 @@ public class Host extends Data {
     return host[0];
   }
 
+  public static Host getInstanceByName(String name) {
+    final Host[] host = {null};
+
+    handleMainDB(mainUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          host[0] = new Host(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    return host[0];
+  }
+
   public static ArrayList<Host> getList() {
     ArrayList<Host> list = new ArrayList<>();
 

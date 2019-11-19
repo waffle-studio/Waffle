@@ -113,6 +113,8 @@ public class JobsComponent extends AbstractComponent {
     switch (run.getState()) {
       case Created:
         return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
+      case Queued:
+        return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
       case Submitted:
         return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
       case Running:
