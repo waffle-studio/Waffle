@@ -63,6 +63,6 @@ class Registry
     end
 
     def get_i(key, default)
-        return @registry.getInteger(key, default).to_i
+        return @registry.getInteger(key, default)
     end
 end

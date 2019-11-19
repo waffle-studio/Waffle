@@ -22,6 +22,7 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet("$registry = Registry.new()");
       container.runScriptlet("preProcess(Trial.new($default_project.id,\"" + run.getTrial().getId() + "\"))");
     } catch (EvalFailedException e) {
+      e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
   }
@@ -31,6 +32,9 @@ public class RubyConductor extends CycleConductor {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
+      container.runScriptlet("$default_project = Java::jp.tkms.waffle.data.Project.getInstance(\"" + run.getProject().getId() + "\")");
+      container.runScriptlet("$default_conductor = Java::jp.tkms.waffle.data.Conductor.getInstance($default_project, \"" + run.getConductor().getId() + "\")");
+      container.runScriptlet("$registry = Registry.new()");
       container.runScriptlet("cycleProcess(Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");
@@ -42,6 +46,9 @@ public class RubyConductor extends CycleConductor {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
+      container.runScriptlet("$default_project = Java::jp.tkms.waffle.data.Project.getInstance(\"" + run.getProject().getId() + "\")");
+      container.runScriptlet("$default_conductor = Java::jp.tkms.waffle.data.Conductor.getInstance($default_project, \"" + run.getConductor().getId() + "\")");
+      container.runScriptlet("$registry = Registry.new()");
       container.runScriptlet("postProcess(Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");

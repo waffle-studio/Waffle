@@ -25,7 +25,7 @@ public class Registry extends ProjectData {
   enum Type {String, Integer, Double, Boolean};
 
   public Registry(Project project) {
-    super(project, null, null);
+    super(project, UUID.randomUUID(), "");
   }
 
   @Override
@@ -89,7 +89,7 @@ public class Registry extends ProjectData {
         PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
         statement.setString(1, key);
         statement.execute();
-        statement = db.preparedStatement("inset into " + TABLE_NAME + "(name,value) values(?,?);");
+        statement = db.preparedStatement("insert into " + TABLE_NAME + "(name,value) values(?,?);");
         statement.setString(1, key);
         if (value instanceof Integer) {
           statement.setInt(2, (Integer)value);
@@ -117,27 +117,27 @@ public class Registry extends ProjectData {
     return getString(getProject(), key, defaultValue);
   }
 
-  public static Integer getInteger(Project project, String key, String defaultValue) {
+  public static Integer getInteger(Project project, String key, Integer defaultValue) {
     return (Integer) get(project, key, Type.Integer, defaultValue);
   }
 
-  public Integer getInteger(String key, String defaultValue) {
+  public Integer getInteger(String key, Integer defaultValue) {
     return getInteger(getProject(), key, defaultValue);
   }
 
-  public static Double getDouble(Project project, String key, String defaultValue) {
+  public static Double getDouble(Project project, String key, Double defaultValue) {
     return (Double) get(project, key, Type.Double, defaultValue);
   }
 
-  public Double getDouble(String key, String defaultValue) {
+  public Double getDouble(String key, Double defaultValue) {
     return getDouble(getProject(), key, defaultValue);
   }
 
-  public static Boolean getBoolean(Project project, String key, String defaultValue) {
+  public static Boolean getBoolean(Project project, String key, Boolean defaultValue) {
     return (Boolean) get(project, key, Type.Boolean, defaultValue);
   }
 
-  public Boolean getBoolean(String key, String defaultValue) {
+  public Boolean getBoolean(String key, Boolean defaultValue) {
     return getBoolean(getProject(), key, defaultValue);
   }
 
@@ -164,7 +164,7 @@ public class Registry extends ProjectData {
           @Override
           void task(Database db) throws SQLException {
             db.execute("create table " + TABLE_NAME + "(" +
-              KEY_NAME + "," + KEY_VALUE +
+              KEY_NAME + "," + KEY_VALUE + "," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }
