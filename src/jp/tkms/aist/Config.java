@@ -8,7 +8,8 @@ public class Config {
     public static final int MAX_RERUN = 10;
     public static final int DEFUALT_MAX_SSH_CHANNEL = 10;
 
-    public static final String GROUP_ID = "gaa50073";
+    //public static final String GROUP_ID = "gaa50073";
+    public static final String GROUP_ID = "gcb50329";
     public static final String DEFAULT_WALLTIME = "1:00:00";
 
     public static final String LOCAL_WORKBASE_DIR = "work";

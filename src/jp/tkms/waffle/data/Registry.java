@@ -89,18 +89,20 @@ public class Registry extends ProjectData {
         PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
         statement.setString(1, key);
         statement.execute();
-        statement = db.preparedStatement("insert into " + TABLE_NAME + "(name,value) values(?,?);");
-        statement.setString(1, key);
-        if (value instanceof Integer) {
-          statement.setInt(2, (Integer)value);
-        } else if (value instanceof Double || value instanceof Float) {
-          statement.setDouble(2, (Double)value);
-        } else if (value instanceof Boolean) {
-          statement.setBoolean(2, (Boolean)value);
-        } else {
-          statement.setString(2, value.toString());
+        if (value != null) {
+          statement = db.preparedStatement("insert into " + TABLE_NAME + "(name,value) values(?,?);");
+          statement.setString(1, key);
+          if (value instanceof Integer) {
+            statement.setInt(2, (Integer) value);
+          } else if (value instanceof Double || value instanceof Float) {
+            statement.setDouble(2, (Double) value);
+          } else if (value instanceof Boolean) {
+            statement.setBoolean(2, (Boolean) value);
+          } else {
+            statement.setString(2, value.toString());
+          }
+          statement.execute();
         }
-        statement.execute();
       }
     });
   }

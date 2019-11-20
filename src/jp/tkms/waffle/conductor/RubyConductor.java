@@ -20,7 +20,9 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet("$default_project = Java::jp.tkms.waffle.data.Project.getInstance(\"" + run.getProject().getId() + "\")");
       container.runScriptlet("$default_conductor = Java::jp.tkms.waffle.data.Conductor.getInstance($default_project, \"" + run.getConductor().getId() + "\")");
       container.runScriptlet("$registry = Registry.new()");
-      container.runScriptlet("preProcess(Trial.new($default_project.id,\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$store = Hash.new()");
+      container.runScriptlet("pre_process($registry, $store, Trial.new($default_project.id,\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$registry.set(\"store:" + run.getId() + "\", Marshal.dump($store))");
     } catch (EvalFailedException e) {
       e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");
@@ -35,7 +37,9 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet("$default_project = Java::jp.tkms.waffle.data.Project.getInstance(\"" + run.getProject().getId() + "\")");
       container.runScriptlet("$default_conductor = Java::jp.tkms.waffle.data.Conductor.getInstance($default_project, \"" + run.getConductor().getId() + "\")");
       container.runScriptlet("$registry = Registry.new()");
-      container.runScriptlet("cycleProcess(Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$store = Hash.new()");
+      container.runScriptlet("cycle_process($registry, $store, Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$registry.set(\"store:" + run.getId() + "\", Marshal.dump($store))");
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
@@ -49,7 +53,9 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet("$default_project = Java::jp.tkms.waffle.data.Project.getInstance(\"" + run.getProject().getId() + "\")");
       container.runScriptlet("$default_conductor = Java::jp.tkms.waffle.data.Conductor.getInstance($default_project, \"" + run.getConductor().getId() + "\")");
       container.runScriptlet("$registry = Registry.new()");
-      container.runScriptlet("postProcess(Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$store = Hash.new()");
+      container.runScriptlet("post_process($registry, $store, Trial.new(\"" + run.getProject().getId() + "\",\"" + run.getTrial().getId() + "\"))");
+      container.runScriptlet("$registry.set(\"store:" + run.getId() + "\", nil)");
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('" + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
@@ -66,13 +72,13 @@ public class RubyConductor extends CycleConductor {
       FileWriter filewriter = new FileWriter(conductor.getScriptPath().toFile());
 
       filewriter.write(
-        "def preProcess(trial)\n" +
+        "def pre_process(registry, store, trial)\n" +
           "end\n" +
           "\n" +
-          "def cycleProcess(trial)\n" +
+          "def cycle_process(registry, store, trial)\n" +
           "end\n" +
           "\n" +
-          "def postProcess(trial)\n" +
+          "def post_process(registry, store, trial)\n" +
           "end\n");
       filewriter.close();
 
