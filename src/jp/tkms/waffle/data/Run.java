@@ -87,19 +87,19 @@ public class Run extends AbstractRun {
   }
 
   public Conductor getConductor() {
-    return Conductor.getInstance(project, conductor);
+    return Conductor.getInstance(getProject(), conductor);
   }
 
   public Host getHost() {
     return Host.getInstance(host);
   }
 
-  public Trial getTrials() {
-    return Trial.getInstance(project, trials);
+  public Trial getTrial() {
+    return Trial.getInstance(getProject(), trials);
   }
 
   public Simulator getSimulator() {
-    return Simulator.getInstance(project, simulator);
+    return Simulator.getInstance(getProject(), simulator);
   }
 
   public State getState() {
@@ -142,7 +142,7 @@ public class Run extends AbstractRun {
   public static Run create(Conductor conductor, Trial trial, Simulator simulator, Host host) {
     Run run = new Run(conductor, trial, simulator, host);
     String conductorId = run.getConductor().getId();
-    String trialsId = run.getTrials().getId();
+    String trialsId = run.getTrial().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
 
@@ -173,7 +173,7 @@ public class Run extends AbstractRun {
   public void setState(State state) {
     if (!this.state.equals(state)) {
       if (
-        handleWorkDB(project, getWorkUpdater(), new Handler() {
+        handleWorkDB(getProject(), getWorkUpdater(), new Handler() {
           @Override
           void handling(Database db) throws SQLException {
             PreparedStatement statement
@@ -186,13 +186,19 @@ public class Run extends AbstractRun {
       ) {
         this.state = state;
         BrowserMessage.addMessage("runUpdated('" + getId() + "')");
+
+        if (state.equals(State.Finished) || state.equals(State.Failed)) {
+          for (ConductorRun run: ConductorRun.getList(getTrial())) {
+            run.update();
+          }
+        }
       }
     }
   }
 
   public void setExitStatus(int exitStatus) {
     if (
-      handleWorkDB(project, getWorkUpdater(), new Handler() {
+      handleWorkDB(getProject(), getWorkUpdater(), new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement

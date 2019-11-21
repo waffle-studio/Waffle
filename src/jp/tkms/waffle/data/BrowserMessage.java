@@ -70,7 +70,7 @@ public class BrowserMessage extends Data {
           + KEY_MESSAGE
           + ") select ?,id,? from " + Browser.TABLE_NAME + ";");
         statement.setString(1, UUID.randomUUID().toString());
-        statement.setString(2, message);
+        statement.setString(2, "try{" + message + "}catch(e){}");
         statement.execute();
       }
     });

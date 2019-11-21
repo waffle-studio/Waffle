@@ -115,7 +115,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void remove() {
-    handleWorkDB(project, workUpdater, new Handler() {
+    if (handleWorkDB(getProject(), workUpdater, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -123,13 +123,20 @@ public class ConductorRun extends AbstractRun {
         statement.setString(1, getId());
         statement.execute();
       }
-    });
+    })) {
+      Trial parent = getTrial().getParent();
+      if (parent != null) {
+        for (ConductorRun run : ConductorRun.getList(parent)) {
+          run.update();
+        }
+      }
+    }
   }
 
   public void setTrial(Trial trial) {
     String trialId = trial.getId();
     if (
-      handleWorkDB(project, workUpdater, new Handler() {
+      handleWorkDB(getProject(), workUpdater, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -161,6 +168,11 @@ public class ConductorRun extends AbstractRun {
   public void start() {
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     abstractConductor.start(this);
+  }
+
+  public void update() {
+    AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
+    abstractConductor.eventHandle(this);
   }
 
   @Override

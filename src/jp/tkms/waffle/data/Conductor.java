@@ -62,6 +62,28 @@ public class Conductor extends ProjectData {
     return conductor[0];
   }
 
+  public static Conductor getInstanceByName(Project project, String name) {
+    final Conductor[] conductor = {null};
+
+    handleWorkDB(project, workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          conductor[0] = new Conductor(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    return conductor[0];
+  }
+
   public static ArrayList<Conductor> getList(Project project) {
     ArrayList<Conductor> simulatorList = new ArrayList<>();
 
@@ -114,7 +136,7 @@ public class Conductor extends ProjectData {
   }
 
   public Path getLocation() {
-    Path path = Paths.get(project.getLocation().toAbsolutePath() + File.separator +
+    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + getUnifiedName()
     );
     return path;

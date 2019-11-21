@@ -123,7 +123,7 @@ public class Simulator extends ProjectData {
   }
 
   public Path getLocation() {
-    Path path = Paths.get(project.getLocation().toAbsolutePath() + File.separator +
+    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + name + '_' + shortId
     );
     return path;

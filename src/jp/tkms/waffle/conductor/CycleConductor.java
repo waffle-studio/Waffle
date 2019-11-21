@@ -3,7 +3,6 @@ package jp.tkms.waffle.conductor;
 import jp.tkms.waffle.data.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 public abstract class CycleConductor extends AbstractConductor {
   abstract protected void preProcess(ConductorRun run);

@@ -9,6 +9,14 @@ class Trial
   def id
     return @trial.getId()
   end
+
+  def name
+    return @trial.getName()
+  end
+
+  def name=(name)
+    @trial.setName(name)
+  end
 end
 
 class Simulator
@@ -43,9 +51,33 @@ class Host
     end
 end
 
+class Conductor
+    def self.list
+        return Java::jp.tkms.waffle.data.Conductor.getList()
+    end
+
+    def self.find(id)
+        return Java::jp.tkms.waffle.data.Conductor.getInstance(id)
+    end
+
+    def self.find_by_name(name)
+        return Java::jp.tkms.waffle.data.Conductor.getInstanceByName($default_project, name)
+    end
+end
+
 class Run
     def initialize(simulator, host)
         @run = Java::jp.tkms.waffle.data.Run.create($default_conductor, $default_trial, simulator, host)
+    end
+
+    def start
+        @run.start()
+    end
+end
+
+class ConductorRun
+    def initialize(conductor)
+        @run = Java::jp.tkms.waffle.data.ConductorRun.create($default_project, $default_trial, conductor)
     end
 
     def start
@@ -65,4 +97,22 @@ class Registry
     def get_i(key, default)
         return @registry.getInteger(key, default)
     end
+
+    def get_s(key, default)
+        return @registry.getString(key, default)
+    end
+end
+
+def alert_info(text)
+    puts "INFO: " + text
+    Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.gsub("[']", "\"") + "');")
+end
+
+
+$registry = Registry.new()
+$serialized_store = $registry.get_s("store:" + $conductor_run_id, "[]")
+if $serialized_store == "[]" then
+    $store = Hash.new()
+else
+    $store = Marshal.load($serialized_store)
 end

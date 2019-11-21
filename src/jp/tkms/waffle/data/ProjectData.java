@@ -10,7 +10,7 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 abstract public class ProjectData extends Data {
-  protected Project project;
+  private Project project;
 
   public ProjectData(Project project, UUID id, String name) {
     super(id, name);
@@ -45,6 +45,18 @@ abstract public class ProjectData extends Data {
     });
 
     return result[0];
+  }
+
+  public void setName(String name) {
+    handleWorkDB(project, getWorkUpdater(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_NAME + "=? where " + KEY_ID + "=?");
+        statement.setString(1, name);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
   }
 
   private static Database getWorkDB(Project project) {

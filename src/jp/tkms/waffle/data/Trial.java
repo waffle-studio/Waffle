@@ -15,12 +15,6 @@ public class Trial extends ProjectData {
   public static final String ROOT_NAME = "ROOT";
   private static final String KEY_PARENT = "parent";
 
-  private UUID id = null;
-  private String shortId;
-  private String name;
-
-  private Project project;
-
   public Trial(Project project, UUID id, String name) {
     super(project, id, name);
   }
@@ -114,6 +108,15 @@ public class Trial extends ProjectData {
     return trial;
   }
 
+  public Trial getParent() {
+    String parentId = getFromDB(KEY_PARENT);
+    return getInstance(getProject(), parentId);
+  }
+
+  public boolean isRoot() {
+    return getParent() == null;
+  }
+
   public ArrayList<Trial> getChildTrialList() {
     return getList(getProject(), this);
   }
@@ -123,7 +126,7 @@ public class Trial extends ProjectData {
   }
 
   public Path getLocation() {
-    Path path = Paths.get(project.getLocation().toAbsolutePath() + File.separator +
+    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + name + '_' + shortId
     );
     return path;

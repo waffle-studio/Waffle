@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Properties;
 
 public class Database implements AutoCloseable {
   static Logger logger = LoggerFactory.getLogger("Database");
@@ -19,10 +20,11 @@ public class Database implements AutoCloseable {
   private static boolean initialized = false;
   private Connection connection;
   private String url;
+  private static Properties properties;
 
-  public Database(String url) throws SQLException {
+  private Database(String url) throws SQLException {
     this.url = url;
-    this.connection = DriverManager.getConnection(url);
+    this.connection = DriverManager.getConnection(url, properties);
     connection.setAutoCommit(false);
   }
 
@@ -33,6 +35,9 @@ public class Database implements AutoCloseable {
       } catch (ClassNotFoundException e) {
         e.printStackTrace();
       }
+
+      properties = new Properties();
+      properties.put("journal_mode", "MEMORY");
     }
   }
 
