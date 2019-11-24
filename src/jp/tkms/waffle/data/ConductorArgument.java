@@ -41,6 +41,50 @@ public class ConductorArgument extends ProjectData {
     return TABLE_NAME;
   }
 
+  public static ConductorArgument getInstanceByName(Conductor conductor, String name) {
+    final ConductorArgument[] argument = {null};
+
+    handleWorkDB(conductor.getProject(), workUpdater, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_CONDUCTOR, KEY_NAME, KEY_TYPE, KEY_DEFAULT_VALUE)
+          .where(Sql.Value.and(Sql.Value.equalP(KEY_CONDUCTOR), Sql.Value.equalP(KEY_NAME))).preparedStatement();
+        statement.setString(1, conductor.getId());
+        statement.setString(2, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          ValueType type = ValueType.valueOf(resultSet.getInt(KEY_TYPE));
+          Object object = null;
+          switch (type) {
+            case String:
+              object = resultSet.getString(KEY_DEFAULT_VALUE);
+              break;
+            case Integer:
+              object = resultSet.getInt(KEY_DEFAULT_VALUE);
+              break;
+            case Double:
+              object = resultSet.getDouble(KEY_DEFAULT_VALUE);
+              break;
+            case Boolean:
+              object = resultSet.getBoolean(KEY_DEFAULT_VALUE);
+              break;
+          }
+          argument[0] = new ConductorArgument(
+            conductor.getProject(),
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            conductor,
+            resultSet.getString(KEY_NAME),
+            type,
+            object
+          );
+        }
+      }
+    });
+
+    return argument[0];
+  }
+
   public static ArrayList<ConductorArgument> getList(Conductor conductor) {
     ArrayList<ConductorArgument> simulatorList = new ArrayList<>();
 
@@ -126,6 +170,10 @@ public class ConductorArgument extends ProjectData {
     }
 
     return argument;
+  }
+
+  public Object getDefaultValue() {
+    return defaultValue;
   }
 
   @Override

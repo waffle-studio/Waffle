@@ -32,7 +32,7 @@ public class Sql {
       return new Value(key + "=?");
     }
 
-    Value and(Value... values) {
+    public static Value and(Value... values) {
       String sqlParts = "(";
       for (int i = 0; i < values.length; i++) {
         String value = values[i].toString();

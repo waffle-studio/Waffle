@@ -2,6 +2,8 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.TestConductor;
+import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -174,6 +176,65 @@ public class ConductorRun extends AbstractRun {
     return conductor;
   }
 
+  public void putArgument(ConductorArgument argument, String value) {
+    final JSONObject[] jsonObject = {null};
+    if (
+      handleWorkDB(getProject(), workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement =
+            new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
+          statement.setString(1, getId());
+          ResultSet resultSet = statement.executeQuery();
+          jsonObject[0] = new JSONObject(resultSet.getString(1));
+        }
+      })
+    ) {
+      if (jsonObject[0] != null) {
+        jsonObject[0].put(argument.getName(), value);
+        handleWorkDB(getProject(), workUpdater, new Handler() {
+          @Override
+          void handling(Database db) throws SQLException {
+            PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
+              new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
+            statement.setString(1, jsonObject[0].toString());
+            statement.setString(2, getId());
+            statement.execute();
+          }
+        });
+      }
+    }
+  }
+
+  public String getArgument(String key) {
+    String value = null;
+    final JSONObject[] jsonObject = {null};
+    if (
+      handleWorkDB(getProject(), workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement =
+            new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
+          statement.setString(1, getId());
+          ResultSet resultSet = statement.executeQuery();
+          jsonObject[0] = new JSONObject(resultSet.getString(1));
+        }
+      })
+    ) {
+      if (jsonObject[0] != null) {
+        if (jsonObject[0].toMap().containsKey(key)) {
+          value = jsonObject[0].getString(key);
+        } else {
+          ConductorArgument argument = ConductorArgument.getInstanceByName(getConductor(), key);
+          if (argument != null) {
+            value = String.valueOf(argument.getDefaultValue());
+          }
+        }
+      }
+    }
+    return value;
+  }
+
   public void start() {
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     abstractConductor.start(this);
@@ -207,7 +268,7 @@ public class ConductorRun extends AbstractRun {
           @Override
           void task(Database db) throws SQLException {
             db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + "," +
+              "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + "," + KEY_ARGUMENTS + " default '{}'," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }

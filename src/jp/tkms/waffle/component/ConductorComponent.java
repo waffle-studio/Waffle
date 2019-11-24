@@ -54,10 +54,11 @@ public class ConductorComponent extends AbstractComponent {
     if (mode == Mode.Run) {
       Trial trial = Trial.getInstance(project, request.params("trial"));
       ConductorRun run = ConductorRun.create(conductor.getProject(), trial, conductor);
-      for (String key : run.getConductor()) {
-
+      for (ConductorArgument arg : ConductorArgument.getList(run.getConductor())) {
+        String key = "arg-" + arg.getName();
+        if (request.queryMap().hasKey(key))
+        run.putArgument(arg, request.queryParams(key));
       }
-      run.setArguments(request.);
       run.start();
       response.redirect(JobsComponent.getUrl());
       return;
