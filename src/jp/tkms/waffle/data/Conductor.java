@@ -84,6 +84,10 @@ public class Conductor extends ProjectData {
     return conductor[0];
   }
 
+  public static Conductor find_by_name(Project project, String name) {
+    return getInstanceByName(project, name);
+  }
+
   public static ArrayList<Conductor> getList(Project project) {
     ArrayList<Conductor> simulatorList = new ArrayList<>();
 

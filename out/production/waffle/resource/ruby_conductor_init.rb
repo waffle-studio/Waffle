@@ -1,35 +1,15 @@
-class Trial
-  def initialize(project, id)
-    project = Java::jp.tkms.waffle.data.Project.getInstance(project)
-    @trial = Java::jp.tkms.waffle.data.Trial.getInstance(project, id)
-
-    $default_trial = @trial
-  end
-
-  def id
-    return @trial.getId()
-  end
-
-  def name
-    return @trial.getName()
-  end
-
-  def name=(name)
-    @trial.setName(name)
-  end
-end
 
 class Simulator
-    def self.list
-        return Java::jp.tkms.waffle.data.Simulator.getList($default_project)
+    def self.list(crun)
+        return Java::jp.tkms.waffle.data.Simulator.getList(crun.project)
     end
 
-    def self.find(id)
-        return Java::jp.tkms.waffle.data.Simulator.getInstance($default_project, id)
+    def self.find(crun, id)
+        return Java::jp.tkms.waffle.data.Simulator.getInstance(crun.project, id)
     end
 
-    def self.find_by_name(name)
-        return Java::jp.tkms.waffle.data.Simulator.getInstanceByName($default_project, name)
+    def self.find_by_name(crun, name)
+        return Java::jp.tkms.waffle.data.Simulator.getInstanceByName(crun.project, name)
     end
 end
 
@@ -51,33 +31,15 @@ class Host
     end
 end
 
-class Conductor
-    def self.list
-        return Java::jp.tkms.waffle.data.Conductor.getList()
-    end
+class Conductor < Java::jp.tkms.waffle.data.Conductor
+end
 
-    def self.find(id)
-        return Java::jp.tkms.waffle.data.Conductor.getInstance(id)
-    end
-
-    def self.find_by_name(name)
-        return Java::jp.tkms.waffle.data.Conductor.getInstanceByName($default_project, name)
-    end
+class ConductorRun < Java::jp.tkms.waffle.data.ConductorRun
 end
 
 class Run
-    def initialize(simulator, host)
-        @run = Java::jp.tkms.waffle.data.Run.create($default_conductor, $default_trial, simulator, host)
-    end
-
-    def start
-        @run.start()
-    end
-end
-
-class ConductorRun
-    def initialize(conductor)
-        @run = Java::jp.tkms.waffle.data.ConductorRun.create($default_project, $default_trial, conductor)
+    def initialize(crun, simulator, host)
+        @run = Java::jp.tkms.waffle.data.Run.create(crun.conductor, crun.trial, simulator, host)
     end
 
     def start
@@ -86,8 +48,8 @@ class ConductorRun
 end
 
 class Registry
-    def initialize
-        @registry = Java::jp.tkms.waffle.data.Registry.new($default_project)
+    def initialize(crun)
+        @registry = Java::jp.tkms.waffle.data.Registry.new(crun.project)
     end
 
     def set(key, value)
@@ -108,11 +70,32 @@ def alert_info(text)
     Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.gsub("[']", "\"") + "');")
 end
 
+def get_store(registry, crun_id)
+    serialized_store = registry.get_s("store:" + crun_id, "[]")
+    if serialized_store == "[]" then
+        store = Hash.new()
+    else
+        store = Marshal.load(serialized_store)
+    end
+end
 
-$registry = Registry.new()
-$serialized_store = $registry.get_s("store:" + $conductor_run_id, "[]")
-if $serialized_store == "[]" then
-    $store = Hash.new()
-else
-    $store = Marshal.load($serialized_store)
+def exec_pre_process(crun)
+    registry = Registry.new(crun)
+    store = get_store(registry, crun.id)
+    pre_process(registry, store, crun)
+    registry.set("store:" + crun.id, Marshal.dump(store))
+end
+
+def exec_cycle_process(crun)
+    registry = Registry.new(crun)
+    store = get_store(registry, crun.id)
+    cycle_process(registry, store, crun)
+    registry.set("store:" + crun.id, Marshal.dump(store))
+end
+
+def exec_post_process(crun)
+    registry = Registry.new(crun)
+    store = get_store(registry, crun.id)
+    cycle_process(registry, store, crun)
+    registry.set("store:" + crun.id, nil)
 end

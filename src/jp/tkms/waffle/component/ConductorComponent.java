@@ -4,6 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.*;
+import spark.QueryParamsMap;
 import spark.Spark;
 
 import java.io.File;
@@ -52,7 +53,12 @@ public class ConductorComponent extends AbstractComponent {
 
     if (mode == Mode.Run) {
       Trial trial = Trial.getInstance(project, request.params("trial"));
-      ConductorRun.create(conductor.getProject(), trial, conductor).start();
+      ConductorRun run = ConductorRun.create(conductor.getProject(), trial, conductor);
+      for (String key : run.getConductor()) {
+
+      }
+      run.setArguments(request.);
+      run.start();
       response.redirect(JobsComponent.getUrl());
       return;
     }

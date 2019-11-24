@@ -1,19 +1,11 @@
 package jp.tkms.waffle.data;
 
-import jnr.ffi.annotations.In;
-import jp.tkms.waffle.conductor.AbstractConductor;
-import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.conductor.TestConductor;
+import jp.tkms.waffle.data.util.KeyValue;
+import jp.tkms.waffle.data.util.ValueType;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
@@ -21,8 +13,6 @@ import java.util.UUID;
 public class Registry extends ProjectData {
   protected static final String TABLE_NAME = "registry";
   private static final String KEY_VALUE = "value";
-
-  enum Type {String, Integer, Double, Boolean};
 
   public Registry(Project project) {
     super(project, UUID.randomUUID(), "");
@@ -55,7 +45,7 @@ public class Registry extends ProjectData {
     return getList(getProject());
   }
 
-  static Object get(Project project, String key, Type type, Object defaultValue) {
+  static Object get(Project project, String key, ValueType type, Object defaultValue) {
     final Object[] result = {null};
 
     handleWorkDB(project, workUpdater, new Handler() {
@@ -65,11 +55,11 @@ public class Registry extends ProjectData {
         statement.setString(1, key);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          if (Type.Integer.equals(type)) {
+          if (ValueType.Integer.equals(type)) {
             result[0] = resultSet.getInt(KEY_VALUE);
-          } else if (Type.Double.equals(type)) {
+          } else if (ValueType.Double.equals(type)) {
             result[0] = resultSet.getDouble(KEY_VALUE);
-          } else if (Type.Boolean.equals(type)) {
+          } else if (ValueType.Boolean.equals(type)) {
             result[0] = resultSet.getBoolean(KEY_VALUE);
           } else {
             result[0] = resultSet.getString(KEY_VALUE);
@@ -112,7 +102,7 @@ public class Registry extends ProjectData {
   }
 
   public static String getString(Project project, String key, String defaultValue) {
-    return (String)get(project, key, Type.String, defaultValue);
+    return (String)get(project, key, ValueType.String, defaultValue);
   }
 
   public String getString(String key, String defaultValue) {
@@ -120,7 +110,7 @@ public class Registry extends ProjectData {
   }
 
   public static Integer getInteger(Project project, String key, Integer defaultValue) {
-    return (Integer) get(project, key, Type.Integer, defaultValue);
+    return (Integer) get(project, key, ValueType.Integer, defaultValue);
   }
 
   public Integer getInteger(String key, Integer defaultValue) {
@@ -128,7 +118,7 @@ public class Registry extends ProjectData {
   }
 
   public static Double getDouble(Project project, String key, Double defaultValue) {
-    return (Double) get(project, key, Type.Double, defaultValue);
+    return (Double) get(project, key, ValueType.Double, defaultValue);
   }
 
   public Double getDouble(String key, Double defaultValue) {
@@ -136,7 +126,7 @@ public class Registry extends ProjectData {
   }
 
   public static Boolean getBoolean(Project project, String key, Boolean defaultValue) {
-    return (Boolean) get(project, key, Type.Boolean, defaultValue);
+    return (Boolean) get(project, key, ValueType.Boolean, defaultValue);
   }
 
   public Boolean getBoolean(String key, Boolean defaultValue) {

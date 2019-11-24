@@ -1,4 +1,6 @@
-package jp.tkms.waffle.data;
+package jp.tkms.waffle.data.util;
+
+import jp.tkms.waffle.data.Database;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -10,11 +12,11 @@ public class Sql {
     this.database = database;
   }
 
-  PreparedStatement preparedStatement() throws SQLException {
+  public PreparedStatement preparedStatement() throws SQLException {
     return database.preparedStatement(this.toString());
   }
 
-  static class Value{
+  public static class Value{
     String value = "";
 
     private Value(String value) {
@@ -26,7 +28,7 @@ public class Sql {
       return value;
     }
 
-    static Value equalP(String key) {
+    public static Value equalP(String key) {
       return new Value(key + "=?");
     }
 
@@ -55,16 +57,16 @@ public class Sql {
     }
   }
 
-  static class Select extends Sql {
+  public static class Select extends Sql {
     String selectSql = "";
     String whereSql = "";
 
-    Select(Database database, String table, String... keys) {
+    public Select(Database database, String table, String... keys) {
       super(database);
       selectSql = "select " + listByComma(keys) + " from " + table;
     }
 
-    Select where(Value value) {
+    public Select where(Value value) {
       whereSql = " where " + value.toString() + "";
       return this;
     }
@@ -75,7 +77,7 @@ public class Sql {
     }
   }
 
-  static class Insert extends Sql {
+  public static class Insert extends Sql {
     String sql = "";
 
     Insert(Database database, String table, String... keys) {

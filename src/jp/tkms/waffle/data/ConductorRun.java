@@ -19,6 +19,7 @@ public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   private static final String KEY_TRIAL = "trial";
   private static final String KEY_CONDUCTOR = "conductor";
+  private static final String KEY_ARGUMENTS = "arguments";
 
   private Trial trial = null;
   private Conductor conductor = null;
@@ -51,6 +52,10 @@ public class ConductorRun extends AbstractRun {
     });
 
     return conductorRun[0];
+  }
+
+  public static ConductorRun find(String project, String id) {
+    return getInstance(Project.getInstance(project), id);
   }
 
   public static ArrayList<ConductorRun> getList(Trial trial) {
@@ -112,6 +117,10 @@ public class ConductorRun extends AbstractRun {
     });
 
     return conductorRun;
+  }
+
+  public static ConductorRun create(ConductorRun parent, Conductor conductor) {
+    return create(parent.getProject(), parent.getTrial(), conductor);
   }
 
   public void remove() {

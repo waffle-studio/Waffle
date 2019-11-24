@@ -1,4 +1,4 @@
-package jp.tkms.waffle.data;
+package jp.tkms.waffle.data.util;
 
 import java.util.AbstractMap;
 

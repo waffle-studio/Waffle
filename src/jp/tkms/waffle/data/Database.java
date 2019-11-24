@@ -1,17 +1,13 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Environment;
-import jp.tkms.waffle.component.template.Html;
+import jp.tkms.waffle.data.util.Sql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.management.ThreadInfo;
-import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Properties;
 
 public class Database implements AutoCloseable {
