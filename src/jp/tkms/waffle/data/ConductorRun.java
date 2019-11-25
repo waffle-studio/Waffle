@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 
 public class ConductorRun extends AbstractRun {
@@ -25,6 +26,7 @@ public class ConductorRun extends AbstractRun {
 
   private Trial trial = null;
   private Conductor conductor = null;
+  private JSONObject arguments = null;
 
   public ConductorRun(Project project, UUID id) {
     super(project, id, "");
@@ -176,63 +178,48 @@ public class ConductorRun extends AbstractRun {
     return conductor;
   }
 
-  public void putArgument(ConductorArgument argument, String value) {
-    final JSONObject[] jsonObject = {null};
-    if (
+  public JSONObject getArguments() {
+    if (arguments == null) {
+      JSONObject map = getConductor().getArguments();
+      JSONObject valueMap = new JSONObject(getFromDB(KEY_ARGUMENTS));
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+      }
+      arguments = map;
+    }
+    return new JSONObject(arguments);
+  }
+
+
+  public void putArguments(String json) {
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+    JSONObject map = new JSONObject(getFromDB(KEY_ARGUMENTS));
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        arguments.put(key, valueMap.get(key));
+      }
+
       handleWorkDB(getProject(), workUpdater, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
-          PreparedStatement statement =
-            new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
-          statement.setString(1, getId());
-          ResultSet resultSet = statement.executeQuery();
-          jsonObject[0] = new JSONObject(resultSet.getString(1));
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
+          new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
+          statement.setString(1, map.toString());
+          statement.setString(2, getId());
+          statement.execute();
         }
-      })
-    ) {
-      if (jsonObject[0] != null) {
-        jsonObject[0].put(argument.getName(), value);
-        handleWorkDB(getProject(), workUpdater, new Handler() {
-          @Override
-          void handling(Database db) throws SQLException {
-            PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-              new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
-            statement.setString(1, jsonObject[0].toString());
-            statement.setString(2, getId());
-            statement.execute();
-          }
-        });
-      }
+      });
     }
   }
 
-  public String getArgument(String key) {
-    String value = null;
-    final JSONObject[] jsonObject = {null};
-    if (
-      handleWorkDB(getProject(), workUpdater, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement =
-            new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
-          statement.setString(1, getId());
-          ResultSet resultSet = statement.executeQuery();
-          jsonObject[0] = new JSONObject(resultSet.getString(1));
-        }
-      })
-    ) {
-      if (jsonObject[0] != null) {
-        if (jsonObject[0].toMap().containsKey(key)) {
-          value = jsonObject[0].getString(key);
-        } else {
-          ConductorArgument argument = ConductorArgument.getInstanceByName(getConductor(), key);
-          if (argument != null) {
-            value = String.valueOf(argument.getDefaultValue());
-          }
-        }
-      }
-    }
-    return value;
+  public Object getArgument(String key) {
+    return getArguments().get(key);
   }
 
   public void start() {

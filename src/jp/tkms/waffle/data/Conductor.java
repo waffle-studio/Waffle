@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +21,11 @@ public class Conductor extends ProjectData {
   protected static final String TABLE_NAME = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
+  private static final String KEY_ARGUMENTS = "arguments";
 
   private String conductorType = null;
   private String scriptFileName = null;
+  private String arguments = null;
 
   public static ArrayList<String> getConductorNameList() {
     return new ArrayList<>(Arrays.asList(
@@ -164,6 +167,31 @@ public class Conductor extends ProjectData {
     return conductorType;
   }
 
+  public JSONObject getArguments() {
+    if (arguments == null) {
+      arguments = getFromDB(KEY_ARGUMENTS);
+    }
+    return new JSONObject(arguments);
+  }
+
+  public void setArguments(String json) {
+    JSONObject args = new JSONObject(json);
+    if (args != null) {
+      arguments = args.toString();
+
+      handleWorkDB(getProject(), workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
+          statement.setString(1, arguments);
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      });
+    }
+  }
+
   @Override
   protected Updater getMainUpdater() {
     return null;
@@ -187,7 +215,7 @@ public class Conductor extends ProjectData {
           @Override
           void task(Database db) throws SQLException {
             db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," +
+              "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," + KEY_ARGUMENTS + " default '{}'," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }
