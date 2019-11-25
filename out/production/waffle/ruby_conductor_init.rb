@@ -34,7 +34,31 @@ end
 class Conductor < Java::jp.tkms.waffle.data.Conductor
 end
 
+class ConductorArgument
+    def initialize(crun)
+        @crun = crun
+    end
+
+    def [](key)
+        @crun.getArgument(key)
+    end
+
+    def set_prop(key, value)
+        @crun.putArgument(key, value)
+    end
+end
+
 class ConductorRun < Java::jp.tkms.waffle.data.ConductorRun
+    def initialize(project_id, conductor_run_id)
+        return super(project_id, conductor_run_id)
+    end
+
+    def tes
+        put "test"
+    end
+    def argument()
+        return ConductorArgument.new(self)
+    end
 end
 
 class Run

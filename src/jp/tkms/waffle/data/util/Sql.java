@@ -80,7 +80,7 @@ public class Sql {
   public static class Insert extends Sql {
     String sql = "";
 
-    Insert(Database database, String table, String... keys) {
+    public Insert(Database database, String table, String... keys) {
       super(database);
       sql = "insert into " + table + "(" + listByComma(keys) + ") values(";
       for (int i = 0; i < keys.length; i++) {

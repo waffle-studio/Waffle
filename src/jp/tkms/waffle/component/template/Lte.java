@@ -58,6 +58,12 @@ public class Lte {
     return Html.span("badge badge-" + colorType, attributes, value);
   }
 
+  public static String cardToggleButton(boolean flag) {
+    return Html.element("button", new Attributes(value("class", "btn btn-tool"),
+      value("type", "button"), value("data-card-widget","collapse"),
+      value("data-toggle", "tooltip")), (flag?Html.faIcon("plus"):Html.faIcon("minus")));
+  }
+
   public static String infoBox(DivSize divSize, String icon, String iconBgCLass, String text, String number) {
     return divCol(divSize, div("info-box",
       span(listBySpace("info-box-icon", iconBgCLass), null, faIcon(icon)),
@@ -65,6 +71,24 @@ public class Lte {
         span("info-box-text", null, text),
         span("info-box-number", null, number)
       )));
+  }
+
+  public static String formTextAreaGroup(String name, String label, int rows,
+                                      String contents, ArrayList<FormError> errors) {
+    String id = "input" + name;
+    return div("form-group",
+      (label != null ?
+        element("label", new Attributes(value("for", id)), label) : null),
+      element("textarea",
+        new Attributes(
+            value("class", "form-control"),
+            value("rows", String.valueOf(rows)),
+            value("name", name),
+            value("id", id)
+        )
+        , contents
+      )
+    );
   }
 
   public static String formInputGroup(String type, String name, String label,
@@ -160,7 +184,7 @@ public class Lte {
     );
   }
 
-  public enum DivSize {F12Md6Sm3, F12Md12Sm6}
+  public enum DivSize {F12, F12Md6Sm3, F12Md12Sm6}
 
   public static class FormError {
 

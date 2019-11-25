@@ -12,10 +12,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ConductorComponent extends AbstractComponent {
+  private static final String KEY_ARGUMENTS = "arguments";
   private Mode mode;
 
   private Project project;
   private Conductor conductor;
+  private Trial trial;
   public ConductorComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -27,7 +29,9 @@ public class ConductorComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ConductorComponent());
-    Spark.get(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
+    Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
+    Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
+    Spark.post(getUrl(null, "update-arguments", null), new ConductorComponent(Mode.UpdateArguments));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -51,20 +55,25 @@ public class ConductorComponent extends AbstractComponent {
 
     conductor = Conductor.getInstance(project, request.params("id"));
 
-    if (mode == Mode.Run) {
-      Trial trial = Trial.getInstance(project, request.params("trial"));
+    if (mode == Mode.Prepare) {
+      trial = Trial.getInstance(project, request.params("trial"));
+      renderPrepareForm();
+    } else if (mode == Mode.Run) {
+      trial = Trial.getInstance(project, request.params("trial"));
       ConductorRun run = ConductorRun.create(conductor.getProject(), trial, conductor);
-      for (ConductorArgument arg : ConductorArgument.getList(run.getConductor())) {
-        String key = "arg-" + arg.getName();
-        if (request.queryMap().hasKey(key))
-        run.putArgument(arg, request.queryParams(key));
+      if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
+        run.putArguments(request.queryParams(KEY_ARGUMENTS));
       }
       run.start();
       response.redirect(JobsComponent.getUrl());
-      return;
+    } else if (mode == Mode.UpdateArguments) {
+      if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
+        conductor.setArguments(request.queryParams(KEY_ARGUMENTS));
+      }
+      response.redirect(getUrl(conductor));
+    } else {
+      renderConductor();
     }
-
-    renderConductor();
   }
 
   private void renderConductor() {
@@ -102,6 +111,19 @@ public class ConductorComponent extends AbstractComponent {
           )
           , null);
 
+        content +=
+          Html.form(getUrl(conductor, "update-arguments", trial), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "Arguments",
+              Lte.cardToggleButton(true),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 10, conductor.getArguments().toString(2), null),
+                  Lte.formSubmitButton("success", "Update")
+                )
+              )
+              , null, "collapsed-card", null)
+          );
+
         content += Lte.card(Html.faIcon("file") + "Files", null,
           Lte.table("table-sm", new Lte.Table() {
             @Override
@@ -127,9 +149,53 @@ public class ConductorComponent extends AbstractComponent {
     }.render(this);
   }
 
+  private void renderPrepareForm() {
+    new MainTemplate() {
+      @Override
+      protected String pageTitle() {
+        return conductor.getName();
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return "Prepare";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          Html.a(ProjectsComponent.getUrl(), "Projects"),
+          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          "Conductors",
+          conductor.getId()
+        ));
+      }
+
+      @Override
+      protected String pageContent() {
+        String content = "";
+
+        content +=
+          Html.form(getUrl(conductor, "run", trial), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "Arguments",
+              null,
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 10, conductor.getArguments().toString(2), null),
+                  Lte.formSubmitButton("primary", "Run")
+                )
+              )
+            , null)
+          );
+
+        return content;
+      }
+    }.render(this);
+  }
+
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
   }
 
-  public enum Mode {Default, Run}
+  public enum Mode {Default, Prepare, Run, UpdateArguments}
 }

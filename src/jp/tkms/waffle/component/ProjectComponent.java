@@ -187,7 +187,7 @@ public class ProjectComponent extends AbstractComponent {
                       null, null, conductor.getShortId())),
                   new Lte.TableValue("", conductor.getName()),
                   new Lte.TableValue("text-align:right;",
-                    Html.a(ConductorComponent.getUrl(conductor, "run", Trial.getRootInstance(project)),
+                    Html.a(ConductorComponent.getUrl(conductor, "prepare", Trial.getRootInstance(project)),
                       Html.span("right badge badge-secondary", null, "run")
                     )
                   )

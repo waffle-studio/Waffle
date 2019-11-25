@@ -190,8 +190,12 @@ public class ConductorRun extends AbstractRun {
     return new JSONObject(arguments);
   }
 
+  public Object getArgument(String key) {
+    return getArguments().get(key);
+  }
 
   public void putArguments(String json) {
+    getArguments();
     JSONObject valueMap = null;
     try {
       valueMap = new JSONObject(json);
@@ -218,8 +222,10 @@ public class ConductorRun extends AbstractRun {
     }
   }
 
-  public Object getArgument(String key) {
-    return getArguments().get(key);
+  public void putArgument(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putArguments(obj.toString());
   }
 
   public void start() {
