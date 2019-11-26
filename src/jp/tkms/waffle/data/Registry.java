@@ -6,11 +6,9 @@ import jp.tkms.waffle.data.util.ValueType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.*;
 
-public class Registry extends ProjectData {
+public class Registry extends ProjectData implements Map<Object, Object> {
   protected static final String TABLE_NAME = "registry";
   private static final String KEY_VALUE = "value";
 
@@ -61,8 +59,10 @@ public class Registry extends ProjectData {
             result[0] = resultSet.getDouble(KEY_VALUE);
           } else if (ValueType.Boolean.equals(type)) {
             result[0] = resultSet.getBoolean(KEY_VALUE);
-          } else {
+          } else if (ValueType.String.equals(type)) {
             result[0] = resultSet.getString(KEY_VALUE);
+          } else {
+            result[0] = resultSet.getObject(KEY_VALUE);
           }
           break;
         }
@@ -70,6 +70,10 @@ public class Registry extends ProjectData {
     });
 
     return (result[0] == null ? defaultValue : result[0]);
+  }
+
+  public Object get(String key) {
+    return get(getProject(), key, null, null);
   }
 
   static void set(Project project, String key, Object value) {
@@ -164,4 +168,66 @@ public class Registry extends ProjectData {
       ));
     }
   };
+
+  @Override
+  public int size() {
+    return 0;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public boolean containsKey(Object o) {
+    return false;
+  }
+
+  @Override
+  public boolean containsValue(Object o) {
+    return false;
+  }
+
+  @Override
+  public Object get(Object o) {
+    return get(o);
+  }
+
+  @Override
+  public Object put(Object o, Object o2) {
+    set(o.toString(), 02);
+    return o2;
+  }
+
+  @Override
+  public Object remove(Object o) {
+    return null;
+  }
+
+  @Override
+  public void putAll(Map<?, ?> map) {
+
+  }
+
+  @Override
+  public void clear() {
+
+  }
+
+  @Override
+  public Set<Object> keySet() {
+    return null;
+  }
+
+  @Override
+  public Collection<Object> values() {
+    return null;
+  }
+
+  @Override
+  public Set<Entry<Object, Object>> entrySet() {
+    return null;
+  }
+
 }

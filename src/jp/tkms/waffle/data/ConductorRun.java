@@ -1,22 +1,13 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
-import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
@@ -187,7 +178,7 @@ public class ConductorRun extends AbstractRun {
       }
       arguments = map;
     }
-    return new JSONObject(arguments);
+    return new JSONObject(arguments.toString());
   }
 
   public Object getArgument(String key) {
@@ -269,4 +260,19 @@ public class ConductorRun extends AbstractRun {
       ));
     }
   };
+
+  private final ArgumentMapInterface argumentMapInterface  = new ArgumentMapInterface();
+  public HashMap argument() { return argumentMapInterface; }
+  public class ArgumentMapInterface extends HashMap<Object, Object> {
+    @Override
+    public Object get(Object key) {
+      return getArgument(key.toString());
+    }
+
+    @Override
+    public Object put(Object key, Object value) {
+      putArgument(key.toString(), value);
+      return value;
+    }
+  }
 }
