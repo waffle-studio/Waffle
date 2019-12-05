@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONObject;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +16,7 @@ public class Run extends AbstractRun {
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
   private static final String KEY_EXIT_STATUS = "exit_status";
+  private static final String KEY_RESULTS = "results";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
   public enum State {
@@ -40,6 +42,7 @@ public class Run extends AbstractRun {
   private String host;
   private State state;
   private Integer exitStatus;
+  private JSONObject results;
 
   private Run(Conductor conductor, Trial trial, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
@@ -68,7 +71,7 @@ public class Run extends AbstractRun {
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
+        ).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
@@ -121,7 +124,7 @@ public class Run extends AbstractRun {
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_TRIALS)).preparedStatement();
+        ).where(Sql.Value.equalP(KEY_TRIALS)).toPreparedStatement();
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
@@ -158,7 +161,7 @@ public class Run extends AbstractRun {
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).preparedStatement();
+        ).toPreparedStatement();
         statement.setString(1, run.getId());
         statement.setString(2, conductorId);
         statement.setString(3, trialsId);
@@ -222,6 +225,49 @@ public class Run extends AbstractRun {
     return exitStatus;
   }
 
+  public JSONObject getResults() {
+    if (results == null) {
+      JSONObject map = getConductor().getArguments();
+      JSONObject valueMap = new JSONObject(getFromDB(KEY_RESULTS));
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+      }
+      results = map;
+    }
+    return new JSONObject(results.toString());
+  }
+
+  public Object getArgument(String key) {
+    return getResults().get(key);
+  }
+
+  public void putResults(String json) {
+    getResults();
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+    JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        results.put(key, valueMap.get(key));
+      }
+
+      handleWorkDB(getProject(), workUpdater, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
+          statement.setString(1, map.toString());
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      });
+    }
+  }
+
   public boolean isRunning() {
     return !(state.equals(State.Finished) || state.equals(State.Failed));
   }
@@ -265,6 +311,7 @@ public class Run extends AbstractRun {
               KEY_HOST + "," +
               KEY_STATE + "," +
               KEY_EXIT_STATUS + " default -1," +
+              KEY_RESULTS + " default '{}'," +
               "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }

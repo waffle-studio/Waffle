@@ -213,7 +213,7 @@ public class ProjectComponent extends AbstractComponent {
   private void addConductor() {
     String name = request.queryParams("name");
     String type = request.queryParams("type");
-    AbstractConductor abstractConductor= AbstractConductor.getInstance(type);
+    AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
     Conductor.create(project, name, abstractConductor, abstractConductor.defaultScriptName());
     response.redirect(ProjectComponent.getUrl(project));
   }

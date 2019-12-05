@@ -49,16 +49,6 @@ class ConductorArgument
 end
 
 class ConductorRun < Java::jp.tkms.waffle.data.ConductorRun
-    def initialize(project_id, conductor_run_id)
-        return super(project_id, conductor_run_id)
-    end
-
-    def tes
-        put "test"
-    end
-    def argument()
-        return ConductorArgument.new(self)
-    end
 end
 
 class Run
@@ -71,22 +61,7 @@ class Run
     end
 end
 
-class Registry
-    def initialize(crun)
-        @registry = Java::jp.tkms.waffle.data.Registry.new(crun.project)
-    end
-
-    def set(key, value)
-        @registry.set(key, value)
-    end
-
-    def get_i(key, default)
-        return @registry.getInteger(key, default)
-    end
-
-    def get_s(key, default)
-        return @registry.getString(key, default)
-    end
+class Registry < Java::jp.tkms.waffle.data.Registry
 end
 
 def alert_info(text)
@@ -95,7 +70,7 @@ def alert_info(text)
 end
 
 def get_store(registry, crun_id)
-    serialized_store = registry.get_s("store:" + crun_id, "[]")
+    serialized_store = registry.get("store:" + crun_id, "[]")
     if serialized_store == "[]" then
         store = Hash.new()
     else
@@ -104,21 +79,21 @@ def get_store(registry, crun_id)
 end
 
 def exec_pre_process(crun)
-    registry = Registry.new(crun)
+    registry = Registry.new(crun.project)
     store = get_store(registry, crun.id)
     pre_process(registry, store, crun)
     registry.set("store:" + crun.id, Marshal.dump(store))
 end
 
 def exec_cycle_process(crun)
-    registry = Registry.new(crun)
+    registry = Registry.new(crun.project)
     store = get_store(registry, crun.id)
     cycle_process(registry, store, crun)
     registry.set("store:" + crun.id, Marshal.dump(store))
 end
 
 def exec_post_process(crun)
-    registry = Registry.new(crun)
+    registry = Registry.new(crun.project)
     store = get_store(registry, crun.id)
     cycle_process(registry, store, crun)
     registry.set("store:" + crun.id, nil)

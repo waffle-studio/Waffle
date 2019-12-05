@@ -1,10 +1,9 @@
 package jp.tkms.waffle.submitter;
 
-import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.Job;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.*;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
@@ -14,7 +13,7 @@ abstract public class AbstractSubmitter {
 
   abstract String getWorkDirectory(Run run);
   abstract void prepare(Run run);
-  abstract String exec(Run run, String command);
+  abstract public String exec(Run run, String command);
   abstract int getExitStatus(Run run);
   abstract void postProcess(Run run);
   abstract public void close();
@@ -98,6 +97,9 @@ abstract public class AbstractSubmitter {
           int exitStatus = getExitStatus(job.getRun());
           if (exitStatus == 0) {
             job.getRun().setState(Run.State.Finished);
+            for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
+              collector.getResultCollector().collect(job.getRun(), collector);
+            }
           } else {
             job.getRun().setState(Run.State.Failed);
           }

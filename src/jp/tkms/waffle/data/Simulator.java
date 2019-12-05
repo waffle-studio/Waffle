@@ -1,5 +1,8 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.collector.AbstractResultCollector;
+import jp.tkms.waffle.collector.JsonResultCollector;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -117,6 +120,8 @@ public class Simulator extends ProjectData {
       } catch (IOException e) {
         e.printStackTrace();
       }
+
+      ResultCollector.create(simulator, "_output.json", AbstractResultCollector.getInstance(JsonResultCollector.class.getCanonicalName()));
     }
 
     return simulator;

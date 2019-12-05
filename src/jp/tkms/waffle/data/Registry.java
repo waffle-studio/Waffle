@@ -76,6 +76,10 @@ public class Registry extends ProjectData implements Map<Object, Object> {
     return get(getProject(), key, null, null);
   }
 
+  public Object get(String key, Object defaultValue) {
+    return get(getProject(), key, null, defaultValue);
+  }
+
   static void set(Project project, String key, Object value) {
     handleWorkDB(project, workUpdater, new Handler() {
       @Override
@@ -191,12 +195,12 @@ public class Registry extends ProjectData implements Map<Object, Object> {
 
   @Override
   public Object get(Object o) {
-    return get(o);
+    return get(o.toString());
   }
 
   @Override
   public Object put(Object o, Object o2) {
-    set(o.toString(), 02);
+    set(o.toString(), o2);
     return o2;
   }
 

@@ -14,6 +14,7 @@ public class ConductorRun extends AbstractRun {
   private static final String KEY_TRIAL = "trial";
   private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_RESULTS = "results";
 
   private Trial trial = null;
   private Conductor conductor = null;
@@ -204,7 +205,6 @@ public class ConductorRun extends AbstractRun {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-          new Sql.Select(db, getTableName(), KEY_ARGUMENTS).where(Sql.Value.equalP(KEY_ID)).preparedStatement();
           statement.setString(1, map.toString());
           statement.setString(2, getId());
           statement.execute();
@@ -252,8 +252,10 @@ public class ConductorRun extends AbstractRun {
           @Override
           void task(Database db) throws SQLException {
             db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + "," + KEY_ARGUMENTS + " default '{}'," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+              "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
+              + KEY_ARGUMENTS + " default '{}',"
+              + KEY_RESULTS + " default '{}',"
+              + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
               ");");
           }
         }
@@ -271,7 +273,7 @@ public class ConductorRun extends AbstractRun {
 
     @Override
     public Object put(Object key, Object value) {
-      putArgument(key.toString(), value);
+      //putArgument(key.toString(), value);
       return value;
     }
   }

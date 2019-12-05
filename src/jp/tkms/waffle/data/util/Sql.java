@@ -12,8 +12,12 @@ public class Sql {
     this.database = database;
   }
 
-  public PreparedStatement preparedStatement() throws SQLException {
+  public PreparedStatement toPreparedStatement() throws SQLException {
     return database.preparedStatement(this.toString());
+  }
+
+  public void execute() throws SQLException {
+    database.execute(this.toString());
   }
 
   public static class Value{
@@ -95,6 +99,28 @@ public class Sql {
     @Override
     public String toString() {
       return sql + ";";
+    }
+  }
+
+  public static class Create extends Sql {
+    String sql = "";
+
+    public Create(Database database, String table, String... keys) {
+      super(database);
+      sql = "create table " + table + "("  + Sql.listByComma(keys) + ")";
+    }
+
+    @Override
+    public String toString() {
+      return sql + ";";
+    }
+
+    public static String withDefault(String key, String defaultValue) {
+      return key + " default " + defaultValue;
+    }
+
+    public static String timestamp(String key) {
+      return key + " timestamp default (DATETIME('now','localtime'))";
     }
   }
 

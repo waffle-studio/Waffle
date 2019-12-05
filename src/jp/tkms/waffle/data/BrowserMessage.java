@@ -37,7 +37,7 @@ public class BrowserMessage extends Data {
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
           KEY_ID, KEY_BROWSER_ID, KEY_MESSAGE
-        ).where(Sql.Value.equalP(KEY_BROWSER_ID)).preparedStatement();
+        ).where(Sql.Value.equalP(KEY_BROWSER_ID)).toPreparedStatement();
         statement.setString(1, browserId);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {

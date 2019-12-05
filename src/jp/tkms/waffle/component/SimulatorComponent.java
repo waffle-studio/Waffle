@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.ResultCollector;
 import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
 
@@ -28,7 +29,7 @@ public class SimulatorComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new SimulatorComponent());
-    Spark.get(getUrl(null, "edit_const_model"), new SimulatorComponent());
+    Spark.get(getUrl(null, "add_collector"), new SimulatorComponent());
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -113,6 +114,30 @@ public class SimulatorComponent extends AbstractComponent {
                 list.add(new Lte.TableRow(
                   Html.a("", null, null, simulator.getShortId()),
                   simulator.getName())
+                );
+              }
+              return list;
+            }
+          })
+          , null, null, "p-0");
+
+        content += Lte.card(Html.faIcon("dolly-flatbed") + "Result Collectors", null,
+          Lte.table(null, new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (ResultCollector collector : ResultCollector.getList(simulator)) {
+                list.add(new Lte.TableRow(
+                  Html.a("", null, null, collector.getShortId()),
+                  collector.getName())
                 );
               }
               return list;

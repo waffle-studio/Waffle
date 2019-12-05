@@ -131,8 +131,8 @@ public class SimulatorsComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Project> projectList = Project.getList();
-        if (projectList.size() <= 0) {
+        ArrayList<Simulator> simulatorList = Simulator.getList(project);
+        if (simulatorList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl(project, "add"), null, null,
               Html.faIcon("plus-square") + "Add simulator"
@@ -156,7 +156,7 @@ public class SimulatorsComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Simulator simulator : Simulator.getList(project)) {
+              for (Simulator simulator : simulatorList) {
                 list.add(new Lte.TableRow(
                   Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
                   simulator.getName())

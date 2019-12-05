@@ -121,7 +121,7 @@ public class ConductorComponent extends AbstractComponent {
                   Lte.formSubmitButton("success", "Update")
                 )
               )
-              , null, "collapsed-card", null)
+              , null, "collapsed-card.stop", null)
           );
 
         content += Lte.card(Html.faIcon("file") + "Files", null,
