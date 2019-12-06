@@ -90,14 +90,31 @@ public class SimulatorComponent extends AbstractComponent {
           )
           , null);
 
-        content += Lte.divRow(
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "file-import", "",
-            Html.a(SimulatorsComponent.getUrl(project), "Parameter extractor"), ""),
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "pencil-ruler", "",
-            Html.a(TrialsComponent.getUrl(project), "Parameter modifier"), "")
-        );
+        content += Lte.card(Html.faIcon("list-alt") + "Parameter Models", null,
+          Lte.table(null, new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter models", null,
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (Simulator simulator : Simulator.getList(project)) {
+                list.add(new Lte.TableRow(
+                  Html.a("", null, null, simulator.getShortId()),
+                  simulator.getName())
+                );
+              }
+              return list;
+            }
+          })
+          , null, null, "p-0");
+
+        content += Lte.card(Html.faIcon("file-import") + "Parameter Extractor", null,
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
