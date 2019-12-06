@@ -14,6 +14,8 @@ abstract public class Data {
   protected String shortId;
   protected String name;
 
+  public Data() {}
+
   public Data(UUID id, String name) {
     this.id = id;
     this.shortId = getShortId(id);
@@ -22,7 +24,7 @@ abstract public class Data {
 
   abstract protected String getTableName();
 
-  abstract protected Updater getMainUpdater();
+  abstract protected Updater getDatabaseUpdater();
 
   public static String getShortId(UUID id) {
     return id.toString().replaceFirst("-.*$", "");
@@ -62,35 +64,52 @@ abstract public class Data {
   }
 
   protected String getFromDB(String key) {
-    String result = null;
-    try {
-      Database db = getMainDB(getMainUpdater());
-      PreparedStatement statement
-        = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
-      statement.setString(1, getId());
-      ResultSet resultSet = statement.executeQuery();
-      while (resultSet.next()) {
-        result = resultSet.getString(key);
+    final String[] result = {null};
+
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
+        statement.setString(1, getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          result[0] = resultSet.getString(key);
+        }
       }
-      db.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return result;
+    });
+
+    return result[0];
   }
 
-  private static Database getMainDB(Updater updater) {
-    Database db = Database.getMainDB();
-    if (updater != null) {
-      updater.update(db);
+  public void setName(String name) {
+    if (handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_NAME + "=? where " + KEY_ID + "=?");
+        statement.setString(1, name);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    })) {
+      this.name = name;
     }
-    return db;
   }
 
-  synchronized protected static boolean handleMainDB(Updater updater, Handler handler) {
+  protected Database getDatabase() {
+    return Database.getDatabase(null);
+  }
+
+  synchronized protected static boolean handleDatabase(Data base, Handler handler) {
     boolean isSuccess = true;
 
-    try(Database db = getMainDB(updater)) {
+    try(Database db = base.getDatabase()) {
+      Updater updater = base.getDatabaseUpdater();
+      if (updater != null) {
+        updater.update(db);
+      } else {
+        db.getVersion(null);
+      }
       handler.handling(db);
       db.commit();
     } catch (SQLException e) {

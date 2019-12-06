@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
@@ -27,6 +28,10 @@ public class Simulator extends ProjectData {
     super(project, id, name);
   }
 
+  public Simulator(Project project) {
+    super(project);
+  }
+
   @Override
   protected String getTableName() {
     return TABLE_NAME;
@@ -35,7 +40,7 @@ public class Simulator extends ProjectData {
   public static Simulator getInstance(Project project, String id) {
     final Simulator[] simulator = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Simulator(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
@@ -57,7 +62,7 @@ public class Simulator extends ProjectData {
   public static Simulator getInstanceByName(Project project, String name) {
     final Simulator[] simulator = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Simulator(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
@@ -79,7 +84,7 @@ public class Simulator extends ProjectData {
   public static ArrayList<Simulator> getList(Project project) {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Simulator(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
@@ -100,7 +105,7 @@ public class Simulator extends ProjectData {
     Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
 
     if (
-      handleWorkDB(project, workUpdater, new Handler() {
+      handleDatabase(new Simulator(project), new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -149,34 +154,27 @@ public class Simulator extends ProjectData {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return workUpdater;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<Updater.UpdateTask> updateTasks() {
-      return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND + "," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+      @Override
+      ArrayList<Updater.UpdateTask> updateTasks() {
+        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                "id,name," + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND + "," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
           }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 }

@@ -24,7 +24,7 @@ public class Registry extends ProjectData implements Map<Object, Object> {
   public static ArrayList<KeyValue> getList(Project project) {
     ArrayList<KeyValue> keyValueList = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Registry(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
@@ -46,7 +46,7 @@ public class Registry extends ProjectData implements Map<Object, Object> {
   static Object get(Project project, String key, ValueType type, Object defaultValue) {
     final Object[] result = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Registry(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select " + KEY_VALUE + " from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
@@ -81,7 +81,7 @@ public class Registry extends ProjectData implements Map<Object, Object> {
   }
 
   static void set(Project project, String key, Object value) {
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Registry(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
@@ -142,36 +142,29 @@ public class Registry extends ProjectData implements Map<Object, Object> {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return workUpdater;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<UpdateTask> updateTasks() {
-      return new ArrayList<UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(" +
-              KEY_NAME + "," + KEY_VALUE + "," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                KEY_NAME + "," + KEY_VALUE + "," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
           }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 
   @Override
   public int size() {

@@ -19,6 +19,11 @@ public class Run extends AbstractRun {
   private static final String KEY_RESULTS = "results";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
+
+  public Run(Project project) {
+    super(project);
+  }
+
   public enum State {
     Created(0), Queued(1), Submitted(2), Running(3), Finished(4), Failed(5);
 
@@ -61,7 +66,7 @@ public class Run extends AbstractRun {
   public static Run getInstance(Project project, String id) {
     final Run[] run = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Run(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
@@ -114,7 +119,7 @@ public class Run extends AbstractRun {
   public static ArrayList<Run> getList(Project project, Trial parent) {
     ArrayList<Run> list = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Run(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
@@ -151,7 +156,7 @@ public class Run extends AbstractRun {
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
 
-    handleWorkDB(conductor.getProject(), workUpdater, new Handler() {
+    handleDatabase(new Run(conductor.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
@@ -178,7 +183,7 @@ public class Run extends AbstractRun {
   public void setState(State state) {
     if (!this.state.equals(state)) {
       if (
-        handleWorkDB(getProject(), getWorkUpdater(), new Handler() {
+        handleDatabase(this, new Handler() {
           @Override
           void handling(Database db) throws SQLException {
             PreparedStatement statement
@@ -203,7 +208,7 @@ public class Run extends AbstractRun {
 
   public void setExitStatus(int exitStatus) {
     if (
-      handleWorkDB(getProject(), getWorkUpdater(), new Handler() {
+      handleDatabase(this, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -256,7 +261,7 @@ public class Run extends AbstractRun {
         results.put(key, valueMap.get(key));
       }
 
-      handleWorkDB(getProject(), workUpdater, new Handler() {
+      handleDatabase(this, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
@@ -282,41 +287,34 @@ public class Run extends AbstractRun {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return null;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<UpdateTask> updateTasks() {
-      return new ArrayList<UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(" +
-              "id," +
-              KEY_CONDUCTOR + "," +
-              KEY_TRIALS + "," +
-              KEY_SIMULATOR + "," +
-              KEY_HOST + "," +
-              KEY_STATE + "," +
-              KEY_EXIT_STATUS + " default -1," +
-              KEY_RESULTS + " default '{}'," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                "id," +
+                KEY_CONDUCTOR + "," +
+                KEY_TRIALS + "," +
+                KEY_SIMULATOR + "," +
+                KEY_HOST + "," +
+                KEY_STATE + "," +
+                KEY_EXIT_STATUS + " default -1," +
+                KEY_RESULTS + " default '{}'," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
           }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 }

@@ -19,6 +19,10 @@ public class Trial extends ProjectData {
     super(project, id, name);
   }
 
+  public Trial(Project project) {
+    super(project);
+  }
+
   @Override
   protected String getTableName() {
     return TABLE_NAME;
@@ -27,7 +31,7 @@ public class Trial extends ProjectData {
   public static Trial getInstance(Project project, String id) {
     final Trial[] trials = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Trial(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
@@ -49,7 +53,7 @@ public class Trial extends ProjectData {
   public static Trial getRootInstance(Project project) {
     final Trial[] trials = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Trial(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet
@@ -70,7 +74,7 @@ public class Trial extends ProjectData {
   public static ArrayList<Trial> getList(Project project, Trial parent) {
     ArrayList<Trial> list = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Trial(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -93,7 +97,7 @@ public class Trial extends ProjectData {
   public static Trial create(Project project, Trial parent, String name) {
     Trial trial = new Trial(project, UUID.randomUUID(), name);
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Trial(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -149,48 +153,41 @@ public class Trial extends ProjectData {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return workUpdater;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<UpdateTask> updateTasks() {
-      return new ArrayList<UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_PARENT + "," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                "id,name," + KEY_PARENT + "," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
+          },
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              String scriptName = "test";
+              PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
+                "id,name," +
+                KEY_PARENT +
+                ") values(?,?,?);");
+              statement.setString(1, UUID.randomUUID().toString());
+              statement.setString(2, ROOT_NAME);
+              statement.setString(3, "");
+              statement.execute();
+            }
           }
-        },
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            String scriptName = "test";
-            PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
-              "id,name," +
-              KEY_PARENT +
-              ") values(?,?,?);");
-            statement.setString(1, UUID.randomUUID().toString());
-            statement.setString(2, ROOT_NAME);
-            statement.setString(3, "");
-            statement.execute();
-          }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 }

@@ -24,6 +24,10 @@ public class ConductorRun extends AbstractRun {
     super(project, id, "");
   }
 
+  public ConductorRun(Project project) {
+    super(project);
+  }
+
   @Override
   protected String getTableName() {
     return TABLE_NAME;
@@ -32,7 +36,7 @@ public class ConductorRun extends AbstractRun {
   public static ConductorRun getInstance(Project project, String id) {
     final ConductorRun[] conductorRun = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
@@ -58,7 +62,7 @@ public class ConductorRun extends AbstractRun {
     Project project = trial.getProject();
     ArrayList<ConductorRun> list = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_TRIAL + "=?;");
@@ -79,7 +83,7 @@ public class ConductorRun extends AbstractRun {
   public static ArrayList<ConductorRun> getList(Project project) {
     ArrayList<ConductorRun> list = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
@@ -98,7 +102,7 @@ public class ConductorRun extends AbstractRun {
   public static ConductorRun create(Project project, Trial trial, Conductor conductor) {
     ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID());
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -120,7 +124,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void remove() {
-    if (handleWorkDB(getProject(), workUpdater, new Handler() {
+    if (handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -141,7 +145,7 @@ public class ConductorRun extends AbstractRun {
   public void setTrial(Trial trial) {
     String trialId = trial.getId();
     if (
-      handleWorkDB(getProject(), workUpdater, new Handler() {
+      handleDatabase(this, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -201,7 +205,7 @@ public class ConductorRun extends AbstractRun {
         arguments.put(key, valueMap.get(key));
       }
 
-      handleWorkDB(getProject(), workUpdater, new Handler() {
+      handleDatabase(this, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
@@ -230,38 +234,31 @@ public class ConductorRun extends AbstractRun {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return workUpdater;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<UpdateTask> updateTasks() {
-      return new ArrayList<UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
-              + KEY_ARGUMENTS + " default '{}',"
-              + KEY_RESULTS + " default '{}',"
-              + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
+                + KEY_ARGUMENTS + " default '{}',"
+                + KEY_RESULTS + " default '{}',"
+                + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
           }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 
   private final ArgumentMapInterface argumentMapInterface  = new ArgumentMapInterface();
   public HashMap argument() { return argumentMapInterface; }

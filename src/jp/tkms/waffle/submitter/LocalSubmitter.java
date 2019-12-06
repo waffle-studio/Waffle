@@ -42,7 +42,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   public String exec(Run run, String command) {
     String result = "";
-    ProcessBuilder p = new ProcessBuilder("sh", "-c", command).directory(Paths.get(getWorkDirectory(run)).toFile());
+    ProcessBuilder p = new ProcessBuilder("sh", "-c", command);
     p.redirectErrorStream(true);
 
     try {

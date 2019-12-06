@@ -37,7 +37,11 @@ public class Database implements AutoCloseable {
     }
   }
 
-  public static synchronized Database getDB(Path path) {
+  public static synchronized Database getDatabase(Path path) {
+    if (path == null) {
+      path = Paths.get(Environment.MAIN_DB_NAME);
+    }
+
     initialize();
     Database db = null;
     String url = "jdbc:sqlite:" + path.toAbsolutePath().toString();
@@ -51,10 +55,6 @@ public class Database implements AutoCloseable {
     return db;
   }
 
-  public static Database getMainDB() {
-    return getDB(Paths.get(Environment.MAIN_DB_NAME));
-  }
-
   public void commit() throws SQLException {
     connection.commit();
   }
@@ -64,6 +64,9 @@ public class Database implements AutoCloseable {
   }
 
   public int getVersion(String tag) {
+    if (tag == null) {
+      tag = "";
+    }
     int version = -1;
     try (ResultSet resultSet = executeQuery("select value from system where name='version-" + tag + "';")) {
       while (resultSet.next()) {

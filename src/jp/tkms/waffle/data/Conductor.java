@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
+import static jp.tkms.waffle.data.SimulatorData.handleWorkDB;
+
 public class Conductor extends ProjectData {
   protected static final String TABLE_NAME = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
@@ -26,6 +28,10 @@ public class Conductor extends ProjectData {
   private String conductorType = null;
   private String scriptFileName = null;
   private String arguments = null;
+
+  public Conductor(Project project) {
+    super(project);
+  }
 
   public static ArrayList<String> getConductorNameList() {
     return new ArrayList<>(Arrays.asList(
@@ -46,7 +52,7 @@ public class Conductor extends ProjectData {
   public static Conductor getInstance(Project project, String id) {
     final Conductor[] conductor = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Conductor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
@@ -68,7 +74,7 @@ public class Conductor extends ProjectData {
   public static Conductor getInstanceByName(Project project, String name) {
     final Conductor[] conductor = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Conductor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
@@ -94,7 +100,7 @@ public class Conductor extends ProjectData {
   public static ArrayList<Conductor> getList(Project project) {
     ArrayList<Conductor> simulatorList = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new Conductor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
@@ -115,7 +121,7 @@ public class Conductor extends ProjectData {
     Conductor conductor = new Conductor(project, UUID.randomUUID(), name);
 
     if (
-      handleWorkDB(project, workUpdater, new Handler() {
+      handleDatabase(new Conductor(project), new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -179,7 +185,7 @@ public class Conductor extends ProjectData {
     if (args != null) {
       arguments = args.toString();
 
-      handleWorkDB(getProject(), workUpdater, new Handler() {
+      handleDatabase(this, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -193,34 +199,27 @@ public class Conductor extends ProjectData {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return workUpdater;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<UpdateTask> updateTasks() {
-      return new ArrayList<UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(" +
-              "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," + KEY_ARGUMENTS + " default '{}'," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," + KEY_ARGUMENTS + " default '{}'," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
           }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 }

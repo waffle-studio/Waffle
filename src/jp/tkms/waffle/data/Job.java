@@ -25,6 +25,8 @@ public class Job extends Data {
     super(id, "");
   }
 
+  public Job() { }
+
   @Override
   protected String getTableName() {
     return TABLE_NAME;
@@ -33,7 +35,7 @@ public class Job extends Data {
   public static Job getInstance(String id) {
     final Job[] job = {null};
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
@@ -53,7 +55,7 @@ public class Job extends Data {
   public static ArrayList<Job> getList() {
     ArrayList<Job> list = new ArrayList<>();
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
@@ -71,7 +73,7 @@ public class Job extends Data {
   public static ArrayList<Job> getList(Host host) {
     ArrayList<Job> list = new ArrayList<>();
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -92,7 +94,7 @@ public class Job extends Data {
   public static void addRun(Run run) {
     String hostId = run.getHost().getId();
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -109,7 +111,7 @@ public class Job extends Data {
   }
 
   public void remove() {
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -122,7 +124,7 @@ public class Job extends Data {
 
   public void setJobId(String jobId) {
     if (
-      handleMainDB(mainUpdater, new Handler() {
+      handleDatabase(new Job(), new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -171,11 +173,8 @@ public class Job extends Data {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return mainUpdater;
-  }
-
-  private static Updater mainUpdater = new Updater() {
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -198,4 +197,5 @@ public class Job extends Data {
         ));
       }
     };
+  }
 }

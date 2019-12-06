@@ -21,6 +21,10 @@ public class ParameterExtractor extends ProjectData {
   protected AbstractResultCollector resultCollector = null;
   protected String contents = null;
 
+  public ParameterExtractor(Project project) {
+    super(project);
+  }
+
   public static ArrayList<String> getResultCollectorNameList() {
     return new ArrayList<>(Arrays.asList(
       JsonResultCollector.class.getCanonicalName()
@@ -39,7 +43,7 @@ public class ParameterExtractor extends ProjectData {
   public static Simulator getInstance(Project project, String id) {
     final Simulator[] simulator = {null};
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ParameterExtractor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
@@ -62,7 +66,7 @@ public class ParameterExtractor extends ProjectData {
     Project project = simulator.getProject();
     ArrayList<ParameterExtractor> collectorList = new ArrayList<>();
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ParameterExtractor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME)
@@ -86,7 +90,7 @@ public class ParameterExtractor extends ProjectData {
     Project project = simulator.getProject();
     ParameterExtractor resultCollector = new ParameterExtractor(project, UUID.randomUUID(), name);
 
-    handleWorkDB(project, workUpdater, new Handler() {
+    handleDatabase(new ParameterExtractor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
@@ -122,37 +126,30 @@ public class ParameterExtractor extends ProjectData {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return null;
-  }
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
 
-  @Override
-  protected Updater getWorkUpdater() {
-    return workUpdater;
-  }
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
-
-    @Override
-    ArrayList<UpdateTask> updateTasks() {
-      return new ArrayList<UpdateTask>(Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            new Sql.Create(db, TABLE_NAME,
-              KEY_ID, KEY_NAME,
-              KEY_SIMULATOR,
-              KEY_COLLECTOR_TYPE,
-              KEY_CONTENTS,
-              Sql.Create.timestamp("timestamp_create")
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              new Sql.Create(db, TABLE_NAME,
+                KEY_ID, KEY_NAME,
+                KEY_SIMULATOR,
+                KEY_COLLECTOR_TYPE,
+                KEY_CONTENTS,
+                Sql.Create.timestamp("timestamp_create")
               ).execute();
+            }
           }
-        }
-      ));
-    }
-  };
+        ));
+      }
+    };
+  }
 }

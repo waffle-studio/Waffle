@@ -27,8 +27,6 @@ public class Main {
     JobsComponent.register();
     HostsComponent.register();
 
-    TestComponent.register();
-
     Browser.updateDB();
     PollingThread.startup();
   }

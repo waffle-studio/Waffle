@@ -24,6 +24,8 @@ public class BrowserMessage extends Data {
     this.message = message;
   }
 
+  public BrowserMessage() { }
+
   @Override
   protected String getTableName() {
     return TABLE_NAME;
@@ -32,7 +34,7 @@ public class BrowserMessage extends Data {
   public static ArrayList<BrowserMessage> getList(String browserId) {
     ArrayList<BrowserMessage> list = new ArrayList<>();
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
@@ -60,7 +62,7 @@ public class BrowserMessage extends Data {
   }
 
   public static void addMessage(String message) {
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         Browser.removeExpired(db);
@@ -83,7 +85,7 @@ public class BrowserMessage extends Data {
   }
 
   public void remove() {
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -96,11 +98,8 @@ public class BrowserMessage extends Data {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return mainUpdater;
-  }
-
-  private static Updater mainUpdater = new Updater() {
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -122,4 +121,6 @@ public class BrowserMessage extends Data {
         ));
       }
     };
+  }
+
 }

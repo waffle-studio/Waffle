@@ -15,6 +15,8 @@ public class Browser extends Data {
     super(UUID.randomUUID(), id);
   }
 
+  public Browser() { }
+
   @Override
   protected String getTableName() {
     return TABLE_NAME;
@@ -28,7 +30,7 @@ public class Browser extends Data {
   public static Browser getInstance(String id) {
     final Browser[] browser = {null};
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Browser(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -67,7 +69,7 @@ public class Browser extends Data {
   public static ArrayList<Browser> getList() {
     ArrayList<Browser> list = new ArrayList<>();
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(null, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
@@ -83,7 +85,7 @@ public class Browser extends Data {
   }
 
   public static void update(String id) {
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Browser(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where id=?;");
@@ -104,7 +106,7 @@ public class Browser extends Data {
   }
 
   public static void updateDB() {
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Browser(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
       }
@@ -112,11 +114,8 @@ public class Browser extends Data {
   }
 
   @Override
-  protected Updater getMainUpdater() {
-    return mainUpdater;
-  }
-
-  private static Updater mainUpdater = new Updater() {
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -136,4 +135,6 @@ public class Browser extends Data {
         ));
       }
     };
+  }
+
 }

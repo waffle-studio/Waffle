@@ -30,10 +30,7 @@ public class Project extends Data {
     return TABLE_NAME;
   }
 
-  @Override
-  protected Updater getMainUpdater() {
-    return mainUpdater;
-  }
+  public Project() { }
 
   protected void setLocation(Path location) {
     this.location = location;
@@ -42,7 +39,7 @@ public class Project extends Data {
   public static Project getInstance(String id) {
     final Project[] project = {null};
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Project(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -65,7 +62,7 @@ public class Project extends Data {
   public static ArrayList<Project> getList() {
     ArrayList<Project> projectList = new ArrayList<>();
 
-    handleMainDB(mainUpdater, new Handler() {
+    handleDatabase(new Project(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
@@ -87,7 +84,7 @@ public class Project extends Data {
     Project project = new Project(UUID.randomUUID(), name);
 
     if (
-      handleMainDB(mainUpdater, new Handler() {
+      handleDatabase(project, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -102,40 +99,10 @@ public class Project extends Data {
       try {
         Files.createDirectories(project.getLocation());
 
-        ProjectData.handleWorkDB(project, new Updater() {
-          @Override
-          String tableName() {
-            return TABLE_NAME;
-          }
-
-          @Override
-          ArrayList<UpdateTask> updateTasks() {
-            return new ArrayList<UpdateTask> (Arrays.asList(
-              new UpdateTask() {
-                @Override
-                void task(Database db) throws SQLException {
-                  PreparedStatement statement
-                    = db.preparedStatement("insert into system(name,value) values('id',?);");
-                  statement.setString(1, project.getId());
-                  statement.execute();
-
-                  statement = db.preparedStatement("insert into system(name,value) values('name',?);");
-                  statement.setString(1, project.getName());
-                  statement.execute();
-
-                  db.execute("insert into system(name,value)" +
-                    " values('timestamp_create',(DATETIME('now','localtime')));");
-                }
-              }
-            ));
-          }
-        }, new Handler() {
-          @Override
-          void handling(Database db) throws SQLException {
-            Conductor.create(project, "Trial Submitter",
-              AbstractConductor.getInstance(TestConductor.class.getCanonicalName()), "");
-          }
-        });
+        if (new ProjectInitializer(project).init()) {
+          Conductor.create(project, "Trial Submitter",
+            AbstractConductor.getInstance(TestConductor.class.getCanonicalName()), "");
+        }
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -149,38 +116,61 @@ public class Project extends Data {
     return location;
   }
 
-  private static Updater mainUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
-    }
 
-    @Override
-    ArrayList<Updater.UpdateTask> updateTasks() {
-      return new ArrayList<Updater.UpdateTask> (Arrays.asList(
-        new UpdateTask() {
-          @Override
-          void task(Database db) throws SQLException {
-            db.execute("create table " + TABLE_NAME + "(id,name,location," +
-              "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-              ");");
+  @Override
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
+
+      @Override
+      ArrayList<Updater.UpdateTask> updateTasks() {
+        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(id,name,location," +
+                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
           }
+        ));
+      }
+    };
+  }
+
+  private static class ProjectInitializer extends ProjectData {
+    public ProjectInitializer(Project project) {
+      super(project);
+    }
+
+    boolean init() {
+      return handleDatabase(this, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("insert into system(name,value) values('id',?);");
+          statement.setString(1, getProject().getId());
+          statement.execute();
+
+          statement = db.preparedStatement("insert into system(name,value) values('name',?);");
+          statement.setString(1, getProject().getName());
+          statement.execute();
+
+          db.execute("insert into system(name,value)" +
+            " values('timestamp_create',(DATETIME('now','localtime')));");
         }
-      ));
-    }
-  };
-
-  private static Updater workUpdater = new Updater() {
-    @Override
-    String tableName() {
-      return TABLE_NAME;
+      });
     }
 
     @Override
-    ArrayList<Updater.UpdateTask> updateTasks() {
-      return new ArrayList<Updater.UpdateTask> (Arrays.asList(
-        null // reserved in create()
-      ));
+    protected String getTableName() {
+      return null;
     }
-  };
+
+    @Override
+    protected Updater getDatabaseUpdater() { return null; }
+  }
 }

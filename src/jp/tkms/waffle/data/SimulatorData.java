@@ -60,7 +60,7 @@ abstract public class SimulatorData extends Data {
   }
 
   private static Database getWorkDB(Project project) {
-    return Database.getDB(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
+    return Database.getDatabase(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
   }
 
   private static Database getWorkDB(Project project, Updater updater) {
