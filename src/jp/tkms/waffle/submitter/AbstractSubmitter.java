@@ -13,10 +13,11 @@ abstract public class AbstractSubmitter {
 
   abstract String getWorkDirectory(Run run);
   abstract void prepare(Run run);
-  abstract public String exec(Run run, String command);
+  abstract String exec(Run run, String command);
   abstract int getExitStatus(Run run);
   abstract void postProcess(Run run);
   abstract public void close();
+  abstract public String getFileContents(Run run, String path);
 
   public static AbstractSubmitter getInstance(Host host) {
     AbstractSubmitter submitter = null;
@@ -112,6 +113,11 @@ abstract public class AbstractSubmitter {
   }
 
   void processXdel(Job job, String json) {
+  }
+
+  String getContentsPath(Run run, String path) {
+    return getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + INNER_WORK_DIR
+       + run.getHost().getDirectorySeparetor() + path;
   }
 
   @Override

@@ -38,6 +38,7 @@ public class ProjectComponent extends AbstractComponent {
     SimulatorComponent.register();
     TrialsComponent.register();
     ConductorComponent.register();
+    RunComponent.register();
   }
 
   public static String getUrl(Project project) {

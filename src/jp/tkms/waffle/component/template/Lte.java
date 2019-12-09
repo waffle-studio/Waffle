@@ -91,6 +91,25 @@ public class Lte {
     );
   }
 
+  public static String readonlyTextAreaGroup(String name, String label, int rows,
+                                         String contents) {
+    String id = "input" + name;
+    return div("form-group",
+      (label != null ?
+        element("label", new Attributes(value("for", id)), label) : null),
+      element("textarea",
+        new Attributes(
+          value("class", "form-control"),
+          value("rows", String.valueOf(rows)),
+          value("name", name),
+          value("id", id),
+          value("readonly", null)
+        )
+        , contents
+      )
+    );
+  }
+
   public static String formInputGroup(String type, String name, String label,
                                       String placeholder, ArrayList<FormError> errors) {
     String id = "input" + name;

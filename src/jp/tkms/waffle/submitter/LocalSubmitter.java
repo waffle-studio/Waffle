@@ -99,6 +99,11 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   }
 
+  @Override
+  public String getFileContents(Run run, String path) {
+    return exec(run, "cat " + getContentsPath(run, path));
+  }
+
   public static void deleteDirectory(final String dirPath) throws Exception {
     File file = new File(dirPath);
     recursiveDeleteFile(file);

@@ -10,13 +10,13 @@ import java.util.*;
 
 public class Run extends AbstractRun {
   protected static final String TABLE_NAME = "run";
-  private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_HOST = "host";
+  private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
-  private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_RESULTS = "results";
+  private static final String KEY_EXIT_STATUS = "exit_status";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
@@ -54,13 +54,17 @@ public class Run extends AbstractRun {
       conductor.getId(), trial.getId(), simulator.getId(), host.getId(), State.Created);
   }
 
-  private Run(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
-    super(project, id, "");
+  private Run(Project project, UUID id, String name, String conductor, String trials, String simulator, String host, State state) {
+    super(project, id, name);
     this.conductor = conductor;
     this.trials = trials;
     this.simulator = simulator;
     this.host = host;
     this.state = state;
+  }
+
+  private Run(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
+    this(project, id, "", conductor, trials, simulator, host, state);
   }
 
   public static Run getInstance(Project project, String id) {
@@ -71,6 +75,7 @@ public class Run extends AbstractRun {
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
           KEY_ID,
+          KEY_NAME,
           KEY_CONDUCTOR,
           KEY_TRIALS,
           KEY_SIMULATOR,
@@ -83,6 +88,7 @@ public class Run extends AbstractRun {
           run[0] = new Run(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_CONDUCTOR),
             resultSet.getString(KEY_TRIALS),
             resultSet.getString(KEY_SIMULATOR),
@@ -232,17 +238,13 @@ public class Run extends AbstractRun {
 
   public JSONObject getResults() {
     if (results == null) {
-      JSONObject map = getConductor().getArguments();
-      JSONObject valueMap = new JSONObject(getFromDB(KEY_RESULTS));
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-      }
+      JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
       results = map;
     }
     return new JSONObject(results.toString());
   }
 
-  public Object getArgument(String key) {
+  public Object getResult(String key) {
     return getResults().get(key);
   }
 
@@ -301,7 +303,8 @@ public class Run extends AbstractRun {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
-                "id," +
+                KEY_ID + "," +
+                KEY_NAME + "," +
                 KEY_CONDUCTOR + "," +
                 KEY_TRIALS + "," +
                 KEY_SIMULATOR + "," +

@@ -79,13 +79,24 @@ public class TrialsComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        return
-          Html.javascript(
-            "var runUpdated = function(id) {location.reload();};",
-            "var runCreated = function(id) {location.reload();};"
-          )
-            +
-          Lte.card(null, null,
+        String contents = "";
+        contents += Html.javascript(
+          "var runUpdated = function(id) {location.reload();};",
+          "var runCreated = function(id) {location.reload();};"
+        );
+
+        if (! trial.getResults().isEmpty()) {
+          contents += Lte.card(Html.faIcon("poll") + "Results",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.readonlyTextAreaGroup("", null, 10, trial.getResults().toString(2))
+              )
+            )
+            , null);
+        }
+
+        contents += Lte.card(null, null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -107,37 +118,39 @@ public class TrialsComponent extends AbstractComponent {
               return list;
             }
           })
-          , null, null, "p-0")
-          +
-          Lte.card(null, null,
-            Lte.table("table-condensed table-sm", new Lte.Table() {
-              @Override
-              public ArrayList<Lte.TableValue> tableHeaders() {
-                ArrayList<Lte.TableValue> list = new ArrayList<>();
-                list.add(new Lte.TableValue("width:6.5em;", "ID"));
-                list.add(new Lte.TableValue("", "Conductor"));
-                list.add(new Lte.TableValue("", "Simulator"));
-                list.add(new Lte.TableValue("", "Host"));
-                list.add(new Lte.TableValue("width:2em;", ""));
-                return list;
-              }
-
-              @Override
-              public ArrayList<Lte.TableRow> tableRows() {
-                ArrayList<Lte.TableRow> list = new ArrayList<>();
-                for (Run run : Run.getList(project, trial)) {
-                  list.add(new Lte.TableRow(
-                    run.getShortId(),
-                    run.getConductor().getName(),
-                    run.getSimulator().getName(),
-                    run.getHost().getName(),
-                    JobsComponent.getStatusBadge(run)
-                  ));
-                }
-                return list;
-              }
-            })
           , null, null, "p-0");
+
+        contents += Lte.card(null, null,
+          Lte.table("table-condensed table-sm", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:6.5em;", "ID"));
+              list.add(new Lte.TableValue("", "Conductor"));
+              list.add(new Lte.TableValue("", "Simulator"));
+              list.add(new Lte.TableValue("", "Host"));
+              list.add(new Lte.TableValue("width:2em;", ""));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (Run run : Run.getList(project, trial)) {
+                list.add(new Lte.TableRow(
+                  Html.a(RunComponent.getUrl(project, run), run.getShortId()),
+                  run.getConductor().getName(),
+                  run.getSimulator().getName(),
+                  run.getHost().getName(),
+                  JobsComponent.getStatusBadge(run)
+                ));
+              }
+              return list;
+            }
+          })
+          , null, null, "p-0");
+
+        return contents;
       }
     }.render(this);
   }

@@ -11,10 +11,9 @@ import java.util.*;
 
 public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
-  private static final String KEY_TRIAL = "trial";
   private static final String KEY_CONDUCTOR = "conductor";
+  private static final String KEY_TRIAL = "trial";
   private static final String KEY_ARGUMENTS = "arguments";
-  private static final String KEY_RESULTS = "results";
 
   private Trial trial = null;
   private Conductor conductor = null;
@@ -250,7 +249,6 @@ public class ConductorRun extends AbstractRun {
               db.execute("create table " + TABLE_NAME + "(" +
                 "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
                 + KEY_ARGUMENTS + " default '{}',"
-                + KEY_RESULTS + " default '{}',"
                 + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,6 +16,9 @@ public class Trial extends ProjectData {
   protected static final String TABLE_NAME = "trials";
   public static final String ROOT_NAME = "ROOT";
   private static final String KEY_PARENT = "parent";
+  private static final String KEY_RESULTS = "results";
+
+  private JSONObject results;
 
   public Trial(Project project, UUID id, String name) {
     super(project, id, name);
@@ -152,6 +157,45 @@ public class Trial extends ProjectData {
     return false;
   }
 
+  public JSONObject getResults() {
+    if (results == null) {
+      JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
+      results = map;
+    }
+    return new JSONObject(results.toString());
+  }
+
+  public Object getResult(String key) {
+    return getResults().get(key);
+  }
+
+  public void putResults(String json) {
+    getResults();
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+    JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        results.put(key, valueMap.get(key));
+      }
+
+      handleDatabase(this, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
+          statement.setString(1, map.toString());
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      });
+    }
+  }
+
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -168,6 +212,7 @@ public class Trial extends ProjectData {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
                 "id,name," + KEY_PARENT + "," +
+                KEY_RESULTS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }
