@@ -3,10 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.ResultCollector;
-import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.*;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -103,10 +100,10 @@ public class SimulatorComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Simulator simulator : Simulator.getList(project)) {
+              for (ParameterModel model : ParameterModel.getList(simulator)) {
                 list.add(new Lte.TableRow(
-                  Html.a("", null, null, simulator.getShortId()),
-                  simulator.getName())
+                  Html.a("", null, null, model.getShortId()),
+                  model.getName())
                 );
               }
               return list;
@@ -127,10 +124,10 @@ public class SimulatorComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Simulator simulator : Simulator.getList(project)) {
+              for (ParameterExtractor extractor : ParameterExtractor.getList(simulator)) {
                 list.add(new Lte.TableRow(
-                  Html.a("", null, null, simulator.getShortId()),
-                  simulator.getName())
+                  Html.a("", null, null, extractor.getShortId()),
+                  extractor.getName())
                 );
               }
               return list;

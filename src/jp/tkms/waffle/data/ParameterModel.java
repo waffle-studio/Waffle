@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.collector.AbstractResultCollector;
-import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.data.util.Sql;
 
 import java.sql.PreparedStatement;
@@ -11,17 +10,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ParameterExtractor extends SimulatorData {
-  protected static final String TABLE_NAME = "parameter_extractor";
+public class ParameterModel extends SimulatorData {
+  protected static final String TABLE_NAME = "parameter_model";
   private static final String KEY_SCRIPT = "script";
 
   protected String script = null;
 
-  public ParameterExtractor(Simulator simulator) {
+  public ParameterModel(Simulator simulator) {
     super(simulator);
   }
 
-  public ParameterExtractor(Simulator simulator, UUID id, String name) {
+  public ParameterModel(Simulator simulator, UUID id, String name) {
     super(simulator, id, name);
   }
 
@@ -30,17 +29,17 @@ public class ParameterExtractor extends SimulatorData {
     return TABLE_NAME;
   }
 
-  public static ParameterExtractor getInstance(Simulator simulator, String id) {
-    final ParameterExtractor[] extractor = {null};
+  public static ParameterModel getInstance(Simulator simulator, String id) {
+    final ParameterModel[] extractor = {null};
 
-    handleDatabase(new ParameterExtractor(simulator), new Handler() {
+    handleDatabase(new ParameterModel(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          extractor[0] = new ParameterExtractor(
+          extractor[0] = new ParameterModel(
             simulator,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
@@ -52,16 +51,16 @@ public class ParameterExtractor extends SimulatorData {
     return extractor[0];
   }
 
-  public static ArrayList<ParameterExtractor> getList(Simulator simulator) {
-    ArrayList<ParameterExtractor> collectorList = new ArrayList<>();
+  public static ArrayList<ParameterModel> getList(Simulator simulator) {
+    ArrayList<ParameterModel> collectorList = new ArrayList<>();
 
-    handleDatabase(new ParameterExtractor(simulator), new Handler() {
+    handleDatabase(new ParameterModel(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          collectorList.add(new ParameterExtractor(
+          collectorList.add(new ParameterModel(
             simulator,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME))
@@ -73,10 +72,10 @@ public class ParameterExtractor extends SimulatorData {
     return collectorList;
   }
 
-  public static ParameterExtractor create(Simulator simulator, String name, AbstractResultCollector collector, String contents) {
-    ParameterExtractor extractor = new ParameterExtractor(simulator, UUID.randomUUID(), name);
+  public static ParameterModel create(Simulator simulator, String name, AbstractResultCollector collector, String contents) {
+    ParameterModel extractor = new ParameterModel(simulator, UUID.randomUUID(), name);
 
-    handleDatabase(new ParameterExtractor(simulator), new Handler() {
+    handleDatabase(new ParameterModel(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
@@ -90,7 +89,7 @@ public class ParameterExtractor extends SimulatorData {
     return extractor;
   }
 
-  public static ParameterExtractor create(Simulator simulator, String name, AbstractResultCollector collector) {
+  public static ParameterModel create(Simulator simulator, String name, AbstractResultCollector collector) {
     return create(simulator, name, collector, collector.contentsTemplate());
   }
 
