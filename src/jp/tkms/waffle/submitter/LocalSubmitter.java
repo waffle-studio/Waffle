@@ -1,7 +1,10 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.extractor.AbstractParameterExtractor;
+import jp.tkms.waffle.extractor.RubyParameterExtractor;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -30,10 +33,13 @@ public class LocalSubmitter extends AbstractSubmitter {
       FileWriter file
         = new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + BATCH_FILE);
       PrintWriter pw = new PrintWriter(new BufferedWriter(file));
-
       pw.println(makeBatchFileText(run));
-
       pw.close();
+
+      for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
+        AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
+        instance.extract(run, extractor);
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
