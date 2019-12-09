@@ -17,8 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static jp.tkms.waffle.data.SimulatorData.handleWorkDB;
-
 public class Conductor extends ProjectData {
   protected static final String TABLE_NAME = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";

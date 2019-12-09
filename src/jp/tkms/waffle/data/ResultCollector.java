@@ -12,18 +12,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ResultCollector extends ProjectData {
+public class ResultCollector extends SimulatorData {
   protected static final String TABLE_NAME = "result_collector";
-  private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_COLLECTOR_TYPE = "collector_type";
   private static final String KEY_CONTENTS = "contents";
 
-  protected Simulator simulator = null;
   protected AbstractResultCollector resultCollector = null;
   protected String contents = null;
 
-  public ResultCollector(Project project) {
-    super(project);
+  public ResultCollector(Simulator simulator) {
+    super(simulator);
   }
 
   public static ArrayList<String> getResultCollectorNameList() {
@@ -32,8 +30,8 @@ public class ResultCollector extends ProjectData {
     ));
   }
 
-  public ResultCollector(Project project, UUID id, String name) {
-    super(project, id, name);
+  public ResultCollector(Simulator simulator, UUID id, String name) {
+    super(simulator, id, name);
   }
 
   @Override
@@ -41,18 +39,18 @@ public class ResultCollector extends ProjectData {
     return TABLE_NAME;
   }
 
-  public static Simulator getInstance(Project project, String id) {
-    final Simulator[] simulator = {null};
+  public static ResultCollector getInstance(Simulator simulator, String id) {
+    final ResultCollector[] collector = {null};
 
-    handleDatabase(new ResultCollector(project), new Handler() {
+    handleDatabase(new ResultCollector(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          simulator[0] = new Simulator(
-            project,
+          collector[0] = new ResultCollector(
+            simulator,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
           );
@@ -60,23 +58,20 @@ public class ResultCollector extends ProjectData {
       }
     });
 
-    return simulator[0];
+    return collector[0];
   }
 
   public static ArrayList<ResultCollector> getList(Simulator simulator) {
-    Project project = simulator.getProject();
     ArrayList<ResultCollector> collectorList = new ArrayList<>();
 
-    handleDatabase(new ResultCollector(project), new Handler() {
+    handleDatabase(new ResultCollector(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME)
-          .where(Sql.Value.equalP(KEY_SIMULATOR)).toPreparedStatement();
-        statement.setString(1, simulator.getId());
+        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           collectorList.add(new ResultCollector(
-            project,
+            simulator,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME))
           );
@@ -89,18 +84,17 @@ public class ResultCollector extends ProjectData {
 
   public static ResultCollector create(Simulator simulator, String name, AbstractResultCollector collector, String contents) {
     Project project = simulator.getProject();
-    ResultCollector resultCollector = new ResultCollector(project, UUID.randomUUID(), name);
+    ResultCollector resultCollector = new ResultCollector(simulator, UUID.randomUUID(), name);
 
-    handleDatabase(new ResultCollector(project), new Handler() {
+    handleDatabase(new ResultCollector(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_SIMULATOR, KEY_COLLECTOR_TYPE, KEY_CONTENTS).toPreparedStatement();
+          KEY_ID, KEY_NAME, KEY_COLLECTOR_TYPE, KEY_CONTENTS).toPreparedStatement();
         statement.setString(1, resultCollector.getId());
         statement.setString(2, resultCollector.getName());
-        statement.setString(3, simulator.getId());
-        statement.setString(4, collector.getClass().getCanonicalName());
-        statement.setString(5, contents);
+        statement.setString(3, collector.getClass().getCanonicalName());
+        statement.setString(4, contents);
         statement.execute();
       }
     });
@@ -142,7 +136,6 @@ public class ResultCollector extends ProjectData {
             void task(Database db) throws SQLException {
               new Sql.Create(db, TABLE_NAME,
                 KEY_ID, KEY_NAME,
-                KEY_SIMULATOR,
                 KEY_COLLECTOR_TYPE,
                 KEY_CONTENTS,
                 Sql.Create.timestamp("timestamp_create")

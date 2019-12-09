@@ -4,9 +4,6 @@ import jp.tkms.waffle.Environment;
 
 import java.io.File;
 import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.UUID;
 
 abstract public class ProjectData extends Data {
@@ -26,6 +23,6 @@ abstract public class ProjectData extends Data {
   }
 
   protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(project.getLocation() + File.separator + Environment.WORK_DB_NAME));
+    return Database.getDatabase(Paths.get(project.getLocation() + File.separator + Environment.PROJECT_DB_NAME));
   }
 }
