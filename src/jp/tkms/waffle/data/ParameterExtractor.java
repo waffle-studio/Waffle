@@ -3,6 +3,8 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.extractor.AbstractParameterExtractor;
+import jp.tkms.waffle.extractor.RubyParameterExtractor;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -73,16 +75,17 @@ public class ParameterExtractor extends SimulatorData {
     return collectorList;
   }
 
-  public static ParameterExtractor create(Simulator simulator, String name, AbstractResultCollector collector, String contents) {
+  public static ParameterExtractor create(Simulator simulator, String name, String script) {
     ParameterExtractor extractor = new ParameterExtractor(simulator, UUID.randomUUID(), name);
 
     handleDatabase(new ParameterExtractor(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME).toPreparedStatement();
+          KEY_ID, KEY_NAME, KEY_SCRIPT).toPreparedStatement();
         statement.setString(1, extractor.getId());
         statement.setString(2, extractor.getName());
+        statement.setString(3, script);
         statement.execute();
       }
     });
@@ -90,11 +93,11 @@ public class ParameterExtractor extends SimulatorData {
     return extractor;
   }
 
-  public static ParameterExtractor create(Simulator simulator, String name, AbstractResultCollector collector) {
-    return create(simulator, name, collector, collector.contentsTemplate());
+  public static ParameterExtractor create(Simulator simulator, String name) {
+    return create(simulator, name, "");
   }
 
-  public String getContents() {
+  public String getScript() {
     if (script == null) {
       script = getFromDB(KEY_SCRIPT);
     }

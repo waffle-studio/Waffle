@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.PreparedStatement;
@@ -17,6 +18,7 @@ public class Run extends AbstractRun {
   private static final String KEY_STATE = "state";
   private static final String KEY_RESULTS = "results";
   private static final String KEY_EXIT_STATUS = "exit_status";
+  private static final String KEY_ARGUMENTS = "arguments";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
@@ -48,6 +50,7 @@ public class Run extends AbstractRun {
   private State state;
   private Integer exitStatus;
   private JSONObject results;
+  private JSONArray arguments;
 
   private Run(Conductor conductor, Trial trial, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
@@ -186,6 +189,10 @@ public class Run extends AbstractRun {
     return run;
   }
 
+  public static Run create(ConductorRun conductorRun, Simulator simulator, Host host) {
+    return create(conductorRun.getConductor(), conductorRun.getTrial(), simulator, host);
+  }
+
   public void setState(State state) {
     if (!this.state.equals(state)) {
       if (
@@ -275,6 +282,34 @@ public class Run extends AbstractRun {
     }
   }
 
+  public ArrayList<Object> getArguments() {
+    if (arguments == null) {
+      arguments = new JSONArray(getFromDB(KEY_ARGUMENTS));
+    }
+    return new ArrayList<>(arguments.toList());
+  }
+
+  public void setArguments(ArrayList<Object> arguments) {
+    this.arguments = new JSONArray(arguments);
+    String argumentsJson = this.arguments.toString();
+
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
+        statement.setString(1, argumentsJson);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
+  }
+
+  public void addArgument(Object o) {
+    ArrayList<Object> arguments = getArguments();
+    arguments.add(o);
+    setArguments(arguments);
+  }
+
   public boolean isRunning() {
     return !(state.equals(State.Finished) || state.equals(State.Failed));
   }
@@ -310,6 +345,7 @@ public class Run extends AbstractRun {
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
+                KEY_ARGUMENTS + "," +
                 KEY_EXIT_STATUS + " default -1," +
                 KEY_RESULTS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +

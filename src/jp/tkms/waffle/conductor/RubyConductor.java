@@ -1,6 +1,7 @@
 package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
@@ -72,19 +73,6 @@ public class RubyConductor extends CycleConductor {
   }
 
   private String getInitScript(ConductorRun run) {
-    String script = "";
-    InputStream in = getClass().getResourceAsStream("/ruby_conductor_init.rb");
-    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-    String data;
-    try {
-      while (true) {
-        if (!((data = reader.readLine()) != null)) break;
-        script += data + '\n';
-      }
-      reader.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return script;
+    return ResourceFile.getContents("/ruby_init.rb");
   }
 }

@@ -30,15 +30,21 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   void prepare(Run run) {
     try {
-      FileWriter file
-        = new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + BATCH_FILE);
-      PrintWriter pw = new PrintWriter(new BufferedWriter(file));
+      PrintWriter pw = new PrintWriter(new BufferedWriter(
+        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + BATCH_FILE)
+      ));
       pw.println(makeBatchFileText(run));
+      pw.close();
+
+      pw = new PrintWriter(new BufferedWriter(
+        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + ARGUMENTS_FILE)
+      ));
+      pw.println(makeArgumentFileText(run));
       pw.close();
 
       for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
         AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-        instance.extract(run, extractor);
+        instance.extract(run, extractor, this);
       }
     } catch (IOException e) {
       e.printStackTrace();

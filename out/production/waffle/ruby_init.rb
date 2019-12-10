@@ -51,14 +51,7 @@ end
 class ConductorRun < Java::jp.tkms.waffle.data.ConductorRun
 end
 
-class Run
-    def initialize(crun, simulator, host)
-        @run = Java::jp.tkms.waffle.data.Run.create(crun.conductor, crun.trial, simulator, host)
-    end
-
-    def start
-        @run.start()
-    end
+class Run < Java::jp.tkms.waffle.data.Run
 end
 
 class Registry < Java::jp.tkms.waffle.data.Registry

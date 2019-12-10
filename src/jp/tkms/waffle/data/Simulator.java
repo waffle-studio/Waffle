@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.collector.JsonResultCollector;
+import jp.tkms.waffle.data.util.ResourceFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -126,6 +127,7 @@ public class Simulator extends ProjectData {
         e.printStackTrace();
       }
 
+      ParameterExtractor.create(simulator, "command arguments", ResourceFile.getContents("/command_arguments.rb"));
       ResultCollector.create(simulator, "_output.json", AbstractResultCollector.getInstance(JsonResultCollector.class.getCanonicalName()));
     }
 
