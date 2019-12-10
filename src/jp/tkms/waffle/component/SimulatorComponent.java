@@ -6,13 +6,13 @@ import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
+import java.lang.module.ModuleDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class SimulatorComponent extends AbstractComponent {
   private Mode mode;
 
-  ;
   private Project project;
   private Simulator simulator;
   public SimulatorComponent(Mode mode) {
@@ -30,6 +30,8 @@ public class SimulatorComponent extends AbstractComponent {
 
     SimulatorsComponent.register();
     TrialsComponent.register();
+    ParameterModelGroupComponent.register();
+    ParameterModelComponent.register();
   }
 
   public static String getUrl(Simulator simulator) {
@@ -44,9 +46,6 @@ public class SimulatorComponent extends AbstractComponent {
   @Override
   public void controller() {
     project = Project.getInstance(request.params("project"));
-    if (!project.isValid()) {
-    }
-
     simulator = Simulator.getInstance(project, request.params("id"));
 
     renderSimulator();
@@ -87,7 +86,11 @@ public class SimulatorComponent extends AbstractComponent {
           )
           , null);
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter Models", null,
+        ParameterModelGroup rootGroup = ParameterModelGroup.getRootInstance(simulator);
+
+        content += Lte.card(Html.faIcon("list-alt") + "Parameter Models",
+          Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator), ParameterModelGroupComponent.MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square") + "Group") +
+            "/" + Html.a(ParameterModelGroupComponent.getUrl(rootGroup, ParameterModelGroupComponent.MODE_ADD_PARAMETER), Html.faIcon("plus") + "Parameter"),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -100,10 +103,16 @@ public class SimulatorComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModel model : ParameterModel.getList(simulator)) {
+              for (ParameterModel model : ParameterModel.getList(simulator, rootGroup)) {
                 list.add(new Lte.TableRow(
-                  Html.a("", null, null, model.getShortId()),
+                  Html.a(ParameterModelComponent.getUrl(model), null, null, model.getShortId()),
                   model.getName())
+                );
+              }
+              for (ParameterModelGroup group : ParameterModelGroup.getList(simulator, rootGroup)) {
+                list.add(new Lte.TableRow(
+                  Html.a(ParameterModelGroupComponent.getUrl(group), null, null, "*" + group.getShortId()),
+                  group.getName())
                 );
               }
               return list;
@@ -164,9 +173,5 @@ public class SimulatorComponent extends AbstractComponent {
     }.render(this);
   }
 
-  private ArrayList<Lte.FormError> checkCreateProjectFormError() {
-    return new ArrayList<>();
-  }
-
-  public enum Mode {Default, EditConstModel}
+  public enum Mode {Default}
 }

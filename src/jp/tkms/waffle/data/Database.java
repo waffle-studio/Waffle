@@ -13,6 +13,10 @@ import java.util.Properties;
 public class Database implements AutoCloseable {
   static Logger logger = LoggerFactory.getLogger("Database");
 
+  static final String SYSTEM_TABLE = "system";
+  static final String KEY_NAME = "name";
+  static final String KEY_VALUE = "value";
+
   private static boolean initialized = false;
   private Connection connection;
   private String url;
@@ -68,7 +72,7 @@ public class Database implements AutoCloseable {
       tag = "";
     }
     int version = -1;
-    try (ResultSet resultSet = executeQuery("select value from system where name='version-" + tag + "';")) {
+    try (ResultSet resultSet = executeQuery("select value from " + SYSTEM_TABLE + " where name='version-" + tag + "';")) {
       while (resultSet.next()) {
         version = resultSet.getInt(1);
       }

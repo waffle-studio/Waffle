@@ -24,6 +24,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/ionicons.min.css"),
           link("stylesheet", "/css/gfonts.css"),
           link("stylesheet", "/css/select2.min.css"),
+          link("stylesheet", "/css/icheck-bootstrap.min.css"),
           link("stylesheet", "/css/toastr.min.css"),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),

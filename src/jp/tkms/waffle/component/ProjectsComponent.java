@@ -84,7 +84,7 @@ public class ProjectsComponent extends AbstractComponent {
             Lte.card("New Project", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", errors)
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null

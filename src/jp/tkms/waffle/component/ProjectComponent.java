@@ -132,7 +132,7 @@ public class ProjectComponent extends AbstractComponent {
             Lte.card("New Conductor", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", errors),
+                Lte.formInputGroup("text", "name", null, "Name", null, errors),
                 Lte.formSelectGroup("type", "type", Conductor.getConductorNameList(), errors)
               ),
               Lte.formSubmitButton("success", "Add"),

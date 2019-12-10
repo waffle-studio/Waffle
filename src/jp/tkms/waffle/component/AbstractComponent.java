@@ -42,4 +42,8 @@ abstract public class AbstractComponent implements Route {
     buffer = "";
     return result;
   }
+
+  public boolean isPost() {
+    return request.requestMethod().toLowerCase().equals("post");
+  }
 }

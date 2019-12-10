@@ -111,7 +111,7 @@ public class Lte {
   }
 
   public static String formInputGroup(String type, String name, String label,
-                                      String placeholder, ArrayList<FormError> errors) {
+                                      String placeholder, String value, ArrayList<FormError> errors) {
     String id = "input" + name;
     return div("form-group",
       (label != null ?
@@ -121,6 +121,7 @@ public class Lte {
         value("class", "form-control"),
         value("name", name),
         value("id", id),
+        value("value", (value == null?"":value)),
         value("placeholder", placeholder)
       )
     );

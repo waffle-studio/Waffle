@@ -81,6 +81,26 @@ public class Sql {
     }
   }
 
+  public static class Delete extends Sql {
+    String deleteSql = "";
+    String whereSql = "";
+
+    public Delete(Database database, String table) {
+      super(database);
+      deleteSql = "delete from " + table;
+    }
+
+    public Delete where(Value value) {
+      whereSql = " where " + value.toString() + "";
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      return deleteSql + whereSql + ";";
+    }
+  }
+
   public static class Insert extends Sql {
     String sql = "";
 

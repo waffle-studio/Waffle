@@ -220,7 +220,6 @@ public class Trial extends ProjectData {
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {
-              String scriptName = "test";
               PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
                 "id,name," +
                 KEY_PARENT +

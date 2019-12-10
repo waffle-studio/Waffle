@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.util.Sql;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -61,6 +63,18 @@ abstract public class Data {
 
   public String getShortName() {
     return getShortName(name);
+  }
+
+  protected void setSystemValue(String name, Object value) {
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Insert(db, Database.SYSTEM_TABLE, Database.KEY_NAME, Database.KEY_VALUE).toPreparedStatement();
+        statement.setString(1, name);
+        statement.setString(2, value.toString());
+        statement.execute();
+      }
+    });
   }
 
   protected String getFromDB(String key) {

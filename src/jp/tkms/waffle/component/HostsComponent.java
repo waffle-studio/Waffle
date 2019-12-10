@@ -84,10 +84,10 @@ public class HostsComponent extends AbstractComponent {
             Lte.card("New Host", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", errors),
+                Lte.formInputGroup("text", "name", null, "Name", null, errors),
                 Html.hr(),
-                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", errors),
-                Lte.formInputGroup("text", "ver_cmd", "Version command", "", errors)
+                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", null, errors),
+                Lte.formInputGroup("text", "ver_cmd", "Version command", "", null, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null

@@ -12,9 +12,12 @@ import java.util.UUID;
 
 public class ParameterModel extends SimulatorData {
   protected static final String TABLE_NAME = "parameter_model";
-  private static final String KEY_SCRIPT = "script";
+  private static final String KEY_PARENT = "parent";
+  private static final String KEY_IS_QUANTITATIVE = "quantitative";
+  private static final String KEY_DEFAULT_UPDATER = "default_updater";
 
-  protected String script = null;
+  private ParameterModelGroup parent = null;
+  private Boolean isQuantitative = null;
 
   public ParameterModel(Simulator simulator) {
     super(simulator);
@@ -51,13 +54,14 @@ public class ParameterModel extends SimulatorData {
     return extractor[0];
   }
 
-  public static ArrayList<ParameterModel> getList(Simulator simulator) {
+  public static ArrayList<ParameterModel> getList(Simulator simulator, ParameterModelGroup parent) {
     ArrayList<ParameterModel> collectorList = new ArrayList<>();
 
     handleDatabase(new ParameterModel(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
+        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
+        statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           collectorList.add(new ParameterModel(
@@ -72,32 +76,51 @@ public class ParameterModel extends SimulatorData {
     return collectorList;
   }
 
-  public static ParameterModel create(Simulator simulator, String name, AbstractResultCollector collector, String contents) {
-    ParameterModel extractor = new ParameterModel(simulator, UUID.randomUUID(), name);
+  public static ParameterModel create(Simulator simulator, ParameterModelGroup parent, String name) {
+    ParameterModel parameter = new ParameterModel(simulator, UUID.randomUUID(), name);
 
     handleDatabase(new ParameterModel(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME).toPreparedStatement();
-        statement.setString(1, extractor.getId());
-        statement.setString(2, extractor.getName());
+          KEY_ID, KEY_NAME, KEY_PARENT).toPreparedStatement();
+        statement.setString(1, parameter.getId());
+        statement.setString(2, parameter.getName());
+        statement.setString(3, parent.getId());
         statement.execute();
       }
     });
 
-    return extractor;
+    return parameter;
   }
 
-  public static ParameterModel create(Simulator simulator, String name, AbstractResultCollector collector) {
-    return create(simulator, name, collector, collector.contentsTemplate());
-  }
-
-  public String getContents() {
-    if (script == null) {
-      script = getFromDB(KEY_SCRIPT);
+  public ParameterModelGroup getParent() {
+    if (parent == null) {
+      parent = ParameterModelGroup.getInstance(getSimulator(), getFromDB(KEY_PARENT));
     }
-    return script;
+    return parent;
+  }
+
+  public boolean isQuantitative() {
+    if (isQuantitative == null) {
+      isQuantitative = Boolean.valueOf( getFromDB(KEY_IS_QUANTITATIVE) );
+    }
+    return isQuantitative;
+  }
+
+  public boolean isQuantitative(boolean b) {
+    if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_IS_QUANTITATIVE + "=? where " + KEY_ID + "=?;");
+        statement.setString(1, Boolean.toString(b));
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    })) {
+      isQuantitative = Boolean.valueOf( b );
+    }
+    return isQuantitative;
   }
 
   @Override
@@ -115,8 +138,7 @@ public class ParameterModel extends SimulatorData {
             @Override
             void task(Database db) throws SQLException {
               new Sql.Create(db, TABLE_NAME,
-                KEY_ID, KEY_NAME,
-                KEY_SCRIPT,
+                KEY_ID, KEY_NAME, KEY_PARENT, Sql.Create.withDefault(KEY_IS_QUANTITATIVE, "false"), KEY_DEFAULT_UPDATER,
                 Sql.Create.timestamp("timestamp_create")
               ).execute();
             }
