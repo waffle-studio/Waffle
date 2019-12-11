@@ -4,6 +4,8 @@ import jp.tkms.waffle.data.Database;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Sql {
   Database database;
@@ -78,6 +80,30 @@ public class Sql {
     @Override
     public String toString() {
       return selectSql + whereSql + ";";
+    }
+  }
+
+  public static class Update extends Sql {
+    String updateSql = "";
+    String whereSql = "";
+
+    public Update(Database database, String table, String... keys) {
+      super(database);
+      ArrayList<String> updateKeys = new ArrayList<>();
+      for (String key : keys) {
+        updateKeys.add(key + "=?");
+      }
+      updateSql = "update " + table + " set " + listByComma(updateKeys.toArray(new String[updateKeys.size()]));
+    }
+
+    public Update where(Value value) {
+      whereSql = " where " + value.toString() + "";
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      return updateSql + whereSql + ";";
     }
   }
 

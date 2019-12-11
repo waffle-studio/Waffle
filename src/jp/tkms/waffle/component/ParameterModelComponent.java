@@ -81,11 +81,10 @@ public class ParameterModelComponent extends AbstractComponent {
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("circle-info") + "Basic",
+        content += Lte.card(Html.faIcon("tasks") + "Properties",
           null,
           Html.div(null,
             Html.inputHidden("cmd", "add"),
-            Lte.formInputGroup("text", "name", null, "Name", parameter.getName(), errors),
             Html.div("form-group clearfix",
               Html.div("icheck-primary d-inline",
                 Html.attribute("input",
@@ -104,7 +103,9 @@ public class ParameterModelComponent extends AbstractComponent {
                   Html.value("value", "quantitative"), (parameter.isQuantitative()?"checked":"")),
                 Html.element("label", new Html.Attributes(Html.value("for", "value_type_q")), "Quantitative")
               )
-            )
+            ),
+            Lte.formInputGroup("text", "name", "Default value", "Name", parameter.getShortId(), errors),
+            Lte.formTextAreaGroup("update_script", "Default value update script", 8, "", errors)
           )
           , null);
 

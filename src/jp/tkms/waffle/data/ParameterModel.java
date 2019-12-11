@@ -1,6 +1,5 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.data.util.Sql;
 
 import java.sql.PreparedStatement;
@@ -14,10 +13,13 @@ public class ParameterModel extends SimulatorData {
   protected static final String TABLE_NAME = "parameter_model";
   private static final String KEY_PARENT = "parent";
   private static final String KEY_IS_QUANTITATIVE = "quantitative";
-  private static final String KEY_DEFAULT_UPDATER = "default_updater";
+  private static final String KEY_DEFAULT_VALUE = "default_value";
+  private static final String KEY_DEFAULT_VALUE_UPDATE_SCRIPT = "default_updater";
 
   private ParameterModelGroup parent = null;
   private Boolean isQuantitative = null;
+  private String defaultValue = null;
+  private String defaultValueUpdateScript = null;
 
   public ParameterModel(Simulator simulator) {
     super(simulator);
@@ -88,6 +90,10 @@ public class ParameterModel extends SimulatorData {
         statement.setString(2, parameter.getName());
         statement.setString(3, parent.getId());
         statement.execute();
+        statement = new Sql.Update(db, TABLE_NAME, KEY_DEFAULT_VALUE_UPDATE_SCRIPT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, defaultUpdateScriptTemplate());
+        statement.setString(2, parameter.getId());
+        statement.execute();
       }
     });
 
@@ -106,6 +112,20 @@ public class ParameterModel extends SimulatorData {
       isQuantitative = Boolean.valueOf( getFromDB(KEY_IS_QUANTITATIVE) );
     }
     return isQuantitative;
+  }
+
+  public String getDefaultValue() {
+    if (defaultValue == null) {
+      defaultValue = getFromDB(KEY_DEFAULT_VALUE);
+    }
+    return defaultValue;
+  }
+
+  public String getDefaultValueUpdateScript() {
+    if (defaultValueUpdateScript == null) {
+      defaultValueUpdateScript = getFromDB(KEY_DEFAULT_VALUE_UPDATE_SCRIPT);
+    }
+    return defaultValueUpdateScript;
   }
 
   public boolean isQuantitative(boolean b) {
@@ -138,7 +158,10 @@ public class ParameterModel extends SimulatorData {
             @Override
             void task(Database db) throws SQLException {
               new Sql.Create(db, TABLE_NAME,
-                KEY_ID, KEY_NAME, KEY_PARENT, Sql.Create.withDefault(KEY_IS_QUANTITATIVE, "false"), KEY_DEFAULT_UPDATER,
+                KEY_ID, KEY_NAME, KEY_PARENT,
+                Sql.Create.withDefault(KEY_IS_QUANTITATIVE, "'false'"),
+                Sql.Create.withDefault(KEY_DEFAULT_VALUE, "'0'"),
+                Sql.Create.withDefault(KEY_DEFAULT_VALUE_UPDATE_SCRIPT, "''"),
                 Sql.Create.timestamp("timestamp_create")
               ).execute();
             }
@@ -146,5 +169,9 @@ public class ParameterModel extends SimulatorData {
         ));
       }
     };
+  }
+
+  private static String defaultUpdateScriptTemplate() {
+    return "";
   }
 }
