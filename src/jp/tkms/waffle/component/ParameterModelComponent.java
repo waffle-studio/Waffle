@@ -62,17 +62,20 @@ public class ParameterModelComponent extends AbstractComponent {
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
+        ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
           Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
             "Parameter Model"
-          ),
-          Html.a(ParameterModelGroupComponent.getUrl(parameter.getParent()), parameter.getParent().getShortId()),
-          parameter.getId()
+          )
         ));
+        if (!parameter.getParent().isRoot()) {
+          breadcrumb.add(Html.a(ParameterModelGroupComponent.getUrl(parameter.getParent()), parameter.getParent().getShortId()));
+        }
+        breadcrumb.add(parameter.getId());
+        return breadcrumb;
       }
 
       @Override
@@ -104,8 +107,8 @@ public class ParameterModelComponent extends AbstractComponent {
                 Html.element("label", new Html.Attributes(Html.value("for", "value_type_q")), "Quantitative")
               )
             ),
-            Lte.formInputGroup("text", "name", "Default value", "Name", parameter.getShortId(), errors),
-            Lte.formTextAreaGroup("update_script", "Default value update script", 8, "", errors)
+            Lte.formInputGroup("text", "name", "Default value", "Name", parameter.getDefaultValue(), errors),
+            Lte.formTextAreaGroup("update_script", "Default value update script", 8, parameter.getDefaultValueUpdateScript(), errors)
           )
           , null);
 

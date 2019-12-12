@@ -222,6 +222,25 @@ public class ConductorRun extends AbstractRun {
     putArguments(obj.toString());
   }
 
+  public JSONObject getNextRunParameters(Simulator simulator) {
+    String simulatorDefaultParametersJson = Registry.getString(getProject(), ".DP:" + getId() + ":" + simulator.getId(), null);
+    if (simulatorDefaultParametersJson == null) {
+      return ParameterModelGroup.getRootInstance(simulator).toJSONObject();
+    }
+    JSONObject nextParameters = new JSONObject(simulatorDefaultParametersJson);
+    updateParameterDefaultValue(nextParameters, ParameterModelGroup.getRootInstance(simulator));
+    return nextParameters;
+  }
+
+  private void updateParameterDefaultValue(JSONObject defaultParameters, ParameterModelGroup targetGroup) {
+    for (ParameterModel parameter : ParameterModel.getList(targetGroup)) {
+      parameter.updateDefaultValue(this, defaultParameters);
+    }
+    for (ParameterModelGroup group : ParameterModelGroup.getList(targetGroup)) {
+      updateParameterDefaultValue(defaultParameters.getJSONObject(group.getName()), group);
+    }
+  }
+
   public void start() {
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     abstractConductor.start(this);

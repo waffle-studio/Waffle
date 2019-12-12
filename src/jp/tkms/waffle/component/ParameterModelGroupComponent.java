@@ -88,26 +88,46 @@ public class ParameterModelGroupComponent extends AbstractComponent {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
+        if (group.isRoot()) {
+          return "Parameter Model";
+        }
         return group.getName();
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
+        ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
-            "Parameter Model"
-          ),
-          group.getId()
+          Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId())
         ));
+        if (group.isRoot()) {
+          breadcrumb.add("Parameter Model");
+        } else {
+          breadcrumb.add(Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
+            "Parameter Model"
+          ));
+          breadcrumb.add(group.getId());
+        }
+        return breadcrumb;
       }
 
       @Override
       protected String pageContent() {
         String content = "";
+
+        ArrayList<Lte.FormError> errors = new ArrayList<>();
+
+        if (! group.isRoot()) {
+          content += Lte.card(Html.faIcon("tasks") + "Properties",
+            null,
+            Html.div(null,
+              Html.inputHidden("cmd", "add"),
+              Lte.formInputGroup("text", "instance_size", "Number of instance", "", group.getInstanceSize().toString(), errors)
+            )
+            , null);
+        }
 
         content += Lte.card(Html.faIcon("list-alt") + "Parameter Models",
           Html.a(getUrl(group, MODE_ADD_PARAMETER), Html.faIcon("plus")),
@@ -123,7 +143,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModel model : ParameterModel.getList(simulator, group)) {
+              for (ParameterModel model : ParameterModel.getList(group)) {
                 list.add(new Lte.TableRow(
                   Html.a(ParameterModelComponent.getUrl(model), null, null, model.getShortId()),
                   model.getName())
@@ -148,7 +168,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModelGroup group : ParameterModelGroup.getList(simulator, group)) {
+              for (ParameterModelGroup group : ParameterModelGroup.getList(group)) {
                 list.add(new Lte.TableRow(
                   Html.a(getUrl(group), null, null, group.getShortId()),
                   group.getName())
@@ -285,7 +305,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
   }
 
   private void addParameter() {
-    ParameterModel parameter = ParameterModel.create(simulator, group, request.queryParams("name"));
+    ParameterModel parameter = ParameterModel.create(group, request.queryParams("name"));
     parameter.isQuantitative(request.queryParams("value_type").equals("quantitative"));
     response.redirect(ParameterModelComponent.getUrl(parameter));
   }

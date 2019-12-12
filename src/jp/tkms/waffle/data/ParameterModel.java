@@ -1,6 +1,12 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.Sql;
+import org.jruby.Ruby;
+import org.jruby.embed.EvalFailedException;
+import org.jruby.embed.PathType;
+import org.jruby.embed.ScriptingContainer;
+import org.json.JSONObject;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -56,10 +62,10 @@ public class ParameterModel extends SimulatorData {
     return extractor[0];
   }
 
-  public static ArrayList<ParameterModel> getList(Simulator simulator, ParameterModelGroup parent) {
+  public static ArrayList<ParameterModel> getList(ParameterModelGroup parent) {
     ArrayList<ParameterModel> collectorList = new ArrayList<>();
 
-    handleDatabase(new ParameterModel(simulator), new Handler() {
+    handleDatabase(new ParameterModel(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
@@ -67,7 +73,7 @@ public class ParameterModel extends SimulatorData {
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           collectorList.add(new ParameterModel(
-            simulator,
+            parent.getSimulator(),
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME))
           );
@@ -78,10 +84,10 @@ public class ParameterModel extends SimulatorData {
     return collectorList;
   }
 
-  public static ParameterModel create(Simulator simulator, ParameterModelGroup parent, String name) {
-    ParameterModel parameter = new ParameterModel(simulator, UUID.randomUUID(), name);
+  public static ParameterModel create(ParameterModelGroup parent, String name) {
+    ParameterModel parameter = new ParameterModel(parent.getSimulator(), UUID.randomUUID(), name);
 
-    handleDatabase(new ParameterModel(simulator), new Handler() {
+    handleDatabase(new ParameterModel(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
@@ -143,6 +149,22 @@ public class ParameterModel extends SimulatorData {
     return isQuantitative;
   }
 
+  public void updateDefaultValue(ConductorRun conductorRun, JSONObject defaultParameters) {
+    Object defaultValue = defaultParameters.get(getName());
+
+    ScriptingContainer container = new ScriptingContainer();
+    try {
+      container.runScriptlet(getInitScript());
+      container.runScriptlet(PathType.ABSOLUTE, getDefaultValueUpdateScript());
+      defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorRun, defaultValue);
+    } catch (EvalFailedException e) {
+      e.printStackTrace();
+      BrowserMessage.addMessage("toastr.error('update_value: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+
+    defaultParameters.put(getName(), defaultValue);
+  }
+
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -172,6 +194,9 @@ public class ParameterModel extends SimulatorData {
   }
 
   private static String defaultUpdateScriptTemplate() {
-    return "";
+    return "def update_value(value, store, registry)\n    return value\nend";
+  }
+  private String getInitScript() {
+    return ResourceFile.getContents("/ruby_init.rb");
   }
 }

@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.Run;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
+import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
@@ -15,8 +16,8 @@ public class RubyParameterExtractor extends AbstractParameterExtractor {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(getInitScript(run));
-      container.runScriptlet(PathType.ABSOLUTE, extractor.getScript());
-      container.runScriptlet("parameter_extract(Run.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
+      container.runScriptlet(extractor.getScript());
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "parameter_extract", run);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('parameter_extract: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }

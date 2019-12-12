@@ -32,6 +32,7 @@ public class SimulatorComponent extends AbstractComponent {
     TrialsComponent.register();
     ParameterModelGroupComponent.register();
     ParameterModelComponent.register();
+    ParameterExtractorComponent.register();
   }
 
   public static String getUrl(Simulator simulator) {
@@ -103,13 +104,13 @@ public class SimulatorComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModel model : ParameterModel.getList(simulator, rootGroup)) {
+              for (ParameterModel model : ParameterModel.getList(rootGroup)) {
                 list.add(new Lte.TableRow(
                   Html.a(ParameterModelComponent.getUrl(model), null, null, model.getShortId()),
                   model.getName())
                 );
               }
-              for (ParameterModelGroup group : ParameterModelGroup.getList(simulator, rootGroup)) {
+              for (ParameterModelGroup group : ParameterModelGroup.getList(rootGroup)) {
                 list.add(new Lte.TableRow(
                   Html.a(ParameterModelGroupComponent.getUrl(group), null, null, "*" + group.getShortId()),
                   group.getName())
@@ -135,7 +136,7 @@ public class SimulatorComponent extends AbstractComponent {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (ParameterExtractor extractor : ParameterExtractor.getList(simulator)) {
                 list.add(new Lte.TableRow(
-                  Html.a("", null, null, extractor.getShortId()),
+                  Html.a(ParameterExtractorComponent.getUrl(extractor), null, null, extractor.getShortId()),
                   extractor.getName())
                 );
               }

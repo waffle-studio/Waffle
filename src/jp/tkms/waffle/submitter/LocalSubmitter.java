@@ -36,16 +36,16 @@ public class LocalSubmitter extends AbstractSubmitter {
       pw.println(makeBatchFileText(run));
       pw.close();
 
+      for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
+        AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
+        instance.extract(run, extractor, this);
+      }
+
       pw = new PrintWriter(new BufferedWriter(
         new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + ARGUMENTS_FILE)
       ));
       pw.println(makeArgumentFileText(run));
       pw.close();
-
-      for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-        AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-        instance.extract(run, extractor, this);
-      }
     } catch (IOException e) {
       e.printStackTrace();
     }

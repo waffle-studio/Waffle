@@ -18,6 +18,7 @@ public class Run extends AbstractRun {
   private static final String KEY_STATE = "state";
   private static final String KEY_RESULTS = "results";
   private static final String KEY_EXIT_STATUS = "exit_status";
+  private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ARGUMENTS = "arguments";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
@@ -50,6 +51,7 @@ public class Run extends AbstractRun {
   private State state;
   private Integer exitStatus;
   private JSONObject results;
+  private JSONObject parameters;
   private JSONArray arguments;
 
   private Run(Conductor conductor, Trial trial, Simulator simulator, Host host) {
@@ -158,14 +160,15 @@ public class Run extends AbstractRun {
     return list;
   }
 
-  public static Run create(Conductor conductor, Trial trial, Simulator simulator, Host host) {
-    Run run = new Run(conductor, trial, simulator, host);
+  public static Run create(ConductorRun conductorRun, Simulator simulator, Host host) {
+    Run run = new Run(conductorRun.getConductor(), conductorRun.getTrial(), simulator, host);
     String conductorId = run.getConductor().getId();
     String trialsId = run.getTrial().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
+    JSONObject parameters = conductorRun.getNextRunParameters(simulator);
 
-    handleDatabase(new Run(conductor.getProject()), new Handler() {
+    handleDatabase(new Run(conductorRun.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
@@ -174,7 +177,8 @@ public class Run extends AbstractRun {
           KEY_TRIALS,
           KEY_SIMULATOR,
           KEY_HOST,
-          KEY_STATE
+          KEY_STATE,
+          KEY_PARAMETERS
         ).toPreparedStatement();
         statement.setString(1, run.getId());
         statement.setString(2, conductorId);
@@ -182,15 +186,12 @@ public class Run extends AbstractRun {
         statement.setString(4, simulatorId);
         statement.setString(5, hostId);
         statement.setInt(6, run.getState().toInt());
+        statement.setString(7, parameters.toString());
         statement.execute();
       }
     });
 
     return run;
-  }
-
-  public static Run create(ConductorRun conductorRun, Simulator simulator, Host host) {
-    return create(conductorRun.getConductor(), conductorRun.getTrial(), simulator, host);
   }
 
   public void setState(State state) {
@@ -310,6 +311,13 @@ public class Run extends AbstractRun {
     setArguments(arguments);
   }
 
+  public JSONObject getParameters() {
+    if (parameters == null) {
+      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
+    }
+    return parameters;
+  }
+
   public boolean isRunning() {
     return !(state.equals(State.Finished) || state.equals(State.Failed));
   }
@@ -345,8 +353,9 @@ public class Run extends AbstractRun {
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
-                KEY_ARGUMENTS + "," +
+                KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
+                KEY_PARAMETERS + " default '{}'," +
                 KEY_RESULTS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");

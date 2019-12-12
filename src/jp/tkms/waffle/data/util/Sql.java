@@ -5,7 +5,6 @@ import jp.tkms.waffle.data.Database;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Sql {
   Database database;

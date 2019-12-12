@@ -75,14 +75,14 @@ def exec_pre_process(crun)
     registry = Registry.new(crun.project)
     store = get_store(registry, crun.id)
     pre_process(registry, store, crun)
-    registry.set("store:" + crun.id, Marshal.dump(store))
+    registry.set(".S:" + crun.id, Marshal.dump(store))
 end
 
 def exec_cycle_process(crun)
     registry = Registry.new(crun.project)
     store = get_store(registry, crun.id)
     cycle_process(registry, store, crun)
-    registry.set("store:" + crun.id, Marshal.dump(store))
+    registry.set(".S:" + crun.id, Marshal.dump(store))
 end
 
 def exec_post_process(crun)
@@ -90,4 +90,12 @@ def exec_post_process(crun)
     store = get_store(registry, crun.id)
     cycle_process(registry, store, crun)
     registry.set("store:" + crun.id, nil)
+end
+
+def exec_update_value(crun, value)
+    registry = Registry.new(crun.project)
+    store = get_store(registry, crun.id)
+    v = update_value(value, store, registry)
+    registry.set("store:" + crun.id, nil)
+    return v
 end

@@ -13,7 +13,7 @@ public class RubyConductor extends CycleConductor {
   protected void preProcess(ConductorRun run) {
     ScriptingContainer container = new ScriptingContainer();
     try {
-      container.runScriptlet(getInitScript(run));
+      container.runScriptlet(getInitScript());
       container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
       container.runScriptlet("exec_pre_process(ConductorRun.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
     } catch (EvalFailedException e) {
@@ -26,7 +26,7 @@ public class RubyConductor extends CycleConductor {
   protected void cycleProcess(ConductorRun run) {
     ScriptingContainer container = new ScriptingContainer();
     try {
-      container.runScriptlet(getInitScript(run));
+      container.runScriptlet(getInitScript());
       container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
       container.runScriptlet("exec_cycle_process(ConductorRun.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
     } catch (EvalFailedException e) {
@@ -38,7 +38,7 @@ public class RubyConductor extends CycleConductor {
   protected void postProcess(ConductorRun run) {
     ScriptingContainer container = new ScriptingContainer();
     try {
-      container.runScriptlet(getInitScript(run));
+      container.runScriptlet(getInitScript());
       container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
       container.runScriptlet("exec_post_process(ConductorRun.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
     } catch (EvalFailedException e) {
@@ -72,7 +72,7 @@ public class RubyConductor extends CycleConductor {
     }
   }
 
-  private String getInitScript(ConductorRun run) {
+  private String getInitScript() {
     return ResourceFile.getContents("/ruby_init.rb");
   }
 }
