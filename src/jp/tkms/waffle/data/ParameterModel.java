@@ -120,20 +120,6 @@ public class ParameterModel extends SimulatorData {
     return isQuantitative;
   }
 
-  public String getDefaultValue() {
-    if (defaultValue == null) {
-      defaultValue = getFromDB(KEY_DEFAULT_VALUE);
-    }
-    return defaultValue;
-  }
-
-  public String getDefaultValueUpdateScript() {
-    if (defaultValueUpdateScript == null) {
-      defaultValueUpdateScript = getFromDB(KEY_DEFAULT_VALUE_UPDATE_SCRIPT);
-    }
-    return defaultValueUpdateScript;
-  }
-
   public boolean isQuantitative(boolean b) {
     if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
       @Override
@@ -147,6 +133,48 @@ public class ParameterModel extends SimulatorData {
       isQuantitative = Boolean.valueOf( b );
     }
     return isQuantitative;
+  }
+
+  public String getDefaultValue() {
+    if (defaultValue == null) {
+      defaultValue = getFromDB(KEY_DEFAULT_VALUE);
+    }
+    return defaultValue;
+  }
+
+  public void setDefaultValue(String value) {
+    if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_DEFAULT_VALUE).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, value);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    })) {
+      defaultValue = value;
+    }
+  }
+
+  public String getDefaultValueUpdateScript() {
+    if (defaultValueUpdateScript == null) {
+      defaultValueUpdateScript = getFromDB(KEY_DEFAULT_VALUE_UPDATE_SCRIPT);
+    }
+    return defaultValueUpdateScript;
+  }
+
+  public void setDefaultValueUpdateScript(String script) {
+    if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_DEFAULT_VALUE_UPDATE_SCRIPT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, script);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    })) {
+      defaultValueUpdateScript = script;
+    }
   }
 
   public void updateDefaultValue(ConductorRun conductorRun, JSONObject defaultParameters) {

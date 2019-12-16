@@ -66,17 +66,21 @@ public class RunComponent extends AbstractComponent {
         String content = "";
 
         content += Lte.card(Html.faIcon("info-circle") + "Status", null,
-          Html.div(null,
-            Html.div(null,
-              "Status",
-              JobsComponent.getStatusBadge(run)
-            ),
-            Html.div(null,
-              "Exit status",
-              "" + run.getExitStatus()
-            )
-          )
-          , null);
+          Lte.table("table-condensed table-sm", new Lte.Table() {
+              @Override
+              public ArrayList<Lte.TableValue> tableHeaders() {
+                return null;
+              }
+
+              @Override
+              public ArrayList<Lte.TableRow> tableRows() {
+                ArrayList<Lte.TableRow> list = new ArrayList<>();
+                list.add(new Lte.TableRow("Status", JobsComponent.getStatusBadge(run)));
+                list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()));
+                return list;
+              }
+            })
+          , null, null, "p-0");
 
         content += Lte.card(Html.faIcon("poll") + "Results",
           Lte.cardToggleButton(true),
@@ -86,6 +90,7 @@ public class RunComponent extends AbstractComponent {
             )
           )
           , null);
+
 
         return content;
       }

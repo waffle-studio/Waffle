@@ -73,7 +73,7 @@ public class SimulatorComponent extends AbstractComponent {
       protected String pageContent() {
         String content = "";
 
-        content += Lte.card(Html.faIcon("terminal") + "Basic",
+        content += Lte.card(Html.faIcon("terminal") + "Simulator Commands",
           Html.a("", Html.faIcon("edit")),
           Html.div(null,
             Html.div(null,
@@ -121,7 +121,8 @@ public class SimulatorComponent extends AbstractComponent {
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("file-import") + "Parameter Extractor", null,
+        content += Lte.card(Html.faIcon("file-import") + "Parameter Extractor",
+          Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {

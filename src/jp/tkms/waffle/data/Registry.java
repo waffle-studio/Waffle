@@ -227,4 +227,7 @@ public class Registry extends ProjectData implements Map<Object, Object> {
     return null;
   }
 
+  public Object obj() {
+    return new Object();
+  }
 }

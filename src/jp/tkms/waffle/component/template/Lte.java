@@ -91,6 +91,24 @@ public class Lte {
     );
   }
 
+  public static String formDataEditorGroup(String name, String label, String type,
+                                         String contents, ArrayList<FormError> errors) {
+    String id = "input" + name;
+    return div("form-group",
+      (label != null ?
+        element("label", new Attributes(value("for", id)), label) : null),
+      element("textarea",
+        new Attributes(
+          value("class", "form-control"),
+          value("data-editor", type),
+          value("name", name),
+          value("id", id)
+        )
+        , contents
+      )
+    );
+  }
+
   public static String readonlyTextAreaGroup(String name, String label, int rows,
                                          String contents) {
     String id = "input" + name;

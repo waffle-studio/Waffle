@@ -365,4 +365,204 @@ public class Run extends AbstractRun {
       }
     };
   }
+
+  public ParametersWrapper parameters() {
+    return new ParametersWrapper(getParameters());
+  }
+
+  public class ParametersWrapper implements Map<String, Object> {
+    Map m;
+
+    public ParametersWrapper(JSONObject o) {
+      m = o.toMap();
+    }
+
+    @Override
+    public int size() {
+      return m.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return m.isEmpty();
+    }
+
+    @Override
+    public boolean containsKey(Object o) {
+      return m.containsKey(o);
+    }
+
+    @Override
+    public boolean containsValue(Object o) {
+      return m.containsValue(o);
+    }
+
+    @Override
+    public Object get(Object k) {
+      Object o = getParameters().get(k.toString());
+      if (o instanceof JSONObject) {
+        return new ParametersWrapper((JSONObject) o);
+      }
+      return o;
+    }
+
+    @Override
+    public Object put(String s, Object o) {
+      return m.put(s, o);
+    }
+
+    @Override
+    public Object remove(Object o) {
+      return m.remove(o);
+    }
+
+    @Override
+    public void putAll(Map<? extends String, ?> map) {
+      m.putAll(map);
+    }
+
+    @Override
+    public void clear() {
+      m.clear();
+    }
+
+    @Override
+    public Set<String> keySet() {
+      return m.keySet();
+    }
+
+    @Override
+    public Collection<Object> values() {
+      return m.values();
+    }
+
+    @Override
+    public Set<Entry<String, Object>> entrySet() {
+      return m.entrySet();
+    }
+  }
+
+  private ArgumentsWrapper argumentsWrapper = new ArgumentsWrapper();
+  public ArgumentsWrapper arguments() {
+    return argumentsWrapper;
+  }
+
+  public class ArgumentsWrapper implements List {
+
+    @Override
+    public int size() {
+      return getArguments().size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return getArguments().isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+      return getArguments().contains(o);
+    }
+
+    @Override
+    public Iterator iterator() {
+      return getArguments().iterator();
+    }
+
+    @Override
+    public Object[] toArray() {
+      return getArguments().toArray();
+    }
+
+    @Override
+    public boolean add(Object o) {
+      addArgument(o);
+      return true;
+    }
+
+    @Override
+    public boolean remove(Object o) {
+      return getArguments().remove(o);
+    }
+
+    @Override
+    public boolean addAll(Collection collection) {
+      return getArguments().addAll(collection);
+    }
+
+    @Override
+    public boolean addAll(int i, Collection collection) {
+      return getArguments().addAll(i, collection);
+    }
+
+    @Override
+    public void clear() {
+      getArguments().clear();
+    }
+
+    @Override
+    public Object get(int i) {
+      return getArguments().get(i);
+    }
+
+    @Override
+    public Object set(int i, Object o) {
+      return getArguments().set(i, o);
+    }
+
+    @Override
+    public void add(int i, Object o) {
+      getArguments().add(i, o);
+    }
+
+    @Override
+    public Object remove(int i) {
+      return getArguments().remove(i);
+    }
+
+    @Override
+    public int indexOf(Object o) {
+      return getArguments().indexOf(o);
+    }
+
+    @Override
+    public int lastIndexOf(Object o) {
+      return getArguments().lastIndexOf(o);
+    }
+
+    @Override
+    public ListIterator listIterator() {
+      return getArguments().listIterator();
+    }
+
+    @Override
+    public ListIterator listIterator(int i) {
+      return getArguments().listIterator(i);
+    }
+
+    @Override
+    public List subList(int i, int i1) {
+      return getArguments().subList(i, i1);
+    }
+
+    @Override
+    public boolean retainAll(Collection collection) {
+      return getArguments().retainAll(collection);
+    }
+
+    @Override
+    public boolean removeAll(Collection collection) {
+      return getArguments().removeAll(collection);
+    }
+
+    @Override
+    public boolean containsAll(Collection collection) {
+      return getArguments().containsAll(collection);
+    }
+
+    @Override
+    public Object[] toArray(Object[] objects) {
+      return getArguments().toArray(objects);
+    }
+  }
 }

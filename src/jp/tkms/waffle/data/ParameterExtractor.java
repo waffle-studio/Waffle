@@ -97,6 +97,21 @@ public class ParameterExtractor extends SimulatorData {
     return create(simulator, name, "");
   }
 
+  public void update(String name, String script) {
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, TABLE_NAME,
+          KEY_NAME, KEY_SCRIPT
+        ).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, name);
+        statement.setString(2, script);
+        statement.setString(3, getId());
+        statement.execute();
+      }
+    });
+  }
+
   public String getScript() {
     if (script == null) {
       script = getFromDB(KEY_SCRIPT);

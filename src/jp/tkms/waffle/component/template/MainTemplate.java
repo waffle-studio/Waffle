@@ -140,7 +140,32 @@ abstract public class MainTemplate extends AbstractTemplate {
               "simpleget('" + BrowserMessageComponent.getUrl("") + "' + bid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
               "setTimeout(loadBrowserMessage, 2000);"
-            )
+          ),
+          element("script", new Html.Attributes( Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
+          element("script",new Html.Attributes(Html.value("type", "text/javascript")),
+            "$(function() {\n" +
+              "  $('textarea[data-editor]').each(function() {\n" +
+              "    var textarea = $(this);\n" +
+              "    var mode = textarea.data('editor');\n" +
+              "    var editDiv = $('<div>', {\n" +
+              "      position: 'absolute',\n" +
+              "      width: '100%',\n" +
+              "      height: ((textarea.val().split('\\n').length + 3) * 1.5) + 'em',\n" +
+              "      'class': textarea.attr('class')\n" +
+              "    }).insertBefore(textarea);\n" +
+              "    textarea.css('display', 'none');\n" +
+              "    var editor = ace.edit(editDiv[0]);\n" +
+              "    editor.renderer.setShowGutter(textarea.data('gutter'));\n" +
+              "    editor.getSession().setValue(textarea.val());\n" +
+              "    editor.getSession().setMode(\"ace/mode/\" + mode);\n" +
+              "    editor.setTheme(\"ace/theme/textmate\");\n" +
+              "    editor.resize();\n" +
+              "    // copy back to textarea on form submit...\n" +
+              "    textarea.closest('form').submit(function() {\n" +
+              "      textarea.val(editor.getSession().getValue());\n" +
+              "    })\n" +
+              "  });\n" +
+              "});")
         )
       )
     );

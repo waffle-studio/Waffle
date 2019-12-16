@@ -99,3 +99,18 @@ def exec_update_value(crun, value)
     registry.set("store:" + crun.id, nil)
     return v
 end
+
+def parameter_extract(run)
+end
+
+class Java::JavaLang::Object
+    def is_group?()
+        return self.is_a?(Java::JavaUtil::HashMap)
+    end
+end
+
+class Numeric
+    def is_group?()
+        return false
+    end
+end

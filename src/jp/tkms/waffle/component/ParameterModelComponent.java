@@ -30,6 +30,7 @@ public class ParameterModelComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ParameterModelComponent());
+    Spark.post(getUrl(null, "update"), new ParameterModelComponent(Mode.Update));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -50,7 +51,13 @@ public class ParameterModelComponent extends AbstractComponent {
     simulator = Simulator.getInstance(project, request.params("simulator"));
     parameter = ParameterModel.getInstance(simulator, request.params("id"));
 
-    renderParameterModel();
+    switch (mode) {
+      case Update:
+        updateParameterModel();
+        break;
+      default:
+        renderParameterModel();
+    }
   }
 
   private void renderParameterModel() {
@@ -86,29 +93,32 @@ public class ParameterModelComponent extends AbstractComponent {
 
         content += Lte.card(Html.faIcon("tasks") + "Properties",
           null,
-          Html.div(null,
-            Html.inputHidden("cmd", "add"),
-            Html.div("form-group clearfix",
-              Html.div("icheck-primary d-inline",
-                Html.attribute("input",
-                  Html.value("type", "radio"),
-                  Html.value("id", "value_type_c"),
-                  Html.value("name", "value_type"),
-                  Html.value("value", "categorical"), (parameter.isQuantitative()?"":"checked")),
-                Html.element("label", new Html.Attributes(Html.value("for", "value_type_c")), "Categorical")
+          Html.form(getUrl(parameter, "update"), Html.Method.Post,
+            Html.div(null,
+              Html.inputHidden("cmd", "add"),
+              Html.div("form-group clearfix",
+                Html.div("icheck-primary d-inline",
+                  Html.attribute("input",
+                    Html.value("type", "radio"),
+                    Html.value("id", "value_type_c"),
+                    Html.value("name", "value_type"),
+                    Html.value("value", "categorical"), (parameter.isQuantitative()?"":"checked")),
+                  Html.element("label", new Html.Attributes(Html.value("for", "value_type_c")), "Categorical")
+                ),
+                Html.div("d-inline","&nbsp;"),
+                Html.div("icheck-primary d-inline",
+                  Html.attribute("input",
+                    Html.value("type", "radio"),
+                    Html.value("id", "value_type_q"),
+                    Html.value("name", "value_type"),
+                    Html.value("value", "quantitative"), (parameter.isQuantitative()?"checked":"")),
+                  Html.element("label", new Html.Attributes(Html.value("for", "value_type_q")), "Quantitative")
+                )
               ),
-              Html.div("d-inline","&nbsp;"),
-              Html.div("icheck-primary d-inline",
-                Html.attribute("input",
-                  Html.value("type", "radio"),
-                  Html.value("id", "value_type_q"),
-                  Html.value("name", "value_type"),
-                  Html.value("value", "quantitative"), (parameter.isQuantitative()?"checked":"")),
-                Html.element("label", new Html.Attributes(Html.value("for", "value_type_q")), "Quantitative")
-              )
-            ),
-            Lte.formInputGroup("text", "name", "Default value", "Name", parameter.getDefaultValue(), errors),
-            Lte.formTextAreaGroup("update_script", "Default value update script", 8, parameter.getDefaultValueUpdateScript(), errors)
+              Lte.formInputGroup("text", "name", "Default value", "Name", parameter.getDefaultValue(), errors),
+              Lte.formDataEditorGroup("update_script", "Default value update script", "ruby", parameter.getDefaultValueUpdateScript(), errors),
+              Lte.formSubmitButton("primary", "Update")
+            )
           )
           , null);
 
@@ -117,5 +127,9 @@ public class ParameterModelComponent extends AbstractComponent {
     }.render(this);
   }
 
-  public enum Mode {Default}
+  void updateParameterModel() {
+    response.redirect(getUrl(parameter));
+  }
+
+  public enum Mode {Default, Update}
 }
