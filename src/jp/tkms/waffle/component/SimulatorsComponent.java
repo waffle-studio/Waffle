@@ -90,8 +90,7 @@ public class SimulatorsComponent extends AbstractComponent {
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors),
                 Html.hr(),
-                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", null, errors),
-                Lte.formInputGroup("text", "ver_cmd", "Version command", "", null, errors)
+                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", null, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -104,8 +103,7 @@ public class SimulatorsComponent extends AbstractComponent {
   private void addSimulator() {
     Simulator simulator = Simulator.create(project,
       request.queryParams("name"),
-      request.queryParams("sim_cmd"),
-      request.queryParams("ver_cmd")
+      request.queryParams("sim_cmd")
     );
     response.redirect(SimulatorComponent.getUrl(simulator));
   }

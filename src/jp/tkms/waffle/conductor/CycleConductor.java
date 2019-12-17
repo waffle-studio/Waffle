@@ -10,7 +10,7 @@ public abstract class CycleConductor extends AbstractConductor {
 
   @Override
   protected void mainProcess(ConductorRun run) {
-    Trial trial = Trial.create(run.getProject(), run.getTrial(), LocalDateTime.now().toString());
+    Trial trial = Trial.create(run.getProject(), run.getTrial(), run.getName());
     run.setTrial(trial);
     preProcess(run);
     cycleProcess(run);

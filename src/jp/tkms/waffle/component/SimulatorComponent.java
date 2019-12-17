@@ -26,7 +26,7 @@ public class SimulatorComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new SimulatorComponent());
-    Spark.get(getUrl(null, "add_collector"), new SimulatorComponent());
+    Spark.post(getUrl(null, "update"), new SimulatorComponent(Mode.Update));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -49,7 +49,14 @@ public class SimulatorComponent extends AbstractComponent {
     project = Project.getInstance(request.params("project"));
     simulator = Simulator.getInstance(project, request.params("id"));
 
-    renderSimulator();
+    switch (mode) {
+      case Update:
+        updateSimulator();
+        break;
+      default:
+        renderSimulator();
+        break;
+    }
   }
 
   private void renderSimulator() {
@@ -73,16 +80,14 @@ public class SimulatorComponent extends AbstractComponent {
       protected String pageContent() {
         String content = "";
 
-        content += Lte.card(Html.faIcon("terminal") + "Simulator Commands",
-          Html.a("", Html.faIcon("edit")),
-          Html.div(null,
+        ArrayList<Lte.FormError> errors = new ArrayList<>();
+
+        content += Lte.card(Html.faIcon("terminal") + "Properties", null,
+          Html.form(getUrl(simulator, "update"), Html.Method.Post,
             Html.div(null,
-              "Simulation Command",
-              Lte.disabledTextInput(simulator.getSimulationCommand())
-            ),
-            Html.div(null,
-              "Version Command",
-              Lte.disabledTextInput(simulator.getVersionCommand())
+              Lte.readonlyTextInput("Simulator Directory", simulator.getLocation().toString()),
+              Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors),
+              Lte.formSubmitButton("primary", "Update")
             )
           )
           , null);
@@ -175,5 +180,10 @@ public class SimulatorComponent extends AbstractComponent {
     }.render(this);
   }
 
-  public enum Mode {Default}
+  void updateSimulator() {
+    simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
+    response.redirect(getUrl(simulator));
+  }
+
+  public enum Mode {Default, Update}
 }

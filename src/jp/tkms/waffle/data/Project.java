@@ -100,8 +100,10 @@ public class Project extends Data {
         Files.createDirectories(project.getLocation());
 
         if (new ProjectInitializer(project).init()) {
+          /*
           Conductor.create(project, "Trial Submitter",
             AbstractConductor.getInstance(TestConductor.class.getCanonicalName()), "");
+           */
         }
       } catch (IOException e) {
         e.printStackTrace();

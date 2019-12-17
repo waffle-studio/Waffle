@@ -20,6 +20,7 @@ public class Run extends AbstractRun {
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_ENVIRONMENTS = "environments";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
@@ -51,6 +52,7 @@ public class Run extends AbstractRun {
   private State state;
   private Integer exitStatus;
   private JSONObject results;
+  private JSONObject environments;
   private JSONObject parameters;
   private JSONArray arguments;
 
@@ -311,11 +313,56 @@ public class Run extends AbstractRun {
     setArguments(arguments);
   }
 
+  public JSONObject getEnvironments() {
+    if (environments == null) {
+      environments = (new JSONObject(getFromDB(KEY_ENVIRONMENTS)));
+    }
+    return environments;
+  }
+
+  public Object getEnvironment(String key) {
+    return getEnvironments().get(key);
+  }
+
+  public Object setEnvironment(String key, Object value) {
+    getEnvironments();
+    environments.put(key, value);
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_ENVIRONMENTS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, environments.toString());
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
+    return value;
+  }
+
   public JSONObject getParameters() {
     if (parameters == null) {
       parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
     }
     return parameters;
+  }
+
+  public Object getParameter(String key) {
+    return getParameters().get(key);
+  }
+
+  public Object setParameter(String key, Object value) {
+    getParameters();
+    parameters.put(key, value);
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, parameters.toString());
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
+    return value;
   }
 
   public boolean isRunning() {
@@ -355,6 +402,7 @@ public class Run extends AbstractRun {
                 KEY_STATE + "," +
                 KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
+                KEY_ENVIRONMENTS + " default '{}'," +
                 KEY_PARAMETERS + " default '{}'," +
                 KEY_RESULTS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
@@ -408,7 +456,79 @@ public class Run extends AbstractRun {
 
     @Override
     public Object put(String s, Object o) {
-      return m.put(s, o);
+      return setParameter(s, o);
+    }
+
+    @Override
+    public Object remove(Object o) {
+      return m.remove(o);
+    }
+
+    @Override
+    public void putAll(Map<? extends String, ?> map) {
+      m.putAll(map);
+    }
+
+    @Override
+    public void clear() {
+      m.clear();
+    }
+
+    @Override
+    public Set<String> keySet() {
+      return m.keySet();
+    }
+
+    @Override
+    public Collection<Object> values() {
+      return m.values();
+    }
+
+    @Override
+    public Set<Entry<String, Object>> entrySet() {
+      return m.entrySet();
+    }
+  }
+
+  public EnvironmentsWrapper environments() {
+    return new EnvironmentsWrapper(getEnvironments());
+  }
+
+  public class EnvironmentsWrapper implements Map<String, Object> {
+    Map m;
+
+    public EnvironmentsWrapper(JSONObject o) {
+      m = o.toMap();
+    }
+
+    @Override
+    public int size() {
+      return m.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return m.isEmpty();
+    }
+
+    @Override
+    public boolean containsKey(Object o) {
+      return m.containsKey(o);
+    }
+
+    @Override
+    public boolean containsValue(Object o) {
+      return m.containsValue(o);
+    }
+
+    @Override
+    public Object get(Object k) {
+      return m.get(k);
+    }
+
+    @Override
+    public Object put(String s, Object o) {
+      return setEnvironment(s, o);
     }
 
     @Override

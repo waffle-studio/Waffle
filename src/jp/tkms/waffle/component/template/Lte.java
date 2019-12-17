@@ -177,8 +177,9 @@ public class Lte {
       value);
   }
 
-  public static String disabledTextInput(String value) {
+  public static String disabledTextInput(String label, String value) {
     return div("form-group",
+      (label != null ? element("label", null, label) : null),
       attribute("input",
         value("type", "text"),
         value("value", value),
@@ -188,8 +189,9 @@ public class Lte {
     );
   }
 
-  public static String readonlyTextInput(String value) {
+  public static String readonlyTextInput(String label, String value) {
     return div("form-group",
+      (label != null ? element("label", null, label) : null),
       attribute("input",
         value("type", "text"),
         value("value", value),

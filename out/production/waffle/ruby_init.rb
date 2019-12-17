@@ -1,5 +1,5 @@
 
-class Simulator
+class Simulator < Java::jp.tkms.waffle.data.Simulator
     def self.list(crun)
         return Java::jp.tkms.waffle.data.Simulator.getList(crun.project)
     end
@@ -13,7 +13,7 @@ class Simulator
     end
 end
 
-class Host
+class Host < Java::jp.tkms.waffle.data.Host
     def self.list
         return Java::jp.tkms.waffle.data.Host.getList()
     end
@@ -57,13 +57,13 @@ end
 class Registry < Java::jp.tkms.waffle.data.Registry
 end
 
-def alert_info(text)
-    puts "INFO: " + text
-    Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.gsub("[']", "\"") + "');")
+def self.alert(text)
+    puts "alert: " + text.to_s
+    Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
 end
 
 def get_store(registry, crun_id)
-    serialized_store = registry.get("store:" + crun_id, "[]")
+    serialized_store = registry.get(".S:" + crun_id, "[]")
     if serialized_store == "[]" then
         store = Hash.new()
     else
@@ -89,14 +89,12 @@ def exec_post_process(crun)
     registry = Registry.new(crun.project)
     store = get_store(registry, crun.id)
     cycle_process(registry, store, crun)
-    registry.set("store:" + crun.id, nil)
+    registry.set(".S:" + crun.id, nil)
 end
 
 def exec_update_value(crun, value)
     registry = Registry.new(crun.project)
-    store = get_store(registry, crun.id)
-    v = update_value(value, store, registry)
-    registry.set("store:" + crun.id, nil)
+    v = update_value(value, registry)
     return v
 end
 

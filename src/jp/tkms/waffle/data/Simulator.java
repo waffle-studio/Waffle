@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.util.Sql;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,6 @@ import java.util.UUID;
 public class Simulator extends ProjectData {
   protected static final String TABLE_NAME = "simulator";
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
-  private static final String KEY_VERSION_COMMAND = "version_command";
 
   private String simulationCommand = null;
   private String versionCommand = null;
@@ -102,7 +102,7 @@ public class Simulator extends ProjectData {
     return simulatorList;
   }
 
-  public static Simulator create(Project project, String name, String simulationCommand, String versionCommand) {
+  public static Simulator create(Project project, String name, String simulationCommand) {
     Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
 
     if (
@@ -111,12 +111,11 @@ public class Simulator extends ProjectData {
         void handling(Database db) throws SQLException {
           PreparedStatement statement
             = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
-            + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND
-            + ") values(?,?,?,?);");
+            + KEY_SIMULATION_COMMAND
+            + ") values(?,?,?);");
           statement.setString(1, simulator.getId());
           statement.setString(2, simulator.getName());
           statement.setString(3, simulationCommand);
-          statement.setString(4, versionCommand);
           statement.execute();
         }
       })
@@ -148,11 +147,18 @@ public class Simulator extends ProjectData {
     return simulationCommand;
   }
 
-  public String getVersionCommand() {
-    if (versionCommand == null) {
-      versionCommand = getFromDB(KEY_VERSION_COMMAND);
+  public void setSimulatorCommand(String command) {
+    if (handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_SIMULATION_COMMAND).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, command);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    })) {
+      simulationCommand = command;
     }
-    return versionCommand;
   }
 
   @Override
@@ -170,7 +176,7 @@ public class Simulator extends ProjectData {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_SIMULATION_COMMAND + "," + KEY_VERSION_COMMAND + "," +
+                "id,name," + KEY_SIMULATION_COMMAND + "," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

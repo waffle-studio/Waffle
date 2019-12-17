@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class ConductorRun extends AbstractRun {
@@ -19,8 +20,8 @@ public class ConductorRun extends AbstractRun {
   private Conductor conductor = null;
   private JSONObject arguments = null;
 
-  public ConductorRun(Project project, UUID id) {
-    super(project, id, "");
+  public ConductorRun(Project project, UUID id, String name) {
+    super(project, id, name);
   }
 
   public ConductorRun(Project project) {
@@ -44,7 +45,8 @@ public class ConductorRun extends AbstractRun {
         while (resultSet.next()) {
           conductorRun[0] = new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id"))
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString(KEY_NAME)
           );
         }
       }
@@ -70,7 +72,8 @@ public class ConductorRun extends AbstractRun {
         while (resultSet.next()) {
           list.add(new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id"))
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString(KEY_NAME)
           ));
         }
       }
@@ -89,7 +92,8 @@ public class ConductorRun extends AbstractRun {
         while (resultSet.next()) {
           list.add(new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id"))
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString(KEY_NAME)
           ));
         }
       }
@@ -99,18 +103,22 @@ public class ConductorRun extends AbstractRun {
   }
 
   public static ConductorRun create(Project project, Trial trial, Conductor conductor) {
-    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID());
+    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), conductor.getName() + " : " + LocalDateTime.now().toString());
 
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
-          = db.preparedStatement("insert into " + TABLE_NAME + "(id," +
-          KEY_TRIAL + ","
-          + KEY_CONDUCTOR + ") values(?,?,?);");
+          = new Sql.Insert(db, TABLE_NAME,
+          KEY_ID,
+          KEY_NAME,
+          KEY_TRIAL,
+          KEY_CONDUCTOR
+          ).toPreparedStatement();
         statement.setString(1, conductorRun.getId());
-        statement.setString(2, trial.getId());
-        statement.setString(3, conductor.getId());
+        statement.setString(2, conductorRun.getName());
+        statement.setString(3, trial.getId());
+        statement.setString(4, conductor.getId());
         statement.execute();
       }
     });
@@ -223,12 +231,16 @@ public class ConductorRun extends AbstractRun {
   }
 
   public JSONObject getNextRunParameters(Simulator simulator) {
-    String simulatorDefaultParametersJson = Registry.getString(getProject(), ".DP:" + getId() + ":" + simulator.getId(), null);
+    String registryKey = ".DP:" + getId() + ":" + simulator.getId();
+    String simulatorDefaultParametersJson = Registry.getString(getProject(), registryKey, null);
     if (simulatorDefaultParametersJson == null) {
-      return ParameterModelGroup.getRootInstance(simulator).toJSONObject();
+      JSONObject parameters = ParameterModelGroup.getRootInstance(simulator).toJSONObject();
+      Registry.set(getProject(), registryKey, parameters.toString());
+      return parameters;
     }
     JSONObject nextParameters = new JSONObject(simulatorDefaultParametersJson);
     updateParameterDefaultValue(nextParameters, ParameterModelGroup.getRootInstance(simulator));
+    Registry.set(getProject(), registryKey, nextParameters.toString());
     return nextParameters;
   }
 

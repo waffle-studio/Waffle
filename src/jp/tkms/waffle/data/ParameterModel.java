@@ -183,9 +183,9 @@ public class ParameterModel extends SimulatorData {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, getDefaultValueUpdateScript());
+      container.runScriptlet(getDefaultValueUpdateScript());
       defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorRun, defaultValue);
-    } catch (EvalFailedException e) {
+    } catch (Exception e) {
       e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('update_value: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
@@ -222,7 +222,7 @@ public class ParameterModel extends SimulatorData {
   }
 
   private static String defaultUpdateScriptTemplate() {
-    return "def update_value(value, store, registry)\n    return value\nend";
+    return "def update_value(value, registry)\n    return value\nend";
   }
   private String getInitScript() {
     return ResourceFile.getContents("/ruby_init.rb");

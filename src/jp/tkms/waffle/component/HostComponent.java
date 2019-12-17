@@ -69,22 +69,10 @@ public class HostComponent extends AbstractComponent {
         content += Lte.card(Html.faIcon("terminal") + "Basic",
           ( host.isLocal() ?  null : Html.a("", Html.faIcon("edit")) ),
           Html.div(null,
-            Html.div(null,
-              "Xsub directory on host",
-              Lte.disabledTextInput(host.getXsubDirectory())
-            ),
-            Html.div(null,
-              "Work base directory on host",
-              Lte.disabledTextInput(host.getWorkBaseDirectory())
-            ),
-            Html.div(null,
-              "Maximum number of jobs",
-              Lte.disabledTextInput(host.getMaximumNumberOfJobs().toString())
-            ),
-            Html.div(null,
-              "Polling interval (seconds)",
-              Lte.disabledTextInput(host.getPollingInterval().toString())
-            )
+            Lte.disabledTextInput("Xsub directory on host", host.getXsubDirectory()),
+            Lte.disabledTextInput("Work base directory on host", host.getWorkBaseDirectory()),
+            Lte.disabledTextInput("Maximum number of jobs", host.getMaximumNumberOfJobs().toString()),
+            Lte.disabledTextInput("Polling interval (seconds)", host.getPollingInterval().toString())
           )
           , null);
 

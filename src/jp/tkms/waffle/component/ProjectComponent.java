@@ -165,39 +165,50 @@ public class ProjectComponent extends AbstractComponent {
             Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );
 
-        content += Lte.card(Html.faIcon("user-tie") + "Conductors",
-          Html.a(getUrl(project, "add_conductor"),
-            null, null, Html.faIcon("plus-square")
-          ),
-          Lte.table(null, new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
-            }
-
-            @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Conductor conductor : Conductor.getList(project)) {
-                list.add(new Lte.TableRow(
-                  new Lte.TableValue("",
-                    Html.a(ConductorComponent.getUrl(conductor),
-                      null, null, conductor.getShortId())),
-                  new Lte.TableValue("", conductor.getName()),
-                  new Lte.TableValue("text-align:right;",
-                    Html.a(ConductorComponent.getUrl(conductor, "prepare", Trial.getRootInstance(project)),
-                      Html.span("right badge badge-secondary", null, "run")
-                    )
-                  )
-                ));
+        ArrayList<Conductor> conductorList = Conductor.getList(project);
+        if (conductorList.size() <= 0) {
+          content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+            null,
+            Html.a(getUrl(project, "add_conductor"), null, null,
+              Html.faIcon("plus-square") + "Add new conductor"
+            ),
+            null
+          );
+        } else {
+          content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+            Html.a(getUrl(project, "add_conductor"),
+              null, null, Html.faIcon("plus-square")
+            ),
+            Lte.table(null, new Lte.Table() {
+              @Override
+              public ArrayList<Lte.TableValue> tableHeaders() {
+                ArrayList<Lte.TableValue> list = new ArrayList<>();
+                list.add(new Lte.TableValue("width:8em;", "ID"));
+                list.add(new Lte.TableValue("", "Name"));
+                return list;
               }
-              return list;
-            }
-          })
-          , null, null, "p-0");
+
+              @Override
+              public ArrayList<Lte.TableRow> tableRows() {
+                ArrayList<Lte.TableRow> list = new ArrayList<>();
+                for (Conductor conductor : Conductor.getList(project)) {
+                  list.add(new Lte.TableRow(
+                    new Lte.TableValue("",
+                      Html.a(ConductorComponent.getUrl(conductor),
+                        null, null, conductor.getShortId())),
+                    new Lte.TableValue("", conductor.getName()),
+                    new Lte.TableValue("text-align:right;",
+                      Html.a(ConductorComponent.getUrl(conductor, "prepare", Trial.getRootInstance(project)),
+                        Html.span("right badge badge-secondary", null, "run")
+                      )
+                    )
+                  ));
+                }
+                return list;
+              }
+            })
+            , null, null, "p-0");
+        }
 
         content += Lte.card(Html.faIcon("list") + "Constant sets", null, null,
           Html.a(getUrl(project, "edit_const_model"), Html.faIcon("pencil") + "Edit model"));
