@@ -1,45 +1,44 @@
 package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.ConductorRun;
+import jp.tkms.waffle.data.ConductorEntity;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
-import java.util.HashSet;
 
 abstract public class AbstractConductor {
-  abstract protected void mainProcess(ConductorRun run);
-  abstract protected void eventHandler(ConductorRun run);
-  abstract protected void postProcess(ConductorRun run);
+  abstract protected void mainProcess(ConductorEntity entity);
+  abstract protected void eventHandler(ConductorEntity entity);
+  abstract protected void postProcess(ConductorEntity entity);
   abstract public String defaultScriptName();
   abstract public void prepareConductor(Conductor conductor);
 
   public AbstractConductor() {
   }
 
-  public void start(ConductorRun run) {
+  public void start(ConductorEntity entity) {
     (new Thread(){
       @Override
       public void run() {
         super.run();
-        mainProcess(run);
+        mainProcess(entity);
         return;
       }
     }).start();
   }
 
-  public void eventHandle(ConductorRun run) {
-    eventHandler(run);
-    if (! run.getTrial().isRunning()) {
-      postProcess(run);
-      run.remove();
+  public void eventHandle(ConductorEntity entity) {
+    eventHandler(entity);
+    if (! entity.getTrial().isRunning()) {
+      postProcess(entity);
+      entity.remove();
     }
   }
 
   public static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
 
-  public static AbstractConductor getInstance(ConductorRun run) {
-    return getInstance(run.getConductor().getConductorType());
+  public static AbstractConductor getInstance(ConductorEntity entity) {
+    return getInstance(entity.getConductor().getConductorType());
   }
 
   public static AbstractConductor getInstance(String className) {

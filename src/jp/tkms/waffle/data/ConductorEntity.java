@@ -10,7 +10,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class ConductorRun extends AbstractRun {
+public class ConductorEntity extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_TRIAL = "trial";
@@ -20,11 +20,11 @@ public class ConductorRun extends AbstractRun {
   private Conductor conductor = null;
   private JSONObject arguments = null;
 
-  public ConductorRun(Project project, UUID id, String name) {
+  public ConductorEntity(Project project, UUID id, String name) {
     super(project, id, name);
   }
 
-  public ConductorRun(Project project) {
+  public ConductorEntity(Project project) {
     super(project);
   }
 
@@ -33,17 +33,17 @@ public class ConductorRun extends AbstractRun {
     return TABLE_NAME;
   }
 
-  public static ConductorRun getInstance(Project project, String id) {
-    final ConductorRun[] conductorRun = {null};
+  public static ConductorEntity getInstance(Project project, String id) {
+    final ConductorEntity[] conductorEntity = {null};
 
-    handleDatabase(new ConductorRun(project), new Handler() {
+    handleDatabase(new ConductorEntity(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          conductorRun[0] = new ConductorRun(
+          conductorEntity[0] = new ConductorEntity(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString(KEY_NAME)
@@ -52,25 +52,25 @@ public class ConductorRun extends AbstractRun {
       }
     });
 
-    return conductorRun[0];
+    return conductorEntity[0];
   }
 
-  public static ConductorRun find(String project, String id) {
+  public static ConductorEntity find(String project, String id) {
     return getInstance(Project.getInstance(project), id);
   }
 
-  public static ArrayList<ConductorRun> getList(Trial trial) {
+  public static ArrayList<ConductorEntity> getList(Trial trial) {
     Project project = trial.getProject();
-    ArrayList<ConductorRun> list = new ArrayList<>();
+    ArrayList<ConductorEntity> list = new ArrayList<>();
 
-    handleDatabase(new ConductorRun(project), new Handler() {
+    handleDatabase(new ConductorEntity(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_TRIAL + "=?;");
         statement.setString(1, trial.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          list.add(new ConductorRun(
+          list.add(new ConductorEntity(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString(KEY_NAME)
@@ -82,15 +82,15 @@ public class ConductorRun extends AbstractRun {
     return list;
   }
 
-  public static ArrayList<ConductorRun> getList(Project project) {
-    ArrayList<ConductorRun> list = new ArrayList<>();
+  public static ArrayList<ConductorEntity> getList(Project project) {
+    ArrayList<ConductorEntity> list = new ArrayList<>();
 
-    handleDatabase(new ConductorRun(project), new Handler() {
+    handleDatabase(new ConductorEntity(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
         while (resultSet.next()) {
-          list.add(new ConductorRun(
+          list.add(new ConductorEntity(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString(KEY_NAME)
@@ -102,10 +102,10 @@ public class ConductorRun extends AbstractRun {
     return list;
   }
 
-  public static ConductorRun create(Project project, Trial trial, Conductor conductor) {
-    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), conductor.getName() + " : " + LocalDateTime.now().toString());
+  public static ConductorEntity create(Project project, Trial trial, Conductor conductor) {
+    ConductorEntity conductorEntity = new ConductorEntity(project, UUID.randomUUID(), conductor.getName() + " : " + LocalDateTime.now().toString());
 
-    handleDatabase(new ConductorRun(project), new Handler() {
+    handleDatabase(new ConductorEntity(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
@@ -115,18 +115,18 @@ public class ConductorRun extends AbstractRun {
           KEY_TRIAL,
           KEY_CONDUCTOR
           ).toPreparedStatement();
-        statement.setString(1, conductorRun.getId());
-        statement.setString(2, conductorRun.getName());
+        statement.setString(1, conductorEntity.getId());
+        statement.setString(2, conductorEntity.getName());
         statement.setString(3, trial.getId());
         statement.setString(4, conductor.getId());
         statement.execute();
       }
     });
 
-    return conductorRun;
+    return conductorEntity;
   }
 
-  public static ConductorRun create(ConductorRun parent, Conductor conductor) {
+  public static ConductorEntity create(ConductorEntity parent, Conductor conductor) {
     return create(parent.getProject(), parent.getTrial(), conductor);
   }
 
@@ -142,8 +142,8 @@ public class ConductorRun extends AbstractRun {
     })) {
       Trial parent = getTrial().getParent();
       if (parent != null) {
-        for (ConductorRun run : ConductorRun.getList(parent)) {
-          run.update();
+        for (ConductorEntity entity : ConductorEntity.getList(parent)) {
+          entity.update();
         }
       }
     }
@@ -234,21 +234,21 @@ public class ConductorRun extends AbstractRun {
     String registryKey = ".DP:" + getId() + ":" + simulator.getId();
     String simulatorDefaultParametersJson = Registry.getString(getProject(), registryKey, null);
     if (simulatorDefaultParametersJson == null) {
-      JSONObject parameters = ParameterModelGroup.getRootInstance(simulator).toJSONObject();
+      JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
       Registry.set(getProject(), registryKey, parameters.toString());
       return parameters;
     }
     JSONObject nextParameters = new JSONObject(simulatorDefaultParametersJson);
-    updateParameterDefaultValue(nextParameters, ParameterModelGroup.getRootInstance(simulator));
+    updateParameterDefaultValue(nextParameters, ParameterGroup.getRootInstance(simulator));
     Registry.set(getProject(), registryKey, nextParameters.toString());
     return nextParameters;
   }
 
-  private void updateParameterDefaultValue(JSONObject defaultParameters, ParameterModelGroup targetGroup) {
-    for (ParameterModel parameter : ParameterModel.getList(targetGroup)) {
+  private void updateParameterDefaultValue(JSONObject defaultParameters, ParameterGroup targetGroup) {
+    for (Parameter parameter : Parameter.getList(targetGroup)) {
       parameter.updateDefaultValue(this, defaultParameters);
     }
-    for (ParameterModelGroup group : ParameterModelGroup.getList(targetGroup)) {
+    for (ParameterGroup group : ParameterGroup.getList(targetGroup)) {
       updateParameterDefaultValue(defaultParameters.getJSONObject(group.getName()), group);
     }
   }

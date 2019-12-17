@@ -162,15 +162,15 @@ public class Run extends AbstractRun {
     return list;
   }
 
-  public static Run create(ConductorRun conductorRun, Simulator simulator, Host host) {
-    Run run = new Run(conductorRun.getConductor(), conductorRun.getTrial(), simulator, host);
+  public static Run create(ConductorEntity conductorEntity, Simulator simulator, Host host) {
+    Run run = new Run(conductorEntity.getConductor(), conductorEntity.getTrial(), simulator, host);
     String conductorId = run.getConductor().getId();
     String trialsId = run.getTrial().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
-    JSONObject parameters = conductorRun.getNextRunParameters(simulator);
+    JSONObject parameters = conductorEntity.getNextRunParameters(simulator);
 
-    handleDatabase(new Run(conductorRun.getProject()), new Handler() {
+    handleDatabase(new Run(conductorEntity.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
@@ -214,8 +214,8 @@ public class Run extends AbstractRun {
         BrowserMessage.addMessage("runUpdated('" + getId() + "')");
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
-          for (ConductorRun run: ConductorRun.getList(getTrial())) {
-            run.update();
+          for (ConductorEntity entity: ConductorEntity.getList(getTrial())) {
+            entity.update();
           }
         }
       }

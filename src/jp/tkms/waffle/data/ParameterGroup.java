@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.util.Values;
-import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONObject;
 
@@ -12,22 +11,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ParameterModelGroup extends SimulatorData {
+public class ParameterGroup extends SimulatorData {
   protected static final String TABLE_NAME = "parameter_model_group";
   private static final UUID ROOT_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
   public static final String ROOT_NAME = "ROOT";
   private static final String KEY_PARENT = "parent";
   private static final String KEY_INSTANCE_SIZE = "instance_size";
 
-  private ParameterModelGroup parent = null;
+  private ParameterGroup parent = null;
   private String parentId = null;
   private Integer instanceSize = null;
 
-  public ParameterModelGroup(Simulator simulator) {
+  public ParameterGroup(Simulator simulator) {
     super(simulator);
   }
 
-  public ParameterModelGroup(Simulator simulator, String parentId, UUID id, String name) {
+  public ParameterGroup(Simulator simulator, String parentId, UUID id, String name) {
     super(simulator, id, name);
     this.parentId = parentId;
   }
@@ -37,17 +36,17 @@ public class ParameterModelGroup extends SimulatorData {
     return TABLE_NAME;
   }
 
-  public static ParameterModelGroup getInstance(Simulator simulator, String id) {
-    final ParameterModelGroup[] extractor = {null};
+  public static ParameterGroup getInstance(Simulator simulator, String id) {
+    final ParameterGroup[] extractor = {null};
 
-    handleDatabase(new ParameterModelGroup(simulator), new Handler() {
+    handleDatabase(new ParameterGroup(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          extractor[0] = new ParameterModelGroup(
+          extractor[0] = new ParameterGroup(
             simulator,
             resultSet.getString(KEY_PARENT),
             UUID.fromString(resultSet.getString(KEY_ID)),
@@ -60,21 +59,21 @@ public class ParameterModelGroup extends SimulatorData {
     return extractor[0];
   }
 
-  public static ParameterModelGroup getRootInstance(Simulator simulator) {
+  public static ParameterGroup getRootInstance(Simulator simulator) {
     return getInstance(simulator, ROOT_UUID.toString());
   }
 
-  public static ArrayList<ParameterModelGroup> getList(ParameterModelGroup parent) {
-    ArrayList<ParameterModelGroup> collectorList = new ArrayList<>();
+  public static ArrayList<ParameterGroup> getList(ParameterGroup parent) {
+    ArrayList<ParameterGroup> collectorList = new ArrayList<>();
 
-    handleDatabase(new ParameterModelGroup(parent.getSimulator()), new Handler() {
+    handleDatabase(new ParameterGroup(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          collectorList.add(new ParameterModelGroup(
+          collectorList.add(new ParameterGroup(
             parent.getSimulator(),
             resultSet.getString(KEY_PARENT),
             UUID.fromString(resultSet.getString(KEY_ID)),
@@ -87,10 +86,10 @@ public class ParameterModelGroup extends SimulatorData {
     return collectorList;
   }
 
-  public static ParameterModelGroup create(Simulator simulator, ParameterModelGroup parent, String name) {
-    ParameterModelGroup group = new ParameterModelGroup(simulator, parent.getId(), UUID.randomUUID(), name);
+  public static ParameterGroup create(Simulator simulator, ParameterGroup parent, String name) {
+    ParameterGroup group = new ParameterGroup(simulator, parent.getId(), UUID.randomUUID(), name);
 
-    handleDatabase(new ParameterModelGroup(simulator), new Handler() {
+    handleDatabase(new ParameterGroup(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
@@ -109,7 +108,7 @@ public class ParameterModelGroup extends SimulatorData {
     return getId().equals(ROOT_UUID.toString());
   }
 
-  public ParameterModelGroup getParent() {
+  public ParameterGroup getParent() {
     if (parent == null) {
       parent = getInstance(getSimulator(), parentId);
     }
@@ -125,10 +124,10 @@ public class ParameterModelGroup extends SimulatorData {
 
   public JSONObject toJSONObject() {
     JSONObject jsonObject = new JSONObject();
-    for (ParameterModel parameter : ParameterModel.getList(this)) {
+    for (Parameter parameter : Parameter.getList(this)) {
       jsonObject.put(parameter.getName(), Values.convertString(parameter.getDefaultValue()));
     }
-    for (ParameterModelGroup group : ParameterModelGroup.getList(this)) {
+    for (ParameterGroup group : ParameterGroup.getList(this)) {
       jsonObject.put(group.getName(), group.toJSONObject().toMap());
     }
     return jsonObject;

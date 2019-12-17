@@ -2,6 +2,7 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
+import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
@@ -10,12 +11,12 @@ import java.io.*;
 
 public class RubyConductor extends CycleConductor {
   @Override
-  protected void preProcess(ConductorRun run) {
+  protected void preProcess(ConductorEntity entity) {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
-      container.runScriptlet("exec_pre_process(ConductorRun.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
+      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", entity);
     } catch (EvalFailedException e) {
       e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('pre_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
@@ -23,24 +24,24 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
-  protected void cycleProcess(ConductorRun run) {
+  protected void cycleProcess(ConductorEntity entity) {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
-      container.runScriptlet("exec_cycle_process(ConductorRun.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
+      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", entity);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('cycle_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
   }
 
   @Override
-  protected void postProcess(ConductorRun run) {
+  protected void postProcess(ConductorEntity entity) {
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, run.getConductor().getScriptPath().toString());
-      container.runScriptlet("exec_post_process(ConductorRun.find(\"" + run.getProject().getId() + "\",\"" + run.getId() + "\"))");
+      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", entity);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('post_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
@@ -57,13 +58,13 @@ public class RubyConductor extends CycleConductor {
       FileWriter filewriter = new FileWriter(conductor.getScriptPath().toFile());
 
       filewriter.write(
-        "def pre_process(registry, store, crun)\n" +
+        "def pre_process(entity, store, registry)\n" +
           "end\n" +
           "\n" +
-          "def cycle_process(registry, store, crun)\n" +
+          "def cycle_process(entity, store, registry)\n" +
           "end\n" +
           "\n" +
-          "def post_process(registry, store, crun)\n" +
+          "def post_process(entity, store, registry)\n" +
           "end\n");
       filewriter.close();
 

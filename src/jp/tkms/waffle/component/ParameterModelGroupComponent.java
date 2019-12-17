@@ -17,7 +17,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
 
   private Project project;
   private Simulator simulator;
-  private ParameterModelGroup group;
+  private ParameterGroup group;
   public ParameterModelGroupComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -38,12 +38,12 @@ public class ParameterModelGroupComponent extends AbstractComponent {
     TrialsComponent.register();
   }
 
-  public static String getUrl(ParameterModelGroup group) {
+  public static String getUrl(ParameterGroup group) {
     return "/parameter_mode_group/"
       + (group == null ? ":project/:simulator/:id" : group.getSimulator().getProject().getId() + '/' + group.getSimulator().getId() + '/' + group.getId());
   }
 
-  public static String getUrl(ParameterModelGroup group, String mode) {
+  public static String getUrl(ParameterGroup group, String mode) {
     return getUrl(group) + '/' + mode;
   }
 
@@ -51,7 +51,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
   public void controller() {
     project = Project.getInstance(request.params("project"));
     simulator = Simulator.getInstance(project, request.params("simulator"));
-    group = ParameterModelGroup.getInstance(simulator, request.params("id"));
+    group = ParameterGroup.getInstance(simulator, request.params("id"));
 
     switch (mode) {
       case AddParameterGroup:
@@ -105,7 +105,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
         if (group.isRoot()) {
           breadcrumb.add("Parameter Model");
         } else {
-          breadcrumb.add(Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
+          breadcrumb.add(Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator)),
             "Parameter Model"
           ));
           breadcrumb.add(group.getId());
@@ -143,7 +143,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModel model : ParameterModel.getList(group)) {
+              for (Parameter model : Parameter.getList(group)) {
                 list.add(new Lte.TableRow(
                   Html.a(ParameterModelComponent.getUrl(model), null, null, model.getShortId()),
                   model.getName())
@@ -168,7 +168,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModelGroup group : ParameterModelGroup.getList(group)) {
+              for (ParameterGroup group : ParameterGroup.getList(group)) {
                 list.add(new Lte.TableRow(
                   Html.a(getUrl(group), null, null, group.getShortId()),
                   group.getName())
@@ -203,7 +203,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
+          Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator)),
             "Parameter Model"
           ),
           Html.a(ParameterModelGroupComponent.getUrl(group), group.getShortId()),
@@ -233,7 +233,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
   }
 
   private void addParameterGroup() {
-    ParameterModelGroup group = ParameterModelGroup.create(simulator, this.group, request.queryParams("name"));
+    ParameterGroup group = ParameterGroup.create(simulator, this.group, request.queryParams("name"));
     response.redirect(getUrl(group));
   }
 
@@ -256,7 +256,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
+          Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator)),
             "Parameter Model"
           ),
           Html.a(ParameterModelGroupComponent.getUrl(group), group.getShortId()),
@@ -305,7 +305,7 @@ public class ParameterModelGroupComponent extends AbstractComponent {
   }
 
   private void addParameter() {
-    ParameterModel parameter = ParameterModel.create(group, request.queryParams("name"));
+    Parameter parameter = Parameter.create(group, request.queryParams("name"));
     parameter.isQuantitative(request.queryParams("value_type").equals("quantitative"));
     response.redirect(ParameterModelComponent.getUrl(parameter));
   }

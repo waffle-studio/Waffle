@@ -6,7 +6,6 @@ import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
-import java.lang.module.ModuleDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -92,10 +91,10 @@ public class SimulatorComponent extends AbstractComponent {
           )
           , null);
 
-        ParameterModelGroup rootGroup = ParameterModelGroup.getRootInstance(simulator);
+        ParameterGroup rootGroup = ParameterGroup.getRootInstance(simulator);
 
         content += Lte.card(Html.faIcon("list-alt") + "Parameter Models",
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator), ParameterModelGroupComponent.MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square") + "Group") +
+          Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator), ParameterModelGroupComponent.MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square") + "Group") +
             "/" + Html.a(ParameterModelGroupComponent.getUrl(rootGroup, ParameterModelGroupComponent.MODE_ADD_PARAMETER), Html.faIcon("plus") + "Parameter"),
           Lte.table(null, new Lte.Table() {
             @Override
@@ -109,13 +108,13 @@ public class SimulatorComponent extends AbstractComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterModel model : ParameterModel.getList(rootGroup)) {
+              for (Parameter model : Parameter.getList(rootGroup)) {
                 list.add(new Lte.TableRow(
                   Html.a(ParameterModelComponent.getUrl(model), null, null, model.getShortId()),
                   model.getName())
                 );
               }
-              for (ParameterModelGroup group : ParameterModelGroup.getList(rootGroup)) {
+              for (ParameterGroup group : ParameterGroup.getList(rootGroup)) {
                 list.add(new Lte.TableRow(
                   Html.a(ParameterModelGroupComponent.getUrl(group), null, null, "*" + group.getShortId()),
                   group.getName())

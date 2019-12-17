@@ -4,20 +4,20 @@ import jp.tkms.waffle.data.*;
 
 public class TestConductor extends AbstractConductor {
   @Override
-  protected void mainProcess(ConductorRun run) {
-    Conductor conductor = run.getConductor();
+  protected void mainProcess(ConductorEntity entity) {
+    Conductor conductor = entity.getConductor();
     for ( Simulator simulator : Simulator.getList(conductor.getProject()) ) {
-      Run.create(run, simulator, Host.getList().get(0)).start();
+      Run.create(entity, simulator, Host.getList().get(0)).start();
     }
   }
 
   @Override
-  protected void eventHandler(ConductorRun run) {
+  protected void eventHandler(ConductorEntity entity) {
 
   }
 
   @Override
-  protected void postProcess(ConductorRun run) {
+  protected void postProcess(ConductorEntity entity) {
 
   }
 

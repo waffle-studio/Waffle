@@ -3,8 +3,6 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.Sql;
 import org.jruby.Ruby;
-import org.jruby.embed.EvalFailedException;
-import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 import org.json.JSONObject;
 
@@ -15,23 +13,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ParameterModel extends SimulatorData {
+public class Parameter extends SimulatorData {
   protected static final String TABLE_NAME = "parameter_model";
   private static final String KEY_PARENT = "parent";
   private static final String KEY_IS_QUANTITATIVE = "quantitative";
   private static final String KEY_DEFAULT_VALUE = "default_value";
   private static final String KEY_DEFAULT_VALUE_UPDATE_SCRIPT = "default_updater";
 
-  private ParameterModelGroup parent = null;
+  private ParameterGroup parent = null;
   private Boolean isQuantitative = null;
   private String defaultValue = null;
   private String defaultValueUpdateScript = null;
 
-  public ParameterModel(Simulator simulator) {
+  public Parameter(Simulator simulator) {
     super(simulator);
   }
 
-  public ParameterModel(Simulator simulator, UUID id, String name) {
+  public Parameter(Simulator simulator, UUID id, String name) {
     super(simulator, id, name);
   }
 
@@ -40,17 +38,17 @@ public class ParameterModel extends SimulatorData {
     return TABLE_NAME;
   }
 
-  public static ParameterModel getInstance(Simulator simulator, String id) {
-    final ParameterModel[] extractor = {null};
+  public static Parameter getInstance(Simulator simulator, String id) {
+    final Parameter[] extractor = {null};
 
-    handleDatabase(new ParameterModel(simulator), new Handler() {
+    handleDatabase(new Parameter(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          extractor[0] = new ParameterModel(
+          extractor[0] = new Parameter(
             simulator,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
@@ -62,17 +60,17 @@ public class ParameterModel extends SimulatorData {
     return extractor[0];
   }
 
-  public static ArrayList<ParameterModel> getList(ParameterModelGroup parent) {
-    ArrayList<ParameterModel> collectorList = new ArrayList<>();
+  public static ArrayList<Parameter> getList(ParameterGroup parent) {
+    ArrayList<Parameter> collectorList = new ArrayList<>();
 
-    handleDatabase(new ParameterModel(parent.getSimulator()), new Handler() {
+    handleDatabase(new Parameter(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          collectorList.add(new ParameterModel(
+          collectorList.add(new Parameter(
             parent.getSimulator(),
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME))
@@ -84,10 +82,10 @@ public class ParameterModel extends SimulatorData {
     return collectorList;
   }
 
-  public static ParameterModel create(ParameterModelGroup parent, String name) {
-    ParameterModel parameter = new ParameterModel(parent.getSimulator(), UUID.randomUUID(), name);
+  public static Parameter create(ParameterGroup parent, String name) {
+    Parameter parameter = new Parameter(parent.getSimulator(), UUID.randomUUID(), name);
 
-    handleDatabase(new ParameterModel(parent.getSimulator()), new Handler() {
+    handleDatabase(new Parameter(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
@@ -106,9 +104,9 @@ public class ParameterModel extends SimulatorData {
     return parameter;
   }
 
-  public ParameterModelGroup getParent() {
+  public ParameterGroup getParent() {
     if (parent == null) {
-      parent = ParameterModelGroup.getInstance(getSimulator(), getFromDB(KEY_PARENT));
+      parent = ParameterGroup.getInstance(getSimulator(), getFromDB(KEY_PARENT));
     }
     return parent;
   }
@@ -121,7 +119,7 @@ public class ParameterModel extends SimulatorData {
   }
 
   public boolean isQuantitative(boolean b) {
-    if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
+    if (handleDatabase((new Parameter(getSimulator())), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_IS_QUANTITATIVE + "=? where " + KEY_ID + "=?;");
@@ -143,7 +141,7 @@ public class ParameterModel extends SimulatorData {
   }
 
   public void setDefaultValue(String value) {
-    if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
+    if (handleDatabase((new Parameter(getSimulator())), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_DEFAULT_VALUE).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
@@ -164,7 +162,7 @@ public class ParameterModel extends SimulatorData {
   }
 
   public void setDefaultValueUpdateScript(String script) {
-    if (handleDatabase((new ParameterModel(getSimulator())), new Handler() {
+    if (handleDatabase((new Parameter(getSimulator())), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_DEFAULT_VALUE_UPDATE_SCRIPT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
@@ -177,14 +175,14 @@ public class ParameterModel extends SimulatorData {
     }
   }
 
-  public void updateDefaultValue(ConductorRun conductorRun, JSONObject defaultParameters) {
+  public void updateDefaultValue(ConductorEntity conductorEntity, JSONObject defaultParameters) {
     Object defaultValue = defaultParameters.get(getName());
 
     ScriptingContainer container = new ScriptingContainer();
     try {
       container.runScriptlet(getInitScript());
       container.runScriptlet(getDefaultValueUpdateScript());
-      defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorRun, defaultValue);
+      defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorEntity, defaultValue);
     } catch (Exception e) {
       e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('update_value: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");

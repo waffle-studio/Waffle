@@ -3,8 +3,8 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.ParameterModel;
-import jp.tkms.waffle.data.ParameterModelGroup;
+import jp.tkms.waffle.data.Parameter;
+import jp.tkms.waffle.data.ParameterGroup;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
@@ -17,7 +17,7 @@ public class ParameterModelComponent extends AbstractComponent {
 
   private Project project;
   private Simulator simulator;
-  private ParameterModel parameter;
+  private Parameter parameter;
 
   public ParameterModelComponent(Mode mode) {
     super();
@@ -36,12 +36,12 @@ public class ParameterModelComponent extends AbstractComponent {
     TrialsComponent.register();
   }
 
-  public static String getUrl(ParameterModel parameter) {
+  public static String getUrl(Parameter parameter) {
     return "/parameter_model/"
       + (parameter == null ? ":project/:simulator/:id" : parameter.getSimulator().getProject().getId() + '/' + parameter.getSimulator().getId() + '/' +  parameter.getId());
   }
 
-  public static String getUrl(ParameterModel parameter, String mode) {
+  public static String getUrl(Parameter parameter, String mode) {
     return getUrl(parameter) + '/' + mode;
   }
 
@@ -49,7 +49,7 @@ public class ParameterModelComponent extends AbstractComponent {
   public void controller() {
     project = Project.getInstance(request.params("project"));
     simulator = Simulator.getInstance(project, request.params("simulator"));
-    parameter = ParameterModel.getInstance(simulator, request.params("id"));
+    parameter = Parameter.getInstance(simulator, request.params("id"));
 
     switch (mode) {
       case Update:
@@ -74,7 +74,7 @@ public class ParameterModelComponent extends AbstractComponent {
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterModelGroup.getRootInstance(simulator)),
+          Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator)),
             "Parameter Model"
           )
         ));
