@@ -1,15 +1,15 @@
 
 class Simulator < Java::jp.tkms.waffle.data.Simulator
-    def self.list(crun)
-        return Java::jp.tkms.waffle.data.Simulator.getList(crun.project)
+    def self.list(entity)
+        return Java::jp.tkms.waffle.data.Simulator.getList(entity.project)
     end
 
-    def self.find(crun, id)
-        return Java::jp.tkms.waffle.data.Simulator.getInstance(crun.project, id)
+    def self.find(entity, id)
+        return Java::jp.tkms.waffle.data.Simulator.getInstance(entity.project, id)
     end
 
-    def self.find_by_name(crun, name)
-        return Java::jp.tkms.waffle.data.Simulator.getInstanceByName(crun.project, name)
+    def self.find_by_name(entity, name)
+        return Java::jp.tkms.waffle.data.Simulator.getInstanceByName(entity.project, name)
     end
 end
 
@@ -35,16 +35,16 @@ class Conductor < Java::jp.tkms.waffle.data.Conductor
 end
 
 class ConductorArgument
-    def initialize(crun)
-        @crun = crun
+    def initialize(entity)
+        @entity = entity
     end
 
     def [](key)
-        @crun.getArgument(key)
+        @entity.getArgument(key)
     end
 
     def set_prop(key, value)
-        @crun.putArgument(key, value)
+        @entity.putArgument(key, value)
     end
 end
 
@@ -62,8 +62,8 @@ def self.alert(text)
     Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
 end
 
-def get_store(registry, crun_id)
-    serialized_store = registry.get(".S:" + crun_id, "[]")
+def get_store(registry, entity_id)
+    serialized_store = registry.get(".S:" + entity_id, "[]")
     if serialized_store == "[]" then
         store = Hash.new()
     else
@@ -71,29 +71,29 @@ def get_store(registry, crun_id)
     end
 end
 
-def exec_pre_process(crun)
-    registry = Registry.new(crun.project)
-    store = get_store(registry, crun.id)
-    pre_process(registry, store, crun)
-    registry.set(".S:" + crun.id, Marshal.dump(store))
+def exec_pre_process(entity)
+    registry = Registry.new(entity.project)
+    store = get_store(registry, entity.id)
+    pre_process(entity, store, registry)
+    registry.set(".S:" + entity.id, Marshal.dump(store))
 end
 
-def exec_cycle_process(crun)
-    registry = Registry.new(crun.project)
-    store = get_store(registry, crun.id)
-    cycle_process(registry, store, crun)
-    registry.set(".S:" + crun.id, Marshal.dump(store))
+def exec_cycle_process(entity)
+    registry = Registry.new(entity.project)
+    store = get_store(registry, entity.id)
+    cycle_process(entity, store, registry)
+    registry.set(".S:" + entity.id, Marshal.dump(store))
 end
 
-def exec_post_process(crun)
-    registry = Registry.new(crun.project)
-    store = get_store(registry, crun.id)
-    cycle_process(registry, store, crun)
-    registry.set(".S:" + crun.id, nil)
+def exec_post_process(entity)
+    registry = Registry.new(entity.project)
+    store = get_store(registry, entity.id)
+    cycle_process(entity, store, registry)
+    registry.set(".S:" + entity.id, nil)
 end
 
-def exec_update_value(crun, value)
-    registry = Registry.new(crun.project)
+def exec_update_value(entity, value)
+    registry = Registry.new(entity.project)
     v = update_value(value, registry)
     return v
 end
