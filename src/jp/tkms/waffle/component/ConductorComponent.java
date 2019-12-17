@@ -65,7 +65,7 @@ public class ConductorComponent extends AbstractComponent {
         run.putArguments(request.queryParams(KEY_ARGUMENTS));
       }
       run.start();
-      response.redirect(JobsComponent.getUrl());
+      response.redirect(ProjectComponent.getUrl(project));
     } else if (mode == Mode.UpdateArguments) {
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
         conductor.setArguments(request.queryParams(KEY_ARGUMENTS));
