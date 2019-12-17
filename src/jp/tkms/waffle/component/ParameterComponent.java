@@ -12,25 +12,25 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ParameterModelComponent extends AbstractComponent {
+public class ParameterComponent extends AbstractComponent {
   private Mode mode;
 
   private Project project;
   private Simulator simulator;
   private Parameter parameter;
 
-  public ParameterModelComponent(Mode mode) {
+  public ParameterComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public ParameterModelComponent() {
+  public ParameterComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ParameterModelComponent());
-    Spark.post(getUrl(null, "update"), new ParameterModelComponent(Mode.Update));
+    Spark.get(getUrl(null), new ParameterComponent());
+    Spark.post(getUrl(null, "update"), new ParameterComponent(Mode.Update));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -53,14 +53,14 @@ public class ParameterModelComponent extends AbstractComponent {
 
     switch (mode) {
       case Update:
-        updateParameterModel();
+        updateParameter();
         break;
       default:
-        renderParameterModel();
+        renderParameter();
     }
   }
 
-  private void renderParameterModel() {
+  private void renderParameter() {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
@@ -74,12 +74,12 @@ public class ParameterModelComponent extends AbstractComponent {
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator)),
+          Html.a(ParameterGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator)),
             "Parameter Model"
           )
         ));
         if (!parameter.getParent().isRoot()) {
-          breadcrumb.add(Html.a(ParameterModelGroupComponent.getUrl(parameter.getParent()), parameter.getParent().getShortId()));
+          breadcrumb.add(Html.a(ParameterGroupComponent.getUrl(parameter.getParent()), parameter.getParent().getShortId()));
         }
         breadcrumb.add(parameter.getId());
         return breadcrumb;
@@ -127,7 +127,7 @@ public class ParameterModelComponent extends AbstractComponent {
     }.render(this);
   }
 
-  void updateParameterModel() {
+  void updateParameter() {
     parameter.isQuantitative(request.queryParams("value_type").equals("quantitative"));
     parameter.setDefaultValue(request.queryParams("default_value"));
     parameter.setDefaultValueUpdateScript(request.queryParams("update_script"));

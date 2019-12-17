@@ -29,8 +29,8 @@ public class SimulatorComponent extends AbstractComponent {
 
     SimulatorsComponent.register();
     TrialsComponent.register();
-    ParameterModelGroupComponent.register();
-    ParameterModelComponent.register();
+    ParameterGroupComponent.register();
+    ParameterComponent.register();
     ParameterExtractorComponent.register();
   }
 
@@ -94,8 +94,8 @@ public class SimulatorComponent extends AbstractComponent {
         ParameterGroup rootGroup = ParameterGroup.getRootInstance(simulator);
 
         content += Lte.card(Html.faIcon("list-alt") + "Parameter Models",
-          Html.a(ParameterModelGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator), ParameterModelGroupComponent.MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square") + "Group") +
-            "/" + Html.a(ParameterModelGroupComponent.getUrl(rootGroup, ParameterModelGroupComponent.MODE_ADD_PARAMETER), Html.faIcon("plus") + "Parameter"),
+          Html.a(ParameterGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator), ParameterGroupComponent.MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square") + "Group") +
+            "/" + Html.a(ParameterGroupComponent.getUrl(rootGroup, ParameterGroupComponent.MODE_ADD_PARAMETER), Html.faIcon("plus") + "Parameter"),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -110,13 +110,13 @@ public class SimulatorComponent extends AbstractComponent {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (Parameter model : Parameter.getList(rootGroup)) {
                 list.add(new Lte.TableRow(
-                  Html.a(ParameterModelComponent.getUrl(model), null, null, model.getShortId()),
+                  Html.a(ParameterComponent.getUrl(model), null, null, model.getShortId()),
                   model.getName())
                 );
               }
               for (ParameterGroup group : ParameterGroup.getList(rootGroup)) {
                 list.add(new Lte.TableRow(
-                  Html.a(ParameterModelGroupComponent.getUrl(group), null, null, "*" + group.getShortId()),
+                  Html.a(ParameterGroupComponent.getUrl(group), null, null, "*" + group.getShortId()),
                   group.getName())
                 );
               }
