@@ -19,7 +19,7 @@ public class SshSubmitter extends AbstractSubmitter {
   public SshSubmitter(Host host) {
     try {
       session = new SshSession();
-      session.setSession("takamin", "localhost", 22); //Temporary
+      session.setSession("takami", "localhost", 22); //Temporary
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
     } catch (JSchException e) {
@@ -34,8 +34,8 @@ public class SshSubmitter extends AbstractSubmitter {
       + RUN_DIR + host.getDirectorySeparetor() + run.getId();
 
     try {
-      Files.createDirectories(Paths.get(pathString + host.getDirectorySeparetor()));
-    } catch (IOException e) {
+      session.mkdir(pathString, "~/");
+    } catch (JSchException e) {
       e.printStackTrace();
     }
 

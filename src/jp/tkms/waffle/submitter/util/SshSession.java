@@ -2,9 +2,7 @@ package jp.tkms.waffle.submitter.util;
 
 import com.jcraft.jsch.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.*;
 
 public class SshSession {
     protected JSch jsch;
@@ -48,6 +46,20 @@ public class SshSession {
         SshChannel channel = exec("mkdir -p " + path, workDir);
 
         return (channel.getExitStatus() == 0);
+    }
+
+    public boolean putText(String text, String path, String workDir) throws JSchException {
+      ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
+      channelSftp.connect();
+      try {
+        channelSftp.cd(workDir);
+        channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
+      } catch (SftpException e) {
+        e.printStackTrace();
+        return false;
+      }
+      channelSftp.disconnect();
+      return true;
     }
 
     public boolean scp(File local, String dest, String workDir) throws JSchException {
