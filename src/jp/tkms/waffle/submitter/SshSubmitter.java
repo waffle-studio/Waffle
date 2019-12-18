@@ -1,17 +1,32 @@
 package jp.tkms.waffle.submitter;
 
+import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.Run;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import jp.tkms.waffle.submitter.util.SshSession;
 
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class LocalSubmitter extends AbstractSubmitter {
+public class SshSubmitter extends AbstractSubmitter {
+
+  SshSession session;
+  public SshSubmitter(Host host) {
+    try {
+      session = new SshSession();
+      session.setSession("takamin", "localhost", 22); //Temporary
+      session.setConfig("StrictHostKeyChecking", "no");
+      session.connect();
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
+  }
+
   @Override
   String getWorkDirectory(Run run) {
     Host host = run.getHost();
@@ -114,7 +129,7 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   @Override
   public void close() {
-
+    session.disconnect();
   }
 
   @Override

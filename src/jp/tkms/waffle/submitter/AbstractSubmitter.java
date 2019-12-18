@@ -4,12 +4,14 @@ import jp.tkms.waffle.data.*;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
   protected static final String INNER_WORK_DIR = "WORK";
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
+  protected static final String ENVIRONMENTS_FILE = "environments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract String getWorkDirectory(Run run);
@@ -24,6 +26,8 @@ abstract public class AbstractSubmitter {
     AbstractSubmitter submitter = null;
     if (host.isLocal()) {
       submitter = new LocalSubmitter();
+    } else {
+      submitter = new SshSubmitter(host);
     }
     return submitter;
   }
@@ -58,6 +62,14 @@ abstract public class AbstractSubmitter {
     String text = "";
     for (Object o : run.getArguments()) {
       text += o.toString() + "\n";
+    }
+    return text;
+  }
+
+  String makeEnvironmentFileText(Run run) {
+    String text = "";
+    for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
+      text += "export " + entry.getKey() + "='" + entry.getValue().toString() + "'\n";
     }
     return text;
   }

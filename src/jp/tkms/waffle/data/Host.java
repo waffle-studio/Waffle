@@ -1,6 +1,8 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,12 +24,14 @@ public class Host extends Data {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_OS = "os";
+  private static final String KEY_PARAMETERS = "parameters";
 
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
   private String os = null;
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
+  private JSONObject parameters;
 
   public Host(UUID id, String name) {
     super(id, name);
@@ -157,6 +161,36 @@ public class Host extends Data {
     return maximumNumberOfJobs;
   }
 
+  public JSONObject getParameters() {
+    if (parameters == null) {
+      parameters = (new JSONObject(getFromDB(KEY_PARAMETERS)));
+    }
+    return parameters;
+  }
+
+  public Object getParameter(String key) {
+    return getParameters().get(key);
+  }
+
+  public void setParameters(JSONObject jsonObject) {
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, jsonObject.toString());
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
+  }
+
+  public Object setParameter(String key, Object value) {
+    getParameters();
+    parameters.put(key, value);
+    setParameters(parameters);
+    return value;
+  }
+
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -176,6 +210,7 @@ public class Host extends Data {
                 KEY_XSUB + "," +
                 KEY_MAX_JOBS + "," +
                 KEY_POLLING + "," +
+                KEY_PARAMETERS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
               db.execute("insert into " + TABLE_NAME
