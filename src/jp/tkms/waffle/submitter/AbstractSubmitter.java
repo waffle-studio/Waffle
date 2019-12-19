@@ -1,9 +1,10 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.extractor.AbstractParameterExtractor;
+import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 abstract public class AbstractSubmitter {
@@ -14,13 +15,16 @@ abstract public class AbstractSubmitter {
   protected static final String ENVIRONMENTS_FILE = "environments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
+  abstract public AbstractSubmitter connect();
   abstract String getWorkDirectory(Run run);
-  abstract void prepare(Run run);
-  abstract String exec(Run run, String command);
+  abstract void prepareSubmission(Run run);
+  abstract String exec(String command);
   abstract int getExitStatus(Run run);
   abstract void postProcess(Run run);
   abstract public void close();
+  abstract public void putText(Run run, String path, String text);
   abstract public String getFileContents(Run run, String path);
+  abstract public JSONObject defaultParameters(Host host);
 
   public static AbstractSubmitter getInstance(Host host) {
     AbstractSubmitter submitter = null;
@@ -34,13 +38,25 @@ abstract public class AbstractSubmitter {
 
   public void submit(Job job) {
     Run run = job.getRun();
-    prepare(run);
-    processXsubSubmit(job, exec(run, xsubSubmitCommand(job)));
+
+    putText(run, BATCH_FILE, makeBatchFileText(run));
+
+    for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
+      AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
+      instance.extract(run, extractor, this);
+    }
+
+    putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
+    putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
+
+    prepareSubmission(run);
+
+    processXsubSubmit(job, exec(xsubSubmitCommand(job)));
   }
 
   public Run.State update(Job job) {
     Run run = job.getRun();
-    processXstat(job, exec(run, xstatCommand(job)));
+    processXstat(job, exec(xstatCommand(job)));
     return run.getState();
   }
 
@@ -50,7 +66,7 @@ abstract public class AbstractSubmitter {
       "mkdir " + INNER_WORK_DIR + "\n" +
       "BATCH_WORKING_DIR=`pwd`\n" +
       "cd " + INNER_WORK_DIR + "\n" +
-      "cat ../" + ARGUMENTS_FILE + " | xargs -d '\n' " +
+      "cat ../" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
       run.getSimulator().getSimulationCommand() + " >${BATCH_WORKING_DIR}/stdout.txt 2>${BATCH_WORKING_DIR}/stderr.txt\n" +
       "EXIT_STATUS=$?\n" +
       "cd ${BATCH_WORKING_DIR}\n" +
@@ -81,24 +97,21 @@ abstract public class AbstractSubmitter {
 
   String xsubCommand(Job job) {
     Host host = job.getHost();
-    return "EP=`pwd`; if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '"
-      + getWorkDirectory(job.getRun())
-      + "'; XSUB_TYPE=$XSUB_TYPE $EP" + host.getDirectorySeparetor()
-      + host.getXsubDirectory() + host.getDirectorySeparetor() + "bin" + host.getDirectorySeparetor() + "xsub ";
+    return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
+      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(job.getRun()) + "'; " +
+      "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
   String xstatCommand(Job job) {
     Host host = job.getHost();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + host.getXsubDirectory() + host.getDirectorySeparetor()
-      + "bin" + host.getDirectorySeparetor() + "xstat " + job.getJobId();
+      + getXsubBinDirectory(host) + "xstat " + job.getJobId();
   }
 
   String xdelCommand(Job job) {
     Host host = job.getHost();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + host.getXsubDirectory() + host.getDirectorySeparetor()
-      + "bin" + host.getDirectorySeparetor() + "xdel " + job.getJobId();
+      + getXsubBinDirectory(host) + "xdel " + job.getJobId();
   }
 
   void processXsubSubmit(Job job, String json) {
@@ -142,9 +155,54 @@ abstract public class AbstractSubmitter {
        + run.getHost().getDirectorySeparetor() + path;
   }
 
-  @Override
-  public String toString() {
-    return super.toString();
+  public static String getXsubBinDirectory(Host host) {
+    return (host.getXsubDirectory().equals("") ? "":
+      host.getXsubDirectory() + host.getDirectorySeparetor() + "bin" + host.getDirectorySeparetor()
+      );
   }
 
+  public static JSONObject getXsubTemplate(Host host) {
+    AbstractSubmitter submitter = getInstance(host).connect();
+    JSONObject jsonObject = new JSONObject();
+    String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
+      getXsubBinDirectory(host) + "xsub -t";
+    String json = submitter.exec(command);
+    if (json != null) {
+      jsonObject = new JSONObject(json);
+    }
+    return jsonObject;
+  }
+
+  public static JSONObject getParameters(Host host) {
+    AbstractSubmitter submitter = getInstance(host);
+    JSONObject jsonObject = submitter.defaultParameters(host);
+    return jsonObject;
+  }
+
+  public static JSONObject getParametersWithXsubParameter(Host host) {
+    AbstractSubmitter submitter = getInstance(host);
+    JSONObject jsonObject = submitter.defaultParameters(host);
+
+    try {
+      JSONObject object = getXsubTemplate(host).getJSONObject("parameters");
+      for (String key : object.toMap().keySet()) {
+        jsonObject.put(key, object.getJSONObject(key).get("default"));
+      }
+    } catch (Exception e) {}
+
+    return jsonObject;
+  }
+
+  public static JSONObject getXsubParameter(Host host) {
+    JSONObject jsonObject = new JSONObject();
+
+    try {
+      JSONObject object = getXsubTemplate(host).getJSONObject("parameters");
+      for (String key : object.toMap().keySet()) {
+        jsonObject.put(key, object.getJSONObject(key).get("default"));
+      }
+    } catch (Exception e) {}
+
+    return jsonObject;
+  }
 }

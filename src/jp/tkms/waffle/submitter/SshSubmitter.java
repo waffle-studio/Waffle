@@ -2,29 +2,73 @@ package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.Run;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
+import org.json.JSONObject;
 
-import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
 
+  Host host;
   SshSession session;
+  SshSession tunnelSession;
+
   public SshSubmitter(Host host) {
+    this.host = host;
+  }
+
+  @Override
+  public AbstractSubmitter connect() {
     try {
+      String hostName = "";
+      String user = "";
+      String identityFile = "";
+      int port = 22;
+      boolean useTunnel = false;
+
+      for (Map.Entry<String, Object> entry : host.getParametersWithoutXsubParameter().toMap().entrySet()) {
+        switch (entry.getKey()) {
+          case "host" :
+            hostName = entry.getValue().toString();
+            break;
+          case "user" :
+            user = entry.getValue().toString();
+            break;
+          case "identity_file" :
+            identityFile = entry.getValue().toString();
+            break;
+          case "port" :
+            port = Integer.parseInt(entry.getValue().toString());
+            break;
+          case "tunnel" :
+            useTunnel = true;
+            break;
+        }
+      }
+
+      if (useTunnel) {
+        JSONObject object = host.getParametersWithoutXsubParameter().getJSONObject("tunnel");
+        tunnelSession = new SshSession();
+        tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
+        tunnelSession.addIdentity(object.getString("identity_file"));
+        tunnelSession.setConfig("StrictHostKeyChecking", "no");
+        tunnelSession.connect();
+        port = tunnelSession.setPortForwardingL(hostName, port);
+        hostName = "127.0.0.1";
+      }
+
       session = new SshSession();
-      session.setSession("takami", "localhost", 22); //Temporary
+      session.setSession(user, hostName, port);
+      session.addIdentity(identityFile);
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
-    } catch (JSchException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
+
+    return this;
   }
 
   @Override
@@ -43,54 +87,20 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void prepare(Run run) {
-    try {
-      PrintWriter pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + BATCH_FILE)
-      ));
-      pw.println(makeBatchFileText(run));
-      pw.close();
-
-      for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-        AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-        instance.extract(run, extractor, this);
-      }
-
-      pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + ARGUMENTS_FILE)
-      ));
-      pw.println(makeArgumentFileText(run));
-      pw.close();
-
-      pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + ENVIRONMENTS_FILE)
-      ));
-      pw.println(makeEnvironmentFileText(run));
-      pw.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  void prepareSubmission(Run run) {
   }
 
   @Override
-  public String exec(Run run, String command) {
+  public String exec(String command) {
     String result = "";
-    ProcessBuilder p = new ProcessBuilder("sh", "-c", command);
-    p.redirectErrorStream(true);
 
     try {
-      Process process = p.start();
-
-      try (BufferedReader r
-             = new BufferedReader(new InputStreamReader(process.getInputStream(), Charset.defaultCharset()))) {
-        String line;
-        while ((line = r.readLine()) != null) {
-          result += line + "\n";
-        }
-      }
-
-    } catch (IOException e) {
+      SshChannel channel = session.exec(command, "");
+      result += channel.getStdout();
+      result += channel.getStderr();
+    } catch (JSchException e) {
       e.printStackTrace();
+      return null;
     }
 
     return result;
@@ -101,17 +111,9 @@ public class SshSubmitter extends AbstractSubmitter {
     int status = -1;
 
     try {
-      FileReader file
-        = new FileReader(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + EXIT_STATUS_FILE);
-      BufferedReader r  = new BufferedReader(file);
-      String line;
-      while ((line = r.readLine()) != null) {
-        status = Integer.valueOf(line);
-        break;
-      }
-
-      r.close();
-    } catch (IOException e) {
+      System.out.println(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
+      status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
+    } catch (JSchException e) {
       e.printStackTrace();
     }
 
@@ -121,7 +123,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   void postProcess(Run run) {
     try {
-      deleteDirectory(getWorkDirectory(run));
+      session.rmdir(getWorkDirectory(run), "/tmp");
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -130,27 +132,34 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   public void close() {
     session.disconnect();
+    if (tunnelSession != null) { tunnelSession.disconnect(); }
+  }
+
+  @Override
+  public void putText(Run run, String path, String text) {
+    try {
+      session.putText(text, path, getWorkDirectory(run));
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
   public String getFileContents(Run run, String path) {
-    return exec(run, "cat " + getContentsPath(run, path));
+    try {
+      return session.getText(getContentsPath(run, path), "");
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 
-  public static void deleteDirectory(final String dirPath) throws Exception {
-    File file = new File(dirPath);
-    recursiveDeleteFile(file);
-  }
-
-  private static void recursiveDeleteFile(final File file) throws Exception {
-    if (!file.exists()) {
-      return;
-    }
-    if (file.isDirectory()) {
-      for (File child : file.listFiles()) {
-        recursiveDeleteFile(child);
-      }
-    }
-    file.delete();
+  public JSONObject defaultParameters(Host host) {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put("host", host.getName());
+    jsonObject.put("user", System.getProperty("user.name"));
+    jsonObject.put("identity_file", "~/.ssh/id_rsa");
+    jsonObject.put("port", 22);
+    return jsonObject;
   }
 }

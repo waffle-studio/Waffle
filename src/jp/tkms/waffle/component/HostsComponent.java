@@ -43,10 +43,10 @@ public class HostsComponent extends AbstractComponent {
   @Override
   public void controller() {
     if (mode == Mode.Add) {
-      if (request.requestMethod().toLowerCase().equals("post")) {
+      if (isPost()) {
         ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
         if (errors.isEmpty()) {
-          addSimulator();
+          addHost();
         } else {
           renderAddForm(errors);
         }
@@ -84,10 +84,7 @@ public class HostsComponent extends AbstractComponent {
             Lte.card("New Host", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors),
-                Html.hr(),
-                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", null, errors),
-                Lte.formInputGroup("text", "ver_cmd", "Version command", "", null, errors)
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -146,12 +143,8 @@ public class HostsComponent extends AbstractComponent {
     }.render(this);
   }
 
-  private void addSimulator() {
-    Host host = Host.create(
-      request.queryParams("name"),
-      request.queryParams("sim_cmd"),
-      request.queryParams("ver_cmd")
-    );
+  private void addHost() {
+    Host host = Host.create(request.queryParams("name"));
     response.redirect(HostComponent.getUrl(host));
   }
 

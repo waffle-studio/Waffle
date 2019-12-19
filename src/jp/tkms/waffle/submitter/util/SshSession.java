@@ -3,104 +3,135 @@ package jp.tkms.waffle.submitter.util;
 import com.jcraft.jsch.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Paths;
 
 public class SshSession {
-    protected JSch jsch;
-    protected Session session;
+  private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
+  private final String DEFAULT_PRIVKEY_FILE = System.getProperty("user.home") + "/.ssh/id_rsa";
+  protected JSch jsch;
+  protected Session session;
 
-    public SshSession() throws JSchException {
-        this.jsch = new JSch();
-    }
-
-    public void addIdentity(String privKey) throws JSchException {
-      jsch.addIdentity(privKey);
-    }
-
-    public void setSession(Session session) {
-      this.session = session;
-    }
-
-    public void setSession(String username , String host, int port) throws JSchException {
-      setSession(jsch.getSession(username, host, port));
-    }
-
-    public void setConfig(String key, String value) {
-      session.setConfig(key, value);
-    }
-
-    public void connect() throws JSchException {
-      session.connect();
-    }
-
-    public void disconnect() {
-        session.disconnect();
-    }
-
-    public SshChannel exec(String command, String workDir) throws JSchException {
-        SshChannel channel = new SshChannel((ChannelExec) session.openChannel("exec"));
-        channel.exec(command, workDir);
-        return channel;
-    }
-
-    public boolean mkdir(String path, String workDir) throws JSchException {
-        SshChannel channel = exec("mkdir -p " + path, workDir);
-
-        return (channel.getExitStatus() == 0);
-    }
-
-    public boolean putText(String text, String path, String workDir) throws JSchException {
-      ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
-      channelSftp.connect();
+  public SshSession() throws JSchException {
+    this.jsch = new JSch();
+    if (Files.exists(Paths.get(DEFAULT_CONFIG_FILE))) {
       try {
-        channelSftp.cd(workDir);
-        channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
-      } catch (SftpException e) {
+        jsch.setConfigRepository(OpenSSHConfig.parseFile(DEFAULT_CONFIG_FILE));
+      } catch (IOException e) {
         e.printStackTrace();
-        return false;
       }
-      channelSftp.disconnect();
-      return true;
     }
-
-    public boolean scp(File local, String dest, String workDir) throws JSchException {
-        ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
-        channelSftp.connect();
-        try {
-            channelSftp.cd(workDir);
-            try {
-                channelSftp.mkdir(dest);
-            } catch (SftpException e) {}
-            channelSftp.cd(dest);
-            for(File file: local.listFiles()){
-                transferFiles(file, dest, channelSftp);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        channelSftp.disconnect();
-        return true;
+    if (Files.exists(Paths.get(DEFAULT_PRIVKEY_FILE))) {
+      jsch.addIdentity(DEFAULT_PRIVKEY_FILE);
     }
+  }
 
-    private static void transferFiles(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
-        if(localFile.isDirectory()){
-            try {
-                clientChannel.mkdir(localFile.getName());
-            } catch (SftpException e) {}
+  public void addIdentity(String privKey) throws JSchException {
+    jsch.addIdentity(privKey);
+  }
 
-            destPath = destPath + "/" + localFile.getName();
-            clientChannel.cd(destPath);
+  public void setSession(Session session) {
+    this.session = session;
+  }
 
-            for(File file: localFile.listFiles()){
-                transferFiles(file, destPath, clientChannel);
-            }
-            clientChannel.cd("..");
-        } else {
-            transferFile(localFile, localFile.getName(), clientChannel);
-        }
+  public void setSession(String username , String host, int port) throws JSchException {
+    setSession(jsch.getSession(username, host, port));
+  }
+
+  public void setConfig(String key, String value) {
+    session.setConfig(key, value);
+  }
+
+  public void connect() throws JSchException {
+    session.connect();
+  }
+
+  public void disconnect() {
+    session.disconnect();
+  }
+
+  public int setPortForwardingL(String hostName, int rport) throws JSchException {
+    return session.setPortForwardingL(0, hostName, rport);
+  }
+
+  public SshChannel exec(String command, String workDir) throws JSchException {
+    SshChannel channel = new SshChannel((ChannelExec) session.openChannel("exec"));
+    channel.exec(command, workDir);
+    return channel;
+  }
+
+  public boolean mkdir(String path, String workDir) throws JSchException {
+    SshChannel channel = exec("mkdir -p " + path, workDir);
+
+    return (channel.getExitStatus() == 0);
+  }
+
+  public boolean rmdir(String path, String workDir) throws JSchException {
+    SshChannel channel = exec("rm -rf " + path, workDir);
+
+    return (channel.getExitStatus() == 0);
+  }
+
+  public String getText(String path, String workDir) throws JSchException {
+    SshChannel channel = exec("cat " + path, workDir);
+
+    return channel.getStdout();
+  }
+
+  public boolean putText(String text, String path, String workDir) throws JSchException {
+    ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
+    channelSftp.connect();
+    try {
+      channelSftp.cd(workDir);
+      channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
+    } catch (SftpException e) {
+      e.printStackTrace();
+      return false;
     }
+    channelSftp.disconnect();
+    return true;
+  }
 
-    private static void transferFile(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
-        clientChannel.put(new FileInputStream(localFile), destPath,ChannelSftp.OVERWRITE);
+  public boolean scp(File local, String dest, String workDir) throws JSchException {
+    ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
+    channelSftp.connect();
+    try {
+      channelSftp.cd(workDir);
+      try {
+        channelSftp.mkdir(dest);
+      } catch (SftpException e) {}
+      channelSftp.cd(dest);
+      for(File file: local.listFiles()){
+        transferFiles(file, dest, channelSftp);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      return false;
     }
+    channelSftp.disconnect();
+    return true;
+  }
+
+  private static void transferFiles(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
+    if(localFile.isDirectory()){
+      try {
+        clientChannel.mkdir(localFile.getName());
+      } catch (SftpException e) {}
+
+      destPath = destPath + "/" + localFile.getName();
+      clientChannel.cd(destPath);
+
+      for(File file: localFile.listFiles()){
+        transferFiles(file, destPath, clientChannel);
+      }
+      clientChannel.cd("..");
+    } else {
+      transferFile(localFile, localFile.getName(), clientChannel);
+    }
+  }
+
+  private static void transferFile(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
+    clientChannel.put(new FileInputStream(localFile), destPath,ChannelSftp.OVERWRITE);
+  }
 }

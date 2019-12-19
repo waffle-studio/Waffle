@@ -5,12 +5,18 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Project;
+import org.json.JSONObject;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class HostComponent extends AbstractComponent {
+  private static final String KEY_WORKBASE = "work_base_dir";
+  private static final String KEY_XSUB = "xsub_dir";
+  private static final String KEY_POLLING = "polling_interval";
+  private static final String KEY_MAX_JOBS = "maximum_jobs";
+  private static final String KEY_PARAMETERS = "parameters";
   private Mode mode;
 
   ;
@@ -26,10 +32,7 @@ public class HostComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new HostComponent());
-    Spark.get(getUrl(null, "edit_const_model"), new HostComponent());
-
-    SimulatorsComponent.register();
-    TrialsComponent.register();
+    Spark.post(getUrl(null, "update"), new HostComponent(Mode.Update));
   }
 
   public static String getUrl(Host host) {
@@ -43,8 +46,13 @@ public class HostComponent extends AbstractComponent {
   @Override
   public void controller() {
     host = Host.getInstance(request.params("id"));
-
-    renderHost();
+    switch (mode) {
+      case Update:
+        updateHost();
+        break;
+      default:
+        renderHost();
+    }
   }
 
   private void renderHost() {
@@ -66,13 +74,24 @@ public class HostComponent extends AbstractComponent {
       protected String pageContent() {
         String content = "";
 
-        content += Lte.card(Html.faIcon("terminal") + "Basic",
-          ( host.isLocal() ?  null : Html.a("", Html.faIcon("edit")) ),
-          Html.div(null,
-            Lte.disabledTextInput("Xsub directory on host", host.getXsubDirectory()),
-            Lte.disabledTextInput("Work base directory on host", host.getWorkBaseDirectory()),
-            Lte.disabledTextInput("Maximum number of jobs", host.getMaximumNumberOfJobs().toString()),
-            Lte.disabledTextInput("Polling interval (seconds)", host.getPollingInterval().toString())
+        ArrayList<Lte.FormError> errors = new ArrayList<>();
+
+        content += Lte.card(Html.faIcon("terminal") + "Properties",
+          null,
+          Html.form(getUrl(host, "update"), Html.Method.Post,
+            Html.div(null,
+              Lte.formInputGroup("text", KEY_XSUB,
+                "Xsub directory on host",
+                "depends on $PATH", host.getXsubDirectory(), errors),
+              Lte.formInputGroup("text", KEY_WORKBASE,
+                "Work base directory on host", "", host.getWorkBaseDirectory(), errors),
+              Lte.formInputGroup("text", KEY_MAX_JOBS,
+                "Maximum number of jobs", "", host.getMaximumNumberOfJobs().toString(), errors),
+              Lte.formInputGroup("text", KEY_POLLING,
+                "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
+              Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", 10, host.getParameters().toString(2), null),
+              Lte.formSubmitButton("success", "Update")
+            )
           )
           , null);
 
@@ -103,9 +122,14 @@ public class HostComponent extends AbstractComponent {
     return list;
   }
 
-  private void createProject() {
-
+  private void updateHost() {
+    host.setXsubDirectory(request.queryParams(KEY_XSUB));
+    host.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
+    host.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_MAX_JOBS)));
+    host.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
+    host.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));
+    response.redirect(getUrl(host));
   }
 
-  public enum Mode {Default, EditConstModel}
+  public enum Mode {Default, Update}
 }

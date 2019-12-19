@@ -27,10 +27,10 @@ public class Registry extends ProjectData implements Map<Object, Object> {
     handleDatabase(new Registry(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+        ResultSet resultSet = db.executeQuery("select name,value from " + TABLE_NAME + ";");
         while (resultSet.next()) {
           keyValueList.add(
-            new KeyValue(resultSet.getString("name"), resultSet.getString("name"))
+            new KeyValue(resultSet.getString(KEY_NAME), resultSet.getString(KEY_VALUE))
           );
         }
       }

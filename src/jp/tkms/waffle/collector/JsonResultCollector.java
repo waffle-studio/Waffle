@@ -8,9 +8,10 @@ public class JsonResultCollector extends AbstractResultCollector {
   @Override
   public void collect(Run run, ResultCollector collector) {
     try {
-      AbstractSubmitter submitter = AbstractSubmitter.getInstance(run.getHost());
+      AbstractSubmitter submitter = AbstractSubmitter.getInstance(run.getHost()).connect();
       String json = submitter.getFileContents(run, collector.getContents().replaceAll("[\n\r\t]", ""));
       run.putResults(json);
+      submitter.close();
     } catch (Exception e) { e.printStackTrace(); }
   }
 

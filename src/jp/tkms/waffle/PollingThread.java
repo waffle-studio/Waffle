@@ -24,7 +24,8 @@ public class PollingThread extends Thread {
 
     ArrayList<Job> jobList = Job.getList(host);
     while (jobList.size() > 0) {
-      AbstractSubmitter submitter = AbstractSubmitter.getInstance(host);
+      AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
+
       int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
 
       ArrayList<Job> queuedJobList = new ArrayList<>();

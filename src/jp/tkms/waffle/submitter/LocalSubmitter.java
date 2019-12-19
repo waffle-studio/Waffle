@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.Run;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -12,6 +13,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class LocalSubmitter extends AbstractSubmitter {
+  @Override
+  public AbstractSubmitter connect() {
+    return this;
+  }
+
   @Override
   String getWorkDirectory(Run run) {
     Host host = run.getHost();
@@ -28,37 +34,11 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void prepare(Run run) {
-    try {
-      PrintWriter pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + BATCH_FILE)
-      ));
-      pw.println(makeBatchFileText(run));
-      pw.close();
-
-      for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-        AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-        instance.extract(run, extractor, this);
-      }
-
-      pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + ARGUMENTS_FILE)
-      ));
-      pw.println(makeArgumentFileText(run));
-      pw.close();
-
-      pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + ENVIRONMENTS_FILE)
-      ));
-      pw.println(makeEnvironmentFileText(run));
-      pw.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  void prepareSubmission(Run run) {
   }
 
   @Override
-  public String exec(Run run, String command) {
+  public String exec(String command) {
     String result = "";
     ProcessBuilder p = new ProcessBuilder("sh", "-c", command);
     p.redirectErrorStream(true);
@@ -118,8 +98,26 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(Run run, String path) {
-    return exec(run, "cat " + getContentsPath(run, path));
+  public void putText(Run run, String path, String text) {
+    try {
+      PrintWriter pw = new PrintWriter(new BufferedWriter(
+        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + path)
+      ));
+      pw.println(text);
+      pw.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Override
+  public String getFileContents(Run run, String path){
+    return exec("cat " + getContentsPath(run, path));
+  }
+
+  @Override
+  public JSONObject defaultParameters(Host host) {
+    return new JSONObject();
   }
 
   public static void deleteDirectory(final String dirPath) throws Exception {

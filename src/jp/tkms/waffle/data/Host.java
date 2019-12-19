@@ -1,7 +1,9 @@
 package jp.tkms.waffle.data;
 
+import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Environment;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -14,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 
 public class Host extends Data {
@@ -26,12 +29,13 @@ public class Host extends Data {
   private static final String KEY_OS = "os";
   private static final String KEY_PARAMETERS = "parameters";
 
+  private String hostName = null;
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
   private String os = null;
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
-  private JSONObject parameters;
+  private JSONObject parameters = null;
 
   public Host(UUID id, String name) {
     super(id, name);
@@ -105,8 +109,23 @@ public class Host extends Data {
     return list;
   }
 
-  public static Host create(String name, String simulationCommand, String versionCommand) {
-    return null;
+  public static Host create(String name) {
+    Host host = new Host(UUID.randomUUID(), name);
+    handleDatabase(new Host(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
+          KEY_ID, KEY_NAME, KEY_WORKBASE, KEY_XSUB, KEY_MAX_JOBS, KEY_POLLING).toPreparedStatement();
+        statement.setString(1, host.getId());
+        statement.setString(2, host.getName());
+        statement.setString(3, "");
+        statement.setString(4, "");
+        statement.setInt(5, 1);
+        statement.setInt(6, 10);
+        statement.execute();
+      }
+    });
+    return host;
   }
 
   public Path getLocation() {
@@ -125,11 +144,27 @@ public class Host extends Data {
     return workBaseDirectory;
   }
 
+  public void setWorkBaseDirectory(String workBaseDirectory) {
+    if (
+      setStringToDB(KEY_WORKBASE, workBaseDirectory)
+    ) {
+      this.workBaseDirectory = workBaseDirectory;
+    }
+  }
+
   public String getXsubDirectory() {
     if (xsubDirectory == null) {
       xsubDirectory = getFromDB(KEY_XSUB);
     }
     return xsubDirectory;
+  }
+
+  public void setXsubDirectory(String xsubDirectory) {
+    if (
+      setStringToDB(KEY_XSUB, xsubDirectory)
+    ) {
+      this.xsubDirectory = xsubDirectory;
+    }
   }
 
   public String getOs() {
@@ -154,6 +189,14 @@ public class Host extends Data {
     return pollingInterval;
   }
 
+  public void setPollingInterval(Integer pollingInterval) {
+    if (
+      setIntToDB(KEY_POLLING, pollingInterval)
+    ) {
+      this.pollingInterval = pollingInterval;
+    }
+  }
+
   public Integer getMaximumNumberOfJobs() {
     if (maximumNumberOfJobs == null) {
       maximumNumberOfJobs = Integer.valueOf(getFromDB(KEY_MAX_JOBS));
@@ -161,9 +204,38 @@ public class Host extends Data {
     return maximumNumberOfJobs;
   }
 
+  public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
+    if (
+      setIntToDB(KEY_MAX_JOBS, maximumNumberOfJobs)
+    ) {
+      this.maximumNumberOfJobs = maximumNumberOfJobs;
+    }
+  }
+
+  public JSONObject getXsubParameters() {
+    JSONObject jsonObject = new JSONObject();
+    for (String key : AbstractSubmitter.getXsubParameter(this).keySet()) {
+      jsonObject.put(key, getParameter(key));
+    }
+    return jsonObject;
+  }
+
+  public JSONObject getParametersWithoutXsubParameter() {
+    JSONObject parameters = AbstractSubmitter.getParameters(this);
+    JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
+    for (String key : jsonObject.keySet()) {
+      parameters.put(key, jsonObject.get(key));
+    }
+    return parameters;
+  }
+
   public JSONObject getParameters() {
     if (parameters == null) {
-      parameters = (new JSONObject(getFromDB(KEY_PARAMETERS)));
+      parameters = AbstractSubmitter.getParametersWithXsubParameter(this);
+      JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
+      for (String key : jsonObject.keySet()) {
+        parameters.put(key, jsonObject.get(key));
+      }
     }
     return parameters;
   }
@@ -213,16 +285,21 @@ public class Host extends Data {
                 KEY_PARAMETERS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
-              db.execute("insert into " + TABLE_NAME
-                + "(id,name," +
-                KEY_WORKBASE + "," +
-                KEY_XSUB + "," +
-                KEY_MAX_JOBS + "," +
-                KEY_POLLING +
-                ") values('" + LOCAL_UUID.toString() + "','LOCAL','"
-                + Environment.LOCAL_WORK_DIR + "','"
-                + Environment.LOCAL_XSUB_DIR
-                + "',1,5);");
+
+              PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
+                KEY_ID, KEY_NAME,
+                KEY_WORKBASE,
+                KEY_XSUB,
+                KEY_MAX_JOBS,
+                KEY_POLLING
+                ).toPreparedStatement();
+              statement.setString(1, LOCAL_UUID.toString());
+              statement.setString(2, "LOCAL");
+              statement.setString(3, Environment.LOCAL_WORK_DIR);
+              statement.setString(4, Environment.LOCAL_XSUB_DIR);
+              statement.setInt(5, 1);
+              statement.setInt(6, 5);
+              statement.execute();
 
               try {
                 Files.createDirectories(Paths.get(Environment.LOCAL_WORK_DIR));

@@ -96,16 +96,34 @@ abstract public class Data {
     return result[0];
   }
 
-  public void setName(String name) {
-    if (handleDatabase(this, new Handler() {
+  protected boolean setStringToDB(String key, String value) {
+    return handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_NAME + "=? where " + KEY_ID + "=?");
-        statement.setString(1, name);
+        PreparedStatement statement = new Sql.Update(db, getTableName(), key).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, value);
         statement.setString(2, getId());
         statement.execute();
       }
-    })) {
+    });
+  }
+
+  protected boolean setIntToDB(String key, int value) {
+    return handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), key).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setInt(1, value);
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
+  }
+
+  public void setName(String name) {
+    if (
+      setStringToDB(KEY_NAME, name)
+    ) {
       this.name = name;
     }
   }
