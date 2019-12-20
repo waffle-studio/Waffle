@@ -226,6 +226,7 @@ public class ProjectComponent extends AbstractComponent {
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (KeyValue e : Registry.getList(project)) {
+                if (e.getKey().indexOf('.') == 0) { continue; }
                 list.add(new Lte.TableRow(
                   new Lte.TableValue("", e.getKey()),
                   new Lte.TableValue("", e.getValue())

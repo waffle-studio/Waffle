@@ -97,7 +97,9 @@ public class ConductorComponent extends AbstractComponent {
         String content = "";
 
         content += Lte.card(Html.faIcon("terminal") + "Basic",
-          Html.a("", Html.faIcon("edit")),
+          Html.a(getUrl(conductor, "prepare", Trial.getRootInstance(project)),
+            Html.span("right badge badge-secondary", null, "run")
+          ),
           Html.div(null,
             Lte.readonlyTextInput("Conductor Directory", conductor.getLocation().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Base Script", conductor.getScriptFileName())

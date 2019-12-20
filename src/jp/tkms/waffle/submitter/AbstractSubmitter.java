@@ -9,6 +9,7 @@ import java.util.Map;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
+  protected static final String SIMULATOR_DIR = "simulator";
   protected static final String INNER_WORK_DIR = "WORK";
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
@@ -17,6 +18,7 @@ abstract public class AbstractSubmitter {
 
   abstract public AbstractSubmitter connect();
   abstract String getWorkDirectory(Run run);
+  abstract String getSimulatorBinDirectory(Run run);
   abstract void prepareSubmission(Run run);
   abstract String exec(String command);
   abstract int getExitStatus(Run run);
@@ -63,6 +65,7 @@ abstract public class AbstractSubmitter {
   String makeBatchFileText(Run run) {
     return "#!/bin/sh\n" +
       "\n" +
+      "export PATH='" + getSimulatorBinDirectory(run) + "':$PATH\n" +
       "mkdir " + INNER_WORK_DIR + "\n" +
       "BATCH_WORKING_DIR=`pwd`\n" +
       "cd " + INNER_WORK_DIR + "\n" +
@@ -144,7 +147,9 @@ abstract public class AbstractSubmitter {
           postProcess(job.getRun());
           break;
       }
-    } catch (Exception e) {}
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   void processXdel(Job job, String json) {

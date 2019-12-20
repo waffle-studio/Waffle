@@ -84,7 +84,7 @@ public class SimulatorComponent extends AbstractComponent {
         content += Lte.card(Html.faIcon("terminal") + "Properties", null,
           Html.form(getUrl(simulator, "update"), Html.Method.Post,
             Html.div(null,
-              Lte.readonlyTextInput("Simulator Directory", simulator.getLocation().toString()),
+              Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectoryLocation().toString()),
               Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors),
               Lte.formSubmitButton("primary", "Update")
             )

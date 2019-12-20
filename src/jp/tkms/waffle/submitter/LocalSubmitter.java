@@ -1,10 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.Run;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -31,6 +28,11 @@ public class LocalSubmitter extends AbstractSubmitter {
     }
 
     return pathString;
+  }
+
+  @Override
+  String getSimulatorBinDirectory(Run run) {
+    return run.getSimulator().getBinDirectoryLocation().toAbsolutePath().toString();
   }
 
   @Override
@@ -86,7 +88,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   void postProcess(Run run) {
     try {
-      deleteDirectory(getWorkDirectory(run));
+      //deleteDirectory(getWorkDirectory(run));
     } catch (Exception e) {
       e.printStackTrace();
     }

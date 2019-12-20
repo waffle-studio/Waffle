@@ -3,6 +3,7 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
@@ -83,11 +84,25 @@ public class SshSubmitter extends AbstractSubmitter {
       e.printStackTrace();
     }
 
-    return pathString;
+    return toAbsoluteHomePath(pathString);
+  }
+
+  @Override
+  String getSimulatorBinDirectory(Run run) {
+    String sep = run.getHost().getDirectorySeparetor();
+    String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.BIN_DIR;
+
+    return toAbsoluteHomePath(pathString);
   }
 
   @Override
   void prepareSubmission(Run run) {
+    try {
+      session.mkdir(getSimulatorBinDirectory(run), "/tmp");
+      session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
@@ -111,9 +126,8 @@ public class SshSubmitter extends AbstractSubmitter {
     int status = -1;
 
     try {
-      System.out.println(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
       status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
-    } catch (JSchException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
 
@@ -123,7 +137,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   void postProcess(Run run) {
     try {
-      session.rmdir(getWorkDirectory(run), "/tmp");
+      //session.rmdir(getWorkDirectory(run), "/tmp");
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -161,5 +175,16 @@ public class SshSubmitter extends AbstractSubmitter {
     jsonObject.put("identity_file", "~/.ssh/id_rsa");
     jsonObject.put("port", 22);
     return jsonObject;
+  }
+
+  private String toAbsoluteHomePath(String pathString) {
+    try {
+      if (pathString.indexOf('~') == 0) {
+        pathString = pathString.replaceAll("^~", session.exec("echo $HOME", "~/").getStdout().replaceAll("\\r|\\n", ""));
+      }
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
+    return pathString;
   }
 }

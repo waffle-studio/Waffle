@@ -3,9 +3,11 @@ package jp.tkms.waffle.submitter.util;
 import com.jcraft.jsch.*;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Paths;
+import java.util.Locale;
 
 public class SshSession {
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
@@ -132,6 +134,32 @@ public class SshSession {
   }
 
   private static void transferFile(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
-    clientChannel.put(new FileInputStream(localFile), destPath,ChannelSftp.OVERWRITE);
+    clientChannel.put(localFile.getAbsolutePath(), destPath, ChannelSftp.OVERWRITE);
+
+    String perm = localExec("stat '" + localFile.getAbsolutePath() + "' -c '%a'").replaceAll("\\r|\\n", "");
+    clientChannel.chmod(Integer.parseInt(perm, 8), destPath);
+  }
+
+  private static String localExec(String command) {
+    String result = "";
+    ProcessBuilder p = new ProcessBuilder("sh", "-c", command);
+    p.redirectErrorStream(true);
+
+    try {
+      Process process = p.start();
+
+      try (BufferedReader r
+             = new BufferedReader(new InputStreamReader(process.getInputStream(), Charset.defaultCharset()))) {
+        String line;
+        while ((line = r.readLine()) != null) {
+          result += line + "\n";
+        }
+      }
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return result;
   }
 }

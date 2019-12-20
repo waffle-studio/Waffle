@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public class Simulator extends ProjectData {
+  public static final String BIN_DIR = "bin";
+
   protected static final String TABLE_NAME = "simulator";
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
 
@@ -122,6 +124,7 @@ public class Simulator extends ProjectData {
     ) {
       try {
         Files.createDirectories(simulator.getLocation());
+        Files.createDirectories(simulator.getBinDirectoryLocation());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -136,6 +139,13 @@ public class Simulator extends ProjectData {
   public Path getLocation() {
     Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + name + '_' + shortId
+    );
+    return path;
+  }
+
+  public Path getBinDirectoryLocation() {
+    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
+      TABLE_NAME + File.separator + name + '_' + shortId + File.separator + BIN_DIR
     );
     return path;
   }
