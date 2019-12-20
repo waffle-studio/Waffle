@@ -118,7 +118,7 @@ public class Host extends Data {
           KEY_ID, KEY_NAME, KEY_WORKBASE, KEY_XSUB, KEY_MAX_JOBS, KEY_POLLING).toPreparedStatement();
         statement.setString(1, host.getId());
         statement.setString(2, host.getName());
-        statement.setString(3, "");
+        statement.setString(3, "/tmp/waffle");
         statement.setString(4, "");
         statement.setInt(5, 1);
         statement.setInt(6, 10);
