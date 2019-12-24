@@ -26,6 +26,7 @@ public class SshSubmitter extends AbstractSubmitter {
       String hostName = "";
       String user = "";
       String identityFile = "";
+      String identityPass = "";
       int port = 22;
       boolean useTunnel = false;
 
@@ -39,6 +40,9 @@ public class SshSubmitter extends AbstractSubmitter {
             break;
           case "identity_file" :
             identityFile = entry.getValue().toString();
+            break;
+          case "identity_pass" :
+            identityPass = entry.getValue().toString();
             break;
           case "port" :
             port = Integer.parseInt(entry.getValue().toString());
@@ -62,7 +66,11 @@ public class SshSubmitter extends AbstractSubmitter {
 
       session = new SshSession();
       session.setSession(user, hostName, port);
-      session.addIdentity(identityFile);
+      if (identityPass.equals("")) {
+        session.addIdentity(identityFile);
+      } else {
+        session.addIdentity(identityFile, identityPass);
+      }
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
     } catch (Exception e) {
@@ -173,6 +181,7 @@ public class SshSubmitter extends AbstractSubmitter {
     jsonObject.put("host", host.getName());
     jsonObject.put("user", System.getProperty("user.name"));
     jsonObject.put("identity_file", "~/.ssh/id_rsa");
+    jsonObject.put("identity_pass", "");
     jsonObject.put("port", 22);
     return jsonObject;
   }

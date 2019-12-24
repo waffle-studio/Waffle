@@ -2,6 +2,7 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.ConductorEntity;
+import org.json.JSONObject;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;

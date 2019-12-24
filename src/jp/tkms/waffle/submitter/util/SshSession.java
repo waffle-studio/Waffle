@@ -33,6 +33,10 @@ public class SshSession {
     jsch.addIdentity(privKey);
   }
 
+  public void addIdentity(String privKey, String pass) throws JSchException {
+    jsch.addIdentity(privKey, pass);
+  }
+
   public void setSession(Session session) {
     this.session = session;
   }
