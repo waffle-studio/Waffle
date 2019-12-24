@@ -5,6 +5,7 @@ import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 abstract public class AbstractSubmitter {
@@ -209,5 +210,44 @@ abstract public class AbstractSubmitter {
     } catch (Exception e) {}
 
     return jsonObject;
+  }
+
+  public void pollingTask(Host host) {
+    ArrayList<Job> jobList = Job.getList(host);
+
+    int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
+
+    ArrayList<Job> queuedJobList = new ArrayList<>();
+    int submittedCount = 0;
+
+    for (Job job : jobList) {
+      Run run = job.getRun();
+      switch (run.getState()) {
+        case Created:
+          if (queuedJobList.size() < maximumNumberOfJobs) {
+            queuedJobList.add(job);
+          }
+          break;
+        case Submitted:
+        case Running:
+        case Finished:
+          Run.State state = update(job);
+          if (!Run.State.Finished.equals(state)) {
+            submittedCount++;
+          }
+          break;
+      }
+    }
+
+    for (Job job : queuedJobList) {
+      if (submittedCount < maximumNumberOfJobs) {
+        submit(job);
+        submittedCount++;
+      }
+    }
+  }
+
+  public void hibernate() {
+
   }
 }

@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Environment {
-  static final public String APP_NAME = "Waffle";
+  static final public String APP_NAME = "WAFFLE";
   static final public String MAIN_DB_NAME = APP_NAME.toLowerCase() + "-main.db";
   static final public String PROJECT_DB_NAME = APP_NAME.toLowerCase() + "-project.db";
   static final public String SIMULATOR_DB_NAME = APP_NAME.toLowerCase() + "-simulator.db";

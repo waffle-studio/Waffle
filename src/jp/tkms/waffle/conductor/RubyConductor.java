@@ -48,6 +48,11 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
+  protected void suspendProcess(ConductorEntity entity) {
+
+  }
+
+  @Override
   public String defaultScriptName() {
     return "main.rb";
   }

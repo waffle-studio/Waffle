@@ -175,4 +175,10 @@ public class Project extends Data {
     @Override
     protected Updater getDatabaseUpdater() { return null; }
   }
+
+  public void hibernate() {
+    for (ConductorEntity  entity : ConductorEntity.getList(this)) {
+      AbstractConductor.getInstance(entity).hibernate();
+    }
+  }
 }

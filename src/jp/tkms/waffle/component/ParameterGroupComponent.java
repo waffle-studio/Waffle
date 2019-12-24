@@ -88,9 +88,6 @@ public class ParameterGroupComponent extends AbstractComponent {
     new MainTemplate() {
       @Override
       protected String pageTitle() {
-        if (group.isRoot()) {
-          return "Parameter Model";
-        }
         return group.getName();
       }
 
@@ -129,7 +126,7 @@ public class ParameterGroupComponent extends AbstractComponent {
             , null);
         }
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter Models",
+        content += Lte.card(Html.faIcon("list-alt") + "Parameters",
           Html.a(getUrl(group, MODE_ADD_PARAMETER), Html.faIcon("plus")),
           Lte.table(null, new Lte.Table() {
             @Override
@@ -154,7 +151,7 @@ public class ParameterGroupComponent extends AbstractComponent {
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameter Model Groups",
+        content += Lte.card(Html.faIcon("list-alt") + "Parameter Groups",
           Html.a(getUrl(group, MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override

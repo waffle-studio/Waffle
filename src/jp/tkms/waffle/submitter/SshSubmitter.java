@@ -177,7 +177,7 @@ public class SshSubmitter extends AbstractSubmitter {
     return jsonObject;
   }
 
-  private String toAbsoluteHomePath(String pathString) {
+  protected String toAbsoluteHomePath(String pathString) {
     try {
       if (pathString.indexOf('~') == 0) {
         pathString = pathString.replaceAll("^~", session.exec("echo $HOME", "~/").getStdout().replaceAll("\\r|\\n", ""));

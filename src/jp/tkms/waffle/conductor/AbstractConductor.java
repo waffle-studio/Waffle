@@ -10,14 +10,18 @@ abstract public class AbstractConductor {
   abstract protected void mainProcess(ConductorEntity entity);
   abstract protected void eventHandler(ConductorEntity entity);
   abstract protected void postProcess(ConductorEntity entity);
+  abstract protected void suspendProcess(ConductorEntity entity);
   abstract public String defaultScriptName();
   abstract public void prepareConductor(Conductor conductor);
+
+  private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
+  private static HashMap<ConductorEntity, AbstractConductor> runningInstance = new HashMap<>();
 
   public AbstractConductor() {
   }
 
   public void start(ConductorEntity entity) {
-    (new Thread(){
+    (new Thread() {
       @Override
       public void run() {
         super.run();
@@ -35,9 +39,14 @@ abstract public class AbstractConductor {
     }
   }
 
-  public static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
+  public void hibernate(ConductorEntity entity) {
+    suspendProcess(entity);
+  }
 
   public static AbstractConductor getInstance(ConductorEntity entity) {
+    if (runningInstance.containsKey(entity)) {
+      return runningInstance.get(entity);
+    }
     return getInstance(entity.getConductor().getConductorType());
   }
 

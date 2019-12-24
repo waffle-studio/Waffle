@@ -46,13 +46,14 @@ abstract public class MainTemplate extends AbstractTemplate {
               )
             ),
             elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
-              a(Environment.ROOT_PAGE, "brand-link navbar-warning", null,
+              a(Environment.ROOT_PAGE, "brand-link navbar-light",
+                new Attributes(value("title", "Workflow Administration Framework to Facilitate Looped Experiments")),
                 attribute("img",
                   value("src", "/img/logo.png"),
-                  value("class", "brand-image img-circle elevation-3"),
-                  value("style", "opacity:0.8;")
+                  value("class", "brand-image"),
+                  value("style", "opacity:1.0;")
                 ),
-                span("brand-text font-weight-light", null, "Manager")
+                span("brand-text text-warning font-weight-bold", null, Environment.APP_NAME)
               ),
               div("sidebar",
                 elementWithClass("nav", "mt-2",

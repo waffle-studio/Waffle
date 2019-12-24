@@ -22,6 +22,11 @@ public class TestConductor extends AbstractConductor {
   }
 
   @Override
+  protected void suspendProcess(ConductorEntity entity) {
+
+  }
+
+  @Override
   public String defaultScriptName() {
     return "";
   }
