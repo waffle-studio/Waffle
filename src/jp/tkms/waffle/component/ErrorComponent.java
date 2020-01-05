@@ -7,7 +7,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ErrorComponent extends AbstractComponent {
+public class ErrorComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.notFound(new ErrorComponent());
     Spark.internalServerError(new ErrorComponent());

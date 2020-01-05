@@ -10,7 +10,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class SimulatorsComponent extends AbstractComponent {
+public class SimulatorsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;

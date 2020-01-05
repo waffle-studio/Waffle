@@ -12,7 +12,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ParameterComponent extends AbstractComponent {
+public class ParameterComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   private Project project;

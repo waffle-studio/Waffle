@@ -33,6 +33,8 @@ abstract public class AbstractSubmitter {
     AbstractSubmitter submitter = null;
     if (host.isLocal()) {
       submitter = new LocalSubmitter();
+    } else if (host.getName().equals("ABCI")) {
+      submitter = new AbciSubmitter(host);
     } else {
       submitter = new SshSubmitter(host);
     }

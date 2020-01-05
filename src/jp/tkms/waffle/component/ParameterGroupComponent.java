@@ -9,7 +9,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ParameterGroupComponent extends AbstractComponent {
+public class ParameterGroupComponent extends AbstractAccessControlledComponent {
   static final String MODE_ADD_PARAMETER_GROUP = "add_parameter_group";
   static final String MODE_ADD_PARAMETER = "add_parameter";
 

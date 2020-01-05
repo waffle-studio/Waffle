@@ -11,7 +11,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class HostComponent extends AbstractComponent {
+public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_POLLING = "polling_interval";

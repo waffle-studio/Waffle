@@ -5,13 +5,12 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Run;
-import jp.tkms.waffle.data.Trial;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class RunComponent extends AbstractComponent {
+public class RunComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;
@@ -28,10 +27,15 @@ public class RunComponent extends AbstractComponent {
 
   static public void register() {
     Spark.get(getUrl(null, null), new RunComponent());
+    Spark.get(getUrl(null, null, "recheck"), new RunComponent(Mode.ReCheck));
   }
 
   public static String getUrl(Project project, Run run) {
     return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + run.getId());
+  }
+
+  public static String getUrl(Project project, Run run, String mode) {
+    return "/run/" + (project == null ? ":project/:id/" + mode : project.getId() + "/" + run.getId() + "/" + mode);
   }
 
   @Override
@@ -40,6 +44,11 @@ public class RunComponent extends AbstractComponent {
     String requestedId = request.params("id");
 
     run = Run.getInstance(project, requestedId);
+
+    switch (mode) {
+      case ReCheck:
+        run.start();
+    }
 
     renderRun();
   }
@@ -97,5 +106,5 @@ public class RunComponent extends AbstractComponent {
     }.render(this);
   }
 
-  public enum Mode {Default}
+  public enum Mode {Default, ReCheck}
 }

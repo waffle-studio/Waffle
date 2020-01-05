@@ -11,6 +11,20 @@ public class Main {
 
   public static void main(String[] args) {
 
+    System.out.println("PID: " + java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+
+    Runtime.getRuntime().addShutdownHook(new Thread()
+    {
+      @Override
+      public void run()
+      {
+        System.out.println("System will hibernate");
+        hibernate();
+        PollingThread.waitForShutdown();
+        System.out.println("System hibernated");
+      }
+    });
+
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
 
     staticFiles.location("/static");
@@ -30,6 +44,7 @@ public class Main {
     HostsComponent.register();
 
     SystemComponent.register();
+    SigninComponent.register();
 
     Browser.updateDB();
     PollingThread.startup();
@@ -41,4 +56,6 @@ public class Main {
     hibernateFlag = true;
     Spark.stop();
   }
+
+
 }

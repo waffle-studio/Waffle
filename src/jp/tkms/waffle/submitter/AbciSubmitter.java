@@ -12,38 +12,68 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
 
 public class AbciSubmitter extends SshSubmitter {
+  protected static final String PACK_BATCH_FILE = "pack_batch.sh";
 
-  static UUID packId = null;
-  static ArrayList<Job> queuedJobList = new ArrayList<>();
-  static HashMap<Job, UUID> jobPackMap = new HashMap<>();
+  UUID packId = null;
+  ArrayList<Job> queuedJobList = new ArrayList<>();
+  String packBatchText = "";
+  HashMap<Job, UUID> jobPackMap = new HashMap<>();
+
+  PackWaitThread packWaitThread = null;
+  Semaphore packWaitThreadSemaphore = new Semaphore(1);
+  class PackWaitThread extends Thread {
+    @Override
+    public void run() {
+      try {
+        Thread.sleep(10000);
+      } catch (InterruptedException e) { }
+
+      try {
+        packWaitThreadSemaphore.acquire();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+
+      submitQueue();
+      packId = null;
+
+      packWaitThreadSemaphore.release();
+    }
+  };
 
   public AbciSubmitter(Host host) {
     super(host);
   }
 
   private void submitQueue() {
+    putText(packId, PACK_BATCH_FILE, packBatchText);
+    String resultJson = exec(xsubSubmitCommand(packId));
     for (Job job : queuedJobList) {
-
+      processXsubSubmit(job, resultJson);
     }
   }
 
-  String xsubSubmitCommand(Job job) {
-    //return xsubCommand(job) + " -d '" + getWorkDirectory(job.getRun()) + "' " + BATCH_FILE;
-    return xsubCommand(job) + " " + BATCH_FILE;
+  String xsubSubmitCommand(UUID packId) {
+    return xsubCommand(packId) + " " + PACK_BATCH_FILE;
   }
 
   @Override
   public synchronized void submit(Job job) {
-    if (queuedJobList.size() >= 40) {
-      submitQueue();
-      packId = null;
+    try {
+      packWaitThreadSemaphore.acquire();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
     }
 
     if (packId == null) {
       packId = UUID.randomUUID();
       queuedJobList.clear();
+      packBatchText = "#!/bin/sh\n\n";
+      packWaitThread = new PackWaitThread();
+      packWaitThread.start();
     }
 
     queuedJobList.add(job);
@@ -62,16 +92,38 @@ public class AbciSubmitter extends SshSubmitter {
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
+    packBatchText += "cd " + getWorkDirectory(run) + "\n";
+    packBatchText += "sh " + BATCH_FILE + "\n";
+
     prepareSubmission(run);
+
+    packWaitThreadSemaphore.release();
+
+    if (queuedJobList.size() >= 2) {
+      packWaitThread.interrupt();
+      try {
+        packWaitThread.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
 
     //processXsubSubmit(job, exec(xsubSubmitCommand(job)));
   }
 
-  @Override
-  String getWorkDirectory(Run run) {
-    Host host = run.getHost();
+  public void putText(UUID packId, String path, String text) {
+    try {
+      session.putText(text, path, getWorkDirectory(packId));
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
+  }
+
+  String getWorkDirectory(UUID packId) {
     String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + RUN_DIR + host.getDirectorySeparetor() + run.getId();
+      + RUN_DIR + host.getDirectorySeparetor()
+      + "pack" + host.getDirectorySeparetor()
+      + packId.toString();
 
     try {
       session.mkdir(pathString, "~/");
@@ -82,10 +134,9 @@ public class AbciSubmitter extends SshSubmitter {
     return toAbsoluteHomePath(pathString);
   }
 
-  String xsubCommand(Job job) {
-    Host host = job.getHost();
+  String xsubCommand(UUID packId) {
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
-      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(job.getRun()) + "'; " +
+      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(packId) + "'; " +
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
@@ -121,13 +172,17 @@ public class AbciSubmitter extends SshSubmitter {
     int submittedCount = 0;
 
     updatedPackJson.clear();
+
     for (Job job : jobList) {
       Run run = job.getRun();
       switch (run.getState()) {
         case Created:
-          if (queuedJobList.size() < maximumNumberOfJobs) {
+          if (queuedJobList.size() <= maximumNumberOfJobs) {
             queuedJobList.add(job);
           }
+          break;
+        case Queued:
+          submittedCount++;
           break;
         case Submitted:
         case Running:
@@ -137,6 +192,8 @@ public class AbciSubmitter extends SshSubmitter {
             submittedCount++;
           }
           break;
+        case Failed:
+          //job.remove();
       }
     }
 

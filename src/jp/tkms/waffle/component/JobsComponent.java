@@ -3,7 +3,6 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.Run;
 import spark.Spark;
@@ -11,7 +10,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class JobsComponent extends AbstractComponent {
+public class JobsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;

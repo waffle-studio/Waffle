@@ -4,7 +4,7 @@ import jp.tkms.waffle.data.Browser;
 import jp.tkms.waffle.data.BrowserMessage;
 import spark.Spark;
 
-public class BrowserMessageComponent extends AbstractComponent {
+public class BrowserMessageComponent extends AbstractAccessControlledComponent {
   private static final String KEY_BROWSER_ID = "bid";
 
   public static void register() {

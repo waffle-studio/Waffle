@@ -2,7 +2,6 @@ package jp.tkms.waffle.component.template;
 
 import jp.tkms.waffle.Environment;
 import jp.tkms.waffle.component.*;
-import jp.tkms.waffle.data.Browser;
 
 import java.util.ArrayList;
 
