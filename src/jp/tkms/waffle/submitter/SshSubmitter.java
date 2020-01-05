@@ -57,7 +57,11 @@ public class SshSubmitter extends AbstractSubmitter {
         JSONObject object = host.getParametersWithoutXsubParameter().getJSONObject("tunnel");
         tunnelSession = new SshSession();
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
-        tunnelSession.addIdentity(object.getString("identity_file"));
+        if (identityPass.equals("")) {
+          tunnelSession.addIdentity(object.getString("identity_file"));
+        } else {
+          tunnelSession.addIdentity(object.getString("identity_file"), object.getString("identity_pass"));
+        }
         tunnelSession.setConfig("StrictHostKeyChecking", "no");
         tunnelSession.connect();
         port = tunnelSession.setPortForwardingL(hostName, port);
