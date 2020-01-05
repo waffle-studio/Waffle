@@ -4,13 +4,12 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.Project;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class HostsComponent extends AbstractComponent {
+public class HostsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;

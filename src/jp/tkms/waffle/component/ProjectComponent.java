@@ -14,7 +14,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ProjectComponent extends AbstractComponent {
+public class ProjectComponent extends AbstractAccessControlledComponent {
   public enum Mode {Default, NotFound, EditConstModel, AddConductor}
   private Mode mode;
 

@@ -11,7 +11,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class TrialsComponent extends AbstractComponent {
+public class TrialsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;

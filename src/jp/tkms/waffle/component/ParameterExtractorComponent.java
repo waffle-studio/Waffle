@@ -10,7 +10,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ParameterExtractorComponent extends AbstractComponent {
+public class ParameterExtractorComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   private Project project;

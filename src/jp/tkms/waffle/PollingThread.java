@@ -21,6 +21,8 @@ public class PollingThread extends Thread {
 
   @Override
   public void run() {
+    System.out.println("Submitter started");
+
     int pollingTime = host.getPollingInterval() * 1000;
 
     AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
@@ -35,6 +37,8 @@ public class PollingThread extends Thread {
     submitter.close();
 
     threadMap.remove(host.getId());
+
+    System.out.println("Submitter closed");
   }
 
   synchronized public static void startup() {
@@ -43,6 +47,16 @@ public class PollingThread extends Thread {
         PollingThread pollingThread = new PollingThread(host);
         threadMap.put(host.getId(), pollingThread);
         pollingThread.start();
+      }
+    }
+  }
+
+  synchronized public static void waitForShutdown() {
+    while (! threadMap.isEmpty()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
     }
   }

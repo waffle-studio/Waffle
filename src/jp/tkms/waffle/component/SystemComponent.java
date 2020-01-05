@@ -1,14 +1,9 @@
 package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.MainTemplate;
 import spark.Spark;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
-public class SystemComponent extends AbstractComponent {
+public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   public enum Mode {Default, Hibernate}

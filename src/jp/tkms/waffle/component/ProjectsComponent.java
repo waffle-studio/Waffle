@@ -9,7 +9,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ProjectsComponent extends AbstractComponent {
+public class ProjectsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;

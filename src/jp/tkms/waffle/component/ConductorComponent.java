@@ -10,7 +10,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ConductorComponent extends AbstractComponent {
+public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_ARGUMENTS = "arguments";
   private Mode mode;
 
