@@ -22,7 +22,7 @@ abstract public class AbstractSubmitter {
   abstract String getSimulatorBinDirectory(Run run);
   abstract void prepareSubmission(Run run);
   abstract String exec(String command);
-  abstract int getExitStatus(Run run);
+  abstract int getExitStatus(Run run) throws Exception;
   abstract void postProcess(Run run);
   abstract public void close();
   abstract public void putText(Run run, String path, String text);
@@ -136,7 +136,14 @@ abstract public class AbstractSubmitter {
           job.getRun().setState(Run.State.Running);
           break;
         case "finished" :
-          int exitStatus = getExitStatus(job.getRun());
+          int exitStatus = -1;
+          try {
+            exitStatus = getExitStatus(job.getRun());
+          } catch (Exception e) {
+            System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
+            break;
+          }
+
           if (exitStatus == 0) {
             job.getRun().setState(Run.State.Finished);
             for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {

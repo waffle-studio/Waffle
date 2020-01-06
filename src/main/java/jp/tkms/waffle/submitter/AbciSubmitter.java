@@ -25,16 +25,35 @@ public class AbciSubmitter extends SshSubmitter {
   PackWaitThread packWaitThread = null;
   Semaphore packWaitThreadSemaphore = new Semaphore(1);
   class PackWaitThread extends Thread {
+    private int waitTime = 0;
+    void resetWaitTime() {
+      waitTime = 5;
+    }
+    void skipWaitTime() {
+      waitTime = 0;
+    }
+
     @Override
     public void run() {
-      try {
-        Thread.sleep(10000);
-      } catch (InterruptedException e) { }
+      resetWaitTime();
+
+      while (!isInterrupted() && waitTime >= 0) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+
+        try {
+          packWaitThreadSemaphore.acquire();
+        } catch (InterruptedException e) {
+        }
+        waitTime -= 1;
+        packWaitThreadSemaphore.release();
+      }
 
       try {
         packWaitThreadSemaphore.acquire();
       } catch (InterruptedException e) {
-        e.printStackTrace();
       }
 
       submitQueue();
@@ -49,6 +68,7 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   private void submitQueue() {
+    packBatchText += "EOF\n";
     putText(packId, PACK_BATCH_FILE, packBatchText);
     String resultJson = exec(xsubSubmitCommand(packId));
     for (Job job : queuedJobList) {
@@ -71,7 +91,13 @@ public class AbciSubmitter extends SshSubmitter {
     if (packId == null) {
       packId = UUID.randomUUID();
       queuedJobList.clear();
-      packBatchText = "#!/bin/sh\n\n";
+      packBatchText = "#!/bin/sh\n\n" +
+        "run() {\n" +
+        "cd $1\n" +
+        "sh batch.sh\n" +
+        "}\n" +
+        "export -f run\n" +
+        "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n";
       packWaitThread = new PackWaitThread();
       packWaitThread.start();
     }
@@ -92,14 +118,14 @@ public class AbciSubmitter extends SshSubmitter {
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    packBatchText += "cd " + getWorkDirectory(run) + "\n";
-    packBatchText += "sh " + BATCH_FILE + "\n";
+    packBatchText += getWorkDirectory(run) + "\n";
 
     prepareSubmission(run);
 
     packWaitThreadSemaphore.release();
+    packWaitThread.resetWaitTime();
 
-    if (queuedJobList.size() >= 2) {
+    if (queuedJobList.size() >= 10) {
       packWaitThread.interrupt();
       try {
         packWaitThread.join();
@@ -183,7 +209,6 @@ public class AbciSubmitter extends SshSubmitter {
           break;
         case Queued:
           submittedCount++;
-          break;
         case Submitted:
         case Running:
         case Finished:
@@ -201,6 +226,19 @@ public class AbciSubmitter extends SshSubmitter {
       if (submittedCount < maximumNumberOfJobs) {
         submit(job);
         submittedCount++;
+      }
+    }
+  }
+
+  @Override
+  public void hibernate() {
+    super.hibernate();
+    if ( packWaitThread != null ) {
+      packWaitThread.skipWaitTime();
+      try {
+        packWaitThread.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
     }
   }

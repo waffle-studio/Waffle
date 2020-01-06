@@ -49,8 +49,25 @@ public class SshSession {
     session.setConfig(key, value);
   }
 
-  public void connect() throws JSchException {
-    session.connect();
+  public void connect(){
+    boolean connected = false;
+    do {
+      try {
+        session.connect();
+        connected = true;
+      } catch (JSchException e) {
+        System.err.println(e.getMessage());
+        if (!e.getMessage().toLowerCase().equals("session is already connected")) {
+          int waitTime = (int) (Math.random() * 5);
+          System.err.println("Retry connection after " + waitTime + " sec.");
+          try {
+            Thread.sleep(waitTime * 1000);
+          } catch (InterruptedException ex) {
+            ex.printStackTrace();
+          }
+        }
+      }
+    } while (!connected);
   }
 
   public void disconnect() {

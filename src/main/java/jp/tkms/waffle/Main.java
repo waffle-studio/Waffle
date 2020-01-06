@@ -18,10 +18,7 @@ public class Main {
       @Override
       public void run()
       {
-        System.out.println("System will hibernate");
         hibernate();
-        PollingThread.waitForShutdown();
-        System.out.println("System hibernated");
       }
     });
 
@@ -53,7 +50,10 @@ public class Main {
   }
 
   public static void hibernate() {
+    System.out.println("System will hibernate");
     hibernateFlag = true;
+    PollingThread.waitForShutdown();
+    System.out.println("System hibernated");
     Spark.stop();
   }
 

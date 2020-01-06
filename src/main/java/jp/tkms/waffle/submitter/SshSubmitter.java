@@ -134,14 +134,10 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  int getExitStatus(Run run) {
+  int getExitStatus(Run run) throws Exception {
     int status = -1;
 
-    try {
-      status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
 
     return status;
   }
