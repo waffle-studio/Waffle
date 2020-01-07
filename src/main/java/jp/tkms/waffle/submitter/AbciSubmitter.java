@@ -242,4 +242,26 @@ public class AbciSubmitter extends SshSubmitter {
       }
     }
   }
+
+  public static class AbciResourceSelector {
+    public static String getResourceText(int size) {
+      if (size <= 10) {
+        return "rt_C.small=1";
+      } else if (size <= 40) {
+        return "rt_C.large=1";
+      } else {
+        return "rt_F=1";
+      }
+    }
+
+    public static int getPackSize(int jobSize) {
+      if (jobSize > 50) {
+        return 80;
+      } else if (jobSize > 20) {
+        return 40;
+      } else {
+        return 10;
+      }
+    }
+  }
 }

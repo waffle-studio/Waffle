@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: jp.tkms.aist.Main
+Class-Path: jsch-0.1.55.jar json-20190722.jar
+
