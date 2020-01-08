@@ -1,6 +1,6 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.Sql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ public class Database implements AutoCloseable {
 
   public static synchronized Database getDatabase(Path path) {
     if (path == null) {
-      path = Paths.get(Environment.MAIN_DB_NAME);
+      path = Paths.get(Constants.MAIN_DB_NAME);
     }
 
     initialize();

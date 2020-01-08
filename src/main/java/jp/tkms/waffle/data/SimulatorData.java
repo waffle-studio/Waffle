@@ -1,6 +1,6 @@
 package jp.tkms.waffle.data;
 
-  import jp.tkms.waffle.Environment;
+  import jp.tkms.waffle.Constants;
 
   import java.io.File;
   import java.nio.file.Paths;
@@ -23,6 +23,6 @@ abstract public class SimulatorData extends Data {
   }
 
   protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(simulator.getLocation() + File.separator + Environment.SIMULATOR_DB_NAME));
+    return Database.getDatabase(Paths.get(simulator.getLocation() + File.separator + Constants.SIMULATOR_DB_NAME));
   }
 }

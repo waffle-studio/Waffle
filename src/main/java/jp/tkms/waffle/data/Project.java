@@ -1,6 +1,6 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 
@@ -22,7 +22,7 @@ public class Project extends Data {
 
   public Project(UUID id, String name) {
     super(id, name);
-    this.location = Paths.get(Environment.DEFAULT_WD.replaceFirst( "\\$\\{NAME\\}", getUnifiedName()));
+    this.location = Paths.get(Constants.DEFAULT_WD.replaceFirst( "\\$\\{NAME\\}", getUnifiedName()));
   }
 
   @Override

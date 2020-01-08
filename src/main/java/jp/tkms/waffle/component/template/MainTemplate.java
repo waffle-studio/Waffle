@@ -1,6 +1,6 @@
 package jp.tkms.waffle.component.template;
 
-import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.*;
 
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           meta(value("http-equiv", "X-UA-Compatible"),
             value("content", "IE=edge")),
           element("title", null,
-            (pageTitle() == "" ? Environment.APP_NAME : pageTitle() + " | " + Environment.APP_NAME)),
+            (pageTitle() == "" ? Constants.APP_NAME : pageTitle() + " | " + Constants.APP_NAME)),
           link("stylesheet", "/css/adminlte.min.css"),
           link("stylesheet", "/css/fontawesome-free.min.css"),
           link("stylesheet", "/css/ionicons.min.css"),
@@ -45,14 +45,14 @@ abstract public class MainTemplate extends AbstractTemplate {
               )
             ),
             elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
-              a(Environment.ROOT_PAGE, "brand-link navbar-light",
-                new Attributes(value("title", "Workflow Administration Framework to Facilitate Looped Experiments")),
+              a(Constants.ROOT_PAGE, "brand-link navbar-light",
+                new Attributes(value("title", Constants.APP_FULL_NAME)),
                 attribute("img",
                   value("src", "/img/logo.png"),
                   value("class", "brand-image"),
                   value("style", "opacity:1.0;")
                 ),
-                span("brand-text text-warning font-weight-bold", null, Environment.APP_NAME)
+                span("brand-text text-warning font-weight-bold", null, Constants.APP_NAME)
               ),
               div("sidebar",
                 elementWithClass("nav", "mt-2",
@@ -173,7 +173,7 @@ abstract public class MainTemplate extends AbstractTemplate {
 
   String randerPageBreadcrumb() {
     String innerContent = elementWithClass("li", "breadcrumb-item",
-      a(Environment.ROOT_PAGE, null, null, faIcon("home"))
+      a(Constants.ROOT_PAGE, null, null, faIcon("home"))
     );
 
     int size = pageBreadcrumb().size();

@@ -28,7 +28,7 @@ public class Main {
 
     ErrorComponent.register();
 
-    redirect.get("/", Environment.ROOT_PAGE);
+    redirect.get("/", Constants.ROOT_PAGE);
 
     after(((request, response) -> {
       PollingThread.startup();

@@ -12,10 +12,8 @@ public class AbciResourceSelector {
     }
 
     public static int getPackSize(int nonPackedSize) {
-        if (nonPackedSize >= 80) {
-          return 80;
-        } else if (nonPackedSize >= 40) {
-            return 40;
+        if (nonPackedSize >= 40) {
+            return 60;
         } else if (nonPackedSize >= 15) {
             return 20;
         } else {

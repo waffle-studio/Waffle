@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data;
 
-import com.jcraft.jsch.JSchException;
-import jp.tkms.waffle.Environment;
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
@@ -295,14 +294,14 @@ public class Host extends Data {
                 ).toPreparedStatement();
               statement.setString(1, LOCAL_UUID.toString());
               statement.setString(2, "LOCAL");
-              statement.setString(3, Environment.LOCAL_WORK_DIR);
-              statement.setString(4, Environment.LOCAL_XSUB_DIR);
+              statement.setString(3, Constants.LOCAL_WORK_DIR);
+              statement.setString(4, Constants.LOCAL_XSUB_DIR);
               statement.setInt(5, 1);
               statement.setInt(6, 5);
               statement.execute();
 
               try {
-                Files.createDirectories(Paths.get(Environment.LOCAL_WORK_DIR));
+                Files.createDirectories(Paths.get(Constants.LOCAL_WORK_DIR));
               } catch (IOException e) {
                 e.printStackTrace();
               }
