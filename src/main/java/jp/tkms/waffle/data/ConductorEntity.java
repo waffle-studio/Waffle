@@ -290,7 +290,7 @@ public class ConductorEntity extends AbstractRun {
   }
 
   private final ArgumentMapInterface argumentMapInterface  = new ArgumentMapInterface();
-  public HashMap argument() { return argumentMapInterface; }
+  public HashMap arguments() { return argumentMapInterface; }
   public class ArgumentMapInterface extends HashMap<Object, Object> {
     @Override
     public Object get(Object key) {
