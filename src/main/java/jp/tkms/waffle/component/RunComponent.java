@@ -74,6 +74,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
+        content += Html.javascript("var run_id = '" + run.getId() + "';");
+
         content += Lte.card(Html.faIcon("info-circle") + "Status", null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override

@@ -1,6 +1,8 @@
 package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
+import jp.tkms.waffle.component.updater.RunStatusUpdater;
+import jp.tkms.waffle.component.updater.SystemUpdater;
 import jp.tkms.waffle.data.Browser;
 import spark.Spark;
 
@@ -10,7 +12,6 @@ public class Main {
   public static boolean hibernateFlag = false;
 
   public static void main(String[] args) {
-
     System.out.println("PID: " + java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
 
     Runtime.getRuntime().addShutdownHook(new Thread()
@@ -18,7 +19,9 @@ public class Main {
       @Override
       public void run()
       {
-        hibernate();
+        if (!hibernateFlag) {
+          hibernate();
+        }
       }
     });
 
@@ -46,6 +49,8 @@ public class Main {
     Browser.updateDB();
     PollingThread.startup();
 
+    new SystemUpdater(null);
+
     return;
   }
 
@@ -54,6 +59,11 @@ public class Main {
     hibernateFlag = true;
     PollingThread.waitForShutdown();
     System.out.println("System hibernated");
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
     Spark.stop();
   }
 

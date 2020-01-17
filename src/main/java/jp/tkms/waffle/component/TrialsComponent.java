@@ -142,7 +142,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
                   run.getConductor().getName(),
                   run.getSimulator().getName(),
                   run.getHost().getName(),
-                  JobsComponent.getStatusBadge(run)
+                  Html.spanWithId(run.getId() + "-badge", JobsComponent.getStatusBadge(run))
                 ));
               }
               return list;

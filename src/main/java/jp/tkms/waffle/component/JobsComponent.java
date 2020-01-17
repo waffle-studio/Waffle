@@ -64,11 +64,6 @@ public class JobsComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         return
-          Html.javascript(
-            "var runUpdated = function(id) {location.reload();};",
-            "var runCreated = function(id) {location.reload();};"
-          )
-            +
           Lte.card(null, null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
@@ -94,8 +89,8 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                   ),
                   job.getHost().getName(),
                   job.getJobId(),
-                  getStatusBadge(job.getRun())
-                  )
+                  Html.spanWithId(job.getRun().getId() + "-badge", getStatusBadge(job.getRun()))
+                  ).setAttributes(new Html.Attributes(Html.value("id", job.getRun().getId() + "-jobrow")))
                 );
               }
               return list;

@@ -57,7 +57,6 @@ public class AbciSubmitter extends SshSubmitter {
       }
 
       submitQueue();
-      packId = null;
 
       packWaitThreadSemaphore.release();
     }
@@ -74,6 +73,8 @@ public class AbciSubmitter extends SshSubmitter {
     for (Job job : queuedJobList) {
       processXsubSubmit(job, resultJson);
     }
+    packId = null;
+    queuedJobList.clear();
   }
 
   String xsubSubmitCommand(UUID packId) {
@@ -81,7 +82,7 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   @Override
-  public synchronized void submit(Job job) {
+  public void submit(Job job) {
     try {
       packWaitThreadSemaphore.acquire();
     } catch (InterruptedException e) {
@@ -102,9 +103,7 @@ public class AbciSubmitter extends SshSubmitter {
       packWaitThread.start();
     }
 
-    queuedJobList.add(job);
     jobPackMap.put(job, packId);
-    job.getRun().setState(Run.State.Queued);
 
     Run run = job.getRun();
 
@@ -115,6 +114,7 @@ public class AbciSubmitter extends SshSubmitter {
       instance.extract(run, extractor, this);
     }
 
+    putText(run, EXIT_STATUS_FILE, "-2");
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
@@ -122,8 +122,10 @@ public class AbciSubmitter extends SshSubmitter {
 
     prepareSubmission(run);
 
-    packWaitThreadSemaphore.release();
+    queuedJobList.add(job);
+    job.getRun().setState(Run.State.Queued);
     packWaitThread.resetWaitTime();
+    packWaitThreadSemaphore.release();
 
     if (queuedJobList.size() >= 10) {
       packWaitThread.interrupt();
@@ -194,7 +196,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
 
-    ArrayList<Job> queuedJobList = new ArrayList<>();
+    ArrayList<Job> createdJobList = new ArrayList<>();
     int submittedCount = 0;
 
     updatedPackJson.clear();
@@ -203,29 +205,39 @@ public class AbciSubmitter extends SshSubmitter {
       Run run = job.getRun();
       switch (run.getState()) {
         case Created:
-          if (queuedJobList.size() <= maximumNumberOfJobs) {
-            queuedJobList.add(job);
+          if (createdJobList.size() <= maximumNumberOfJobs) {
+            createdJobList.add(job);
           }
           break;
         case Queued:
           submittedCount++;
+          job.remove();
+          break;
         case Submitted:
         case Running:
-        case Finished:
           Run.State state = update(job);
-          if (!Run.State.Finished.equals(state)) {
+          if (!(Run.State.Finished.equals(state) || Run.State.Failed.equals(state))) {
             submittedCount++;
           }
           break;
-        case Failed:
-          //job.remove();
       }
     }
 
-    for (Job job : queuedJobList) {
+    ArrayList<Thread> threadList = new ArrayList<>();
+    for (Job job : createdJobList) {
       if (submittedCount < maximumNumberOfJobs) {
-        submit(job);
+        Thread thread = new Thread(() -> submit(job));
+        thread.start();
+        threadList.add(thread);
         submittedCount++;
+      }
+    }
+
+    for (Thread thread : threadList) {
+      try {
+        thread.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
     }
   }

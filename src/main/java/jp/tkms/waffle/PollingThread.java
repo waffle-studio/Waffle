@@ -23,6 +23,12 @@ public class PollingThread extends Thread {
   public void run() {
     System.out.println("Submitter started");
 
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     int pollingTime = host.getPollingInterval() * 1000;
 
     AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
@@ -42,11 +48,13 @@ public class PollingThread extends Thread {
   }
 
   synchronized public static void startup() {
-    for (Host host : Host.getList()) {
-      if (!threadMap.containsKey(host.getId()) && Job.getList(host).size() > 0) {
-        PollingThread pollingThread = new PollingThread(host);
-        threadMap.put(host.getId(), pollingThread);
-        pollingThread.start();
+    if (!Main.hibernateFlag) {
+      for (Host host : Host.getList()) {
+        if (!threadMap.containsKey(host.getId()) && Job.getList(host).size() > 0) {
+          PollingThread pollingThread = new PollingThread(host);
+          threadMap.put(host.getId(), pollingThread);
+          pollingThread.start();
+        }
       }
     }
   }

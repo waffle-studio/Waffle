@@ -58,7 +58,7 @@ public class SshSession {
       } catch (JSchException e) {
         System.err.println(e.getMessage());
         if (!e.getMessage().toLowerCase().equals("session is already connected")) {
-          int waitTime = (int) (Math.random() * 5);
+          int waitTime = 10 + (int) (Math.random() * 10);
           System.err.println("Retry connection after " + waitTime + " sec.");
           try {
             Thread.sleep(waitTime * 1000);
@@ -108,11 +108,12 @@ public class SshSession {
     try {
       channelSftp.cd(workDir);
       channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
+      channelSftp.disconnect();
     } catch (SftpException e) {
       e.printStackTrace();
+      channelSftp.disconnect();
       return false;
     }
-    channelSftp.disconnect();
     return true;
   }
 
@@ -128,11 +129,12 @@ public class SshSession {
       for(File file: local.listFiles()){
         transferFiles(file, dest, channelSftp);
       }
+      channelSftp.disconnect();
     } catch (Exception e) {
       e.printStackTrace();
+      channelSftp.disconnect();
       return false;
     }
-    channelSftp.disconnect();
     return true;
   }
 

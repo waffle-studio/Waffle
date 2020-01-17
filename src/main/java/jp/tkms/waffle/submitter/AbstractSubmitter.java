@@ -51,6 +51,7 @@ abstract public class AbstractSubmitter {
       instance.extract(run, extractor, this);
     }
 
+    putText(run, EXIT_STATUS_FILE, "-2");
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
@@ -140,8 +141,15 @@ abstract public class AbstractSubmitter {
           try {
             exitStatus = getExitStatus(job.getRun());
           } catch (Exception e) {
+            /*
+            if (job.getErrorCount() >= 5) {
+              System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
+            } else {
+              job.incrementErrorCount();
+              break;
+            }
+            */
             System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
-            break;
           }
 
           if (exitStatus == 0) {
@@ -152,6 +160,7 @@ abstract public class AbstractSubmitter {
           } else {
             job.getRun().setState(Run.State.Failed);
           }
+
           job.getRun().setExitStatus(exitStatus);
           job.remove();
           postProcess(job.getRun());
@@ -239,9 +248,8 @@ abstract public class AbstractSubmitter {
           break;
         case Submitted:
         case Running:
-        case Finished:
           Run.State state = update(job);
-          if (!Run.State.Finished.equals(state)) {
+          if (!(Run.State.Finished.equals(state) || Run.State.Failed.equals(state))) {
             submittedCount++;
           }
           break;

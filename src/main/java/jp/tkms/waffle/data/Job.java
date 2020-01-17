@@ -15,11 +15,13 @@ public class Job extends Data {
   private static final String KEY_PROJECT = "projrct";
   private static final String KEY_HOST = "host";
   private static final String KEY_JOB_ID = "job_id";
+  private static final String KEY_ERROR_COUNT = "error_count";
 
   private Project project = null;
   private Host host = null;
   private Run run = null;
   private String jobId = null;
+  private Integer errorCount = null;
 
   public Job(UUID id) {
     super(id, "");
@@ -139,6 +141,22 @@ public class Job extends Data {
     }
   }
 
+  public void incrementErrorCount() {
+    if (
+      handleDatabase(new Job(), new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("update " + getTableName() + " set " + KEY_ERROR_COUNT + "=" + KEY_ERROR_COUNT + " +1 where id=?;");
+          statement.setString(1, getId());
+          statement.execute();
+        }
+      })
+    ) {
+      errorCount = null;
+    }
+  }
+
   public Path getLocation() {
     Path path = Paths.get( TABLE_NAME + File.separator + name + '_' + shortId );
     return path;
@@ -172,6 +190,13 @@ public class Job extends Data {
     return jobId;
   }
 
+  public int getErrorCount() {
+    if (errorCount == null) {
+      errorCount = Integer.valueOf(getFromDB(KEY_ERROR_COUNT));
+    }
+    return errorCount;
+  }
+
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -190,6 +215,7 @@ public class Job extends Data {
                 KEY_PROJECT + "," +
                 KEY_HOST + "," +
                 KEY_JOB_ID + " default 0," +
+                KEY_ERROR_COUNT + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

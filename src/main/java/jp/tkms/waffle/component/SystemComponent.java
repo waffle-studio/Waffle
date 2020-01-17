@@ -26,6 +26,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
 
     switch (mode) {
       case Hibernate:
+        response.redirect("/");
         Main.hibernate();
         break;
       default:

@@ -214,7 +214,7 @@ public class Lte {
       for (TableValue value : row) {
         rowValue += element("td", new Attributes(value("style", value.style)), value.value);
       }
-      contentsValue += element("tr", null, rowValue);
+      contentsValue += element("tr", row.attributes, rowValue);
     }
 
     return elementWithClass("table", listBySpace("table", classValue),
@@ -251,6 +251,11 @@ public class Lte {
       for (String value : list) {
         add(new TableValue(null, value));
       }
+    }
+
+    public TableRow setAttributes(Attributes attributes) {
+      this.attributes = attributes;
+      return this;
     }
   }
 

@@ -2,6 +2,7 @@ package jp.tkms.waffle.component.template;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.*;
+import jp.tkms.waffle.component.updater.AbstractUpdater;
 
 import java.util.ArrayList;
 
@@ -165,7 +166,8 @@ abstract public class MainTemplate extends AbstractTemplate {
               "      textarea.val(editor.getSession().getValue());\n" +
               "    })\n" +
               "  });\n" +
-              "});")
+              "});"),
+          AbstractUpdater.getUpdaterElements()
         )
       )
     );

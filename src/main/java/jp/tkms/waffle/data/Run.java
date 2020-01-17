@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -193,6 +194,8 @@ public class Run extends AbstractRun {
       }
     });
 
+    new RunStatusUpdater(run);
+
     return run;
   }
 
@@ -211,7 +214,7 @@ public class Run extends AbstractRun {
         })
       ) {
         this.state = state;
-        BrowserMessage.addMessage("runUpdated('" + getId() + "')");
+        new RunStatusUpdater(this);
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
           for (ConductorEntity entity: ConductorEntity.getList(getTrial())) {

@@ -60,6 +60,10 @@ public class Html {
     return elementWithClass("div", classValue, values);
   }
 
+  public static String divWithId(String id, String... values) {
+    return element("div", new Attributes(value("id", id)), values);
+  }
+
   public static String h1(String classValue, String... values) {
     return elementWithClass("h1", classValue, values);
   }
@@ -111,6 +115,10 @@ public class Html {
     }
     attribute.add(value("class", classValue));
     return element("span", attribute, values);
+  }
+
+  public static String spanWithId(String id, String... values) {
+    return element("span", new Attributes(value("id", id)), values);
   }
 
   public static String hr() {

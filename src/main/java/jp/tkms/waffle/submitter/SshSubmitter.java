@@ -111,7 +111,7 @@ public class SshSubmitter extends AbstractSubmitter {
   void prepareSubmission(Run run) {
     try {
       session.mkdir(getSimulatorBinDirectory(run), "/tmp");
-      session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+      //session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
     } catch (JSchException e) {
       e.printStackTrace();
     }
