@@ -22,6 +22,7 @@ public class Main {
         if (!hibernateFlag) {
           hibernate();
         }
+        return;
       }
     });
 
@@ -65,6 +66,8 @@ public class Main {
       e.printStackTrace();
     }
     Spark.stop();
+    System.exit(0);
+    return;
   }
 
 

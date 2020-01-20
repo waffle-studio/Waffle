@@ -7,13 +7,16 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.concurrent.Semaphore;
 
 public class SshSession {
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
   private final String DEFAULT_PRIVKEY_FILE = System.getProperty("user.home") + "/.ssh/id_rsa";
   protected JSch jsch;
   protected Session session;
+  Semaphore channelSemaphore = new Semaphore(5);
 
   public SshSession() throws JSchException {
     this.jsch = new JSch();
@@ -74,13 +77,43 @@ public class SshSession {
     session.disconnect();
   }
 
+  protected Channel openChannel(String type) throws JSchException {
+    try {
+      channelSemaphore.acquire();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
+    return session.openChannel(type);
+  }
+
   public int setPortForwardingL(String hostName, int rport) throws JSchException {
     return session.setPortForwardingL(0, hostName, rport);
   }
 
   public SshChannel exec(String command, String workDir) throws JSchException {
-    SshChannel channel = new SshChannel((ChannelExec) session.openChannel("exec"));
-    channel.exec(command, workDir);
+    SshChannel channel = new SshChannel((ChannelExec) openChannel("exec"));
+    boolean failed = false;
+    do {
+      try {
+        channel.exec(command, workDir);
+      } catch (JSchException e) {
+        if (e.getMessage().equals("channel is not opened.")) {
+          failed = true;
+          channelSemaphore.release();
+          System.err.println("Retry to open channel after 1 sec.");
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ex) {
+            ex.printStackTrace();
+          }
+          channel = new SshChannel((ChannelExec) openChannel("exec"));
+        } else {
+          throw e;
+        }
+      }
+    } while (failed);
+    channelSemaphore.release();
     return channel;
   }
 
@@ -103,39 +136,77 @@ public class SshSession {
   }
 
   public boolean putText(String text, String path, String workDir) throws JSchException {
-    ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
-    channelSftp.connect();
-    try {
-      channelSftp.cd(workDir);
-      channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
-      channelSftp.disconnect();
-    } catch (SftpException e) {
-      e.printStackTrace();
-      channelSftp.disconnect();
-      return false;
-    }
-    return true;
+    ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
+    boolean result = false;
+    do {
+      try {
+        channelSftp.connect();
+        try {
+          channelSftp.cd(workDir);
+          channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
+          result = true;
+        } catch (SftpException e) {
+          e.printStackTrace();
+        }finally {
+          channelSftp.disconnect();
+          channelSemaphore.release();
+        }
+      } catch (JSchException e) {
+        if (e.getMessage().equals("channel is not opened.")) {
+          channelSemaphore.release();
+          System.err.println("Retry to open channel after 1 sec.");
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ex) {
+            ex.printStackTrace();
+          }
+          channelSftp = (ChannelSftp) openChannel("sftp");
+        } else {
+          throw e;
+        }
+      }
+    } while (!result);
+    return result;
   }
 
   public boolean scp(File local, String dest, String workDir) throws JSchException {
-    ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
-    channelSftp.connect();
-    try {
-      channelSftp.cd(workDir);
+    ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
+    boolean result = false;
+    do {
       try {
-        channelSftp.mkdir(dest);
-      } catch (SftpException e) {}
-      channelSftp.cd(dest);
-      for(File file: local.listFiles()){
-        transferFiles(file, dest, channelSftp);
+        channelSftp.connect();
+        try {
+          channelSftp.cd(workDir);
+          try {
+            channelSftp.mkdir(dest);
+          } catch (SftpException e) {}
+          channelSftp.cd(dest);
+          for(File file: local.listFiles()){
+            transferFiles(file, dest, channelSftp);
+          }
+          result = true;
+        } catch (Exception e) {
+          e.printStackTrace();
+        } finally {
+          channelSftp.disconnect();
+          channelSemaphore.release();
+        }
+      } catch (JSchException e) {
+        if (e.getMessage().equals("channel is not opened.")) {
+          channelSemaphore.release();
+          System.err.println("Retry to open channel after 1 sec.");
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ex) {
+            ex.printStackTrace();
+          }
+          channelSftp = (ChannelSftp) openChannel("sftp");
+        } else {
+          throw e;
+        }
       }
-      channelSftp.disconnect();
-    } catch (Exception e) {
-      e.printStackTrace();
-      channelSftp.disconnect();
-      return false;
-    }
-    return true;
+    } while (!result);
+    return result;
   }
 
   private static void transferFiles(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {

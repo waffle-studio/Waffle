@@ -128,6 +128,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
     host.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_MAX_JOBS)));
     host.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
     host.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));
+    host.update();
     response.redirect(getUrl(host));
   }
 

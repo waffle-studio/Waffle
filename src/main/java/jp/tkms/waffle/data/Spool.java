@@ -15,15 +15,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.UUID;
 
-public class Host extends Data {
+public class Spool extends Data {
   private static final String TABLE_NAME = "host";
   private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
-  private static final String KEY_XSUB_TEMPLATE = "xsub_template";
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_OS = "os";
@@ -36,30 +34,29 @@ public class Host extends Data {
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
   private JSONObject parameters = null;
-  private JSONObject xsubTemplate = null;
 
-  public Host(UUID id, String name) {
+  public Spool(UUID id, String name) {
     super(id, name);
   }
 
-  public Host() { }
+  public Spool() { }
 
   @Override
   protected String getTableName() {
     return TABLE_NAME;
   }
 
-  public static Host getInstance(String id) {
-    final Host[] host = {null};
+  public static Spool getInstance(String id) {
+    final Spool[] host = {null};
 
-    handleDatabase(new Host(), new Handler() {
+    handleDatabase(new Spool(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          host[0] = new Host(
+          host[0] = new Spool(
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
           );
@@ -70,17 +67,17 @@ public class Host extends Data {
     return host[0];
   }
 
-  public static Host getInstanceByName(String name) {
-    final Host[] host = {null};
+  public static Spool getInstanceByName(String name) {
+    final Spool[] host = {null};
 
-    handleDatabase(new Host(), new Handler() {
+    handleDatabase(new Spool(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
         statement.setString(1, name);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          host[0] = new Host(
+          host[0] = new Spool(
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
           );
@@ -91,15 +88,15 @@ public class Host extends Data {
     return host[0];
   }
 
-  public static ArrayList<Host> getList() {
-    ArrayList<Host> list = new ArrayList<>();
+  public static ArrayList<Spool> getList() {
+    ArrayList<Spool> list = new ArrayList<>();
 
-    handleDatabase(new Host(), new Handler() {
+    handleDatabase(new Spool(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
         while (resultSet.next()) {
-          list.add(new Host(
+          list.add(new Spool(
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name"))
           );
@@ -110,9 +107,9 @@ public class Host extends Data {
     return list;
   }
 
-  public static Host create(String name) {
-    Host host = new Host(UUID.randomUUID(), name);
-    handleDatabase(new Host(), new Handler() {
+  public static Spool create(String name) {
+    Spool host = new Spool(UUID.randomUUID(), name);
+    handleDatabase(new Spool(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
@@ -127,10 +124,6 @@ public class Host extends Data {
       }
     });
     return host;
-  }
-
-  public void update() {
-    setXsubTemplate(AbstractSubmitter.getXsubTemplate(this));
   }
 
   public Path getLocation() {
@@ -209,100 +202,16 @@ public class Host extends Data {
     return maximumNumberOfJobs;
   }
 
-  public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
-    if (
-      setIntToDB(KEY_MAX_JOBS, maximumNumberOfJobs)
-    ) {
-      this.maximumNumberOfJobs = maximumNumberOfJobs;
-    }
-  }
-
-  public JSONObject getXsubParameters() {
-    JSONObject jsonObject = new JSONObject();
-    for (String key : getXsubParametersTemplate().keySet()) {
-      jsonObject.put(key, getParameter(key));
-    }
-    return jsonObject;
-  }
-
-  public JSONObject getParametersWithoutXsubParameter() {
-    JSONObject parameters = AbstractSubmitter.getParameters(this);
-    JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
-    for (String key : jsonObject.keySet()) {
-      parameters.put(key, jsonObject.get(key));
-    }
-    return parameters;
-  }
-
-  public JSONObject getParameters() {
-    if (parameters == null) {
-      parameters = getDefaultParametersWithXsubParametersTemplate();
-      JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
-      for (String key : jsonObject.keySet()) {
-        parameters.put(key, jsonObject.get(key));
-      }
-    }
-    return parameters;
-  }
-
-  public Object getParameter(String key) {
-    return getParameters().get(key);
-  }
-
   public void setParameters(JSONObject jsonObject) {
-    if (
-      setStringToDB(KEY_PARAMETERS, jsonObject.toString())
-    ) {
-      this.parameters = jsonObject;
-    }
-  }
-
-  public Object setParameter(String key, Object value) {
-    getParameters();
-    parameters.put(key, value);
-    setParameters(parameters);
-    return value;
-  }
-
-  public JSONObject getXsubTemplate() {
-    if (xsubTemplate == null) {
-      xsubTemplate = new JSONObject(getFromDB(KEY_XSUB_TEMPLATE));
-    }
-    return xsubTemplate;
-  }
-
-  public void setXsubTemplate(JSONObject jsonObject) {
-    if (
-      setStringToDB(KEY_XSUB_TEMPLATE, jsonObject.toString())
-    ) {
-      this.xsubTemplate = jsonObject;
-    }
-  }
-
-  public JSONObject getDefaultParametersWithXsubParametersTemplate() {
-    JSONObject jsonObject = AbstractSubmitter.getInstance(this).defaultParameters(this);
-
-    try {
-      JSONObject object = getXsubTemplate().getJSONObject("parameters");
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key).get("default"));
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
+        statement.setString(1, jsonObject.toString());
+        statement.setString(2, getId());
+        statement.execute();
       }
-    } catch (Exception e) {}
-
-    return jsonObject;
-  }
-
-  public JSONObject getXsubParametersTemplate() {
-    JSONObject jsonObject = new JSONObject();
-
-    try {
-      JSONObject object = getXsubTemplate().getJSONObject("parameters");
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key).get("default"));
-      }
-    } catch (Exception e) {}
-
-    return jsonObject;
+    });
   }
 
   @Override
@@ -314,8 +223,8 @@ public class Host extends Data {
       }
 
       @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {
@@ -324,7 +233,6 @@ public class Host extends Data {
                 KEY_XSUB + "," +
                 KEY_MAX_JOBS + "," +
                 KEY_POLLING + "," +
-                KEY_XSUB_TEMPLATE + " default '{}'," +
                 KEY_PARAMETERS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");

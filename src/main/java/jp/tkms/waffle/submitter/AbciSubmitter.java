@@ -4,40 +4,45 @@ import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
-import jp.tkms.waffle.submitter.util.SshChannel;
-import jp.tkms.waffle.submitter.util.SshSession;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 public class AbciSubmitter extends SshSubmitter {
   protected static final String PACK_BATCH_FILE = "pack_batch.sh";
 
-  UUID packId = null;
-  ArrayList<Job> queuedJobList = new ArrayList<>();
-  String packBatchText = "";
+  UUID currentPackId = null;
+  HashMap<UUID, ArrayList<Job>> queuedJobList = new HashMap<>();
+  HashMap<UUID, String> packBatchTextList = new HashMap<>();
   HashMap<Job, UUID> jobPackMap = new HashMap<>();
 
-  PackWaitThread packWaitThread = null;
+  HashMap<UUID, PackWaitThread> packWaitThreadMap = new HashMap<>();
   Semaphore packWaitThreadSemaphore = new Semaphore(1);
   class PackWaitThread extends Thread {
     private int waitTime = 0;
+    private ArrayList<Job> readyJobList = new ArrayList<>();
+    private UUID packId;
+
+    public PackWaitThread(UUID packId) {
+      super();
+      this.packId = packId;
+    }
+
     void resetWaitTime() {
       waitTime = 5;
     }
-    void skipWaitTime() {
-      waitTime = 0;
+
+    void addReadyJob(Job job) {
+      readyJobList.add(job);
     }
 
     @Override
     public void run() {
       resetWaitTime();
 
-      while (!isInterrupted() && waitTime >= 0) {
+      while ((!isInterrupted() && waitTime >= 0) || readyJobList.size() < queuedJobList.get(packId).size()) {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -56,7 +61,7 @@ public class AbciSubmitter extends SshSubmitter {
       } catch (InterruptedException e) {
       }
 
-      submitQueue();
+      submitQueue(packId);
 
       packWaitThreadSemaphore.release();
     }
@@ -66,15 +71,15 @@ public class AbciSubmitter extends SshSubmitter {
     super(host);
   }
 
-  private void submitQueue() {
-    packBatchText += "EOF\n";
-    putText(packId, PACK_BATCH_FILE, packBatchText);
+  synchronized private void submitQueue(UUID packId) {
+    putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
     String resultJson = exec(xsubSubmitCommand(packId));
-    for (Job job : queuedJobList) {
+    for (Job job : queuedJobList.get(packId)) {
       processXsubSubmit(job, resultJson);
     }
-    packId = null;
-    queuedJobList.clear();
+    queuedJobList.remove(packId);
+    packBatchTextList.remove(packId);
+    packWaitThreadMap.remove(packId);
   }
 
   String xsubSubmitCommand(UUID packId) {
@@ -89,21 +94,32 @@ public class AbciSubmitter extends SshSubmitter {
       e.printStackTrace();
     }
 
-    if (packId == null) {
-      packId = UUID.randomUUID();
-      queuedJobList.clear();
-      packBatchText = "#!/bin/sh\n\n" +
-        "run() {\n" +
-        "cd $1\n" +
-        "sh batch.sh\n" +
-        "}\n" +
-        "export -f run\n" +
-        "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n";
-      packWaitThread = new PackWaitThread();
-      packWaitThread.start();
+    if (currentPackId == null || !queuedJobList.containsKey(currentPackId) || queuedJobList.get(currentPackId).size() >= 10) {
+      UUID packId = UUID.randomUUID();
+      currentPackId = packId;
+      queuedJobList.put(packId, new ArrayList<>());
+      packBatchTextList.put(packId,
+        "#!/bin/sh\n\n" +
+          "run() {\n" +
+          "cd $1\n" +
+          "sh batch.sh\n" +
+          "}\n" +
+          "export -f run\n" +
+          "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n"
+        );
+
+      PackWaitThread thread = new PackWaitThread(packId);
+      packWaitThreadMap.put(packId, thread);
+      thread.start();
     }
 
+    UUID packId = currentPackId;
     jobPackMap.put(job, packId);
+    queuedJobList.get(packId).add(job);
+    PackWaitThread packWaitThread = packWaitThreadMap.get(packId);
+
+    packWaitThread.resetWaitTime();
+    packWaitThreadSemaphore.release();
 
     Run run = job.getRun();
 
@@ -118,25 +134,19 @@ public class AbciSubmitter extends SshSubmitter {
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    packBatchText += getWorkDirectory(run) + "\n";
-
     prepareSubmission(run);
 
-    queuedJobList.add(job);
     job.getRun().setState(Run.State.Queued);
-    packWaitThread.resetWaitTime();
-    packWaitThreadSemaphore.release();
 
-    if (queuedJobList.size() >= 10) {
-      packWaitThread.interrupt();
-      try {
-        packWaitThread.join();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
+    try {
+      packWaitThreadSemaphore.acquire();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
     }
+    packBatchTextList.put(packId, packBatchTextList.get(packId) + getWorkDirectory(run) + "\n");
 
-    //processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+    packWaitThread.addReadyJob(job);
+    packWaitThreadSemaphore.release();
   }
 
   public void putText(UUID packId, String path, String text) {
@@ -220,6 +230,9 @@ public class AbciSubmitter extends SshSubmitter {
             submittedCount++;
           }
           break;
+        case Finished:
+        case Failed:
+          job.remove();
       }
     }
 
@@ -240,15 +253,26 @@ public class AbciSubmitter extends SshSubmitter {
         e.printStackTrace();
       }
     }
+
+    for (PackWaitThread thread : new ArrayList<>(packWaitThreadMap.values())) {
+      if (thread != null) {
+        try {
+          thread.join();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
   }
 
   @Override
   public void hibernate() {
     super.hibernate();
-    if ( packWaitThread != null ) {
-      packWaitThread.skipWaitTime();
+
+    for (PackWaitThread thread : packWaitThreadMap.values()) {
+      thread.interrupt();
       try {
-        packWaitThread.join();
+        thread.join();
       } catch (InterruptedException e) {
         e.printStackTrace();
       }

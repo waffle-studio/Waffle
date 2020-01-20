@@ -31,16 +31,16 @@ public class PollingThread extends Thread {
 
     int pollingTime = host.getPollingInterval() * 1000;
 
-    AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
     do {
+      AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
       submitter.pollingTask(host);
+      submitter.close();
       try { Thread.sleep(pollingTime); } catch (InterruptedException e) { e.printStackTrace(); }
       if (Main.hibernateFlag) {
         submitter.hibernate();
         break;
       }
     } while (Job.getList(host).size() > 0);
-    submitter.close();
 
     threadMap.remove(host.getId());
 
@@ -51,6 +51,7 @@ public class PollingThread extends Thread {
     if (!Main.hibernateFlag) {
       for (Host host : Host.getList()) {
         if (!threadMap.containsKey(host.getId()) && Job.getList(host).size() > 0) {
+          host.update();
           PollingThread pollingThread = new PollingThread(host);
           threadMap.put(host.getId(), pollingThread);
           pollingThread.start();

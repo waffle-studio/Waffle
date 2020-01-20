@@ -155,7 +155,7 @@ abstract public class AbstractSubmitter {
           if (exitStatus == 0) {
             job.getRun().setState(Run.State.Finished);
             for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
-              collector.getResultCollector().collect(job.getRun(), collector);
+              collector.getResultCollector().collect(this, job.getRun(), collector);
             }
           } else {
             job.getRun().setState(Run.State.Failed);
@@ -203,33 +203,6 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
-  public static JSONObject getParametersWithXsubParameter(Host host) {
-    AbstractSubmitter submitter = getInstance(host);
-    JSONObject jsonObject = submitter.defaultParameters(host);
-
-    try {
-      JSONObject object = getXsubTemplate(host).getJSONObject("parameters");
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key).get("default"));
-      }
-    } catch (Exception e) {}
-
-    return jsonObject;
-  }
-
-  public static JSONObject getXsubParameter(Host host) {
-    JSONObject jsonObject = new JSONObject();
-
-    try {
-      JSONObject object = getXsubTemplate(host).getJSONObject("parameters");
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key).get("default"));
-      }
-    } catch (Exception e) {}
-
-    return jsonObject;
-  }
-
   public void pollingTask(Host host) {
     ArrayList<Job> jobList = Job.getList(host);
 
@@ -253,6 +226,9 @@ abstract public class AbstractSubmitter {
             submittedCount++;
           }
           break;
+        case Finished:
+        case Failed:
+          job.remove();
       }
     }
 

@@ -2,13 +2,14 @@ package jp.tkms.waffle.collector;
 
 import jp.tkms.waffle.data.ResultCollector;
 import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.submitter.AbstractSubmitter;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 abstract public class AbstractResultCollector {
 
-  abstract public void collect(Run run, ResultCollector collector);
+  abstract public void collect(AbstractSubmitter submitter, Run run, ResultCollector collector);
   abstract public String contentsTemplate();
 
   public AbstractResultCollector() {
