@@ -37,6 +37,14 @@ public class Sql {
       return new Value(key + "=?");
     }
 
+    public static Value lessThanP(String key) {
+      return new Value(key + "<?");
+    }
+
+    public static Value greeterThanP(String key) {
+      return new Value(key + ">?");
+    }
+
     public static Value and(Value... values) {
       String sqlParts = "(";
       for (int i = 0; i < values.length; i++) {

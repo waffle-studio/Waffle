@@ -1,9 +1,7 @@
 package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
-import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.component.updater.SystemUpdater;
-import jp.tkms.waffle.data.Browser;
 import spark.Spark;
 
 import static spark.Spark.*;
@@ -47,7 +45,6 @@ public class Main {
     SystemComponent.register();
     SigninComponent.register();
 
-    Browser.updateDB();
     PollingThread.startup();
 
     new SystemUpdater(null);

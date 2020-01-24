@@ -3,6 +3,7 @@ package jp.tkms.waffle.component.template;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
+import jp.tkms.waffle.data.BrowserMessage;
 
 import java.util.ArrayList;
 
@@ -134,11 +135,9 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/toastr.min.js"))),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
-            "var bid=sessionStorage.getItem('bid');" +
-              "if (bid == null) {bid = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/[^a-zA-Z0-9]/g,'').substring(0,32);" +
-              "sessionStorage.setItem('bid',bid);}"+
+            "var cid=" + BrowserMessage.getCurrentRowId() + ";" +
               "var loadBrowserMessage = function() {" +
-              "simpleget('" + BrowserMessageComponent.getUrl("") + "' + bid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
+              "simpleget('" + BrowserMessageComponent.getUrl("") + "' + cid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
               "setTimeout(loadBrowserMessage, 2000);"
           ),

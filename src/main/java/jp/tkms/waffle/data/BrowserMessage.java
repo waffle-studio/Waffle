@@ -11,16 +11,16 @@ import java.util.UUID;
 
 public class BrowserMessage extends Data {
   private static final String TABLE_NAME = "browser_message";
-  private static final String KEY_BROWSER_ID = "browser";
   private static final String KEY_MESSAGE = "message";
+  private static final String KEY_ROWID = "rowid";
   private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
 
-  private String browserId = null;
+  private int rowId;
   private String message = null;
 
-  public BrowserMessage(UUID id, String browserId, String message) {
+  public BrowserMessage(UUID id, int rowId, String message) {
     super(id, "");
-    this.browserId = browserId;
+    this.rowId = rowId;
     this.message = message;
   }
 
@@ -31,21 +31,21 @@ public class BrowserMessage extends Data {
     return TABLE_NAME;
   }
 
-  public static ArrayList<BrowserMessage> getList(String browserId) {
+  public static ArrayList<BrowserMessage> getList(String currentRowId) {
     ArrayList<BrowserMessage> list = new ArrayList<>();
 
     handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
-          KEY_ID, KEY_BROWSER_ID, KEY_MESSAGE
-        ).where(Sql.Value.equalP(KEY_BROWSER_ID)).toPreparedStatement();
-        statement.setString(1, browserId);
+          KEY_ID, KEY_MESSAGE, KEY_ROWID
+        ).where(Sql.Value.greeterThanP(KEY_ROWID)).toPreparedStatement();
+        statement.setString(1, currentRowId);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           list.add(new BrowserMessage(
             UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_BROWSER_ID),
+            resultSet.getInt(KEY_ROWID),
             resultSet.getString(KEY_MESSAGE)
           ));
         }
@@ -65,19 +65,32 @@ public class BrowserMessage extends Data {
     handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        Browser.removeExpired(db);
         removeExpired(db);
 
-        PreparedStatement statement
-          = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-          + KEY_BROWSER_ID + ","
-          + KEY_MESSAGE
-          + ") select ?,id,? from " + Browser.TABLE_NAME + ";");
+        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME, KEY_ID, KEY_MESSAGE).toPreparedStatement();
         statement.setString(1, UUID.randomUUID().toString());
         statement.setString(2, "try{" + message + "}catch(e){}");
         statement.execute();
       }
     });
+  }
+
+  public static int getCurrentRowId() {
+    final int[] currentRowId = {-1};
+    handleDatabase(new BrowserMessage(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, "max(rowid) as cid").toPreparedStatement().executeQuery();
+        while (resultSet.next()) {
+            currentRowId[0] = resultSet.getInt("cid");
+        }
+      }
+    });
+    return currentRowId[0];
+  }
+
+  public int getRowId() {
+    return rowId;
   }
 
   public String getMessage() {
@@ -89,9 +102,8 @@ public class BrowserMessage extends Data {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement
-          = db.preparedStatement("delete from " + getTableName() + " where id=? and " + KEY_BROWSER_ID + "=?;");
+          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
         statement.setString(1, getId());
-        statement.setString(2, browserId);
         statement.execute();
       }
     });
@@ -112,7 +124,6 @@ public class BrowserMessage extends Data {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(id," +
-                KEY_BROWSER_ID+ "," +
                 KEY_MESSAGE+ "," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
