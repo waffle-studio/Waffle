@@ -4,6 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Job;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -122,6 +123,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("width:8em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
+              list.add(new Lte.TableValue("width:8em;", "Job"));
               return list;
             }
 
@@ -131,7 +133,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
               for (Host host : Host.getList()) {
                 list.add(new Lte.TableRow(
                   Html.a(HostComponent.getUrl(host), null, null,  host.getShortId()),
-                  host.getName())
+                  host.getName(), String.valueOf(Job.getList(host).size()))
                 );
               }
               return list;
