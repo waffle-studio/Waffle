@@ -288,6 +288,21 @@ public class Run extends AbstractRun {
     }
   }
 
+  private void clearResults() {
+    JSONObject newObject = new JSONObject();
+    if (handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
+        statement.setString(1, newObject.toString());
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    })) {
+      results = newObject;
+    }
+  }
+
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
       arguments = new JSONArray(getFromDB(KEY_ARGUMENTS));
@@ -373,6 +388,20 @@ public class Run extends AbstractRun {
   }
 
   public void start() {
+    Job.addRun(this);
+  }
+
+  public void restart() {
+    setExitStatus(-1);
+    setState(State.Created);
+    clearResults();
+    Job.addRun(this);
+  }
+
+  public void recheck() {
+    setExitStatus(-1);
+    setState(State.Running);
+    clearResults();
     Job.addRun(this);
   }
 

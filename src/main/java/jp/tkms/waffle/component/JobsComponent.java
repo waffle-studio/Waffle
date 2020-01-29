@@ -82,7 +82,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (Job job : Job.getList()) {
                 list.add(new Lte.TableRow(
-                  job.getShortId(),
+                  Html.a(RunComponent.getUrl(job.getProject(), job.getRun()), job.getShortId()),
                   Html.a(
                     ProjectComponent.getUrl(job.getProject()),
                     job.getProject().getName()

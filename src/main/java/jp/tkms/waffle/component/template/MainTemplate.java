@@ -82,6 +82,17 @@ abstract public class MainTemplate extends AbstractTemplate {
                         faIcon("server", "nav-icon"),
                         p("Hosts")
                       )
+                    ),
+                    elementWithClass("li", "nav-header", "Status"),
+                    elementWithClass("li", "nav-item",
+                      Lte.disabledTextInput("info", null, "Screen reloaded"),
+                      Html.javascript("var info_queue = [];" +
+                        "var info = function(m) { info_queue.push(m); };" +
+                        "setInterval(function(){" +
+                        "if (info_queue.length > 0) {" +
+                        "document.getElementById('inputinfo').value = info_queue.shift();" +
+                        "}" +
+                        "}, 250);")
                     )
                     /*,
                     elementWithClass("li", "nav-item",

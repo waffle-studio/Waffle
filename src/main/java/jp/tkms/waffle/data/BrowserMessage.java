@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.util.Sql;
 
 import java.sql.PreparedStatement;
@@ -134,4 +135,7 @@ public class BrowserMessage extends Data {
     };
   }
 
+  public static void info(String message) {
+    addMessage("info('" + message + "');");
+  }
 }

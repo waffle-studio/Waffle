@@ -47,6 +47,22 @@ public class Main {
 
     PollingThread.startup();
 
+    new Thread(){
+      @Override
+      public void run() {
+        while (!hibernateFlag) {
+          try {
+            currentThread().sleep(60000);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          System.gc();
+        }
+        this.stop();
+        return;
+      }
+    }.start();
+
     new SystemUpdater(null);
 
     return;

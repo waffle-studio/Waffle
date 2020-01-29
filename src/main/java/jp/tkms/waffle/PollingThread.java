@@ -1,5 +1,6 @@
 package jp.tkms.waffle;
 
+import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.Run;
@@ -24,7 +25,7 @@ public class PollingThread extends Thread {
     System.out.println("Submitter started");
 
     try {
-      Thread.sleep(2000);
+      sleep(2000);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
@@ -35,7 +36,9 @@ public class PollingThread extends Thread {
       AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
       submitter.pollingTask(host);
       submitter.close();
-      try { Thread.sleep(pollingTime); } catch (InterruptedException e) { e.printStackTrace(); }
+      BrowserMessage.info("Host(" + host.getName() + ") was scanned");
+      System.gc();
+      try { sleep(pollingTime); } catch (InterruptedException e) { e.printStackTrace(); }
       if (Main.hibernateFlag) {
         submitter.hibernate();
         break;
@@ -63,7 +66,7 @@ public class PollingThread extends Thread {
   synchronized public static void waitForShutdown() {
     while (! threadMap.isEmpty()) {
       try {
-        Thread.sleep(1000);
+        sleep(1000);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }

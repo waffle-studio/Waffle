@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.Sql;
 import org.jruby.Ruby;
+import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import org.json.JSONObject;
 
@@ -178,13 +179,15 @@ public class Parameter extends SimulatorData {
   public void updateDefaultValue(ConductorEntity conductorEntity, JSONObject defaultParameters) {
     Object defaultValue = defaultParameters.get(getName());
 
-    ScriptingContainer container = new ScriptingContainer();
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
       container.runScriptlet(getDefaultValueUpdateScript());
       defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorEntity, defaultValue);
+      container.terminate();
     } catch (Exception e) {
       e.printStackTrace();
+      container.terminate();
       BrowserMessage.addMessage("toastr.error('update_value: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
 

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
+import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Run;
 import jp.tkms.waffle.data.Simulator;
@@ -115,6 +116,7 @@ public class SshSubmitter extends AbstractSubmitter {
     } catch (JSchException e) {
       e.printStackTrace();
     }
+    BrowserMessage.info("Run(" + run.getShortId() + ") was prepared");
   }
 
   @Override

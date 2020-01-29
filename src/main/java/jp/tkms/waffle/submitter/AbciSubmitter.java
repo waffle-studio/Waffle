@@ -1,6 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
@@ -8,7 +9,7 @@ import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 
 public class AbciSubmitter extends SshSubmitter {
   protected static final String PACK_BATCH_FILE = "pack_batch.sh";
@@ -17,6 +18,7 @@ public class AbciSubmitter extends SshSubmitter {
   HashMap<UUID, ArrayList<Job>> queuedJobList = new HashMap<>();
   HashMap<UUID, String> packBatchTextList = new HashMap<>();
   HashMap<Job, UUID> jobPackMap = new HashMap<>();
+  int remainingJobSize = 0;
 
   HashMap<UUID, PackWaitThread> packWaitThreadMap = new HashMap<>();
   Semaphore packWaitThreadSemaphore = new Semaphore(1);
@@ -42,7 +44,7 @@ public class AbciSubmitter extends SshSubmitter {
     public void run() {
       resetWaitTime();
 
-      while ((!isInterrupted() && waitTime >= 0) || readyJobList.size() < queuedJobList.get(packId).size()) {
+      while (readyJobList.size() < queuedJobList.get(packId).size() || waitTime >= 0) {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -73,6 +75,7 @@ public class AbciSubmitter extends SshSubmitter {
 
   synchronized private void submitQueue(UUID packId) {
     putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
+    host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
     String resultJson = exec(xsubSubmitCommand(packId));
     for (Job job : queuedJobList.get(packId)) {
       processXsubSubmit(job, resultJson);
@@ -94,7 +97,8 @@ public class AbciSubmitter extends SshSubmitter {
       e.printStackTrace();
     }
 
-    if (currentPackId == null || !queuedJobList.containsKey(currentPackId) || queuedJobList.get(currentPackId).size() >= 10) {
+    if (currentPackId == null || !queuedJobList.containsKey(currentPackId)
+      || queuedJobList.get(currentPackId).size() >= AbciResourceSelector.getPackSize(remainingJobSize)) {
       UUID packId = UUID.randomUUID();
       currentPackId = packId;
       queuedJobList.put(packId, new ArrayList<>());
@@ -117,16 +121,24 @@ public class AbciSubmitter extends SshSubmitter {
     jobPackMap.put(job, packId);
     queuedJobList.get(packId).add(job);
     PackWaitThread packWaitThread = packWaitThreadMap.get(packId);
+    remainingJobSize -= 1;
 
     packWaitThread.resetWaitTime();
     packWaitThreadSemaphore.release();
+
+    try {
+      Thread.sleep((int)(2000.0 * Math.random()));
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
     Run run = job.getRun();
 
     putText(run, BATCH_FILE, makeBatchFileText(run));
 
     for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-      AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
+      AbstractParameterExtractor instance
+        = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
       instance.extract(run, extractor, this);
     }
 
@@ -234,25 +246,34 @@ public class AbciSubmitter extends SshSubmitter {
         case Failed:
           job.remove();
       }
+
+      if (Main.hibernateFlag) {
+        break;
+      }
     }
 
-    ArrayList<Thread> threadList = new ArrayList<>();
+    remainingJobSize = createdJobList.size();
+    ExecutorService executor = Executors.newFixedThreadPool(15);
+    ArrayList<Callable<Boolean>> jobThreadList = new ArrayList<>();
     for (Job job : createdJobList) {
       if (submittedCount < maximumNumberOfJobs) {
-        Thread thread = new Thread(() -> submit(job));
-        thread.start();
-        threadList.add(thread);
+        jobThreadList.add(new Callable<Boolean>() {
+          @Override
+          public Boolean call() throws Exception {
+            submit(job);
+            return true;
+          }
+        });
         submittedCount++;
       }
     }
 
-    for (Thread thread : threadList) {
-      try {
-        thread.join();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
+    try {
+      executor.invokeAll(jobThreadList);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
     }
+    executor.shutdown();
 
     for (PackWaitThread thread : new ArrayList<>(packWaitThreadMap.values())) {
       if (thread != null) {
@@ -270,7 +291,6 @@ public class AbciSubmitter extends SshSubmitter {
     super.hibernate();
 
     for (PackWaitThread thread : packWaitThreadMap.values()) {
-      thread.interrupt();
       try {
         thread.join();
       } catch (InterruptedException e) {
@@ -281,9 +301,9 @@ public class AbciSubmitter extends SshSubmitter {
 
   public static class AbciResourceSelector {
     public static String getResourceText(int size) {
-      if (size <= 10) {
+      if (size <= 5) {
         return "rt_C.small=1";
-      } else if (size <= 40) {
+      } else if (size <= 20) {
         return "rt_C.large=1";
       } else {
         return "rt_F=1";
@@ -291,12 +311,12 @@ public class AbciSubmitter extends SshSubmitter {
     }
 
     public static int getPackSize(int jobSize) {
-      if (jobSize > 50) {
-        return 80;
-      } else if (jobSize > 20) {
+      if (jobSize >= 40) {
         return 40;
+      } else if (jobSize >= 15) {
+        return 20;
       } else {
-        return 10;
+        return 3;
       }
     }
   }

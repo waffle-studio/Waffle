@@ -126,9 +126,11 @@ abstract public class AbstractSubmitter {
     String jobId = object.getString("job_id");
     job.setJobId(jobId);
     job.getRun().setState(Run.State.Submitted);
+    BrowserMessage.info("Run(" + job.getRun().getShortId() + ") was submitted");
   }
 
   void processXstat(Job job, String json) {
+    BrowserMessage.info("Run(" + job.getRun().getShortId() + ") will be checked");
     JSONObject object = new JSONObject(json);
     try {
       String status = object.getString("status");
@@ -153,6 +155,7 @@ abstract public class AbstractSubmitter {
           }
 
           if (exitStatus == 0) {
+            BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
             job.getRun().setState(Run.State.Finished);
             for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
               collector.getResultCollector().collect(this, job.getRun(), collector);

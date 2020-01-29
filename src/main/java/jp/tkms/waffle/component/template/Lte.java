@@ -177,10 +177,13 @@ public class Lte {
       value);
   }
 
-  public static String disabledTextInput(String label, String value) {
+  public static String disabledTextInput(String name, String label, String value) {
+    String id = "input" + name;
     return div("form-group",
       (label != null ? element("label", null, label) : null),
       attribute("input",
+        value("id", id),
+        value("name", name),
         value("type", "text"),
         value("value", value),
         value("class", "form-control"),

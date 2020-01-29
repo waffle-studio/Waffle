@@ -47,7 +47,9 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
     switch (mode) {
       case ReCheck:
-        run.start();
+        run.recheck();
+        response.redirect(RunComponent.getUrl(project, run));
+        return;
     }
 
     renderRun();
@@ -87,11 +89,32 @@ public class RunComponent extends AbstractAccessControlledComponent {
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 list.add(new Lte.TableRow("Status", JobsComponent.getStatusBadge(run)));
-                list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()));
+                list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
+                  + (run.getExitStatus() == -2
+                  ? Html.a(RunComponent.getUrl(project, run, "recheck"),
+                  Lte.badge("secondary", null, "ReCheck")):"")));
                 return list;
               }
             })
           , null, null, "p-0");
+
+        content += Lte.card(Html.faIcon("list-alt") + "Parameters",
+          Lte.cardToggleButton(true),
+          Lte.divRow(
+            Lte.divCol(Lte.DivSize.F12,
+              Lte.readonlyTextAreaGroup("", null, 10, run.getParameters().toString(2))
+            )
+          )
+          , null);
+
+        content += Lte.card(Html.faIcon("list-alt") + "Arguments",
+          Lte.cardToggleButton(true),
+          Lte.divRow(
+            Lte.divCol(Lte.DivSize.F12,
+              Lte.readonlyTextAreaGroup("", null, 10, String.valueOf(run.getArguments().size()))
+            )
+          )
+          , null);
 
         content += Lte.card(Html.faIcon("poll") + "Results",
           Lte.cardToggleButton(true),

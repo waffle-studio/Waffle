@@ -7,18 +7,20 @@ import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
-import org.jruby.embed.PathType;
+import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 
 public class RubyParameterExtractor extends AbstractParameterExtractor {
   @Override
   public void extract(Run run, ParameterExtractor extractor, AbstractSubmitter submitter) {
-    ScriptingContainer container = new ScriptingContainer();
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript(run));
       container.runScriptlet(extractor.getScript());
       container.callMethod(Ruby.newInstance().getCurrentContext(), "parameter_extract", run);
+      container.terminate();
     } catch (EvalFailedException e) {
+      container.terminate();
       BrowserMessage.addMessage("toastr.error('parameter_extract: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
   }
