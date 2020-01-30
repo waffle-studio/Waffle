@@ -7,7 +7,6 @@ import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
-import org.json.JSONObject;
 
 import java.io.*;
 

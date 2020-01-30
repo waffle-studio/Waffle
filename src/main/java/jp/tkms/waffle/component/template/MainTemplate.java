@@ -94,6 +94,13 @@ abstract public class MainTemplate extends AbstractTemplate {
                         "}" +
                         "}, 250);")
                     )
+                    ,
+                    elementWithClass("li", "nav-item",
+                      a(SystemComponent.getUrl("hibernate"), "nav-link", null,
+                        faIcon("power-off", "nav-icon"),
+                        p("Hibernate")
+                      )
+                    )
                     /*,
                     elementWithClass("li", "nav-item",
                         a(ProjectsComponent.getUrl(), "nav-link", null,

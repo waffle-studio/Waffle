@@ -7,10 +7,14 @@ import jp.tkms.waffle.data.*;
 import spark.Spark;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
+  private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_ARGUMENTS = "arguments";
   private Mode mode;
 
@@ -31,6 +35,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
     Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
     Spark.post(getUrl(null, "update-arguments", null), new ConductorComponent(Mode.UpdateArguments));
+    Spark.post(getUrl(null, "update-main-script", null), new ConductorComponent(Mode.UpdateMainScript));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -70,6 +75,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         conductor.setArguments(request.queryParams(KEY_ARGUMENTS));
       }
       response.redirect(getUrl(conductor));
+    } else if (mode == Mode.UpdateMainScript) {
+      if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
+        conductor.updateMainScriptContents(request.queryParams(KEY_MAIN_SCRIPT));
+      }
+      response.redirect(getUrl(conductor));
     } else {
       renderConductor();
     }
@@ -96,6 +106,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
+        ArrayList<Lte.FormError> errors = new ArrayList<>();
+
         content += Lte.card(Html.faIcon("terminal") + "Basic",
           Html.a(getUrl(conductor, "prepare", Trial.getRootInstance(project)),
             Html.span("right badge badge-secondary", null, "run")
@@ -107,16 +119,29 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           , null);
 
         content +=
+          Html.form(getUrl(conductor, "update-main-script", trial), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "Main Script",
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainScriptContents(), errors),
+                  Lte.formSubmitButton("success", "Update")
+                )
+              )
+              , null, "collapsed-card.stop", null)
+          );
+
+        content +=
           Html.form(getUrl(conductor, "update-arguments", trial), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Arguments",
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 10, conductor.getArguments().toString(2), null),
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 15, conductor.getArguments().toString(2), null),
                   Lte.formSubmitButton("success", "Update")
                 )
               )
-              , null, "collapsed-card.stop", null)
+              , null, "collapsed-card", null)
           );
 
         content += Lte.card(Html.faIcon("file") + "Files", null,
@@ -192,5 +217,5 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return new ArrayList<>();
   }
 
-  public enum Mode {Default, Prepare, Run, UpdateArguments}
+  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript}
 }

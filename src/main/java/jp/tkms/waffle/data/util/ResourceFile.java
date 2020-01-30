@@ -9,19 +9,20 @@ public class ResourceFile {
   private static ResourceFile staticInstance = new ResourceFile();
 
   public static String getContents(String path) {
-    String contents = "";
+    StringBuilder contents = new StringBuilder();
     InputStream in = staticInstance.getClass().getResourceAsStream(path);
     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
     String data;
     try {
       while (true) {
         if (!((data = reader.readLine()) != null)) break;
-        contents += data + '\n';
+        contents.append(data).append('\n');
       }
       reader.close();
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return contents;
+    return contents.toString();
   }
+
 }

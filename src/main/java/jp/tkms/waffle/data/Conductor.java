@@ -6,6 +6,7 @@ import jp.tkms.waffle.conductor.TestConductor;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -193,6 +194,27 @@ public class Conductor extends ProjectData {
           statement.execute();
         }
       });
+    }
+  }
+
+  public String getMainScriptContents() {
+    String mainScript = "";
+    try {
+      mainScript = new String(Files.readAllBytes(getScriptPath()));
+    } catch (IOException e) {
+    }
+    return mainScript;
+  }
+
+  public void updateMainScriptContents(String contents) {
+    if (Files.exists(getScriptPath())) {
+      try {
+        FileWriter filewriter = new FileWriter(getScriptPath().toFile());
+        filewriter.write(contents);
+        filewriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 
