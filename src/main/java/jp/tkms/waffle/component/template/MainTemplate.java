@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
 import jp.tkms.waffle.data.BrowserMessage;
+import jp.tkms.waffle.data.ConductorModule;
 
 import java.util.ArrayList;
 
@@ -81,6 +82,12 @@ abstract public class MainTemplate extends AbstractTemplate {
                       a(HostsComponent.getUrl(), "nav-link", null,
                         faIcon("server", "nav-icon"),
                         p("Hosts")
+                      )
+                    ),
+                    elementWithClass("li", "nav-item",
+                      a(ConductorModulesComponent.getUrl(), "nav-link", null,
+                        faIcon("cubes", "nav-icon"),
+                        p("ConductorModules")
                       )
                     ),
                     elementWithClass("li", "nav-header", "Status"),

@@ -41,6 +41,7 @@ public class Main {
     ProjectsComponent.register();
     JobsComponent.register();
     HostsComponent.register();
+    ConductorModulesComponent.register();
 
     SystemComponent.register();
     SigninComponent.register();

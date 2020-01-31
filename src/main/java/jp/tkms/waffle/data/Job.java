@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public class Job extends Data {
   private static final String TABLE_NAME = "job";
-  private static final String KEY_PROJECT = "projrct";
+  private static final String KEY_PROJECT = "project";
   private static final String KEY_HOST = "host";
   private static final String KEY_JOB_ID = "job_id";
   private static final String KEY_ERROR_COUNT = "error_count";

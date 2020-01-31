@@ -18,6 +18,7 @@ public class Run extends AbstractRun {
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
   private static final String KEY_RESULTS = "results";
+  private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ARGUMENTS = "arguments";
@@ -52,6 +53,7 @@ public class Run extends AbstractRun {
   private String host;
   private State state;
   private Integer exitStatus;
+  private Integer restartCount;
   private JSONObject results;
   private JSONObject environments;
   private JSONObject parameters;
@@ -242,6 +244,13 @@ public class Run extends AbstractRun {
     }
   }
 
+  public int getRestartCount() {
+    if (restartCount == null) {
+      restartCount = Integer.valueOf(getFromDB(KEY_RESTART_COUNT));
+    }
+    return restartCount;
+  }
+
   public int getExitStatus() {
     if (exitStatus == null) {
       exitStatus = Integer.valueOf(getFromDB(KEY_EXIT_STATUS));
@@ -392,6 +401,7 @@ public class Run extends AbstractRun {
   }
 
   public void restart() {
+    setIntToDB(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
     clearResults();
@@ -437,6 +447,7 @@ public class Run extends AbstractRun {
                 KEY_ENVIRONMENTS + " default '{}'," +
                 KEY_PARAMETERS + " default '{}'," +
                 KEY_RESULTS + " default '{}'," +
+                KEY_RESTART_COUNT + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }
