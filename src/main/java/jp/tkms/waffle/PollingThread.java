@@ -37,6 +37,7 @@ public class PollingThread extends Thread {
       submitter.pollingTask(host);
       submitter.close();
       BrowserMessage.info("Host(" + host.getName() + ") was scanned");
+      host = Host.getInstance(host.getId());
       System.gc();
       try { sleep(pollingTime); } catch (InterruptedException e) { e.printStackTrace(); }
       if (Main.hibernateFlag) {
