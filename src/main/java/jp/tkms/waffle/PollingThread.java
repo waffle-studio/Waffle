@@ -36,6 +36,10 @@ public class PollingThread extends Thread {
       BrowserMessage.info("Host(" + host.getName() + ") was scanned");
       host = Host.getInstance(host.getId());
       System.gc();
+      if (Main.hibernateFlag) {
+        submitter.hibernate();
+        break;
+      }
     } while (Job.getList(host).size() > 0);
 
     threadMap.remove(host.getId());
