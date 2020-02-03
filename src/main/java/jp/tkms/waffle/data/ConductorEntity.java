@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.PreparedStatement;
@@ -15,6 +16,7 @@ public class ConductorEntity extends AbstractRun {
   private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_TRIAL = "trial";
   private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_MODULES = "modules";
 
   private Trial trial = null;
   private Conductor conductor = null;
@@ -143,7 +145,7 @@ public class ConductorEntity extends AbstractRun {
       Trial parent = getTrial().getParent();
       if (parent != null) {
         for (ConductorEntity entity : ConductorEntity.getList(parent)) {
-          entity.update();
+          entity.update(this);
         }
       }
     }
@@ -258,9 +260,18 @@ public class ConductorEntity extends AbstractRun {
     abstractConductor.start(this);
   }
 
-  public void update() {
+  public void update(AbstractRun run) {
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
-    abstractConductor.eventHandle(this);
+    abstractConductor.eventHandle(this, run);
+  }
+
+  public List<ConductorModule> getModuleList() {
+    return (List)new JSONArray(getFromDB(KEY_MODULES)).toList();
+  }
+
+  public void registerModule(ConductorModule module) {
+    JSONArray array = new JSONArray(getFromDB(KEY_MODULES));
+    array.put(module.getId());
   }
 
   @Override
@@ -280,6 +291,7 @@ public class ConductorEntity extends AbstractRun {
               db.execute("create table " + TABLE_NAME + "(" +
                 "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
                 + KEY_ARGUMENTS + " default '{}',"
+                + KEY_MODULES + " default '[]',"
                 + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

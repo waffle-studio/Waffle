@@ -1,12 +1,9 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.conductor.TestConductor;
-import jp.tkms.waffle.conductor.module.RubyCondoctorModule;
+import jp.tkms.waffle.conductor.module.RubyConductorModule;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -130,7 +127,7 @@ public class ConductorModule extends Data {
       }
     }
 
-    RubyCondoctorModule.prepareModule(module);
+    RubyConductorModule.prepareModule(module);
 
     return module;
   }

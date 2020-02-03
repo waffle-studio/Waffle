@@ -220,7 +220,7 @@ public class Run extends AbstractRun {
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
           for (ConductorEntity entity: ConductorEntity.getList(getTrial())) {
-            entity.update();
+            entity.update(this);
           }
         }
       }

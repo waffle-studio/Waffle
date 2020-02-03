@@ -13,7 +13,7 @@ public class TestConductor extends AbstractConductor {
   }
 
   @Override
-  protected void eventHandler(ConductorEntity entity) {
+  protected void eventHandler(ConductorEntity entity, AbstractRun run) {
 
   }
 

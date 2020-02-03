@@ -9,6 +9,7 @@ work/
 tmp/
 
 
+build/scriptsShadow/
 
 # Compiled class file
 *.class
@@ -28,6 +29,7 @@ tmp/
 *.nar
 *.ear
 *.zip
+*.tar
 *.tar.gz
 *.rar
 

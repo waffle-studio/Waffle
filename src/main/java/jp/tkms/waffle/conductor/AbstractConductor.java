@@ -1,7 +1,9 @@
 package jp.tkms.waffle.conductor;
 
+import jp.tkms.waffle.data.AbstractRun;
 import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.ConductorEntity;
+import jp.tkms.waffle.data.Run;
 import org.json.JSONObject;
 
 import java.lang.reflect.Constructor;
@@ -9,7 +11,7 @@ import java.util.HashMap;
 
 abstract public class AbstractConductor {
   abstract protected void mainProcess(ConductorEntity entity);
-  abstract protected void eventHandler(ConductorEntity entity);
+  abstract protected void eventHandler(ConductorEntity entity, AbstractRun run);
   abstract protected void postProcess(ConductorEntity entity);
   abstract protected void suspendProcess(ConductorEntity entity);
   abstract public String defaultScriptName();
@@ -32,8 +34,8 @@ abstract public class AbstractConductor {
     }).start();
   }
 
-  public void eventHandle(ConductorEntity entity) {
-    eventHandler(entity);
+  public void eventHandle(ConductorEntity entity, AbstractRun run) {
+    eventHandler(entity, run);
     if (! entity.getTrial().isRunning()) {
       postProcess(entity);
       entity.remove();
