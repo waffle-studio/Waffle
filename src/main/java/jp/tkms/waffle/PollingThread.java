@@ -24,26 +24,18 @@ public class PollingThread extends Thread {
   public void run() {
     System.out.println("Submitter started");
 
-    try {
-      sleep(2000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-
-    int pollingTime = host.getPollingInterval() * 1000;
-
     do {
+      try { sleep(host.getPollingInterval() * 1000); } catch (InterruptedException e) { e.printStackTrace(); }
       AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
+      if (Main.hibernateFlag) {
+        submitter.hibernate();
+        break;
+      }
       submitter.pollingTask(host);
       submitter.close();
       BrowserMessage.info("Host(" + host.getName() + ") was scanned");
       host = Host.getInstance(host.getId());
       System.gc();
-      try { sleep(pollingTime); } catch (InterruptedException e) { e.printStackTrace(); }
-      if (Main.hibernateFlag) {
-        submitter.hibernate();
-        break;
-      }
     } while (Job.getList(host).size() > 0);
 
     threadMap.remove(host.getId());
