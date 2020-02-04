@@ -92,8 +92,11 @@ public class Conductor extends ProjectData {
     return conductor[0];
   }
 
-  public static Conductor find_by_name(Project project, String name) {
-    return getInstanceByName(project, name);
+  public static Conductor find(Project project, String key) {
+    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
+      return getInstance(project, key);
+    }
+    return getInstanceByName(project, key);
   }
 
   public static ArrayList<Conductor> getList(Project project) {

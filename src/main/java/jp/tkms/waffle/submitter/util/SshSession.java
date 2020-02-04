@@ -52,7 +52,7 @@ public class SshSession {
     session.setConfig(key, value);
   }
 
-  public void connect(){
+  public void connect(boolean retry) throws JSchException {
     boolean connected = false;
     do {
       try {
@@ -60,7 +60,9 @@ public class SshSession {
         connected = true;
       } catch (JSchException e) {
         System.err.println(e.getMessage());
-        if (!e.getMessage().toLowerCase().equals("session is already connected")) {
+        if (!retry) {
+          throw e;
+        } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
           int waitTime = 10 + (int) (Math.random() * 10);
           System.err.println("Retry connection after " + waitTime + " sec.");
           try {

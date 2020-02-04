@@ -19,14 +19,18 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet(getInitScript());
       container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
 
+      boolean result = true;
       container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
       for (ConductorModule module : entity.getModuleList()) {
-        RubyConductorModule.getInstance().preProcess(container, module, entity);
+        result = RubyConductorModule.getInstance().preProcess(container, module, entity);
+        if (!result) { break; }
       }
 
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", entity);
+      if (result) {
+        container.runScriptlet(getTemplateScript());
+        container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", entity);
+      }
 
       for (ConductorModule module : entity.getModuleList()) {
         RubyConductorModule.getInstance().postPreProcess(container, module, entity);
@@ -52,13 +56,18 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
 
       container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
+
+      boolean result = true;
       for (ConductorModule module : entity.getModuleList()) {
-        RubyConductorModule.getInstance().cycleProcess(container, module, entity, run);
+        result = RubyConductorModule.getInstance().cycleProcess(container, module, entity, run);
+        if (!result) { break; }
       }
 
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", entity, run);
+      if (result) {
+        container.runScriptlet(getTemplateScript());
+        container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", entity, run);
+      }
 
       for (ConductorModule module : entity.getModuleList()) {
         RubyConductorModule.getInstance().postCycleProcess(container, module, entity, run);
@@ -83,13 +92,18 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
 
       container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
+
+      boolean result = true;
       for (ConductorModule module : entity.getModuleList()) {
-        RubyConductorModule.getInstance().postProcess(container, module, entity);
+        result = RubyConductorModule.getInstance().postProcess(container, module, entity);
+        if (!result) { break; }
       }
 
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", entity);
+      if (result) {
+        container.runScriptlet(getTemplateScript());
+        container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", entity);
+      }
 
       for (ConductorModule module : entity.getModuleList()) {
         RubyConductorModule.getInstance().postPostProcess(container, module, entity);
@@ -123,7 +137,7 @@ public class RubyConductor extends CycleConductor {
 
       filewriter.write(
         "def register_modules(entity)\n" +
-          "# entity.register_module(\"ModuleName\")" +
+          "#    entity.register_module(\"ModuleName\")\n" +
           "end\n" +
           "\n" + getTemplateScript());
       filewriter.close();

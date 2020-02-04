@@ -72,54 +72,59 @@ def get_store(registry, entity_id)
 end
 
 def exec_process_with_run(entity, run, &block)
+    result = true
     registry = Registry.new(entity.project)
     store = get_store(registry, entity.id)
     if run.nil? then
-        block.call(entity, store, registry)
+        result = block.call(entity, store, registry)
     else
-        block.call(entity, store, registry, run)
+        result = block.call(entity, store, registry, run)
     end
     pre_process(entity, store, registry)
     registry.set(".S:" + entity.id, Marshal.dump(store))
+    return result
 end
 
 def exec_process(entity, &block)
-    exec_process_with_run(entity, nil, &block)
+    return exec_process_with_run(entity, nil, &block)
 end
 
 def exec_pre_process(entity)
-    exec_process entity do | store, registry |
-        pre_process(entity, store, registry)
+    return exec_process entity do | store, registry |
+        return pre_process(entity, store, registry)
     end
 end
 
 def exec_post_pre_process(entity)
     exec_process entity do | store, registry |
         post_pre_process(entity, store, registry)
+        return true
     end
 end
 
 def exec_cycle_process(entity, run)
     exec_process_with_run entity, run do | store, registry |
-        cycle_process(entity, store, registry, run)
+        return cycle_process(entity, store, registry, run)
     end
 end
 
 def exec_post_cycle_process(entity, run)
     exec_process_with_run entity, run do | store, registry |
         post_cycle_process(entity, store, registry, run)
+        return true
     end
 end
 
 def exec_post_process(entity)
     exec_process entity do | store, registry |
-        post_process(entity, store, registry)
+        return post_process(entity, store, registry)
     end
 end
 
 def exec_post_post_process(entity)
     exec_process entity do | store, registry |
         post_post_process(entity, store, registry)
+        return true
     end
 end
 

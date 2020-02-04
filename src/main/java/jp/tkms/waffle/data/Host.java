@@ -91,6 +91,13 @@ public class Host extends Data {
     return host[0];
   }
 
+  public static Host find(String key) {
+    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
+      return getInstance(key);
+    }
+    return getInstanceByName(key);
+  }
+
   public static ArrayList<Host> getList() {
     ArrayList<Host> list = new ArrayList<>();
 
@@ -130,7 +137,7 @@ public class Host extends Data {
   }
 
   public void update() {
-    setXsubTemplate(AbstractSubmitter.getXsubTemplate(this));
+    setXsubTemplate(AbstractSubmitter.getXsubTemplate(this, false));
   }
 
   public Path getLocation() {

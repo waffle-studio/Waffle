@@ -9,6 +9,7 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class RubyConductorModule {
   static RubyConductorModule instance = new RubyConductorModule();
@@ -17,16 +18,19 @@ public class RubyConductorModule {
     return instance;
   }
 
-  public void preProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
+  public boolean preProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
+    boolean result = true;
     try {
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
       container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", entity);
+      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", Arrays.asList(entity).toArray(), Boolean.class);
     } catch (EvalFailedException e) {
       e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('pre_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       throw e;
     }
+    return result;
   }
 
   public void postPreProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
@@ -41,15 +45,17 @@ public class RubyConductorModule {
     }
   }
 
-  public void cycleProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity, AbstractRun run) {
+  public boolean cycleProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity, AbstractRun run) {
+    boolean result = true;
     try {
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", entity, run);
+      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", Arrays.asList(entity, run).toArray(), Boolean.class);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('cycle_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       throw e;
     }
+    return result;
   }
 
   public void postCycleProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity, AbstractRun run) {
@@ -63,15 +69,17 @@ public class RubyConductorModule {
     }
   }
 
-  public void postProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
+  public boolean postProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
+    boolean result = true;
     try {
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", entity);
+      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", Arrays.asList(entity).toArray(), Boolean.class);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('post_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       throw e;
     }
+    return result;
   }
 
   public void postPostProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {

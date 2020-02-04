@@ -22,7 +22,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public AbstractSubmitter connect() {
+  public AbstractSubmitter connect(boolean retry) {
     try {
       String hostName = "";
       String user = "";
@@ -64,7 +64,7 @@ public class SshSubmitter extends AbstractSubmitter {
           tunnelSession.addIdentity(object.getString("identity_file"), object.getString("identity_pass"));
         }
         tunnelSession.setConfig("StrictHostKeyChecking", "no");
-        tunnelSession.connect();
+        tunnelSession.connect(retry);
         port = tunnelSession.setPortForwardingL(hostName, port);
         hostName = "127.0.0.1";
       }
@@ -77,7 +77,7 @@ public class SshSubmitter extends AbstractSubmitter {
         session.addIdentity(identityFile, identityPass);
       }
       session.setConfig("StrictHostKeyChecking", "no");
-      session.connect();
+      session.connect(retry);
     } catch (Exception e) {
       e.printStackTrace();
     }

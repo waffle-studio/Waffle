@@ -17,7 +17,7 @@ abstract public class AbstractSubmitter {
   protected static final String ENVIRONMENTS_FILE = "environments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
-  abstract public AbstractSubmitter connect();
+  abstract public AbstractSubmitter connect(boolean retry);
   abstract String getWorkDirectory(Run run);
   abstract String getSimulatorBinDirectory(Run run);
   abstract void prepareSubmission(Run run);
@@ -28,6 +28,10 @@ abstract public class AbstractSubmitter {
   abstract public void putText(Run run, String path, String text);
   abstract public String getFileContents(Run run, String path);
   abstract public JSONObject defaultParameters(Host host);
+
+  public AbstractSubmitter connect() {
+    return connect(true);
+  }
 
   public static AbstractSubmitter getInstance(Host host) {
     AbstractSubmitter submitter = null;
@@ -188,8 +192,8 @@ abstract public class AbstractSubmitter {
       );
   }
 
-  public static JSONObject getXsubTemplate(Host host) {
-    AbstractSubmitter submitter = getInstance(host).connect();
+  public static JSONObject getXsubTemplate(Host host, boolean retry) {
+    AbstractSubmitter submitter = getInstance(host).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
       getXsubBinDirectory(host) + "xsub -t";

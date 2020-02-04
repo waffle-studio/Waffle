@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 
 public class LocalSubmitter extends AbstractSubmitter {
   @Override
-  public AbstractSubmitter connect() {
+  public AbstractSubmitter connect(boolean retry) {
     return this;
   }
 
