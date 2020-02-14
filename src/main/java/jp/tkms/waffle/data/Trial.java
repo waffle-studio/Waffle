@@ -130,8 +130,8 @@ public class Trial extends ProjectData {
     return getList(getProject(), this);
   }
 
-  public ArrayList<Run> getChildRunList() {
-    return Run.getList(getProject(), this);
+  public ArrayList<SimulatorRun> getChildRunList() {
+    return SimulatorRun.getList(getProject(), this);
   }
 
   public Path getLocation() {
@@ -142,7 +142,7 @@ public class Trial extends ProjectData {
   }
 
   public boolean isRunning() {
-    for (Run run : getChildRunList()) {
+    for (SimulatorRun run : getChildRunList()) {
       if (run.isRunning()) {
         return true;
       }

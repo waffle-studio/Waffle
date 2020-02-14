@@ -48,10 +48,10 @@ class ConductorArgument
     end
 end
 
-class ConductorEntity < Java::jp.tkms.waffle.data.ConductorEntity
+class ConductorEntity < Java::jp.tkms.waffle.data.ConductorRun
 end
 
-class Run < Java::jp.tkms.waffle.data.Run
+class Run < Java::jp.tkms.waffle.data.SimulatorRun
 end
 
 class Registry < Java::jp.tkms.waffle.data.Registry
@@ -71,60 +71,76 @@ def get_store(registry, entity_id)
     end
 end
 
-def exec_process_with_run(entity, run, &block)
-    result = true
-    registry = Registry.new(entity.project)
-    store = get_store(registry, entity.id)
-    if run.nil? then
-        result = block.call(entity, store, registry)
-    else
-        result = block.call(entity, store, registry, run)
+class Hub < Java::jp.tkms.waffle.data.util.Hub
+    def initialize(conductorRun)
+        super(conductorRun)
+        @store = get_store(registry, conductorRun.id)
     end
-    pre_process(entity, store, registry)
-    registry.set(".S:" + entity.id, Marshal.dump(store))
+
+    def close()
+        registry.set(".S:" + conductorRun.id, Marshal.dump(store))
+    end
+end
+
+def exec_process(conductorRun, &block)
+    result = true
+    hub = Hub.new(conductorRun)
+    result = block.call(hub)
+    hub.close
     return result
 end
 
-def exec_process(entity, &block)
-    return exec_process_with_run(entity, nil, &block)
-end
-
-def exec_pre_process(entity)
-    return exec_process entity do | store, registry |
-        return pre_process(entity, store, registry)
-    end
-end
-
-def exec_post_pre_process(entity)
-    exec_process entity do | store, registry |
-        post_pre_process(entity, store, registry)
+def exec_register_default_parameters(conductorRun, moduleInstanceName)
+    exec_process conductorRun do | hub |
+        hub.switchParameterStore(moduleInstanceName)
+        register_default_parameters(hub)
+        hub.setParameterStore(nil)
         return true
     end
 end
 
-def exec_cycle_process(entity, run)
-    exec_process_with_run entity, run do | store, registry |
-        return cycle_process(entity, store, registry, run)
+def exec_cycle_process(conductorRun, run)
+    exec_process conductorRun do | hub |
+        return cycle_process(hub, run)
     end
 end
 
-def exec_post_cycle_process(entity, run)
-    exec_process_with_run entity, run do | store, registry |
-        post_cycle_process(entity, store, registry, run)
+def exec_post_cycle_process(conductorRun, run)
+    exec_process conductorRun do | hub |
+        post_cycle_process(hub, run)
         return true
     end
 end
 
-def exec_post_process(entity)
-    exec_process entity do | store, registry |
-        return post_process(entity, store, registry)
+def exec_finalize_process(conductorRun)
+    exec_process conductorRun do | hub |
+        return finalize_process(hub, run)
     end
 end
 
-def exec_post_post_process(entity)
-    exec_process entity do | store, registry |
-        post_post_process(entity, store, registry)
+def exec_module_cycle_process(conductorRun, moduleInstanceName, run)
+    exec_process conductorRun do | hub |
+        hub.switchParameterStore(moduleInstanceName)
+        result = cycle_process(hub, run)
+        hub.setParameterStore(nil)
+        return result
+    end
+end
+
+def exec_module_post_cycle_process(conductorRun, moduleInstanceName, run)
+    exec_process conductorRun do | hub |
+        hub.switchParameterStore(moduleInstanceName)
+        post_cycle_process(hub, run)
         return true
+    end
+end
+
+def exec_module_finalize_process(conductorRun, moduleInstanceName)
+    exec_process conductorRun do | hub |
+        hub.switchParameterStore(moduleInstanceName)
+        result = finalize_process(hub, run)
+        hub.setParameterStore(nil)
+        return result
     end
 end
 

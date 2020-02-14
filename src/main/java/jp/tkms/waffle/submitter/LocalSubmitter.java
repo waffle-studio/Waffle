@@ -1,7 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -16,7 +16,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getWorkDirectory(Run run) {
+  String getWorkDirectory(SimulatorRun run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
       + RUN_DIR + host.getDirectorySeparetor() + run.getId();
@@ -31,12 +31,12 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getSimulatorBinDirectory(Run run) {
+  String getSimulatorBinDirectory(SimulatorRun run) {
     return run.getSimulator().getBinDirectoryLocation().toAbsolutePath().toString();
   }
 
   @Override
-  void prepareSubmission(Run run) {
+  void prepareSubmission(SimulatorRun run) {
   }
 
   @Override
@@ -64,7 +64,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  int getExitStatus(Run run) {
+  int getExitStatus(SimulatorRun run) {
     int status = -1;
 
     try {
@@ -86,7 +86,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void postProcess(Run run) {
+  void postProcess(SimulatorRun run) {
     try {
       //deleteDirectory(getWorkDirectory(run));
     } catch (Exception e) {
@@ -100,7 +100,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(Run run, String path, String text) {
+  public void putText(SimulatorRun run, String path, String text) {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
         new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + path)
@@ -113,7 +113,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(Run run, String path){
+  public String getFileContents(SimulatorRun run, String path){
     return exec("cat " + getContentsPath(run, path));
   }
 

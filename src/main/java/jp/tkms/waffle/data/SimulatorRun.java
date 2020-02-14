@@ -10,7 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
-public class Run extends AbstractRun {
+public class SimulatorRun extends AbstractRun {
   protected static final String TABLE_NAME = "run";
   private static final String KEY_HOST = "host";
   private static final String KEY_CONDUCTOR = "conductor";
@@ -26,7 +26,7 @@ public class Run extends AbstractRun {
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
-  public Run(Project project) {
+  public SimulatorRun(Project project) {
     super(project);
   }
 
@@ -59,12 +59,12 @@ public class Run extends AbstractRun {
   private JSONObject parameters;
   private JSONArray arguments;
 
-  private Run(Conductor conductor, Trial trial, Simulator simulator, Host host) {
+  private SimulatorRun(Conductor conductor, Trial trial, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
       conductor.getId(), trial.getId(), simulator.getId(), host.getId(), State.Created);
   }
 
-  private Run(Project project, UUID id, String name, String conductor, String trials, String simulator, String host, State state) {
+  private SimulatorRun(Project project, UUID id, String name, String conductor, String trials, String simulator, String host, State state) {
     super(project, id, name);
     this.conductor = conductor;
     this.trials = trials;
@@ -73,14 +73,14 @@ public class Run extends AbstractRun {
     this.state = state;
   }
 
-  private Run(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
+  private SimulatorRun(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
     this(project, id, "", conductor, trials, simulator, host, state);
   }
 
-  public static Run getInstance(Project project, String id) {
-    final Run[] run = {null};
+  public static SimulatorRun getInstance(Project project, String id) {
+    final SimulatorRun[] run = {null};
 
-    handleDatabase(new Run(project), new Handler() {
+    handleDatabase(new SimulatorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
@@ -95,7 +95,7 @@ public class Run extends AbstractRun {
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          run[0] = new Run(
+          run[0] = new SimulatorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
@@ -132,10 +132,10 @@ public class Run extends AbstractRun {
     return state;
   }
 
-  public static ArrayList<Run> getList(Project project, Trial parent) {
-    ArrayList<Run> list = new ArrayList<>();
+  public static ArrayList<SimulatorRun> getList(Project project, Trial parent) {
+    ArrayList<SimulatorRun> list = new ArrayList<>();
 
-    handleDatabase(new Run(project), new Handler() {
+    handleDatabase(new SimulatorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
@@ -149,7 +149,7 @@ public class Run extends AbstractRun {
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          list.add(new Run(
+          list.add(new SimulatorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_CONDUCTOR),
@@ -165,15 +165,15 @@ public class Run extends AbstractRun {
     return list;
   }
 
-  public static Run create(ConductorEntity conductorEntity, Simulator simulator, Host host) {
-    Run run = new Run(conductorEntity.getConductor(), conductorEntity.getTrial(), simulator, host);
+  public static SimulatorRun create(ConductorRun conductorRun, Simulator simulator, Host host) {
+    SimulatorRun run = new SimulatorRun(conductorRun.getConductor(), conductorRun.getTrial(), simulator, host);
     String conductorId = run.getConductor().getId();
     String trialsId = run.getTrial().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
-    JSONObject parameters = conductorEntity.getNextRunParameters(simulator);
+    JSONObject parameters = conductorRun.getNextRunParameters(simulator);
 
-    handleDatabase(new Run(conductorEntity.getProject()), new Handler() {
+    handleDatabase(new SimulatorRun(conductorRun.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
@@ -219,7 +219,7 @@ public class Run extends AbstractRun {
         new RunStatusUpdater(this);
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
-          for (ConductorEntity entity: ConductorEntity.getList(getTrial())) {
+          for (ConductorRun entity: ConductorRun.getList(getTrial())) {
             entity.update(this);
           }
         }

@@ -2,28 +2,26 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.AbstractRun;
 import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.ConductorEntity;
-import jp.tkms.waffle.data.Run;
-import org.json.JSONObject;
+import jp.tkms.waffle.data.ConductorRun;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 abstract public class AbstractConductor {
-  abstract protected void mainProcess(ConductorEntity entity);
-  abstract protected void eventHandler(ConductorEntity entity, AbstractRun run);
-  abstract protected void postProcess(ConductorEntity entity);
-  abstract protected void suspendProcess(ConductorEntity entity);
+  abstract protected void mainProcess(ConductorRun entity);
+  abstract protected void eventHandler(ConductorRun entity, AbstractRun run);
+  abstract protected void postProcess(ConductorRun entity);
+  abstract protected void suspendProcess(ConductorRun entity);
   abstract public String defaultScriptName();
   abstract public void prepareConductor(Conductor conductor);
 
   private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
-  private static HashMap<ConductorEntity, AbstractConductor> runningInstance = new HashMap<>();
+  private static HashMap<ConductorRun, AbstractConductor> runningInstance = new HashMap<>();
 
   public AbstractConductor() {
   }
 
-  public void start(ConductorEntity entity) {
+  public void start(ConductorRun entity) {
     (new Thread() {
       @Override
       public void run() {
@@ -34,7 +32,7 @@ abstract public class AbstractConductor {
     }).start();
   }
 
-  public void eventHandle(ConductorEntity entity, AbstractRun run) {
+  public void eventHandle(ConductorRun entity, AbstractRun run) {
     eventHandler(entity, run);
     if (! entity.getTrial().isRunning()) {
       postProcess(entity);
@@ -42,11 +40,11 @@ abstract public class AbstractConductor {
     }
   }
 
-  public void hibernate(ConductorEntity entity) {
+  public void hibernate(ConductorRun entity) {
     suspendProcess(entity);
   }
 
-  public static AbstractConductor getInstance(ConductorEntity entity) {
+  public static AbstractConductor getInstance(ConductorRun entity) {
     if (runningInstance.containsKey(entity)) {
       return runningInstance.get(entity);
     }

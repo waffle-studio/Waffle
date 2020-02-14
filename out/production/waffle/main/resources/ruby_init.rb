@@ -48,10 +48,10 @@ class ConductorArgument
     end
 end
 
-class ConductorEntity < Java::jp.tkms.waffle.data.ConductorEntity
+class ConductorEntity < Java::jp.tkms.waffle.data.ConductorRun
 end
 
-class Run < Java::jp.tkms.waffle.data.Run
+class Run < Java::jp.tkms.waffle.data.SimulatorRun
 end
 
 class Registry < Java::jp.tkms.waffle.data.Registry

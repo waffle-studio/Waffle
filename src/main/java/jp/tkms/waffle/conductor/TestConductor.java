@@ -1,29 +1,28 @@
 package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.*;
-import org.json.JSONObject;
 
 public class TestConductor extends AbstractConductor {
   @Override
-  protected void mainProcess(ConductorEntity entity) {
+  protected void mainProcess(ConductorRun entity) {
     Conductor conductor = entity.getConductor();
     for ( Simulator simulator : Simulator.getList(conductor.getProject()) ) {
-      Run.create(entity, simulator, Host.getInstanceByName(entity.getArgument("host").toString())).start();
+      SimulatorRun.create(entity, simulator, Host.getInstanceByName(entity.getArgument("host").toString())).start();
     }
   }
 
   @Override
-  protected void eventHandler(ConductorEntity entity, AbstractRun run) {
+  protected void eventHandler(ConductorRun entity, AbstractRun run) {
 
   }
 
   @Override
-  protected void postProcess(ConductorEntity entity) {
+  protected void postProcess(ConductorRun entity) {
 
   }
 
   @Override
-  protected void suspendProcess(ConductorEntity entity) {
+  protected void suspendProcess(ConductorRun entity) {
 
   }
 

@@ -1,16 +1,15 @@
 package jp.tkms.waffle.extractor;
 
 import jp.tkms.waffle.data.ParameterExtractor;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
-import org.joda.time.base.AbstractPeriod;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 public abstract class AbstractParameterExtractor {
 
-  abstract public void extract(Run run, ParameterExtractor extractor, AbstractSubmitter submitter);
+  abstract public void extract(SimulatorRun run, ParameterExtractor extractor, AbstractSubmitter submitter);
   abstract public String contentsTemplate();
 
   public AbstractParameterExtractor() {

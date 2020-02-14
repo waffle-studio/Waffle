@@ -176,7 +176,7 @@ public class Project extends Data {
   }
 
   public void hibernate() {
-    for (ConductorEntity  entity : ConductorEntity.getList(this)) {
+    for (ConductorRun entity : ConductorRun.getList(this)) {
       AbstractConductor.getInstance(entity).hibernate(entity);
     }
   }

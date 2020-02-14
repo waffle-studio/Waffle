@@ -13,69 +13,38 @@ import java.io.*;
 
 public class RubyConductor extends CycleConductor {
   @Override
-  protected void preProcess(ConductorEntity entity) {
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    try {
-      container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-
-      boolean result = true;
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
-      for (ConductorModule module : entity.getModuleList()) {
-        result = RubyConductorModule.getInstance().preProcess(container, module, entity);
-        if (!result) { break; }
-      }
-
-      if (result) {
-        container.runScriptlet(getTemplateScript());
-        container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", entity);
-      }
-
-      for (ConductorModule module : entity.getModuleList()) {
-        RubyConductorModule.getInstance().postPreProcess(container, module, entity);
-      }
-
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_pre_process", entity);
-
-      container.terminate();
-    } catch (EvalFailedException e) {
-      e.printStackTrace();
-      container.terminate();
-      BrowserMessage.addMessage("toastr.error('pre_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
+  protected void preProcess(ConductorRun conductorRun) {
+    eventHandler(conductorRun, null);
   }
 
   @Override
-  protected void eventHandler(ConductorEntity entity, AbstractRun run) {
+  protected void eventHandler(ConductorRun conductorRun, AbstractRun run) {
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+      container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
 
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", conductorRun);
 
       boolean result = true;
-      for (ConductorModule module : entity.getModuleList()) {
-        result = RubyConductorModule.getInstance().cycleProcess(container, module, entity, run);
+      for (String key : conductorRun.getModuleKeyList()) {
+        result = RubyConductorModule.getInstance().cycleProcess(container, conductorRun, conductorRun.getModule(key), key, run);
         if (!result) { break; }
       }
 
       if (result) {
         container.runScriptlet(getTemplateScript());
-        container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", entity, run);
+        container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", conductorRun, run);
       }
 
-      for (ConductorModule module : entity.getModuleList()) {
-        RubyConductorModule.getInstance().postCycleProcess(container, module, entity, run);
+      for (String key : conductorRun.getModuleKeyList()) {
+        RubyConductorModule.getInstance().postCycleProcess(container, conductorRun, conductorRun.getModule(key), key, run);
       }
 
       container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_cycle_process", entity, run);
+      container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_cycle_process", conductorRun, run);
 
       container.terminate();
     } catch (EvalFailedException e) {
@@ -84,8 +53,7 @@ public class RubyConductor extends CycleConductor {
     }
   }
 
-  @Override
-  protected void postProcess(ConductorEntity entity) {
+  protected void finalizeProcess(ConductorRun entity) {
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
@@ -94,7 +62,7 @@ public class RubyConductor extends CycleConductor {
       container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
 
       boolean result = true;
-      for (ConductorModule module : entity.getModuleList()) {
+      for (String key : entity.getModuleKeyList()) {
         result = RubyConductorModule.getInstance().postProcess(container, module, entity);
         if (!result) { break; }
       }
@@ -121,7 +89,7 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
-  protected void suspendProcess(ConductorEntity entity) {
+  protected void suspendProcess(ConductorRun entity) {
 
   }
 
@@ -136,7 +104,7 @@ public class RubyConductor extends CycleConductor {
       FileWriter filewriter = new FileWriter(conductor.getScriptPath().toFile());
 
       filewriter.write(
-        "def register_modules(entity)\n" +
+        "def register_modules(hub)\n" +
           "#    entity.register_module(\"ModuleName\")\n" +
           "end\n" +
           "\n" + getTemplateScript());

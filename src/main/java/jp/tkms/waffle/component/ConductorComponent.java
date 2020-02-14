@@ -7,9 +7,6 @@ import jp.tkms.waffle.data.*;
 import spark.Spark;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -64,7 +61,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       renderPrepareForm();
     } else if (mode == Mode.Run) {
       trial = Trial.getInstance(project, request.params("trial"));
-      ConductorEntity entity = ConductorEntity.create(conductor.getProject(), trial, conductor);
+      ConductorRun entity = ConductorRun.create(conductor.getProject(), trial, conductor);
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
         entity.putArguments(request.queryParams(KEY_ARGUMENTS));
       }

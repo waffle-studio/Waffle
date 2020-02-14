@@ -4,6 +4,7 @@ import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
+import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 
@@ -18,26 +19,12 @@ public class RubyConductorModule {
     return instance;
   }
 
-  public boolean preProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
-    boolean result = true;
+  public void registerDefaultParameters(ConductorRun conductorRun, ConductorModule module, String moduleInstanceName) {
     try {
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", entity);
-      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_pre_process", Arrays.asList(entity).toArray(), Boolean.class);
-    } catch (EvalFailedException e) {
-      e.printStackTrace();
-      BrowserMessage.addMessage("toastr.error('pre_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-      throw e;
-    }
-    return result;
-  }
-
-  public void postPreProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
-    try {
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_pre_process", entity);
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_register_default_parameters", conductorRun, moduleInstanceName);
     } catch (EvalFailedException e) {
       e.printStackTrace();
       BrowserMessage.addMessage("toastr.error('pre_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
@@ -45,12 +32,12 @@ public class RubyConductorModule {
     }
   }
 
-  public boolean cycleProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity, AbstractRun run) {
+  public boolean cycleProcess(ScriptingContainer container, ConductorRun conductorRun, ConductorModule module, String moduleInstanceName, AbstractRun run) {
     boolean result = true;
     try {
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", Arrays.asList(entity, run).toArray(), Boolean.class);
+      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_module_cycle_process", Arrays.asList(conductorRun, moduleInstanceName, run).toArray(), Boolean.class);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('cycle_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       throw e;
@@ -58,42 +45,29 @@ public class RubyConductorModule {
     return result;
   }
 
-  public void postCycleProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity, AbstractRun run) {
+  public void postCycleProcess(ScriptingContainer container, ConductorRun conductorRun, ConductorModule module, String moduleInstanceName, AbstractRun run) {
     try {
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_cycle_process", entity, run);
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_cycle_process", conductorRun, moduleInstanceName, run);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('cycle_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       throw e;
     }
   }
 
-  public boolean postProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
-    boolean result = true;
+  public void finalizeProcess(ScriptingContainer container, ConductorRun conductorRun, ConductorModule module, String moduleInstanceName) {
     try {
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      result = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", Arrays.asList(entity).toArray(), Boolean.class);
-    } catch (EvalFailedException e) {
-      BrowserMessage.addMessage("toastr.error('post_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-      throw e;
-    }
-    return result;
-  }
-
-  public void postPostProcess(ScriptingContainer container, ConductorModule module, ConductorEntity entity) {
-    try {
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, module.getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_post_process", entity);
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_post_process", conductorRun, moduleInstanceName);
     } catch (EvalFailedException e) {
       BrowserMessage.addMessage("toastr.error('post_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       throw e;
     }
   }
 
-  protected void suspendProcess(ConductorEntity entity) {
+  protected void suspendProcess(ConductorRun entity) {
 
   }
 

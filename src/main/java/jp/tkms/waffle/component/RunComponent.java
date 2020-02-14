@@ -4,7 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   ;
   private Project project;
-  private Run run;
+  private SimulatorRun run;
   public RunComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -30,11 +30,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, null, "recheck"), new RunComponent(Mode.ReCheck));
   }
 
-  public static String getUrl(Project project, Run run) {
+  public static String getUrl(Project project, SimulatorRun run) {
     return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + run.getId());
   }
 
-  public static String getUrl(Project project, Run run, String mode) {
+  public static String getUrl(Project project, SimulatorRun run, String mode) {
     return "/run/" + (project == null ? ":project/:id/" + mode : project.getId() + "/" + run.getId() + "/" + mode);
   }
 
@@ -43,7 +43,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
-    run = Run.getInstance(project, requestedId);
+    run = SimulatorRun.getInstance(project, requestedId);
 
     switch (mode) {
       case ReCheck:

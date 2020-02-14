@@ -3,11 +3,8 @@ package jp.tkms.waffle;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
-import jp.tkms.waffle.data.Run;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
-import spark.Spark;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 

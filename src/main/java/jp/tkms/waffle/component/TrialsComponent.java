@@ -4,7 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.Trial;
 import spark.Spark;
 
@@ -136,7 +136,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Run run : Run.getList(project, trial)) {
+              for (SimulatorRun run : SimulatorRun.getList(project, trial)) {
                 list.add(new Lte.TableRow(
                   Html.a(RunComponent.getUrl(project, run), run.getShortId()),
                   run.getConductor().getName(),

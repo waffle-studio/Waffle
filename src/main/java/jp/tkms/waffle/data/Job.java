@@ -21,7 +21,7 @@ public class Job extends Data {
 
   private Project project = null;
   private Host host = null;
-  private Run run = null;
+  private SimulatorRun run = null;
   private String jobId = null;
   private Integer errorCount = null;
 
@@ -95,7 +95,7 @@ public class Job extends Data {
     return list;
   }
 
-  public static void addRun(Run run) {
+  public static void addRun(SimulatorRun run) {
     String hostId = run.getHost().getId();
 
     handleDatabase(new Job(), new Handler() {
@@ -188,9 +188,9 @@ public class Job extends Data {
     return host;
   }
 
-  public Run getRun() {
+  public SimulatorRun getRun() {
     if (run == null) {
-      run = Run.getInstance(getProject(), getId());
+      run = SimulatorRun.getInstance(getProject(), getId());
     }
     return run;
   }
