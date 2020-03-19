@@ -83,6 +83,13 @@ public class Simulator extends ProjectData {
     return simulator[0];
   }
 
+  public static Simulator find(Project project, String key) {
+    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
+      return getInstance(project, key);
+    }
+    return getInstanceByName(project, key);
+  }
+
   public static ArrayList<Simulator> getList(Project project) {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
 

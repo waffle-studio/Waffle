@@ -20,12 +20,12 @@ public class Hub {
     switchParameterStore(null);
   }
 
-  public ConductorRun getConductorRun() {
-    return conductorRun;
+  public Project getProject() {
+    return project;
   }
 
-  public ConductorRun conductorRun() {
-    return getConductorRun();
+  public ConductorRun getConductorRun() {
+    return conductorRun;
   }
 
   public Registry getRegistry() {
@@ -34,11 +34,6 @@ public class Hub {
 
   public Registry registry() {
     return getRegistry();
-  }
-
-  public ConductorRun createConductorRun(String key) {
-    Conductor conductor = Conductor.getInstance(project, key);
-    return ConductorRun.create(conductorRun, conductor);
   }
 
   public void switchParameterStore(String key) {

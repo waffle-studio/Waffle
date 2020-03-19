@@ -9,7 +9,7 @@ public class JsonResultCollector extends AbstractResultCollector {
   public void collect(AbstractSubmitter submitter, SimulatorRun run, ResultCollector collector) {
     try {
       String json = submitter.getFileContents(run, collector.getContents().replaceAll("[\n\r\t]", ""));
-      run.putResults(json);
+      run.putParametersByJson(json);
     } catch (Exception e) { e.printStackTrace(); }
   }
 

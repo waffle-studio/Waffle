@@ -107,16 +107,6 @@ public class RunComponent extends AbstractAccessControlledComponent {
           )
           , null);
 
-        content += Lte.card(Html.faIcon("poll") + "Results",
-          Lte.cardToggleButton(true),
-          Lte.divRow(
-            Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, 10, run.getResults().toString(2))
-            )
-          )
-          , null);
-
-
         return content;
       }
     }.render(this);

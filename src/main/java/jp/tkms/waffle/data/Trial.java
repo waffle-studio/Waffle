@@ -16,9 +16,9 @@ public class Trial extends ProjectData {
   protected static final String TABLE_NAME = "trials";
   public static final String ROOT_NAME = "ROOT";
   private static final String KEY_PARENT = "parent";
-  private static final String KEY_RESULTS = "results";
+  protected static final String KEY_PARAMETERS = "parameters";
 
-  private JSONObject results;
+  private JSONObject parameters = null;
 
   public Trial(Project project, UUID id, String name) {
     super(project, id, name);
@@ -157,43 +157,48 @@ public class Trial extends ProjectData {
     return false;
   }
 
-  public JSONObject getResults() {
-    if (results == null) {
-      JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
-      results = map;
+  public JSONObject getParameters() {
+    if (parameters == null) {
+      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
     }
-    return new JSONObject(results.toString());
+    return new JSONObject(parameters.toString());
   }
 
-  public Object getResult(String key) {
-    return getResults().get(key);
+  public Object getParameter(String key) {
+    return getParameters().get(key);
   }
 
-  public void putResults(String json) {
-    getResults();
+  public void putParametersByJson(String json) {
+    getParameters(); // init.
     JSONObject valueMap = null;
     try {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
       BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
-    JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
+    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
-        results.put(key, valueMap.get(key));
+        parameters.put(key, valueMap.get(key));
       }
 
       handleDatabase(this, new Handler() {
         @Override
         void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
           statement.setString(1, map.toString());
           statement.setString(2, getId());
           statement.execute();
         }
       });
     }
+  }
+
+  public void putParameter(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putParametersByJson(obj.toString());
   }
 
   @Override
@@ -212,7 +217,7 @@ public class Trial extends ProjectData {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
                 "id,name," + KEY_PARENT + "," +
-                KEY_RESULTS + " default '{}'," +
+                KEY_PARAMETERS + " default '{}'," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

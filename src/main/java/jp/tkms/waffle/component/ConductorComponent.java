@@ -63,7 +63,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       trial = Trial.getInstance(project, request.params("trial"));
       ConductorRun entity = ConductorRun.create(conductor.getProject(), trial, conductor);
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        entity.putArguments(request.queryParams(KEY_ARGUMENTS));
+        entity.putParametersByJson(request.queryParams(KEY_ARGUMENTS));
       }
       entity.start();
       response.redirect(ProjectComponent.getUrl(project));

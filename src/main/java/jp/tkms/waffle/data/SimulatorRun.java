@@ -17,12 +17,11 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
-  private static final String KEY_RESULTS = "results";
   private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
-  private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_ENVIRONMENTS = "environments";
+  protected static final String KEY_PARAMETERS = "parameters";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
@@ -54,7 +53,6 @@ public class SimulatorRun extends AbstractRun {
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
-  private JSONObject results;
   private JSONObject environments;
   private JSONObject parameters;
   private JSONArray arguments;
@@ -258,60 +256,6 @@ public class SimulatorRun extends AbstractRun {
     return exitStatus;
   }
 
-  public JSONObject getResults() {
-    if (results == null) {
-      JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
-      results = map;
-    }
-    return new JSONObject(results.toString());
-  }
-
-  public Object getResult(String key) {
-    return getResults().get(key);
-  }
-
-  public void putResults(String json) {
-    getResults();
-    JSONObject valueMap = null;
-    try {
-      valueMap = new JSONObject(json);
-    } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
-    JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
-    if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        results.put(key, valueMap.get(key));
-      }
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
-    }
-  }
-
-  private void clearResults() {
-    JSONObject newObject = new JSONObject();
-    if (handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
-        statement.setString(1, newObject.toString());
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    })) {
-      results = newObject;
-    }
-  }
-
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
       arguments = new JSONArray(getFromDB(KEY_ARGUMENTS));
@@ -366,6 +310,39 @@ public class SimulatorRun extends AbstractRun {
     return value;
   }
 
+  public void putParametersByJson(String json) {
+    getParameters(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        parameters.put(key, valueMap.get(key));
+      }
+
+      handleDatabase(this, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
+          statement.setString(1, map.toString());
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      });
+    }
+  }
+
+  public void putParameter(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putParametersByJson(obj.toString());
+  }
+
   public JSONObject getParameters() {
     if (parameters == null) {
       parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
@@ -404,14 +381,12 @@ public class SimulatorRun extends AbstractRun {
     setIntToDB(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
-    clearResults();
     Job.addRun(this);
   }
 
   public void recheck() {
     setExitStatus(-1);
     setState(State.Running);
-    clearResults();
     Job.addRun(this);
   }
 
@@ -442,11 +417,11 @@ public class SimulatorRun extends AbstractRun {
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
+                KEY_PARAMETERS + " default '{}'," +
+                KEY_FINALIZER + " default '[]'," +
                 KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
                 KEY_ENVIRONMENTS + " default '{}'," +
-                KEY_PARAMETERS + " default '{}'," +
-                KEY_RESULTS + " default '{}'," +
                 KEY_RESTART_COUNT + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");

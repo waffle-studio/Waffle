@@ -13,46 +13,56 @@ import java.io.*;
 public class RubyConductor extends CycleConductor {
   @Override
   protected void preProcess(ConductorRun conductorRun) {
-    eventHandler(conductorRun, null);
-  }
-
-  @Override
-  protected void eventHandler(ConductorRun conductorRun, AbstractRun run) {
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
-
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", conductorRun);
-
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_cycle_process", conductorRun, run);
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_script", conductorRun);
 
       container.terminate();
     } catch (EvalFailedException e) {
       container.terminate();
-      BrowserMessage.addMessage("toastr.error('cycle_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      BrowserMessage.addMessage("toastr.error('conductor_script: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
   }
 
   @Override
-  protected void postProcess(ConductorRun entity) {
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    try {
-      container.runScriptlet(getInitScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
+  protected void eventHandler(ConductorRun conductorRun, AbstractRun run) {
+    if (run instanceof SimulatorRun) {
+      SimulatorRun simulatorRun = (SimulatorRun)run;
+      for (String script : simulatorRun.getFinalizers()) {
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+        try {
+          container.runScriptlet(getInitScript());
+          container.runScriptlet(getTemplateScript());
 
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
+          container.runScriptlet(script);
 
-      container.runScriptlet(getTemplateScript());
-      container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_post_process", entity);
+          container.terminate();
+        } catch (EvalFailedException e) {
+          container.terminate();
+          BrowserMessage.addMessage("toastr.error('simulator_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+        }
+      }
+    }
+  }
 
-      container.terminate();
-    } catch (EvalFailedException e) {
-      container.terminate();
-      BrowserMessage.addMessage("toastr.error('post_process: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+  @Override
+  protected void finalizeProcess(ConductorRun conductorRun) {
+    for (String script : conductorRun.getFinalizers()) {
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+      try {
+        container.runScriptlet(getInitScript());
+        container.runScriptlet(getTemplateScript());
+
+        container.runScriptlet(script);
+
+        container.terminate();
+      } catch (EvalFailedException e) {
+        container.terminate();
+        BrowserMessage.addMessage("toastr.error('conductor_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+      }
     }
   }
 

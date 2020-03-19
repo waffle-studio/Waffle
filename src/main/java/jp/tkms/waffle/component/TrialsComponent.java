@@ -85,12 +85,12 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
           "var runCreated = function(id) {location.reload();};"
         );
 
-        if (! trial.getResults().isEmpty()) {
-          contents += Lte.card(Html.faIcon("poll") + "Results",
+        if (! trial.getParameters().isEmpty()) {
+          contents += Lte.card(Html.faIcon("poll") + "Parameters",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, 10, trial.getResults().toString(2))
+                Lte.readonlyTextAreaGroup("", null, 10, trial.getParameters().toString(2))
               )
             )
             , null);

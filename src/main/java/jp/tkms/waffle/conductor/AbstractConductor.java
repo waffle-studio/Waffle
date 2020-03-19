@@ -10,7 +10,7 @@ import java.util.HashMap;
 abstract public class AbstractConductor {
   abstract protected void mainProcess(ConductorRun entity);
   abstract protected void eventHandler(ConductorRun entity, AbstractRun run);
-  abstract protected void postProcess(ConductorRun entity);
+  abstract protected void finalizeProcess(ConductorRun entity);
   abstract protected void suspendProcess(ConductorRun entity);
   abstract public String defaultScriptName();
   abstract public void prepareConductor(Conductor conductor);
@@ -35,7 +35,7 @@ abstract public class AbstractConductor {
   public void eventHandle(ConductorRun entity, AbstractRun run) {
     eventHandler(entity, run);
     if (! entity.getTrial().isRunning()) {
-      postProcess(entity);
+      finalizeProcess(entity);
       entity.remove();
     }
   }

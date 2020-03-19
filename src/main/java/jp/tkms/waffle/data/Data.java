@@ -53,6 +53,10 @@ abstract public class Data {
     return name;
   }
 
+  public UUID getUuid() {
+    return id;
+  }
+
   public String getId() {
     return id.toString();
   }

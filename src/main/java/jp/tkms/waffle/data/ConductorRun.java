@@ -2,7 +2,6 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.util.Sql;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.PreparedStatement;
@@ -15,12 +14,9 @@ public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_TRIAL = "trial";
-  private static final String KEY_ARGUMENTS = "arguments";
-  private static final String KEY_MODULES = "modules";
 
   private Trial trial = null;
   private Conductor conductor = null;
-  private JSONObject arguments = null;
 
   public ConductorRun(Project project, UUID id, String name) {
     super(project, id, name);
@@ -183,53 +179,20 @@ public class ConductorRun extends AbstractRun {
     return conductor;
   }
 
-  public JSONObject getArguments() {
-    if (arguments == null) {
-      JSONObject map = getConductor().getArguments();
-      JSONObject valueMap = new JSONObject(getFromDB(KEY_ARGUMENTS));
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-      }
-      arguments = map;
-    }
-    return new JSONObject(arguments.toString());
+  public JSONObject getParameters() {
+    return getTrial().getParameters();
   }
 
-  public Object getArgument(String key) {
-    return getArguments().get(key);
+  public Object getParameter(String key) {
+    return getParameters().get(key);
   }
 
-  public void putArguments(String json) {
-    getArguments();
-    JSONObject valueMap = null;
-    try {
-      valueMap = new JSONObject(json);
-    } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
-    JSONObject map = new JSONObject(getFromDB(KEY_ARGUMENTS));
-    if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        arguments.put(key, valueMap.get(key));
-      }
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
-    }
+  public void putParametersByJson(String json) {
+    getTrial().putParametersByJson(json);
   }
 
-  public void putArgument(String key, Object value) {
-    JSONObject obj = new JSONObject();
-    obj.put(key, value);
-    putArguments(obj.toString());
+  public void putParameter(String key, Object value) {
+    getTrial().putParameter(key, value);
   }
 
   public JSONObject getNextRunParameters(Simulator simulator) {
@@ -265,21 +228,6 @@ public class ConductorRun extends AbstractRun {
     abstractConductor.eventHandle(this, run);
   }
 
-  public ConductorModule getModule(String instanceName) {
-    return ConductorModule.getInstance(new JSONObject(getFromDB(KEY_MODULES)).getJSONObject("set").getString(instanceName));
-  }
-
-  public List<String> getModuleKeyList() {
-    return (List)new JSONObject(getFromDB(KEY_MODULES)).getJSONArray("key").toList();
-  }
-
-  public void registerModule(ConductorModule module, String instanceName) {
-    JSONObject obj = new JSONObject(getFromDB(KEY_MODULES));
-    obj.getJSONArray("key").put(instanceName);
-    obj.getJSONObject("set").put(instanceName, module.getId());
-    setStringToDB(KEY_MODULES, obj.toString());
-  }
-
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -296,8 +244,7 @@ public class ConductorRun extends AbstractRun {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
                 "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
-                + KEY_ARGUMENTS + " default '{}',"
-                + KEY_MODULES + " default '{\"key\":[], \"set\":{}}',"
+                + KEY_FINALIZER + " default '[]',"
                 + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }
@@ -307,12 +254,12 @@ public class ConductorRun extends AbstractRun {
     };
   }
 
-  private final ArgumentMapInterface argumentMapInterface  = new ArgumentMapInterface();
-  public HashMap arguments() { return argumentMapInterface; }
-  public class ArgumentMapInterface extends HashMap<Object, Object> {
+  private final ParameterMapInterface parameterMapInterface = new ParameterMapInterface();
+  public HashMap arguments() { return parameterMapInterface; }
+  public class ParameterMapInterface extends HashMap<Object, Object> {
     @Override
     public Object get(Object key) {
-      return getArgument(key.toString());
+      return getParameter(key.toString());
     }
 
     @Override
