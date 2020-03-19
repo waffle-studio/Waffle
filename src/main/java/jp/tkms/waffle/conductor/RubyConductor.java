@@ -1,6 +1,5 @@
 package jp.tkms.waffle.conductor;
 
-import jp.tkms.waffle.conductor.module.RubyConductorModule;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.Ruby;
@@ -26,22 +25,6 @@ public class RubyConductor extends CycleConductor {
 
       container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", conductorRun);
 
-      boolean result = true;
-      for (String key : conductorRun.getModuleKeyList()) {
-        result = RubyConductorModule.getInstance().cycleProcess(container, conductorRun, conductorRun.getModule(key), key, run);
-        if (!result) { break; }
-      }
-
-      if (result) {
-        container.runScriptlet(getTemplateScript());
-        container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_cycle_process", conductorRun, run);
-      }
-
-      for (String key : conductorRun.getModuleKeyList()) {
-        RubyConductorModule.getInstance().postCycleProcess(container, conductorRun, conductorRun.getModule(key), key, run);
-      }
-
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
       container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_cycle_process", conductorRun, run);
@@ -53,29 +36,14 @@ public class RubyConductor extends CycleConductor {
     }
   }
 
-  protected void finalizeProcess(ConductorRun entity) {
+  @Override
+  protected void postProcess(ConductorRun entity) {
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
       container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
 
       container.callMethod(Ruby.newInstance().getCurrentContext(), "register_modules", entity);
-
-      boolean result = true;
-      for (String key : entity.getModuleKeyList()) {
-        result = RubyConductorModule.getInstance().postProcess(container, module, entity);
-        if (!result) { break; }
-      }
-
-      if (result) {
-        container.runScriptlet(getTemplateScript());
-        container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_post_process", entity);
-      }
-
-      for (ConductorModule module : entity.getModuleList()) {
-        RubyConductorModule.getInstance().postPostProcess(container, module, entity);
-      }
 
       container.runScriptlet(getTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, entity.getConductor().getScriptPath().toString());
@@ -103,11 +71,7 @@ public class RubyConductor extends CycleConductor {
     try {
       FileWriter filewriter = new FileWriter(conductor.getScriptPath().toFile());
 
-      filewriter.write(
-        "def register_modules(hub)\n" +
-          "#    entity.register_module(\"ModuleName\")\n" +
-          "end\n" +
-          "\n" + getTemplateScript());
+      filewriter.write(getTemplateScript());
       filewriter.close();
 
     } catch (IOException e) {

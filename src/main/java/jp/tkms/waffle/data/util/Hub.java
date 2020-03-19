@@ -1,6 +1,5 @@
 package jp.tkms.waffle.data.util;
 
-import jp.tkms.waffle.conductor.module.RubyConductorModule;
 import jp.tkms.waffle.data.*;
 
 import java.util.HashMap;
@@ -40,29 +39,6 @@ public class Hub {
   public ConductorRun createConductorRun(String key) {
     Conductor conductor = Conductor.getInstance(project, key);
     return ConductorRun.create(conductorRun, conductor);
-  }
-
-  public void registerModule(String key, String name) {
-    ConductorModule module = ConductorModule.getInstance(key);
-    if (module != null) {
-      String originalName = name;
-      int conflictCount = 0;
-      while (registerNameSet.containsKey(name)) {
-        conflictCount += 1;
-        name = originalName  + '_' + conflictCount;
-      }
-      registerNameSet.put(name, key);
-
-      RubyConductorModule.getInstance().registerDefaultParameters(conductorRun, module, name);
-    }
-  }
-
-  public void register_module(String key, String name) {
-    registerModule(key, name);
-  }
-
-  public void register_module(String key) {
-    registerModule(key, key);
   }
 
   public void switchParameterStore(String key) {
