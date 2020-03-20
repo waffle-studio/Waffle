@@ -17,7 +17,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   private Project project;
   private Conductor conductor;
-  private Trial trial;
+  private ConductorRun parent;
   public ConductorComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -31,8 +31,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null), new ConductorComponent());
     Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
     Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
-    Spark.post(getUrl(null, "update-arguments", null), new ConductorComponent(Mode.UpdateArguments));
-    Spark.post(getUrl(null, "update-main-script", null), new ConductorComponent(Mode.UpdateMainScript));
+    Spark.post(getUrl(null, "update-arguments"), new ConductorComponent(Mode.UpdateArguments));
+    Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -43,9 +43,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       + (conductor == null ? ":project/:id" : conductor.getProject().getId() + '/' + conductor.getId());
   }
 
-  public static String getUrl(Conductor conductor, String mode, Trial trial) {
+  public static String getUrl(Conductor conductor, String mode, ConductorRun parent) {
     return getUrl(conductor) + '/' + mode + '/'
-      + (trial == null ? ":trial" : trial.getId());
+      + (parent == null ? ":parent" : parent.getId());
+  }
+
+  public static String getUrl(Conductor conductor, String mode) {
+    return getUrl(conductor) + '/' + mode;
   }
 
   @Override
@@ -57,15 +61,15 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     conductor = Conductor.getInstance(project, request.params("id"));
 
     if (mode == Mode.Prepare) {
-      trial = Trial.getInstance(project, request.params("trial"));
+      parent = ConductorRun.getInstance(project, request.params("parent"));
       renderPrepareForm();
     } else if (mode == Mode.Run) {
-      trial = Trial.getInstance(project, request.params("trial"));
-      ConductorRun entity = ConductorRun.create(conductor.getProject(), trial, conductor);
+      parent = ConductorRun.getInstance(project, request.params("parent"));
+      ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor);
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        entity.putParametersByJson(request.queryParams(KEY_ARGUMENTS));
+        conductorRun.putParametersByJson(request.queryParams(KEY_ARGUMENTS));
       }
-      entity.start();
+      conductorRun.start();
       response.redirect(ProjectComponent.getUrl(project));
     } else if (mode == Mode.UpdateArguments) {
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
@@ -105,18 +109,33 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
+        String argumentsText = conductor.getArguments().toString(2);
+
         content += Lte.card(Html.faIcon("terminal") + "Basic",
-          Html.a(getUrl(conductor, "prepare", Trial.getRootInstance(project)),
+          Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
             Html.span("right badge badge-secondary", null, "run")
-          ),
+          ) + Lte.cardToggleButton(true) ,
           Html.div(null,
             Lte.readonlyTextInput("Conductor Directory", conductor.getLocation().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Base Script", conductor.getScriptFileName())
           )
-          , null);
+          , null, "collapsed-card", null);
 
         content +=
-          Html.form(getUrl(conductor, "update-main-script", trial), Html.Method.Post,
+          Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "Arguments",
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, argumentsText.split("\n").length, argumentsText, null),
+                  Lte.formSubmitButton("success", "Update")
+                )
+              )
+              , null, "collapsed-card.stop", null)
+          );
+
+        content +=
+          Html.form(getUrl(conductor, "update-main-script"), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Main Script",
               Lte.cardToggleButton(false),
               Lte.divRow(
@@ -126,19 +145,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                 )
               )
               , null, "collapsed-card.stop", null)
-          );
-
-        content +=
-          Html.form(getUrl(conductor, "update-arguments", trial), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Arguments",
-              Lte.cardToggleButton(true),
-              Lte.divRow(
-                Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 15, conductor.getArguments().toString(2), null),
-                  Lte.formSubmitButton("success", "Update")
-                )
-              )
-              , null, "collapsed-card", null)
           );
 
         content += Lte.card(Html.faIcon("file") + "Files", null,
@@ -193,7 +199,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String content = "";
 
         content +=
-          Html.form(getUrl(conductor, "run", trial), Html.Method.Post,
+          Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Arguments",
               null,
               Lte.divRow(

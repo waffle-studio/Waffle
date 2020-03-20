@@ -4,10 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.conductor.AbstractConductor;
-import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.Registry;
-import jp.tkms.waffle.data.Trial;
+import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.KeyValue;
 import spark.Spark;
 
@@ -200,7 +197,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                         null, null, conductor.getShortId())),
                     new Lte.TableValue("", conductor.getName()),
                     new Lte.TableValue("text-align:right;",
-                      Html.a(ConductorComponent.getUrl(conductor, "prepare", Trial.getRootInstance(project)),
+                      Html.a(ConductorComponent.getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
                         Html.span("right badge badge-secondary", null, "run")
                       )
                     )

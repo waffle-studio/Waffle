@@ -32,11 +32,11 @@ abstract public class AbstractConductor {
     }).start();
   }
 
-  public void eventHandle(ConductorRun entity, AbstractRun run) {
-    eventHandler(entity, run);
-    if (! entity.getTrial().isRunning()) {
-      finalizeProcess(entity);
-      entity.remove();
+  public void eventHandle(ConductorRun conductorRun, AbstractRun run) {
+    eventHandler(conductorRun, run);
+    if (! conductorRun.isRunning()) {
+      finalizeProcess(conductorRun);
+      conductorRun.finish();
     }
   }
 

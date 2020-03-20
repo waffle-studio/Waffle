@@ -7,8 +7,6 @@ public abstract class CycleConductor extends AbstractConductor {
 
   @Override
   protected void mainProcess(ConductorRun entity) {
-    Trial trial = Trial.create(entity.getProject(), entity.getTrial(), entity.getName());
-    entity.setTrial(trial);
     preProcess(entity);
   }
 

@@ -4,6 +4,9 @@ import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,10 +16,13 @@ import java.util.*;
 public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   private static final String KEY_CONDUCTOR = "conductor";
-  private static final String KEY_TRIAL = "trial";
+  public static final String ROOT_NAME = "ROOT";
+  private static final String KEY_PARENT = "parent";
+  private static final String KEY_PHASE = "phase";
+  protected static final String KEY_PARAMETERS = "parameters";
 
-  private Trial trial = null;
   private Conductor conductor = null;
+  private JSONObject parameters = null;
 
   public ConductorRun(Project project, UUID id, String name) {
     super(project, id, name);
@@ -53,19 +59,39 @@ public class ConductorRun extends AbstractRun {
     return conductorRun[0];
   }
 
+  public static ConductorRun getRootInstance(Project project) {
+    final ConductorRun[] conductorRuns = {null};
+
+    handleDatabase(new ConductorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet
+          = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "';");
+        while (resultSet.next()) {
+          conductorRuns[0] = new ConductorRun(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    return conductorRuns[0];
+  }
+
   public static ConductorRun find(String project, String id) {
     return getInstance(Project.getInstance(project), id);
   }
 
-  public static ArrayList<ConductorRun> getList(Trial trial) {
-    Project project = trial.getProject();
+  public static ArrayList<ConductorRun> getList(Project project, ConductorRun parent) {
     ArrayList<ConductorRun> list = new ArrayList<>();
 
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_TRIAL + "=?;");
-        statement.setString(1, trial.getId());
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_PARENT + "=?;");
+        statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           list.add(new ConductorRun(
@@ -80,13 +106,17 @@ public class ConductorRun extends AbstractRun {
     return list;
   }
 
-  public static ArrayList<ConductorRun> getList(Project project) {
+  public static ArrayList<ConductorRun> getList(Project project, String parentId) {
+    return getList(project, getInstance(project, parentId));
+  }
+
+  public static ArrayList<ConductorRun> getNotFinishedList(Project project) {
     ArrayList<ConductorRun> list = new ArrayList<>();
 
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + " where " + KEY_PHASE + "=0;");
         while (resultSet.next()) {
           list.add(new ConductorRun(
             project,
@@ -100,7 +130,7 @@ public class ConductorRun extends AbstractRun {
     return list;
   }
 
-  public static ConductorRun create(Project project, Trial trial, Conductor conductor) {
+  public static ConductorRun create(Project project, ConductorRun parent, Conductor conductor) {
     ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), conductor.getName() + " : " + LocalDateTime.now().toString());
 
     handleDatabase(new ConductorRun(project), new Handler() {
@@ -110,12 +140,12 @@ public class ConductorRun extends AbstractRun {
           = new Sql.Insert(db, TABLE_NAME,
           KEY_ID,
           KEY_NAME,
-          KEY_TRIAL,
+          KEY_PARENT,
           KEY_CONDUCTOR
           ).toPreparedStatement();
         statement.setString(1, conductorRun.getId());
         statement.setString(2, conductorRun.getName());
-        statement.setString(3, trial.getId());
+        statement.setString(3, parent.getId());
         statement.setString(4, conductor.getId());
         statement.execute();
       }
@@ -125,28 +155,17 @@ public class ConductorRun extends AbstractRun {
   }
 
   public static ConductorRun create(ConductorRun parent, Conductor conductor) {
-    return create(parent.getProject(), parent.getTrial(), conductor);
+    return create(parent.getProject(), parent, conductor);
   }
 
-  public void remove() {
-    if (handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-        statement.setString(1, getId());
-        statement.execute();
-      }
-    })) {
-      Trial parent = getTrial().getParent();
-      if (parent != null) {
-        for (ConductorRun entity : ConductorRun.getList(parent)) {
-          entity.update(this);
-        }
-      }
+  public void finish() {
+    setIntToDB(KEY_PHASE, 1);
+    if (!isRoot()) {
+      getParent().update(this);
     }
   }
 
+  /*
   public void setTrial(Trial trial) {
     String trialId = trial.getId();
     if (
@@ -165,11 +184,46 @@ public class ConductorRun extends AbstractRun {
     }
   }
 
-  public Trial getTrial() {
-    if (trial == null) {
-      trial = Trial.getInstance(getProject(), getFromDB(KEY_TRIAL));
+   */
+
+  public ConductorRun getParent() {
+    String parentId = getFromDB(KEY_PARENT);
+    return getInstance(getProject(), parentId);
+  }
+
+  public boolean isRoot() {
+    return getParent() == null;
+  }
+
+  public ArrayList<ConductorRun> getChildTrialList() {
+    return getList(getProject(), this);
+  }
+
+  public ArrayList<SimulatorRun> getChildRunList() {
+    return SimulatorRun.getList(getProject(), this);
+  }
+
+  public Path getLocation() {
+    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
+      TABLE_NAME + File.separator + name + '_' + shortId
+    );
+    return path;
+  }
+
+  public boolean isRunning() {
+    for (SimulatorRun run : getChildRunList()) {
+      if (run.isRunning()) {
+        return true;
+      }
     }
-    return trial;
+
+    for (ConductorRun conductorRun : getChildTrialList()) {
+      if (conductorRun.isRunning()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public Conductor getConductor() {
@@ -180,7 +234,10 @@ public class ConductorRun extends AbstractRun {
   }
 
   public JSONObject getParameters() {
-    return getTrial().getParameters();
+    if (parameters == null) {
+      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
+    }
+    return new JSONObject(parameters.toString());
   }
 
   public Object getParameter(String key) {
@@ -188,11 +245,36 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void putParametersByJson(String json) {
-    getTrial().putParametersByJson(json);
+    getParameters(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        parameters.put(key, valueMap.get(key));
+      }
+
+      handleDatabase(this, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
+          statement.setString(1, map.toString());
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      });
+    }
   }
 
   public void putParameter(String key, Object value) {
-    getTrial().putParameter(key, value);
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putParametersByJson(obj.toString());
   }
 
   public JSONObject getNextRunParameters(Simulator simulator) {
@@ -224,8 +306,10 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void update(AbstractRun run) {
-    AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
-    abstractConductor.eventHandle(this, run);
+    if (!isRoot()) {
+      AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
+      abstractConductor.eventHandle(this, run);
+    }
   }
 
   @Override
@@ -243,10 +327,25 @@ public class ConductorRun extends AbstractRun {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_TRIAL + "," + KEY_CONDUCTOR + ","
+                "id,name," + KEY_PARENT + "," + KEY_CONDUCTOR + ","
+                + KEY_PARAMETERS + " default '{}',"
                 + KEY_FINALIZER + " default '[]',"
+                + KEY_PHASE + " default 0,"
                 + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
+            }
+          },
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
+                "id,name," +
+                KEY_PARENT +
+                ") values(?,?,?);");
+              statement.setString(1, UUID.randomUUID().toString());
+              statement.setString(2, ROOT_NAME);
+              statement.setString(3, "");
+              statement.execute();
             }
           }
         ));
@@ -255,7 +354,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   private final ParameterMapInterface parameterMapInterface = new ParameterMapInterface();
-  public HashMap arguments() { return parameterMapInterface; }
+  public HashMap p() { return parameterMapInterface; }
   public class ParameterMapInterface extends HashMap<Object, Object> {
     @Override
     public Object get(Object key) {

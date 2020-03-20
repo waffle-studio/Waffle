@@ -46,14 +46,14 @@ abstract public class AbstractRun extends ProjectData {
     });
   }
 
-  public void addRawFinalizeScript(String script) {
+  public void addRawFinalizerScript(String script) {
     ArrayList<String> finalizers = getFinalizers();
     finalizers.add(script);
     setFinalizers(finalizers);
   }
 
-  public void addFinalize(String key) {
-    addRawFinalizeScript("puts \"ok " + key + "\"" +
+  public void addFinalizer(String key) {
+    addRawFinalizerScript("puts \"ok " + key + "\"" +
       "");
   }
 }

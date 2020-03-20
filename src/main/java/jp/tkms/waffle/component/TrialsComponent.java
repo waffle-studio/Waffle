@@ -3,9 +3,9 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.SimulatorRun;
-import jp.tkms.waffle.data.Trial;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
 
   ;
   private Project project;
-  private Trial trial;
+  private ConductorRun conductorRun;
   public TrialsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -34,12 +34,12 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
     return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/ROOT");
   }
 
-  public static String getUrl(Project project, Trial trial) {
-    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + trial.getId());
+  public static String getUrl(Project project, ConductorRun conductorRun) {
+    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + conductorRun.getId());
   }
 
-  public static String getUrl(Project project, Trial trial, String mode) {
-    return getUrl(project, trial) + "/" + mode;
+  public static String getUrl(Project project, ConductorRun conductorRun, String mode) {
+    return getUrl(project, conductorRun) + "/" + mode;
   }
 
   @Override
@@ -47,10 +47,10 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
-    if (requestedId.equals(Trial.ROOT_NAME)){
-      trial = Trial.getRootInstance(project);
+    if (requestedId.equals(ConductorRun.ROOT_NAME)){
+      conductorRun = ConductorRun.getRootInstance(project);
     } else {
-      trial = Trial.getInstance(project, requestedId);
+      conductorRun = ConductorRun.getInstance(project, requestedId);
     }
 
     renderTrialsList();
@@ -85,12 +85,12 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
           "var runCreated = function(id) {location.reload();};"
         );
 
-        if (! trial.getParameters().isEmpty()) {
+        if (! conductorRun.getParameters().isEmpty()) {
           contents += Lte.card(Html.faIcon("poll") + "Parameters",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, 10, trial.getParameters().toString(2))
+                Lte.readonlyTextAreaGroup("", null, 10, conductorRun.getParameters().toString(2))
               )
             )
             , null);
@@ -109,10 +109,10 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Trial trial : Trial.getList(project, TrialsComponent.this.trial)) {
+              for (ConductorRun run : ConductorRun.getList(project, TrialsComponent.this.conductorRun)) {
                 list.add(new Lte.TableRow(
-                  Html.a(getUrl(project, trial), null, null, trial.getShortId()),
-                  trial.getName())
+                  Html.a(getUrl(project, run), null, null, run.getShortId()),
+                  run.getName())
                 );
               }
               return list;
@@ -136,7 +136,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (SimulatorRun run : SimulatorRun.getList(project, trial)) {
+              for (SimulatorRun run : SimulatorRun.getList(project, conductorRun)) {
                 list.add(new Lte.TableRow(
                   Html.a(RunComponent.getUrl(project, run), run.getShortId()),
                   run.getConductor().getName(),

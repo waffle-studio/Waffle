@@ -12,9 +12,9 @@ import java.util.*;
 
 public class SimulatorRun extends AbstractRun {
   protected static final String TABLE_NAME = "run";
+  private static final String KEY_PARENT_RUN = "parent_run";
   private static final String KEY_HOST = "host";
   private static final String KEY_CONDUCTOR = "conductor";
-  private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
   private static final String KEY_RESTART_COUNT = "restart";
@@ -47,7 +47,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   private String conductor;
-  private String trials;
+  private String parentConductorRun;
   private String simulator;
   private String host;
   private State state;
@@ -57,15 +57,15 @@ public class SimulatorRun extends AbstractRun {
   private JSONObject parameters;
   private JSONArray arguments;
 
-  private SimulatorRun(Conductor conductor, Trial trial, Simulator simulator, Host host) {
+  private SimulatorRun(Conductor conductor, ConductorRun parent, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
-      conductor.getId(), trial.getId(), simulator.getId(), host.getId(), State.Created);
+      conductor.getId(), parent.getId(), simulator.getId(), host.getId(), State.Created);
   }
 
-  private SimulatorRun(Project project, UUID id, String name, String conductor, String trials, String simulator, String host, State state) {
+  private SimulatorRun(Project project, UUID id, String name, String conductor, String parent, String simulator, String host, State state) {
     super(project, id, name);
     this.conductor = conductor;
-    this.trials = trials;
+    this.parentConductorRun = parent;
     this.simulator = simulator;
     this.host = host;
     this.state = state;
@@ -85,7 +85,7 @@ public class SimulatorRun extends AbstractRun {
           KEY_ID,
           KEY_NAME,
           KEY_CONDUCTOR,
-          KEY_TRIALS,
+          KEY_PARENT_RUN,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
@@ -98,7 +98,7 @@ public class SimulatorRun extends AbstractRun {
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_TRIALS),
+            resultSet.getString(KEY_PARENT_RUN),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -118,10 +118,6 @@ public class SimulatorRun extends AbstractRun {
     return Host.getInstance(host);
   }
 
-  public Trial getTrial() {
-    return Trial.getInstance(getProject(), trials);
-  }
-
   public Simulator getSimulator() {
     return Simulator.getInstance(getProject(), simulator);
   }
@@ -130,7 +126,7 @@ public class SimulatorRun extends AbstractRun {
     return state;
   }
 
-  public static ArrayList<SimulatorRun> getList(Project project, Trial parent) {
+  public static ArrayList<SimulatorRun> getList(Project project, ConductorRun parent) {
     ArrayList<SimulatorRun> list = new ArrayList<>();
 
     handleDatabase(new SimulatorRun(project), new Handler() {
@@ -139,11 +135,11 @@ public class SimulatorRun extends AbstractRun {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
           KEY_ID,
           KEY_CONDUCTOR,
-          KEY_TRIALS,
+          KEY_PARENT_RUN,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_TRIALS)).toPreparedStatement();
+        ).where(Sql.Value.equalP(KEY_PARENT_RUN)).toPreparedStatement();
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
@@ -151,7 +147,7 @@ public class SimulatorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_TRIALS),
+            resultSet.getString(KEY_PARENT_RUN),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -163,21 +159,20 @@ public class SimulatorRun extends AbstractRun {
     return list;
   }
 
-  public static SimulatorRun create(ConductorRun conductorRun, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(conductorRun.getConductor(), conductorRun.getTrial(), simulator, host);
+  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host) {
+    SimulatorRun run = new SimulatorRun(parent.getConductor(), parent, simulator, host);
     String conductorId = run.getConductor().getId();
-    String trialsId = run.getTrial().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
-    JSONObject parameters = conductorRun.getNextRunParameters(simulator);
+    JSONObject parameters = parent.getNextRunParameters(simulator);
 
-    handleDatabase(new SimulatorRun(conductorRun.getProject()), new Handler() {
+    handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
           KEY_ID,
           KEY_CONDUCTOR,
-          KEY_TRIALS,
+          KEY_PARENT_RUN,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE,
@@ -185,7 +180,7 @@ public class SimulatorRun extends AbstractRun {
         ).toPreparedStatement();
         statement.setString(1, run.getId());
         statement.setString(2, conductorId);
-        statement.setString(3, trialsId);
+        statement.setString(3, parent.getId());
         statement.setString(4, simulatorId);
         statement.setString(5, hostId);
         statement.setInt(6, run.getState().toInt());
@@ -217,9 +212,7 @@ public class SimulatorRun extends AbstractRun {
         new RunStatusUpdater(this);
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
-          for (ConductorRun entity: ConductorRun.getList(getTrial())) {
-            entity.update(this);
-          }
+          getParent().update(this);
         }
       }
     }
@@ -240,6 +233,10 @@ public class SimulatorRun extends AbstractRun {
     ) {
       this.exitStatus = exitStatus;
     }
+  }
+
+  public ConductorRun getParent() {
+    return ConductorRun.getInstance(getProject(), parentConductorRun);
   }
 
   public int getRestartCount() {
@@ -413,7 +410,7 @@ public class SimulatorRun extends AbstractRun {
                 KEY_ID + "," +
                 KEY_NAME + "," +
                 KEY_CONDUCTOR + "," +
-                KEY_TRIALS + "," +
+                KEY_PARENT_RUN + "," +
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
