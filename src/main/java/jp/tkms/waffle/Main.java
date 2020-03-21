@@ -7,10 +7,11 @@ import spark.Spark;
 import static spark.Spark.*;
 
 public class Main {
+  public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
   public static boolean hibernateFlag = false;
 
   public static void main(String[] args) {
-    System.out.println("PID: " + java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+    System.out.println("PID: " + PID);
 
     Runtime.getRuntime().addShutdownHook(new Thread()
     {
