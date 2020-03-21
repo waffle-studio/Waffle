@@ -2,10 +2,7 @@ package jp.tkms.waffle.component.updater;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.Run;
-
-import static jp.tkms.waffle.data.Run.State.Created;
+import jp.tkms.waffle.data.SimulatorRun;
 
 public class RunStatusUpdater extends AbstractUpdater {
 
@@ -61,7 +58,7 @@ public class RunStatusUpdater extends AbstractUpdater {
   public RunStatusUpdater() {
   }
 
-  public RunStatusUpdater(Run run) {
+  public RunStatusUpdater(SimulatorRun run) {
     super("'" + run.getId() + "'", "'" + run.getState().toString() + "'");
   }
 }

@@ -10,23 +10,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
-public class Run extends AbstractRun {
+public class SimulatorRun extends AbstractRun {
   protected static final String TABLE_NAME = "run";
+  private static final String KEY_PARENT_RUN = "parent_run";
   private static final String KEY_HOST = "host";
   private static final String KEY_CONDUCTOR = "conductor";
-  private static final String KEY_TRIALS = "trials";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
-  private static final String KEY_RESULTS = "results";
   private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
-  private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_ENVIRONMENTS = "environments";
+  protected static final String KEY_PARAMETERS = "parameters";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
-  public Run(Project project) {
+  public SimulatorRun(Project project) {
     super(project);
   }
 
@@ -48,46 +47,45 @@ public class Run extends AbstractRun {
   }
 
   private String conductor;
-  private String trials;
+  private String parentConductorRun;
   private String simulator;
   private String host;
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
-  private JSONObject results;
   private JSONObject environments;
   private JSONObject parameters;
   private JSONArray arguments;
 
-  private Run(Conductor conductor, Trial trial, Simulator simulator, Host host) {
+  private SimulatorRun(Conductor conductor, ConductorRun parent, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
-      conductor.getId(), trial.getId(), simulator.getId(), host.getId(), State.Created);
+      conductor.getId(), parent.getId(), simulator.getId(), host.getId(), State.Created);
   }
 
-  private Run(Project project, UUID id, String name, String conductor, String trials, String simulator, String host, State state) {
+  private SimulatorRun(Project project, UUID id, String name, String conductor, String parent, String simulator, String host, State state) {
     super(project, id, name);
     this.conductor = conductor;
-    this.trials = trials;
+    this.parentConductorRun = parent;
     this.simulator = simulator;
     this.host = host;
     this.state = state;
   }
 
-  private Run(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
+  private SimulatorRun(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
     this(project, id, "", conductor, trials, simulator, host, state);
   }
 
-  public static Run getInstance(Project project, String id) {
-    final Run[] run = {null};
+  public static SimulatorRun getInstance(Project project, String id) {
+    final SimulatorRun[] run = {null};
 
-    handleDatabase(new Run(project), new Handler() {
+    handleDatabase(new SimulatorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
           KEY_ID,
           KEY_NAME,
           KEY_CONDUCTOR,
-          KEY_TRIALS,
+          KEY_PARENT_RUN,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
@@ -95,12 +93,12 @@ public class Run extends AbstractRun {
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          run[0] = new Run(
+          run[0] = new SimulatorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_TRIALS),
+            resultSet.getString(KEY_PARENT_RUN),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -120,10 +118,6 @@ public class Run extends AbstractRun {
     return Host.getInstance(host);
   }
 
-  public Trial getTrial() {
-    return Trial.getInstance(getProject(), trials);
-  }
-
   public Simulator getSimulator() {
     return Simulator.getInstance(getProject(), simulator);
   }
@@ -132,28 +126,28 @@ public class Run extends AbstractRun {
     return state;
   }
 
-  public static ArrayList<Run> getList(Project project, Trial parent) {
-    ArrayList<Run> list = new ArrayList<>();
+  public static ArrayList<SimulatorRun> getList(Project project, ConductorRun parent) {
+    ArrayList<SimulatorRun> list = new ArrayList<>();
 
-    handleDatabase(new Run(project), new Handler() {
+    handleDatabase(new SimulatorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
           KEY_ID,
           KEY_CONDUCTOR,
-          KEY_TRIALS,
+          KEY_PARENT_RUN,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_TRIALS)).toPreparedStatement();
+        ).where(Sql.Value.equalP(KEY_PARENT_RUN)).toPreparedStatement();
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          list.add(new Run(
+          list.add(new SimulatorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_TRIALS),
+            resultSet.getString(KEY_PARENT_RUN),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -165,21 +159,20 @@ public class Run extends AbstractRun {
     return list;
   }
 
-  public static Run create(ConductorEntity conductorEntity, Simulator simulator, Host host) {
-    Run run = new Run(conductorEntity.getConductor(), conductorEntity.getTrial(), simulator, host);
+  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host) {
+    SimulatorRun run = new SimulatorRun(parent.getConductor(), parent, simulator, host);
     String conductorId = run.getConductor().getId();
-    String trialsId = run.getTrial().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
-    JSONObject parameters = conductorEntity.getNextRunParameters(simulator);
+    JSONObject parameters = parent.getNextRunParameters(simulator);
 
-    handleDatabase(new Run(conductorEntity.getProject()), new Handler() {
+    handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
           KEY_ID,
           KEY_CONDUCTOR,
-          KEY_TRIALS,
+          KEY_PARENT_RUN,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE,
@@ -187,7 +180,7 @@ public class Run extends AbstractRun {
         ).toPreparedStatement();
         statement.setString(1, run.getId());
         statement.setString(2, conductorId);
-        statement.setString(3, trialsId);
+        statement.setString(3, parent.getId());
         statement.setString(4, simulatorId);
         statement.setString(5, hostId);
         statement.setInt(6, run.getState().toInt());
@@ -219,9 +212,7 @@ public class Run extends AbstractRun {
         new RunStatusUpdater(this);
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
-          for (ConductorEntity entity: ConductorEntity.getList(getTrial())) {
-            entity.update(this);
-          }
+          getParent().update(this);
         }
       }
     }
@@ -244,6 +235,10 @@ public class Run extends AbstractRun {
     }
   }
 
+  public ConductorRun getParent() {
+    return ConductorRun.getInstance(getProject(), parentConductorRun);
+  }
+
   public int getRestartCount() {
     if (restartCount == null) {
       restartCount = Integer.valueOf(getFromDB(KEY_RESTART_COUNT));
@@ -256,60 +251,6 @@ public class Run extends AbstractRun {
       exitStatus = Integer.valueOf(getFromDB(KEY_EXIT_STATUS));
     }
     return exitStatus;
-  }
-
-  public JSONObject getResults() {
-    if (results == null) {
-      JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
-      results = map;
-    }
-    return new JSONObject(results.toString());
-  }
-
-  public Object getResult(String key) {
-    return getResults().get(key);
-  }
-
-  public void putResults(String json) {
-    getResults();
-    JSONObject valueMap = null;
-    try {
-      valueMap = new JSONObject(json);
-    } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
-    JSONObject map = new JSONObject(getFromDB(KEY_RESULTS));
-    if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        results.put(key, valueMap.get(key));
-      }
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
-    }
-  }
-
-  private void clearResults() {
-    JSONObject newObject = new JSONObject();
-    if (handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_RESULTS + "=? where " + KEY_ID + "=?;");
-        statement.setString(1, newObject.toString());
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    })) {
-      results = newObject;
-    }
   }
 
   public ArrayList<Object> getArguments() {
@@ -366,6 +307,39 @@ public class Run extends AbstractRun {
     return value;
   }
 
+  public void putParametersByJson(String json) {
+    getParameters(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+    }
+    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        parameters.put(key, valueMap.get(key));
+      }
+
+      handleDatabase(this, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
+          statement.setString(1, map.toString());
+          statement.setString(2, getId());
+          statement.execute();
+        }
+      });
+    }
+  }
+
+  public void putParameter(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putParametersByJson(obj.toString());
+  }
+
   public JSONObject getParameters() {
     if (parameters == null) {
       parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
@@ -404,14 +378,12 @@ public class Run extends AbstractRun {
     setIntToDB(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
-    clearResults();
     Job.addRun(this);
   }
 
   public void recheck() {
     setExitStatus(-1);
     setState(State.Running);
-    clearResults();
     Job.addRun(this);
   }
 
@@ -438,15 +410,15 @@ public class Run extends AbstractRun {
                 KEY_ID + "," +
                 KEY_NAME + "," +
                 KEY_CONDUCTOR + "," +
-                KEY_TRIALS + "," +
+                KEY_PARENT_RUN + "," +
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
+                KEY_PARAMETERS + " default '{}'," +
+                KEY_FINALIZER + " default '[]'," +
                 KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
                 KEY_ENVIRONMENTS + " default '{}'," +
-                KEY_PARAMETERS + " default '{}'," +
-                KEY_RESULTS + " default '{}'," +
                 KEY_RESTART_COUNT + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");

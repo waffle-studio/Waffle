@@ -176,14 +176,14 @@ public class Parameter extends SimulatorData {
     }
   }
 
-  public void updateDefaultValue(ConductorEntity conductorEntity, JSONObject defaultParameters) {
+  public void updateDefaultValue(ConductorRun conductorRun, JSONObject defaultParameters) {
     Object defaultValue = defaultParameters.get(getName());
 
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
       container.runScriptlet(getDefaultValueUpdateScript());
-      defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorEntity, defaultValue);
+      defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorRun, defaultValue);
       container.terminate();
     } catch (Exception e) {
       e.printStackTrace();

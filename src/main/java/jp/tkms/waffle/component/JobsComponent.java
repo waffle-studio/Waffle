@@ -4,7 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Job;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -103,7 +103,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
 
   public enum Mode {Default, Add}
 
-  public static String getStatusBadge(Run run) {
+  public static String getStatusBadge(SimulatorRun run) {
     switch (run.getState()) {
       case Created:
         return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());

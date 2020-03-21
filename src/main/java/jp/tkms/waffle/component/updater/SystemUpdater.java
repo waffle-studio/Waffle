@@ -1,9 +1,5 @@
 package jp.tkms.waffle.component.updater;
 
-import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.data.Run;
-
 public class SystemUpdater extends AbstractUpdater {
 
   @Override

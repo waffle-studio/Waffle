@@ -2,7 +2,7 @@ package jp.tkms.waffle.extractor;
 
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.ParameterExtractor;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.jruby.Ruby;
@@ -12,7 +12,7 @@ import org.jruby.embed.ScriptingContainer;
 
 public class RubyParameterExtractor extends AbstractParameterExtractor {
   @Override
-  public void extract(Run run, ParameterExtractor extractor, AbstractSubmitter submitter) {
+  public void extract(SimulatorRun run, ParameterExtractor extractor, AbstractSubmitter submitter) {
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript(run));
@@ -31,7 +31,7 @@ public class RubyParameterExtractor extends AbstractParameterExtractor {
       "end";
   }
 
-  private String getInitScript(Run run) {
+  private String getInitScript(SimulatorRun run) {
     return ResourceFile.getContents("/ruby_init.rb");
   }
 }

@@ -18,15 +18,15 @@ abstract public class AbstractSubmitter {
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract public AbstractSubmitter connect(boolean retry);
-  abstract String getWorkDirectory(Run run);
-  abstract String getSimulatorBinDirectory(Run run);
-  abstract void prepareSubmission(Run run);
+  abstract String getWorkDirectory(SimulatorRun run);
+  abstract String getSimulatorBinDirectory(SimulatorRun run);
+  abstract void prepareSubmission(SimulatorRun run);
   abstract String exec(String command);
-  abstract int getExitStatus(Run run) throws Exception;
-  abstract void postProcess(Run run);
+  abstract int getExitStatus(SimulatorRun run) throws Exception;
+  abstract void postProcess(SimulatorRun run);
   abstract public void close();
-  abstract public void putText(Run run, String path, String text);
-  abstract public String getFileContents(Run run, String path);
+  abstract public void putText(SimulatorRun run, String path, String text);
+  abstract public String getFileContents(SimulatorRun run, String path);
   abstract public JSONObject defaultParameters(Host host);
 
   public AbstractSubmitter connect() {
@@ -46,7 +46,7 @@ abstract public class AbstractSubmitter {
   }
 
   public void submit(Job job) {
-    Run run = job.getRun();
+    SimulatorRun run = job.getRun();
 
     putText(run, BATCH_FILE, makeBatchFileText(run));
 
@@ -64,13 +64,13 @@ abstract public class AbstractSubmitter {
     processXsubSubmit(job, exec(xsubSubmitCommand(job)));
   }
 
-  public Run.State update(Job job) {
-    Run run = job.getRun();
+  public SimulatorRun.State update(Job job) {
+    SimulatorRun run = job.getRun();
     processXstat(job, exec(xstatCommand(job)));
     return run.getState();
   }
 
-  String makeBatchFileText(Run run) {
+  String makeBatchFileText(SimulatorRun run) {
     return "#!/bin/sh\n" +
       "\n" +
       "export PATH='" + getSimulatorBinDirectory(run) + "':$PATH\n" +
@@ -85,7 +85,7 @@ abstract public class AbstractSubmitter {
       "";
   }
 
-  String makeArgumentFileText(Run run) {
+  String makeArgumentFileText(SimulatorRun run) {
     String text = "";
     for (Object o : run.getArguments()) {
       text += o.toString() + "\n";
@@ -93,7 +93,7 @@ abstract public class AbstractSubmitter {
     return text;
   }
 
-  String makeEnvironmentFileText(Run run) {
+  String makeEnvironmentFileText(SimulatorRun run) {
     String text = "";
     for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
       text += "export " + entry.getKey() + "='" + entry.getValue().toString() + "'\n";
@@ -129,7 +129,7 @@ abstract public class AbstractSubmitter {
     JSONObject object = new JSONObject(json);
     String jobId = object.getString("job_id");
     job.setJobId(jobId);
-    job.getRun().setState(Run.State.Submitted);
+    job.getRun().setState(SimulatorRun.State.Submitted);
     BrowserMessage.info("Run(" + job.getRun().getShortId() + ") was submitted");
   }
 
@@ -140,7 +140,7 @@ abstract public class AbstractSubmitter {
       String status = object.getString("status");
       switch (status) {
         case "running" :
-          job.getRun().setState(Run.State.Running);
+          job.getRun().setState(SimulatorRun.State.Running);
           break;
         case "finished" :
           int exitStatus = -1;
@@ -160,12 +160,12 @@ abstract public class AbstractSubmitter {
 
           if (exitStatus == 0) {
             BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
-            job.getRun().setState(Run.State.Finished);
+            job.getRun().setState(SimulatorRun.State.Finished);
             for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
               collector.getResultCollector().collect(this, job.getRun(), collector);
             }
           } else {
-            job.getRun().setState(Run.State.Failed);
+            job.getRun().setState(SimulatorRun.State.Failed);
           }
 
           job.getRun().setExitStatus(exitStatus);
@@ -181,7 +181,7 @@ abstract public class AbstractSubmitter {
   void processXdel(Job job, String json) {
   }
 
-  String getContentsPath(Run run, String path) {
+  String getContentsPath(SimulatorRun run, String path) {
     return getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + INNER_WORK_DIR
        + run.getHost().getDirectorySeparetor() + path;
   }
@@ -219,7 +219,7 @@ abstract public class AbstractSubmitter {
     int submittedCount = 0;
 
     for (Job job : jobList) {
-      Run run = job.getRun();
+      SimulatorRun run = job.getRun();
       switch (run.getState()) {
         case Created:
           if (queuedJobList.size() < maximumNumberOfJobs) {
@@ -228,8 +228,8 @@ abstract public class AbstractSubmitter {
           break;
         case Submitted:
         case Running:
-          Run.State state = update(job);
-          if (!(Run.State.Finished.equals(state) || Run.State.Failed.equals(state))) {
+          SimulatorRun.State state = update(job);
+          if (!(SimulatorRun.State.Finished.equals(state) || SimulatorRun.State.Failed.equals(state))) {
             submittedCount++;
           }
           break;

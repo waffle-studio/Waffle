@@ -132,7 +132,7 @@ public class AbciSubmitter extends SshSubmitter {
       e.printStackTrace();
     }
 
-    Run run = job.getRun();
+    SimulatorRun run = job.getRun();
 
     putText(run, BATCH_FILE, makeBatchFileText(run));
 
@@ -148,7 +148,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     prepareSubmission(run);
 
-    job.getRun().setState(Run.State.Queued);
+    job.getRun().setState(SimulatorRun.State.Queued);
 
     try {
       packWaitThreadSemaphore.acquire();
@@ -203,8 +203,8 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   HashMap<UUID, String> updatedPackJson = new HashMap<>();
-  public Run.State update(Job job) {
-    Run run = job.getRun();
+  public SimulatorRun.State update(Job job) {
+    SimulatorRun run = job.getRun();
     UUID packId = jobPackMap.get(job);
     if (!updatedPackJson.containsKey(packId)) {
       updatedPackJson.put(packId, exec(xstatCommand(job)));
@@ -224,7 +224,7 @@ public class AbciSubmitter extends SshSubmitter {
     updatedPackJson.clear();
 
     for (Job job : jobList) {
-      Run run = job.getRun();
+      SimulatorRun run = job.getRun();
       switch (run.getState()) {
         case Created:
           if (createdJobList.size() <= maximumNumberOfJobs) {
@@ -237,8 +237,8 @@ public class AbciSubmitter extends SshSubmitter {
           break;
         case Submitted:
         case Running:
-          Run.State state = update(job);
-          if (!(Run.State.Finished.equals(state) || Run.State.Failed.equals(state))) {
+          SimulatorRun.State state = update(job);
+          if (!(SimulatorRun.State.Finished.equals(state) || SimulatorRun.State.Failed.equals(state))) {
             submittedCount++;
           }
           break;

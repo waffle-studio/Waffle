@@ -3,7 +3,7 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.Run;
+import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
@@ -86,7 +86,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getWorkDirectory(Run run) {
+  String getWorkDirectory(SimulatorRun run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
       + RUN_DIR + host.getDirectorySeparetor() + run.getId();
@@ -101,7 +101,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getSimulatorBinDirectory(Run run) {
+  String getSimulatorBinDirectory(SimulatorRun run) {
     String sep = run.getHost().getDirectorySeparetor();
     String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.BIN_DIR;
 
@@ -109,7 +109,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void prepareSubmission(Run run) {
+  void prepareSubmission(SimulatorRun run) {
     try {
       session.mkdir(getSimulatorBinDirectory(run), "/tmp");
       //session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
@@ -136,7 +136,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  int getExitStatus(Run run) throws Exception {
+  int getExitStatus(SimulatorRun run) throws Exception {
     int status = -1;
 
     status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
@@ -145,7 +145,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void postProcess(Run run) {
+  void postProcess(SimulatorRun run) {
     try {
       //session.rmdir(getWorkDirectory(run), "/tmp");
     } catch (Exception e) {
@@ -160,7 +160,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(Run run, String path, String text) {
+  public void putText(SimulatorRun run, String path, String text) {
     try {
       session.putText(text, path, getWorkDirectory(run));
     } catch (JSchException e) {
@@ -169,7 +169,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(Run run, String path) {
+  public String getFileContents(SimulatorRun run, String path) {
     try {
       return session.getText(getContentsPath(run, path), "");
     } catch (JSchException e) {
