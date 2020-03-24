@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
+import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -23,6 +24,8 @@ public class Conductor extends ProjectData {
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
   private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_LISTENER = "listener";
+  private static final String KEY_EXT_RUBY = ".rb";
 
   private String conductorType = null;
   private String scriptFileName = null;
@@ -164,6 +167,10 @@ public class Conductor extends ProjectData {
     return scriptFileName;
   }
 
+  public String getListenerScriptFileName(String name) {
+    return KEY_LISTENER + "-" + name + KEY_EXT_RUBY;
+  }
+
   public Path getScriptPath() {
     return getLocation().resolve(getScriptFileName());
   }
@@ -200,6 +207,15 @@ public class Conductor extends ProjectData {
     }
   }
 
+  public String getFileContents(String fileName) {
+    String contents = "";
+    try {
+      contents = new String(Files.readAllBytes(getLocation().resolve(fileName)));
+    } catch (IOException e) {
+    }
+    return contents;
+  }
+
   public String getMainScriptContents() {
     String mainScript = "";
     try {
@@ -207,6 +223,33 @@ public class Conductor extends ProjectData {
     } catch (IOException e) {
     }
     return mainScript;
+  }
+
+  public void createNewListener(String name) {
+    String fileName = getListenerScriptFileName(name);
+    Path path = getLocation().resolve(fileName);
+    if (! Files.exists(path)) {
+      try {
+        FileWriter filewriter = new FileWriter(path.toFile());
+        filewriter.write(ResourceFile.getContents("/ruby_listener_template.rb"));
+        filewriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public void updateFileContents(String fileName, String contents) {
+    Path path = getLocation().resolve(fileName);
+    if (Files.exists(path)) {
+      try {
+        FileWriter filewriter = new FileWriter(path.toFile());
+        filewriter.write(contents);
+        filewriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   public void updateMainScriptContents(String contents) {

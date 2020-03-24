@@ -12,7 +12,12 @@ import java.util.Arrays;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_MAIN_SCRIPT = "main_script";
+  private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_LISTENER = "listener";
+  private static final String KEY_EXT_RUBY = ".rb";
+  private static final String KEY_LISTENER_FILENAME = "listener_filename";
+  private static final String KEY_NAME = "Name";
   private Mode mode;
 
   private Project project;
@@ -33,6 +38,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
     Spark.post(getUrl(null, "update-arguments"), new ConductorComponent(Mode.UpdateArguments));
     Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
+    Spark.post(getUrl(null, "update-listener-script"), new ConductorComponent(Mode.UpdateListenerScript));
+    Spark.post(getUrl(null, "new-listener"), new ConductorComponent(Mode.NewListener));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -79,6 +86,16 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     } else if (mode == Mode.UpdateMainScript) {
       if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
         conductor.updateMainScriptContents(request.queryParams(KEY_MAIN_SCRIPT));
+      }
+      response.redirect(getUrl(conductor));
+    } else if (mode == Mode.NewListener) {
+      if (request.queryMap().hasKey(KEY_NAME)) {
+        conductor.createNewListener(request.queryParams(KEY_NAME));
+      }
+      response.redirect(getUrl(conductor));
+    } else if (mode == Mode.UpdateListenerScript) {
+      if (request.queryMap().hasKey(KEY_LISTENER_FILENAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
+        conductor.updateFileContents(request.queryParams(KEY_LISTENER_FILENAME), request.queryParams(KEY_LISTENER_SCRIPT));
       }
       response.redirect(getUrl(conductor));
     } else {
@@ -147,7 +164,40 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               , null, "collapsed-card.stop", null)
           );
 
-        content += Lte.card(Html.faIcon("file") + "Files", null,
+        content +=
+          Html.form(getUrl(conductor, "new-listener"), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "New Listener",
+              Lte.cardToggleButton(true),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formInputGroup("text", KEY_NAME, KEY_NAME, "", "", errors),
+                  Lte.formSubmitButton("primary", "Create")
+                )
+              )
+              , null, "collapsed-card", null)
+          );
+
+        for (File child : conductor.getLocation().toFile().listFiles()) {
+          String fileName = child.getName();
+          if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
+            content +=
+              Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
+                Lte.card(Html.faIcon("terminal") + fileName.substring(9, fileName.length() -3) + " (Event Listener)",
+                  Lte.cardToggleButton(false),
+                  Lte.divRow(
+                    Lte.divCol(Lte.DivSize.F12,
+                      Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
+                      Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getFileContents(fileName), errors),
+                      Lte.formSubmitButton("success", "Update")
+                    )
+                  )
+                  , null, "collapsed-card.stop", null)
+              );
+          }
+        }
+
+        content += Lte.card(Html.faIcon("file") + "Files",
+          Lte.cardToggleButton(true),
           Lte.table("table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -165,7 +215,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, null, "p-0");
+          , null, "collapsed-card", "p-0");
 
         return content;
       }
@@ -220,5 +270,5 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return new ArrayList<>();
   }
 
-  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript}
+  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewListener}
 }

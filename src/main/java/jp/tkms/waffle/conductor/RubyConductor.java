@@ -16,7 +16,7 @@ public class RubyConductor extends CycleConductor {
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
     try {
       container.runScriptlet(getInitScript());
-      container.runScriptlet(getTemplateScript());
+      container.runScriptlet(getConductorTemplateScript());
       container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
       container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_script", conductorRun);
 
@@ -35,9 +35,9 @@ public class RubyConductor extends CycleConductor {
         ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
         try {
           container.runScriptlet(getInitScript());
-          container.runScriptlet(getTemplateScript());
-
+          container.runScriptlet(getListenerTemplateScript());
           container.runScriptlet(script);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, simulatorRun);
 
           container.terminate();
         } catch (EvalFailedException e) {
@@ -54,9 +54,9 @@ public class RubyConductor extends CycleConductor {
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(getInitScript());
-        container.runScriptlet(getTemplateScript());
-
+        container.runScriptlet(getListenerTemplateScript());
         container.runScriptlet(script);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, conductorRun);
 
         container.terminate();
       } catch (EvalFailedException e) {
@@ -81,7 +81,7 @@ public class RubyConductor extends CycleConductor {
     try {
       FileWriter filewriter = new FileWriter(conductor.getScriptPath().toFile());
 
-      filewriter.write(getTemplateScript());
+      filewriter.write(getConductorTemplateScript());
       filewriter.close();
 
     } catch (IOException e) {
@@ -93,7 +93,11 @@ public class RubyConductor extends CycleConductor {
     return ResourceFile.getContents("/ruby_init.rb");
   }
 
-  private static String getTemplateScript() {
+  private static String getConductorTemplateScript() {
     return ResourceFile.getContents("/ruby_conductor_template.rb");
+  }
+
+  private static String getListenerTemplateScript() {
+    return ResourceFile.getContents("/ruby_listener_template.rb");
   }
 }

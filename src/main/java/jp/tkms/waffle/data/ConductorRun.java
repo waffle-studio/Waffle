@@ -312,6 +312,10 @@ public class ConductorRun extends AbstractRun {
     }
   }
 
+  public void addFinalizer(String name) {
+    addFinalizer(this, name);
+  }
+
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {

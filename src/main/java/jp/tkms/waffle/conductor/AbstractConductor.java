@@ -21,12 +21,16 @@ abstract public class AbstractConductor {
   public AbstractConductor() {
   }
 
-  public void start(ConductorRun entity) {
+  public void start(ConductorRun conductorRun) {
     (new Thread() {
       @Override
       public void run() {
         super.run();
-        mainProcess(entity);
+        mainProcess(conductorRun);
+        if (! conductorRun.isRunning()) {
+          finalizeProcess(conductorRun);
+          conductorRun.finish();
+        }
         return;
       }
     }).start();

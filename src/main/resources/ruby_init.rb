@@ -102,6 +102,12 @@ def exec_finalize_process(conductorRun)
     end
 end
 
+def exec_listener_script(conductorRun, run)
+    exec_process conductorRun do | hub |
+        return listener_script(hub, run)
+    end
+end
+
 def exec_module_cycle_process(conductorRun, moduleInstanceName, run)
     exec_process conductorRun do | hub |
         hub.switchParameterStore(moduleInstanceName)
