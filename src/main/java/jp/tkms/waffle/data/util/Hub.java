@@ -44,6 +44,17 @@ public class Hub {
     }
   }
 
+  public ConductorRun createConductorRun(String name) {
+    Conductor conductor = Conductor.find(project, name);
+    return ConductorRun.create(this.conductorRun, conductor);
+  }
+
+  public SimulatorRun createSimulatorRun(String name, String hostName) {
+    Simulator simulator = Simulator.find(project, name);
+    Host host = Host.find(hostName);
+    return SimulatorRun.create(conductorRun, simulator, host);
+  }
+
   public Object getParameter(String key) {
     return registry.get(key);
   }

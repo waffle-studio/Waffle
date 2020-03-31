@@ -50,17 +50,6 @@ class Hub < Java::jp.tkms.waffle.data.util.Hub
         @store = get_store(registry, conductorRun.id)
     end
 
-    def createConductorRun(name)
-        conductor = Conductor.find(getProject(), name);
-        return ConductorRun.create(conductorRun, conductor)
-    end
-
-    def createSimulatorRun(name, host_name)
-        simulator = Simulator.find(getProject(), name)
-        host = Host.find(host_name)
-        return SimulatorRun.create(getConductorRun(), simulator, host);
-    end
-
     def close()
         registry.set(".S:" + conductorRun.id, Marshal.dump(store))
     end
