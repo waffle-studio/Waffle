@@ -89,7 +89,7 @@ public class RubyConductor extends CycleConductor {
     }
   }
 
-  private String getInitScript() {
+  public static String getInitScript() {
     return ResourceFile.getContents("/ruby_init.rb");
   }
 
@@ -97,7 +97,7 @@ public class RubyConductor extends CycleConductor {
     return ResourceFile.getContents("/ruby_conductor_template.rb");
   }
 
-  private static String getListenerTemplateScript() {
+  public static String getListenerTemplateScript() {
     return ResourceFile.getContents("/ruby_listener_template.rb");
   }
 }

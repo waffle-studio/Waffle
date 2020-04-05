@@ -50,87 +50,29 @@ class Hub < Java::jp.tkms.waffle.data.util.Hub
         @store = get_store(registry, conductorRun.id)
     end
 
-    def createConductorRun(name)
-        conductor = Conductor.find(getProject(), name);
-        return ConductorRun.create(conductorRun, conductor)
-    end
-
-    def createSimulatorRun(name, host_name)
-        simulator = Simulator.find(getProject(), name)
-        host = Host.find(host_name)
-        return SimulatorRun.create(getConductorRun(), simulator, host);
-    end
-
     def close()
         registry.set(".S:" + conductorRun.id, Marshal.dump(store))
     end
 end
 
-def exec_process(conductorRun, &block)
+def exec_process(conductorRun, run, &block)
     result = true
-    hub = Hub.new(conductorRun)
+    hub = Hub.new(conductorRun, run)
     result = block.call(hub)
     hub.close
     return result
 end
 
-def exec_register_default_parameters(conductorRun, moduleInstanceName)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        register_default_parameters(hub)
-        hub.setParameterStore(nil)
-        return true
-    end
-end
 
 def exec_conductor_script(conductorRun)
-    exec_process conductorRun do | hub |
+    exec_process conductorRun, conductorRun do | hub |
         return conductor_script(hub, conductorRun)
     end
 end
 
-def exec_post_cycle_process(conductorRun, run)
-    exec_process conductorRun do | hub |
-        post_cycle_process(hub, run)
-        return true
-    end
-end
-
-def exec_finalize_process(conductorRun)
-    exec_process conductorRun do | hub |
-        return finalize_process(hub, run)
-    end
-end
-
 def exec_listener_script(conductorRun, run)
-    exec_process conductorRun do | hub |
+    exec_process conductorRun, run do | hub |
         return listener_script(hub, run)
-    end
-end
-
-def exec_module_cycle_process(conductorRun, moduleInstanceName, run)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        result = cycle_process(hub, run)
-        hub.setParameterStore(nil)
-        return result
-    end
-end
-
-def exec_module_post_cycle_process(conductorRun, moduleInstanceName, run)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        post_cycle_process(hub, run)
-        return true
-    end
-end
-
-def exec_module_finalize_process(conductorRun, moduleInstanceName)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        result = finalize_process(hub, run)
-        hub.setParameterStore(nil)
-        return result
     end
 end
 

@@ -11,21 +11,18 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class SimulatorRun extends AbstractRun {
-  protected static final String TABLE_NAME = "run";
-  private static final String KEY_PARENT_RUN = "parent_run";
+  protected static final String TABLE_NAME = "simulator_run";
   private static final String KEY_HOST = "host";
-  private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_STATE = "state";
   private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_ENVIRONMENTS = "environments";
-  protected static final String KEY_PARAMETERS = "parameters";
 
   private static Map<Integer, State> stateMap = new HashMap<>();
 
-  public SimulatorRun(Project project) {
+  protected SimulatorRun(Project project) {
     super(project);
   }
 
@@ -46,33 +43,28 @@ public class SimulatorRun extends AbstractRun {
     }
   }
 
-  private String conductor;
-  private String parentConductorRun;
   private String simulator;
   private String host;
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
   private JSONObject environments;
-  private JSONObject parameters;
   private JSONArray arguments;
 
-  private SimulatorRun(Conductor conductor, ConductorRun parent, Simulator simulator, Host host) {
+  private SimulatorRun(Conductor conductor, Simulator simulator, Host host) {
     this(conductor.getProject(), UUID.randomUUID(),
-      conductor.getId(), parent.getId(), simulator.getId(), host.getId(), State.Created);
+      conductor.getId(), simulator.getId(), host.getId(), State.Created);
   }
 
-  private SimulatorRun(Project project, UUID id, String name, String conductor, String parent, String simulator, String host, State state) {
+  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state) {
     super(project, id, name);
-    this.conductor = conductor;
-    this.parentConductorRun = parent;
     this.simulator = simulator;
     this.host = host;
     this.state = state;
   }
 
-  private SimulatorRun(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
-    this(project, id, "", conductor, trials, simulator, host, state);
+  private SimulatorRun(Project project, UUID id, String simulator, String host, State state) {
+    this(project, id, "", simulator, host, state);
   }
 
   public static SimulatorRun getInstance(Project project, String id) {
@@ -85,7 +77,7 @@ public class SimulatorRun extends AbstractRun {
           KEY_ID,
           KEY_NAME,
           KEY_CONDUCTOR,
-          KEY_PARENT_RUN,
+          KEY_PARENT,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
@@ -97,8 +89,6 @@ public class SimulatorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
-            resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_PARENT_RUN),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -108,10 +98,6 @@ public class SimulatorRun extends AbstractRun {
     });
 
     return run[0];
-  }
-
-  public Conductor getConductor() {
-    return Conductor.getInstance(getProject(), conductor);
   }
 
   public Host getHost() {
@@ -135,11 +121,11 @@ public class SimulatorRun extends AbstractRun {
         PreparedStatement statement = db.createSelect(TABLE_NAME,
           KEY_ID,
           KEY_CONDUCTOR,
-          KEY_PARENT_RUN,
+          KEY_PARENT,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_PARENT_RUN)).toPreparedStatement();
+        ).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
@@ -147,7 +133,6 @@ public class SimulatorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_PARENT_RUN),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -160,7 +145,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(parent.getConductor(), parent, simulator, host);
+    SimulatorRun run = new SimulatorRun(parent.getConductor(), simulator, host);
     String conductorId = run.getConductor().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
@@ -172,7 +157,7 @@ public class SimulatorRun extends AbstractRun {
         PreparedStatement statement = db.createInsert(TABLE_NAME,
           KEY_ID,
           KEY_CONDUCTOR,
-          KEY_PARENT_RUN,
+          KEY_PARENT,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE,
@@ -233,10 +218,6 @@ public class SimulatorRun extends AbstractRun {
     ) {
       this.exitStatus = exitStatus;
     }
-  }
-
-  public ConductorRun getParent() {
-    return ConductorRun.getInstance(getProject(), parentConductorRun);
   }
 
   public int getRestartCount() {
@@ -307,65 +288,7 @@ public class SimulatorRun extends AbstractRun {
     return value;
   }
 
-  public void putParametersByJson(String json) {
-    getParameters(); // init.
-    JSONObject valueMap = null;
-    try {
-      valueMap = new JSONObject(json);
-    } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
-    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
-    if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        parameters.put(key, valueMap.get(key));
-      }
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
-    }
-  }
-
-  public void putParameter(String key, Object value) {
-    JSONObject obj = new JSONObject();
-    obj.put(key, value);
-    putParametersByJson(obj.toString());
-  }
-
-  public JSONObject getParameters() {
-    if (parameters == null) {
-      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
-    }
-    return parameters;
-  }
-
-  public Object getParameter(String key) {
-    return getParameters().get(key);
-  }
-
-  public Object setParameter(String key, Object value) {
-    getParameters();
-    parameters.put(key, value);
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, parameters.toString());
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    });
-    return value;
-  }
-
+  @Override
   public boolean isRunning() {
     return !(state.equals(State.Finished) || state.equals(State.Failed));
   }
@@ -410,7 +333,7 @@ public class SimulatorRun extends AbstractRun {
                 KEY_ID + "," +
                 KEY_NAME + "," +
                 KEY_CONDUCTOR + "," +
-                KEY_PARENT_RUN + "," +
+                KEY_PARENT + "," +
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
@@ -505,199 +428,30 @@ public class SimulatorRun extends AbstractRun {
     }
   }
 
-  public EnvironmentsWrapper environments() {
-    return new EnvironmentsWrapper(getEnvironments());
+  public HashMap<String, Object> environmentsWrapper = null;
+  public HashMap<String, Object> environments() {
+    if (environmentsWrapper == null) {
+      environmentsWrapper = new HashMap<>(getEnvironments().toMap()) {
+        @Override
+        public Object put(String s, Object o) {
+          return setEnvironment(s, o);
+        }
+      };
+    }
+    return environmentsWrapper;
   }
 
-  public class EnvironmentsWrapper implements Map<String, Object> {
-    Map m;
-
-    public EnvironmentsWrapper(JSONObject o) {
-      m = o.toMap();
+  private ArrayList<Object> argumentsWrapper = null;
+  public ArrayList<Object> arguments() {
+    if (argumentsWrapper == null) {
+      argumentsWrapper = new ArrayList<>(getArguments()) {
+        @Override
+        public boolean add(Object o) {
+          addArgument(o);
+          return true;
+        }
+      };
     }
-
-    @Override
-    public int size() {
-      return m.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return m.isEmpty();
-    }
-
-    @Override
-    public boolean containsKey(Object o) {
-      return m.containsKey(o);
-    }
-
-    @Override
-    public boolean containsValue(Object o) {
-      return m.containsValue(o);
-    }
-
-    @Override
-    public Object get(Object k) {
-      return m.get(k);
-    }
-
-    @Override
-    public Object put(String s, Object o) {
-      return setEnvironment(s, o);
-    }
-
-    @Override
-    public Object remove(Object o) {
-      return m.remove(o);
-    }
-
-    @Override
-    public void putAll(Map<? extends String, ?> map) {
-      m.putAll(map);
-    }
-
-    @Override
-    public void clear() {
-      m.clear();
-    }
-
-    @Override
-    public Set<String> keySet() {
-      return m.keySet();
-    }
-
-    @Override
-    public Collection<Object> values() {
-      return m.values();
-    }
-
-    @Override
-    public Set<Entry<String, Object>> entrySet() {
-      return m.entrySet();
-    }
-  }
-
-  private ArgumentsWrapper argumentsWrapper = new ArgumentsWrapper();
-  public ArgumentsWrapper arguments() {
     return argumentsWrapper;
-  }
-
-  public class ArgumentsWrapper implements List {
-
-    @Override
-    public int size() {
-      return getArguments().size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return getArguments().isEmpty();
-    }
-
-    @Override
-    public boolean contains(Object o) {
-      return getArguments().contains(o);
-    }
-
-    @Override
-    public Iterator iterator() {
-      return getArguments().iterator();
-    }
-
-    @Override
-    public Object[] toArray() {
-      return getArguments().toArray();
-    }
-
-    @Override
-    public boolean add(Object o) {
-      addArgument(o);
-      return true;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-      return getArguments().remove(o);
-    }
-
-    @Override
-    public boolean addAll(Collection collection) {
-      return getArguments().addAll(collection);
-    }
-
-    @Override
-    public boolean addAll(int i, Collection collection) {
-      return getArguments().addAll(i, collection);
-    }
-
-    @Override
-    public void clear() {
-      getArguments().clear();
-    }
-
-    @Override
-    public Object get(int i) {
-      return getArguments().get(i);
-    }
-
-    @Override
-    public Object set(int i, Object o) {
-      return getArguments().set(i, o);
-    }
-
-    @Override
-    public void add(int i, Object o) {
-      getArguments().add(i, o);
-    }
-
-    @Override
-    public Object remove(int i) {
-      return getArguments().remove(i);
-    }
-
-    @Override
-    public int indexOf(Object o) {
-      return getArguments().indexOf(o);
-    }
-
-    @Override
-    public int lastIndexOf(Object o) {
-      return getArguments().lastIndexOf(o);
-    }
-
-    @Override
-    public ListIterator listIterator() {
-      return getArguments().listIterator();
-    }
-
-    @Override
-    public ListIterator listIterator(int i) {
-      return getArguments().listIterator(i);
-    }
-
-    @Override
-    public List subList(int i, int i1) {
-      return getArguments().subList(i, i1);
-    }
-
-    @Override
-    public boolean retainAll(Collection collection) {
-      return getArguments().retainAll(collection);
-    }
-
-    @Override
-    public boolean removeAll(Collection collection) {
-      return getArguments().removeAll(collection);
-    }
-
-    @Override
-    public boolean containsAll(Collection collection) {
-      return getArguments().containsAll(collection);
-    }
-
-    @Override
-    public Object[] toArray(Object[] objects) {
-      return getArguments().toArray(objects);
-    }
   }
 }

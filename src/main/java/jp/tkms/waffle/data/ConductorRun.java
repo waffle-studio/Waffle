@@ -15,20 +15,14 @@ import java.util.*;
 
 public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
-  private static final String KEY_CONDUCTOR = "conductor";
   public static final String ROOT_NAME = "ROOT";
-  private static final String KEY_PARENT = "parent";
   private static final String KEY_PHASE = "phase";
-  protected static final String KEY_PARAMETERS = "parameters";
-
-  private Conductor conductor = null;
-  private JSONObject parameters = null;
 
   public ConductorRun(Project project, UUID id, String name) {
     super(project, id, name);
   }
 
-  public ConductorRun(Project project) {
+  protected ConductorRun(Project project) {
     super(project);
   }
 
@@ -165,41 +159,15 @@ public class ConductorRun extends AbstractRun {
     }
   }
 
-  /*
-  public void setTrial(Trial trial) {
-    String trialId = trial.getId();
-    if (
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_TRIAL + "=?" + " where id=?;");
-          statement.setString(1, trialId);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      })
-    ) {
-      this.trial = trial;
-    }
-  }
-
-   */
-
-  public ConductorRun getParent() {
-    String parentId = getFromDB(KEY_PARENT);
-    return getInstance(getProject(), parentId);
-  }
-
   public boolean isRoot() {
     return getParent() == null;
   }
 
-  public ArrayList<ConductorRun> getChildTrialList() {
+  public ArrayList<ConductorRun> getChildConductorRunList() {
     return getList(getProject(), this);
   }
 
-  public ArrayList<SimulatorRun> getChildRunList() {
+  public ArrayList<SimulatorRun> getChildSimulationRunList() {
     return SimulatorRun.getList(getProject(), this);
   }
 
@@ -210,71 +178,21 @@ public class ConductorRun extends AbstractRun {
     return path;
   }
 
+  @Override
   public boolean isRunning() {
-    for (SimulatorRun run : getChildRunList()) {
+    for (SimulatorRun run : getChildSimulationRunList()) {
       if (run.isRunning()) {
         return true;
       }
     }
 
-    for (ConductorRun conductorRun : getChildTrialList()) {
+    for (ConductorRun conductorRun : getChildConductorRunList()) {
       if (conductorRun.isRunning()) {
         return true;
       }
     }
 
     return false;
-  }
-
-  public Conductor getConductor() {
-    if (conductor == null) {
-      conductor = Conductor.getInstance(getProject(), getFromDB(KEY_CONDUCTOR));
-    }
-    return conductor;
-  }
-
-  public JSONObject getParameters() {
-    if (parameters == null) {
-      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
-    }
-    return new JSONObject(parameters.toString());
-  }
-
-  public Object getParameter(String key) {
-    return getParameters().get(key);
-  }
-
-  public void putParametersByJson(String json) {
-    getParameters(); // init.
-    JSONObject valueMap = null;
-    try {
-      valueMap = new JSONObject(json);
-    } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
-    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
-    if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        parameters.put(key, valueMap.get(key));
-      }
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
-    }
-  }
-
-  public void putParameter(String key, Object value) {
-    JSONObject obj = new JSONObject();
-    obj.put(key, value);
-    putParametersByJson(obj.toString());
   }
 
   public JSONObject getNextRunParameters(Simulator simulator) {
@@ -355,20 +273,5 @@ public class ConductorRun extends AbstractRun {
         ));
       }
     };
-  }
-
-  private final ParameterMapInterface parameterMapInterface = new ParameterMapInterface();
-  public HashMap p() { return parameterMapInterface; }
-  public class ParameterMapInterface extends HashMap<Object, Object> {
-    @Override
-    public Object get(Object key) {
-      return getParameter(key.toString());
-    }
-
-    @Override
-    public Object put(Object key, Object value) {
-      //putArgument(key.toString(), value);
-      return value;
-    }
   }
 }
