@@ -100,6 +100,25 @@ abstract public class Data {
     return result[0];
   }
 
+  protected int getIntFromDB(String key) {
+    final Integer[] result = {null};
+
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select " + key + " from " + getTableName() + " where id=?;");
+        statement.setString(1, getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          result[0] = resultSet.getInt(key);
+        }
+      }
+    });
+
+    return result[0];
+  }
+
   protected boolean setStringToDB(String key, String value) {
     return handleDatabase(this, new Handler() {
       @Override

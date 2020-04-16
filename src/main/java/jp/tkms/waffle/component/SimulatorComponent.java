@@ -125,7 +125,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("file-import") + "Parameter Extractor",
+        content += Lte.card(Html.faIcon("file-import") + "Parameter Extractors",
           Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus")),
           Lte.table(null, new Lte.Table() {
             @Override

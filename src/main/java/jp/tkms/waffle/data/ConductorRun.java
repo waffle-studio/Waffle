@@ -135,12 +135,14 @@ public class ConductorRun extends AbstractRun {
           KEY_ID,
           KEY_NAME,
           KEY_PARENT,
-          KEY_CONDUCTOR
+          KEY_CONDUCTOR,
+          KEY_PARAMETERS
           ).toPreparedStatement();
         statement.setString(1, conductorRun.getId());
         statement.setString(2, conductorRun.getName());
         statement.setString(3, parent.getId());
         statement.setString(4, conductor.getId());
+        statement.setString(5, parent.getParameters().toString());
         statement.execute();
       }
     });
@@ -178,6 +180,10 @@ public class ConductorRun extends AbstractRun {
     return path;
   }
 
+  public int getPhase() {
+    return getIntFromDB(KEY_PHASE);
+  }
+
   @Override
   public boolean isRunning() {
     for (SimulatorRun run : getChildSimulationRunList()) {
@@ -195,29 +201,6 @@ public class ConductorRun extends AbstractRun {
     return false;
   }
 
-  public JSONObject getNextRunParameters(Simulator simulator) {
-    String registryKey = ".DP:" + getId() + ":" + simulator.getId();
-    String simulatorDefaultParametersJson = Registry.getString(getProject(), registryKey, null);
-    if (simulatorDefaultParametersJson == null) {
-      JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
-      Registry.set(getProject(), registryKey, parameters.toString());
-      return parameters;
-    }
-    JSONObject nextParameters = new JSONObject(simulatorDefaultParametersJson);
-    updateParameterDefaultValue(nextParameters, ParameterGroup.getRootInstance(simulator));
-    Registry.set(getProject(), registryKey, nextParameters.toString());
-    return nextParameters;
-  }
-
-  private void updateParameterDefaultValue(JSONObject defaultParameters, ParameterGroup targetGroup) {
-    for (Parameter parameter : Parameter.getList(targetGroup)) {
-      parameter.updateDefaultValue(this, defaultParameters);
-    }
-    for (ParameterGroup group : ParameterGroup.getList(targetGroup)) {
-      updateParameterDefaultValue(defaultParameters.getJSONObject(group.getName()), group);
-    }
-  }
-
   public void start() {
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     abstractConductor.start(this);
@@ -228,10 +211,6 @@ public class ConductorRun extends AbstractRun {
       AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
       abstractConductor.eventHandle(this, run);
     }
-  }
-
-  public void addFinalizer(String name) {
-    addFinalizer(this, name);
   }
 
   @Override

@@ -45,8 +45,8 @@ def get_store(registry, entity_id)
 end
 
 class Hub < Java::jp.tkms.waffle.data.util.Hub
-    def initialize(conductorRun)
-        super(conductorRun)
+    def initialize(conductorRun, run)
+        super(conductorRun, run)
         @store = get_store(registry, conductorRun.id)
     end
 

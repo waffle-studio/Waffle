@@ -115,8 +115,6 @@ public class ParameterComponent extends AbstractAccessControlledComponent {
                   Html.element("label", new Html.Attributes(Html.value("for", "value_type_q")), "Quantitative")
                 )
               ),
-              Lte.formInputGroup("text", "default_value", "Default value", "Name", parameter.getDefaultValue(), errors),
-              Lte.formDataEditorGroup("update_script", "Default value update script", "ruby", parameter.getDefaultValueUpdateScript(), errors),
               Lte.formSubmitButton("primary", "Update")
             )
           )
@@ -130,7 +128,6 @@ public class ParameterComponent extends AbstractAccessControlledComponent {
   void updateParameter() {
     parameter.isQuantitative(request.queryParams("value_type").equals("quantitative"));
     parameter.setDefaultValue(request.queryParams("default_value"));
-    parameter.setDefaultValueUpdateScript(request.queryParams("update_script"));
     response.redirect(getUrl(parameter));
   }
 

@@ -77,9 +77,9 @@ abstract public class AbstractRun extends ProjectData {
     setFinalizers(finalizers);
   }
 
-  public void addFinalizer(ConductorRun conductorRun, String name) {
-    String fileName = conductorRun.getConductor().getListenerScriptFileName(name);
-    addRawFinalizerScript(conductorRun.getConductor().getFileContents(fileName));
+  public void addFinalizer(String name) {
+    String fileName = getConductor().getListenerScriptFileName(name);
+    addRawFinalizerScript(getConductor().getFileContents(fileName));
   }
 
   public void putParametersByJson(String json) {

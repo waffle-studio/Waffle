@@ -51,9 +51,9 @@ public class SimulatorRun extends AbstractRun {
   private JSONObject environments;
   private JSONArray arguments;
 
-  private SimulatorRun(Conductor conductor, Simulator simulator, Host host) {
-    this(conductor.getProject(), UUID.randomUUID(),
-      conductor.getId(), simulator.getId(), host.getId(), State.Created);
+  private SimulatorRun(ConductorRun parent, Simulator simulator, Host host) {
+    this(parent.getProject(), UUID.randomUUID(),"",
+      simulator.getId(), host.getId(), State.Created);
   }
 
   private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state) {
@@ -61,10 +61,6 @@ public class SimulatorRun extends AbstractRun {
     this.simulator = simulator;
     this.host = host;
     this.state = state;
-  }
-
-  private SimulatorRun(Project project, UUID id, String simulator, String host, State state) {
-    this(project, id, "", simulator, host, state);
   }
 
   public static SimulatorRun getInstance(Project project, String id) {
@@ -145,11 +141,20 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(parent.getConductor(), simulator, host);
-    String conductorId = run.getConductor().getId();
+    return create(parent, simulator, host, true);
+  }
+
+  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host, boolean copyParameters) {
+    SimulatorRun run = new SimulatorRun(parent, simulator, host);
+    String conductorId = parent.getConductor().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
-    JSONObject parameters = parent.getNextRunParameters(simulator);
+    JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
+    if (copyParameters) {
+      for (Map.Entry<String, Object> entry : parent.getParameters().toMap().entrySet()) {
+        parameters.put(entry.getKey(), entry.getValue());
+      }
+    }
 
     handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
@@ -350,82 +355,6 @@ public class SimulatorRun extends AbstractRun {
         ));
       }
     };
-  }
-
-  public ParametersWrapper parameters() {
-    return new ParametersWrapper(getParameters());
-  }
-
-  public class ParametersWrapper implements Map<String, Object> {
-    Map m;
-
-    public ParametersWrapper(JSONObject o) {
-      m = o.toMap();
-    }
-
-    @Override
-    public int size() {
-      return m.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return m.isEmpty();
-    }
-
-    @Override
-    public boolean containsKey(Object o) {
-      return m.containsKey(o);
-    }
-
-    @Override
-    public boolean containsValue(Object o) {
-      return m.containsValue(o);
-    }
-
-    @Override
-    public Object get(Object k) {
-      Object o = getParameters().get(k.toString());
-      if (o instanceof JSONObject) {
-        return new ParametersWrapper((JSONObject) o);
-      }
-      return o;
-    }
-
-    @Override
-    public Object put(String s, Object o) {
-      return setParameter(s, o);
-    }
-
-    @Override
-    public Object remove(Object o) {
-      return m.remove(o);
-    }
-
-    @Override
-    public void putAll(Map<? extends String, ?> map) {
-      m.putAll(map);
-    }
-
-    @Override
-    public void clear() {
-      m.clear();
-    }
-
-    @Override
-    public Set<String> keySet() {
-      return m.keySet();
-    }
-
-    @Override
-    public Collection<Object> values() {
-      return m.values();
-    }
-
-    @Override
-    public Set<Entry<String, Object>> entrySet() {
-      return m.entrySet();
-    }
   }
 
   public HashMap<String, Object> environmentsWrapper = null;

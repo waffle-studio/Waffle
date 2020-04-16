@@ -19,12 +19,10 @@ public class Parameter extends SimulatorData {
   private static final String KEY_PARENT = "parent";
   private static final String KEY_IS_QUANTITATIVE = "quantitative";
   private static final String KEY_DEFAULT_VALUE = "default_value";
-  private static final String KEY_DEFAULT_VALUE_UPDATE_SCRIPT = "default_updater";
 
   private ParameterGroup parent = null;
   private Boolean isQuantitative = null;
   private String defaultValue = null;
-  private String defaultValueUpdateScript = null;
 
   public Parameter(Simulator simulator) {
     super(simulator);
@@ -95,10 +93,6 @@ public class Parameter extends SimulatorData {
         statement.setString(2, parameter.getName());
         statement.setString(3, parent.getId());
         statement.execute();
-        statement = new Sql.Update(db, TABLE_NAME, KEY_DEFAULT_VALUE_UPDATE_SCRIPT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, defaultUpdateScriptTemplate());
-        statement.setString(2, parameter.getId());
-        statement.execute();
       }
     });
 
@@ -155,45 +149,6 @@ public class Parameter extends SimulatorData {
     }
   }
 
-  public String getDefaultValueUpdateScript() {
-    if (defaultValueUpdateScript == null) {
-      defaultValueUpdateScript = getFromDB(KEY_DEFAULT_VALUE_UPDATE_SCRIPT);
-    }
-    return defaultValueUpdateScript;
-  }
-
-  public void setDefaultValueUpdateScript(String script) {
-    if (handleDatabase((new Parameter(getSimulator())), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_DEFAULT_VALUE_UPDATE_SCRIPT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, script);
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    })) {
-      defaultValueUpdateScript = script;
-    }
-  }
-
-  public void updateDefaultValue(ConductorRun conductorRun, JSONObject defaultParameters) {
-    Object defaultValue = defaultParameters.get(getName());
-
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    try {
-      container.runScriptlet(getInitScript());
-      container.runScriptlet(getDefaultValueUpdateScript());
-      defaultValue = container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_update_value", conductorRun, defaultValue);
-      container.terminate();
-    } catch (Exception e) {
-      e.printStackTrace();
-      container.terminate();
-      BrowserMessage.addMessage("toastr.error('update_value: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-    }
-
-    defaultParameters.put(getName(), defaultValue);
-  }
-
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -212,7 +167,6 @@ public class Parameter extends SimulatorData {
                 KEY_ID, KEY_NAME, KEY_PARENT,
                 Sql.Create.withDefault(KEY_IS_QUANTITATIVE, "'false'"),
                 Sql.Create.withDefault(KEY_DEFAULT_VALUE, "'0'"),
-                Sql.Create.withDefault(KEY_DEFAULT_VALUE_UPDATE_SCRIPT, "''"),
                 Sql.Create.timestamp("timestamp_create")
               ).execute();
             }
@@ -220,12 +174,5 @@ public class Parameter extends SimulatorData {
         ));
       }
     };
-  }
-
-  private static String defaultUpdateScriptTemplate() {
-    return "def update_value(value, registry)\n    return value\nend";
-  }
-  private String getInitScript() {
-    return ResourceFile.getContents("/ruby_init.rb");
   }
 }

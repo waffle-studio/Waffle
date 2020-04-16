@@ -105,12 +105,19 @@ public class Hub {
   private final HashMap<Object, Object> parameterMapWrapper  = new HashMap<Object, Object>() {
     @Override
     public Object get(Object key) {
+      if (run instanceof SimulatorRun) {
+        return run.getParent().getParameter(key.toString());
+      }
       return run.getParameter(key.toString());
     }
 
     @Override
     public Object put(Object key, Object value) {
-      run.putParameter(key.toString(), value);
+      if (run instanceof SimulatorRun) {
+        run.getParent().putParameter(key.toString(), value);
+      } else {
+        run.putParameter(key.toString(), value);
+      }
       return value;
     }
   };

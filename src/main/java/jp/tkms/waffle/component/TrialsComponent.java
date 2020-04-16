@@ -10,6 +10,8 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 public class TrialsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -69,12 +71,21 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
+        ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          "Trials",
-          request.params("id")
+          "Trials"
         ));
+        ArrayList<String> conductorRunList = new ArrayList<>();
+        ConductorRun parent = conductorRun.getParent();
+        while (parent != null) {
+          conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
+          parent = parent.getParent();
+        }
+        Collections.reverse(conductorRunList);
+        breadcrumb.addAll(conductorRunList);
+        breadcrumb.add(conductorRun.getId());
+        return breadcrumb;
       }
 
       @Override
@@ -103,6 +114,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("width:6.5em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
+              list.add(new Lte.TableValue("width:2em;", ""));
               return list;
             }
 
@@ -112,7 +124,9 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
               for (ConductorRun run : ConductorRun.getList(project, TrialsComponent.this.conductorRun)) {
                 list.add(new Lte.TableRow(
                   Html.a(getUrl(project, run), null, null, run.getShortId()),
-                  run.getName())
+                  run.getName(),
+                  Html.spanWithId(run.getId() + "-badge", getStatusBadge(run))
+                  )
                 );
               }
               return list;
@@ -153,6 +167,16 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
         return contents;
       }
     }.render(this);
+  }
+
+  public static String getStatusBadge(ConductorRun run) {
+    switch (run.getPhase()) {
+      case 0:
+        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), "Running");
+      case 1:
+        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), "Finished");
+    }
+    return null;
   }
 
   public enum Mode {Default}

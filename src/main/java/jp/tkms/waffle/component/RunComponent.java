@@ -3,12 +3,14 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class RunComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -64,12 +66,21 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
+        ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          "Runs",
-          request.params("id")
+          "Trials"
         ));
+        ArrayList<String> conductorRunList = new ArrayList<>();
+        ConductorRun parent = run.getParent();
+        while (parent != null) {
+          conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
+          parent = parent.getParent();
+        }
+        Collections.reverse(conductorRunList);
+        breadcrumb.addAll(conductorRunList);
+        breadcrumb.add(run.getId());
+        return breadcrumb;
       }
 
       @Override
@@ -89,7 +100,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 list.add(new Lte.TableRow("Status", JobsComponent.getStatusBadge(run)));
-                list.add(new Lte.TableRow("Return Code", "" + run.getExitStatus()
+                list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
                   Lte.badge("secondary", null, "ReCheck")):"")));
