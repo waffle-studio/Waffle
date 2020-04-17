@@ -1,9 +1,0 @@
-define count 0
-NEWSET set0 test pre.txt post.txt exe/run.sh
-LABEL loop1
-echo H1 0 $count
-ADDEXP $set0 H1 0 $count 
-add count $count 1
-if $count < 1 loop1
-echo END
-RUNEXP $set0

@@ -4,7 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
 import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.ConductorModule;
+import jp.tkms.waffle.data.Job;
 
 import java.util.ArrayList;
 
@@ -75,7 +75,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                     elementWithClass("li", "nav-item",
                       a(JobsComponent.getUrl(), "nav-link", null,
                         faIcon("running", "nav-icon"),
-                        p("Jobs")
+                        p("Jobs", span("right badge badge-warning", new Attributes(value("id", "jobnum"))))
                       )
                     ),
                     elementWithClass("li", "nav-item",
@@ -85,9 +85,15 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     elementWithClass("li", "nav-item",
-                      a(ConductorModulesComponent.getUrl(), "nav-link", null,
+                      a(ConductorTemplatesComponent.getUrl(), "nav-link", null,
                         faIcon("cubes", "nav-icon"),
-                        p("ConductorModules")
+                        p("ConductorTemplates")
+                      )
+                    ),
+                    elementWithClass("li", "nav-item",
+                      a(ListenerTemplatesComponent.getUrl(), "nav-link", null,
+                        faIcon("circle", "nav-icon"),
+                        p("ListenerTemplates")
                       )
                     ),
                     elementWithClass("li", "nav-header", "Status"),
@@ -164,7 +170,15 @@ abstract public class MainTemplate extends AbstractTemplate {
               "var loadBrowserMessage = function() {" +
               "simpleget('" + BrowserMessageComponent.getUrl("") + "' + cid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
-              "setTimeout(loadBrowserMessage, 2000);"
+              "setTimeout(loadBrowserMessage, 2000);" +
+              "var updateJobNum = function(n) {" +
+              "if (n > 0) {" +
+              "document.getElementById('jobnum').style.display = 'inline';" +
+              "document.getElementById('jobnum').innerHTML = n;" +
+              "} else {" +
+              "document.getElementById('jobnum').style.display = 'none';" +
+              "}" +
+              "};updateJobNum(" + Job.getNum() + ");"
           ),
           element("script", new Html.Attributes( Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
           element("script",new Html.Attributes(Html.value("type", "text/javascript")),

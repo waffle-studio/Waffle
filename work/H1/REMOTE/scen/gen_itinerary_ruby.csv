@@ -1,8 +1,0 @@
-#startPlace,route,rule,className,speedModel,goal,plannedRoute,agentTag
-SL_SW,0,EACH,RubyAgent,LANE,EXIT_STATION,,
-SL_SWM,0,EACH,RubyAgent,LANE,EXIT_STATION,,
-SL_SSW,0,EACH,RubyAgent,LANE,EXIT_R1,,
-SL_NE,0,EACH,RubyAgent,LANE,EXIT_STATION,,
-SL_INDEXA,-1,EACH,NaiveAgent,LANE,EXIT_R1,"R1-5","INDEXA_R1"
-SL_INDEXA,-2,EACH,NaiveAgent,LANE,EXIT_R2,"R2-2,R2-3","INDEXA_R2"
-SL_INDEXA,-3,EACH,NaiveAgent,LANE,EXIT_R3,"R2-2,R3-6","INDEXA_R3"

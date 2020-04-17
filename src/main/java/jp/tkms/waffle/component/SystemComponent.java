@@ -26,7 +26,12 @@ public class SystemComponent extends AbstractAccessControlledComponent {
 
     switch (mode) {
       case Hibernate:
-        response.redirect("/");
+        String referer = request.headers("Referer");
+        System.err.println(referer);
+        if (referer == null || "".equals(referer)) {
+          referer = "/";
+        }
+        response.redirect(referer);
         Main.hibernate();
         break;
       default:

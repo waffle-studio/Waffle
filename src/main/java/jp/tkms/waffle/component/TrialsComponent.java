@@ -140,7 +140,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("width:6.5em;", "ID"));
-              list.add(new Lte.TableValue("", "Conductor"));
+              list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("", "Simulator"));
               list.add(new Lte.TableValue("", "Host"));
               list.add(new Lte.TableValue("width:2em;", ""));
@@ -153,7 +153,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
               for (SimulatorRun run : SimulatorRun.getList(project, conductorRun)) {
                 list.add(new Lte.TableRow(
                   Html.a(RunComponent.getUrl(project, run), run.getShortId()),
-                  run.getConductor().getName(),
+                  run.getName(),
                   run.getSimulator().getName(),
                   run.getHost().getName(),
                   Html.spanWithId(run.getId() + "-badge", JobsComponent.getStatusBadge(run))

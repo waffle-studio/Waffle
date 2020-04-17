@@ -95,6 +95,22 @@ public class Job extends Data {
     return list;
   }
 
+  public static int getNum() {
+    final int[] num = {0};
+
+    handleDatabase(new Job(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select count(*) as num from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          num[0] = resultSet.getInt("num");
+        }
+      }
+    });
+
+    return num[0];
+  }
+
   public static void addRun(SimulatorRun run) {
     String hostId = run.getHost().getId();
 
@@ -122,6 +138,7 @@ public class Job extends Data {
         }
       }
     });
+    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
   public void remove() {
@@ -134,6 +151,7 @@ public class Job extends Data {
         statement.execute();
       }
     });
+    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
   public void setJobId(String jobId) {

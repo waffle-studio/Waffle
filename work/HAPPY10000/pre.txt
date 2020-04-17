@@ -1,3 +1,0 @@
-echo pre script
-localexec ./timestamp.sh
-remoteexec ./exe/setup.sh

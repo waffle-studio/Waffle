@@ -42,7 +42,8 @@ public class Main {
     ProjectsComponent.register();
     JobsComponent.register();
     HostsComponent.register();
-    ConductorModulesComponent.register();
+    ConductorTemplatesComponent.register();
+    ListenerTemplatesComponent.register();
 
     SystemComponent.register();
     SigninComponent.register();
@@ -76,7 +77,7 @@ public class Main {
     PollingThread.waitForShutdown();
     System.out.println("System hibernated");
     try {
-      Thread.sleep(1000);
+      Thread.sleep(2000);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
