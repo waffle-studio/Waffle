@@ -12,6 +12,15 @@ public class Main {
 
   public static void main(String[] args) {
     System.out.println("PID: " + PID);
+    int port = 4567;
+
+    if (args.length >= 1) {
+      port = Integer.valueOf(args[1]);
+      if (Integer.valueOf(args[1]) >= 1024) {
+        port(port);
+      }
+    }
+    System.out.println("PORT: " + port);
 
     Runtime.getRuntime().addShutdownHook(new Thread()
     {
