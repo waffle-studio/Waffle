@@ -79,6 +79,10 @@ public class Hub {
     }
   }
 
+  public void close() {
+    //close仮実装
+  }
+
   public Object getVariable(String key) {
     return registry.get(key);
   }
