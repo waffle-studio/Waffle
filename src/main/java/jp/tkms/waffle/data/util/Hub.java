@@ -7,6 +7,7 @@ import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -16,6 +17,7 @@ public class Hub {
   ConductorRun conductorRun;
   AbstractRun run;
   Registry registry;
+  ArrayList<AbstractRun> createdRunList;
 
   String parameterStoreName;
 
@@ -24,6 +26,7 @@ public class Hub {
     this.conductorRun = conductorRun;
     this.run = run;
     this.registry = new Registry(conductorRun.getProject());
+    this.createdRunList = new ArrayList<>();
     switchParameterStore(null);
   }
 
@@ -53,13 +56,17 @@ public class Hub {
 
   public ConductorRun createConductorRun(String name) {
     Conductor conductor = Conductor.find(project, name);
-    return ConductorRun.create(this.conductorRun, conductor);
+    ConductorRun createdRun = ConductorRun.create(this.conductorRun, conductor);
+    createdRunList.add(createdRun);
+    return createdRun;
   }
 
   public SimulatorRun createSimulatorRun(String name, String hostName) {
     Simulator simulator = Simulator.find(project, name);
     Host host = Host.find(hostName);
-    return SimulatorRun.create(conductorRun, simulator, host);
+    SimulatorRun createdRun = SimulatorRun.create(conductorRun, simulator, host);
+    createdRunList.add(createdRun);
+    return createdRun;
   }
 
   public void invokeListener(String name) {
@@ -80,7 +87,11 @@ public class Hub {
   }
 
   public void close() {
-    //close仮実装
+    for (AbstractRun createdRun : createdRunList) {
+      if (! createdRun.isStarted()) {
+        createdRun.start();
+      }
+    }
   }
 
   public Object getVariable(String key) {

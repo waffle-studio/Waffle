@@ -7,6 +7,7 @@ import org.jruby.embed.*;
 import org.jruby.exceptions.SyntaxError;
 
 import java.io.*;
+import java.nio.file.Path;
 
 public class RubyConductor extends CycleConductor {
   @Override
@@ -100,5 +101,17 @@ public class RubyConductor extends CycleConductor {
 
   public static String getListenerTemplateScript() {
     return ResourceFile.getContents("/ruby_listener_template.rb");
+  }
+
+  public static String checkSyntax(Path scriptPath) {
+    String error = "";
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+    try {
+      container.parse(PathType.ABSOLUTE, scriptPath.toString());
+    } catch (ParseFailedException e) {
+        error = e.getMessage().replaceFirst("^.*\\.rb:", "");
+    }
+    container.terminate();
+    return error;
   }
 }

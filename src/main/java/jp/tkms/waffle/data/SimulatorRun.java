@@ -299,6 +299,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void start() {
+    isStarted = true;
     Job.addRun(this);
   }
 

@@ -16,12 +16,14 @@ abstract public class AbstractRun extends ProjectData {
   protected static final String KEY_PARAMETERS = "parameters";
   protected static final String KEY_FINALIZER = "finalizer";
 
+  abstract public void start();
   abstract public boolean isRunning();
 
   private Conductor conductor = null;
   private ConductorRun parentConductorRun = null;
   private JSONArray finalizers = null;
   private JSONObject parameters = null;
+  protected boolean isStarted = false;
 
   public AbstractRun(Project project) {
     super(project);
@@ -29,6 +31,10 @@ abstract public class AbstractRun extends ProjectData {
 
   public AbstractRun(Project project, UUID id, String name) {
     super(project, id, name);
+  }
+
+  public boolean isStarted() {
+    return isStarted;
   }
 
   public ConductorRun getParent() {

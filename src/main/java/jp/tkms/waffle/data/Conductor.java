@@ -4,6 +4,8 @@ import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
+import org.jruby.Ruby;
+import org.jruby.embed.*;
 import org.json.JSONObject;
 
 import java.io.File;

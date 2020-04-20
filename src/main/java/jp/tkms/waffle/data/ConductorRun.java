@@ -202,6 +202,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void start() {
+    isStarted = true;
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     abstractConductor.start(this);
   }

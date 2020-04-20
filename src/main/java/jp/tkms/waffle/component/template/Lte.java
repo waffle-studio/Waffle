@@ -266,4 +266,18 @@ public class Lte {
     public abstract ArrayList<TableValue> tableHeaders();
     public abstract ArrayList<TableRow> tableRows();
   }
+
+  public static String errorNoticeTextAreaGroup(String contents) {
+    return div("form-group",
+      element("textarea",
+        new Attributes(
+          value("class", "form-control  is-invalid"),
+          value("style", "font-family:monospace;"),
+          value("rows", String.valueOf(contents.split("\\n").length)),
+          value("readonly", null)
+        )
+        , contents
+      )
+    );
+  }
 }

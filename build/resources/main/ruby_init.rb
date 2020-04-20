@@ -51,6 +51,7 @@ class Hub < Java::jp.tkms.waffle.data.util.Hub
     end
 
     def close()
+        super.close();
         registry.set(".S:" + conductorRun.id, Marshal.dump(store))
     end
 end

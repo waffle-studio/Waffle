@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
@@ -144,19 +145,21 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, argumentsText.split("\n").length, argumentsText, null),
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, argumentsText.split("\\n").length, argumentsText, null),
                   Lte.formSubmitButton("success", "Update")
                 )
               )
               , null, "collapsed-card.stop", null)
           );
 
+        String mainScriptSyntaxError = RubyConductor.checkSyntax(conductor.getScriptPath());
         content +=
           Html.form(getUrl(conductor, "update-main-script"), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Main Script",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
+                  ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
                   Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainScriptContents(), errors),
                   Lte.formSubmitButton("success", "Update")
                 )
