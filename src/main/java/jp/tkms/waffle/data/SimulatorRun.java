@@ -15,7 +15,6 @@ public class SimulatorRun extends AbstractRun {
   protected static final String TABLE_NAME = "simulator_run";
   private static final String KEY_HOST = "host";
   private static final String KEY_SIMULATOR = "simulator";
-  private static final String KEY_STATE = "state";
   private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_ARGUMENTS = "arguments";

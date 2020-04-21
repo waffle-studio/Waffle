@@ -77,7 +77,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
         conductorRun.putParametersByJson(request.queryParams(KEY_ARGUMENTS));
       }
-      conductorRun.start();
+      conductorRun.start(true);
       response.redirect(ProjectComponent.getUrl(project));
     } else if (mode == Mode.UpdateArguments) {
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {

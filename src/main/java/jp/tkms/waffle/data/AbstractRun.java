@@ -15,6 +15,7 @@ abstract public class AbstractRun extends ProjectData {
   protected static final String KEY_CONDUCTOR = "conductor";
   protected static final String KEY_PARAMETERS = "parameters";
   protected static final String KEY_FINALIZER = "finalizer";
+  protected static final String KEY_STATE = "state";
 
   abstract public void start();
   abstract public boolean isRunning();

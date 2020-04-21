@@ -21,8 +21,8 @@ abstract public class AbstractConductor {
   public AbstractConductor() {
   }
 
-  public void start(ConductorRun conductorRun) {
-    (new Thread() {
+  public void start(ConductorRun conductorRun, boolean async) {
+    Thread thread = new Thread() {
       @Override
       public void run() {
         super.run();
@@ -33,7 +33,15 @@ abstract public class AbstractConductor {
         }
         return;
       }
-    }).start();
+    };
+    thread.start();
+    if (!async) {
+      try {
+        thread.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   public void eventHandle(ConductorRun conductorRun, AbstractRun run) {

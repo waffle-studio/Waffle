@@ -125,7 +125,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
                 list.add(new Lte.TableRow(
                   Html.a(getUrl(project, run), null, null, run.getShortId()),
                   run.getName(),
-                  Html.spanWithId(run.getId() + "-badge", getStatusBadge(run))
+                  Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
                   )
                 );
               }
@@ -167,16 +167,6 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
         return contents;
       }
     }.render(this);
-  }
-
-  public static String getStatusBadge(ConductorRun run) {
-    switch (run.getPhase()) {
-      case 0:
-        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), "Running");
-      case 1:
-        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), "Finished");
-    }
-    return null;
   }
 
   public enum Mode {Default}

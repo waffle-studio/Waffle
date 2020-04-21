@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.State;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -16,7 +17,6 @@ import java.util.*;
 public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   public static final String ROOT_NAME = "ROOT";
-  private static final String KEY_PHASE = "phase";
 
   public ConductorRun(Project project, UUID id, String name) {
     super(project, id, name);
@@ -49,6 +49,11 @@ public class ConductorRun extends AbstractRun {
         }
       }
     });
+    if (conductorRun[0] != null && State.Created.equals(conductorRun[0].getState())) {
+      if (!conductorRun[0].isRunning()) {
+        conductorRun[0].setState(State.Failed);
+      }
+    }
 
     return conductorRun[0];
   }
@@ -111,7 +116,8 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + " where " + KEY_PHASE + "=0;");
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME +
+          " where " + KEY_STATE + "!=" + State.Finished.ordinal() + " or " + KEY_STATE + "!=" + State.Failed.ordinal() + ";");
         while (resultSet.next()) {
           list.add(new ConductorRun(
             project,
@@ -137,13 +143,15 @@ public class ConductorRun extends AbstractRun {
           KEY_NAME,
           KEY_PARENT,
           KEY_CONDUCTOR,
-          KEY_PARAMETERS
+          KEY_PARAMETERS,
+          KEY_STATE
           ).toPreparedStatement();
         statement.setString(1, conductorRun.getId());
         statement.setString(2, conductorRun.getName());
         statement.setString(3, parent.getId());
         statement.setString(4, conductor.getId());
         statement.setString(5, parent.getParameters().toString());
+        statement.setInt(6, State.Created.ordinal());
         statement.execute();
       }
     });
@@ -156,7 +164,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void finish() {
-    setIntToDB(KEY_PHASE, 1);
+    setIntToDB(KEY_STATE, State.Finished.ordinal());
     if (!isRoot()) {
       getParent().update(this);
     }
@@ -181,8 +189,12 @@ public class ConductorRun extends AbstractRun {
     return path;
   }
 
-  public int getPhase() {
-    return getIntFromDB(KEY_PHASE);
+  public State getState() {
+    return State.valueOf(getIntFromDB(KEY_STATE));
+  }
+
+  private void setState(State state) {
+    setIntToDB(KEY_STATE, state.ordinal());
   }
 
   @Override
@@ -203,9 +215,17 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void start() {
+    start(false);
+  }
+
+  public void start(boolean async) {
     isStarted = true;
+    setState(State.Running);
+    if (!isRoot()) {
+      getParent().setState(State.Running);
+    }
     AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
-    abstractConductor.start(this);
+    abstractConductor.start(this, async);
   }
 
   public void update(AbstractRun run) {
@@ -233,7 +253,7 @@ public class ConductorRun extends AbstractRun {
                 "id,name," + KEY_PARENT + "," + KEY_CONDUCTOR + ","
                 + KEY_PARAMETERS + " default '{}',"
                 + KEY_FINALIZER + " default '[]',"
-                + KEY_PHASE + " default 0,"
+                + KEY_STATE + ","
                 + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

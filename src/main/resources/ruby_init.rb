@@ -50,9 +50,9 @@ class Hub < Java::jp.tkms.waffle.data.util.Hub
         @store = get_store(registry, conductorRun.id)
     end
 
-    def close()
-        super.close();
-        registry.set(".S:" + conductorRun.id, Marshal.dump(store))
+    def close
+        super
+        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
     end
 end
 
@@ -67,20 +67,14 @@ end
 
 def exec_conductor_script(conductorRun)
     exec_process conductorRun, conductorRun do | hub |
-        return conductor_script(hub, conductorRun)
+        next conductor_script(hub, conductorRun)
     end
 end
 
 def exec_listener_script(conductorRun, run)
     exec_process conductorRun, run do | hub |
-        return listener_script(hub, run)
+        next listener_script(hub, run)
     end
-end
-
-def exec_update_value(entity, value)
-    registry = Registry.new(entity.project)
-    v = update_value(value, registry)
-    return v
 end
 
 def parameter_extract(run)
