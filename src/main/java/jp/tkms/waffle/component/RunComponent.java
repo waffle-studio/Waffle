@@ -99,7 +99,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
-                list.add(new Lte.TableRow("Status", JobsComponent.getStatusBadge(run)));
+                list.add(new Lte.TableRow("Status", run.getState().getStatusBadge()));
                 list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),

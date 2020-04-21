@@ -183,6 +183,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         for (File child : conductor.getLocation().toFile().listFiles()) {
           String fileName = child.getName();
           if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
+            String scriptSyntaxError = RubyConductor.checkSyntax(child.toPath());
             content +=
               Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
                 Lte.card(Html.faIcon("terminal") + fileName.substring(9, fileName.length() -3) + " (Event Listener)",
@@ -190,6 +191,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                   Lte.divRow(
                     Lte.divCol(Lte.DivSize.F12,
                       Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
+                      ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
                       Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getFileContents(fileName), errors),
                       Lte.formSubmitButton("success", "Update")
                     )

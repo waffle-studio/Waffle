@@ -1,6 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONObject;
@@ -64,7 +65,7 @@ abstract public class AbstractSubmitter {
     processXsubSubmit(job, exec(xsubSubmitCommand(job)));
   }
 
-  public SimulatorRun.State update(Job job) {
+  public State update(Job job) {
     SimulatorRun run = job.getRun();
     processXstat(job, exec(xstatCommand(job)));
     return run.getState();
@@ -130,7 +131,7 @@ abstract public class AbstractSubmitter {
       JSONObject object = new JSONObject(json);
       String jobId = object.getString("job_id");
       job.setJobId(jobId);
-      job.getRun().setState(SimulatorRun.State.Submitted);
+      job.getRun().setState(State.Submitted);
       BrowserMessage.info("Run(" + job.getRun().getShortId() + ") was submitted");
     } catch (Exception e) {
       e.printStackTrace();
@@ -145,7 +146,7 @@ abstract public class AbstractSubmitter {
       String status = object.getString("status");
       switch (status) {
         case "running" :
-          job.getRun().setState(SimulatorRun.State.Running);
+          job.getRun().setState(State.Running);
           break;
         case "finished" :
           int exitStatus = -1;
@@ -165,12 +166,12 @@ abstract public class AbstractSubmitter {
 
           if (exitStatus == 0) {
             BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
-            job.getRun().setState(SimulatorRun.State.Finished);
+            job.getRun().setState(State.Finished);
             for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
               collector.getResultCollector().collect(this, job.getRun(), collector);
             }
           } else {
-            job.getRun().setState(SimulatorRun.State.Failed);
+            job.getRun().setState(State.Failed);
           }
 
           job.getRun().setExitStatus(exitStatus);
@@ -233,8 +234,8 @@ abstract public class AbstractSubmitter {
           break;
         case Submitted:
         case Running:
-          SimulatorRun.State state = update(job);
-          if (!(SimulatorRun.State.Finished.equals(state) || SimulatorRun.State.Failed.equals(state))) {
+          State state = update(job);
+          if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
             submittedCount++;
           }
           break;

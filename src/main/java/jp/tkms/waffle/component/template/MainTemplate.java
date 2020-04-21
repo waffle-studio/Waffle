@@ -194,7 +194,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "    }).insertBefore(textarea);\n" +
               "    textarea.css('display', 'none');\n" +
               "    var editor = ace.edit(editDiv[0]);\n" +
-              "    editor.renderer.setShowGutter(textarea.data('gutter'));\n" +
+              "    editor.renderer.setShowGutter(true);\n" +
               "    editor.getSession().setValue(textarea.val());\n" +
               "    editor.getSession().setMode(\"ace/mode/\" + mode);\n" +
               "    editor.setTheme(\"ace/theme/textmate\");\n" +

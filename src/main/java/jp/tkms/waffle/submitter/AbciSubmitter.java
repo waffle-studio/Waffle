@@ -3,6 +3,7 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 
@@ -148,7 +149,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     prepareSubmission(run);
 
-    job.getRun().setState(SimulatorRun.State.Queued);
+    job.getRun().setState(State.Queued);
 
     try {
       packWaitThreadSemaphore.acquire();
@@ -203,7 +204,7 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   HashMap<UUID, String> updatedPackJson = new HashMap<>();
-  public SimulatorRun.State update(Job job) {
+  public State update(Job job) {
     SimulatorRun run = job.getRun();
     UUID packId = jobPackMap.get(job);
     if (!updatedPackJson.containsKey(packId)) {
@@ -237,8 +238,8 @@ public class AbciSubmitter extends SshSubmitter {
           break;
         case Submitted:
         case Running:
-          SimulatorRun.State state = update(job);
-          if (!(SimulatorRun.State.Finished.equals(state) || SimulatorRun.State.Failed.equals(state))) {
+          State state = update(job);
+          if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
             submittedCount++;
           }
           break;

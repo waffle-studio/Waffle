@@ -89,7 +89,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                   ),
                   job.getHost().getName(),
                   job.getJobId(),
-                  Html.spanWithId(job.getRun().getId() + "-badge", getStatusBadge(job.getRun()))
+                  Html.spanWithId(job.getRun().getId() + "-badge", job.getRun().getState().getStatusBadge())
                   ).setAttributes(new Html.Attributes(Html.value("id", job.getRun().getId() + "-jobrow")))
                 );
               }
@@ -102,22 +102,4 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   }
 
   public enum Mode {Default, Add}
-
-  public static String getStatusBadge(SimulatorRun run) {
-    switch (run.getState()) {
-      case Created:
-        return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
-      case Queued:
-        return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
-      case Submitted:
-        return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
-      case Running:
-        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
-      case Finished:
-        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
-      case Failed:
-        return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), run.getState().name());
-    }
-    return null;
-  }
 }

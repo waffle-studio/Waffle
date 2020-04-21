@@ -88,11 +88,12 @@ public class ConductorRun extends AbstractRun {
         statement.setString(1, parent.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          list.add(new ConductorRun(
+          ConductorRun conductorRun = new ConductorRun(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString(KEY_NAME)
-          ));
+          );
+          list.add(conductorRun);
         }
       }
     });

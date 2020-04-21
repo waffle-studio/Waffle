@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -20,27 +21,8 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_ENVIRONMENTS = "environments";
 
-  private static Map<Integer, State> stateMap = new HashMap<>();
-
   protected SimulatorRun(Project project) {
     super(project);
-  }
-
-  public enum State {
-    Created(0), Queued(1), Submitted(2), Running(3), Finished(4), Failed(5);
-
-    private final int id;
-
-    State(final int id) {
-      this.id = id;
-      stateMap.put(id, this);
-    }
-
-    int toInt() { return id; }
-
-    static State valueOf(int i) {
-      return stateMap.get(i);
-    }
   }
 
   private String simulator;
@@ -173,7 +155,7 @@ public class SimulatorRun extends AbstractRun {
         statement.setString(3, parent.getId());
         statement.setString(4, simulatorId);
         statement.setString(5, hostId);
-        statement.setInt(6, run.getState().toInt());
+        statement.setInt(6, run.getState().ordinal());
         statement.setString(7, parameters.toString());
         statement.execute();
       }
@@ -192,7 +174,7 @@ public class SimulatorRun extends AbstractRun {
           void handling(Database db) throws SQLException {
             PreparedStatement statement
               = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
-            statement.setInt(1, state.toInt());
+            statement.setInt(1, state.ordinal());
             statement.setString(2, getId());
             statement.execute();
           }
