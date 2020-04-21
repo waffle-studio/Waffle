@@ -6,7 +6,7 @@ import spark.Spark;
 public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public enum Mode {Default, Hibernate}
+  public enum Mode {Default, Hibernate, Restart}
 
   public SystemComponent(Mode mode) {
     this.mode = mode;
@@ -14,6 +14,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl("hibernate"), new SystemComponent(Mode.Hibernate));
+    Spark.get(getUrl("restart"), new SystemComponent(Mode.Restart));
   }
 
   public static String getUrl(String mode) {
@@ -25,15 +26,24 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     logger.info(response.status() + ": " + request.url());
 
     switch (mode) {
-      case Hibernate:
+      case Hibernate: {
         String referer = request.headers("Referer");
-        System.err.println(referer);
         if (referer == null || "".equals(referer)) {
           referer = "/";
         }
         response.redirect(referer);
         Main.hibernate();
-        break;
+      }
+      break;
+      case Restart: {
+        String referer = request.headers("Referer");
+        if (referer == null || "".equals(referer)) {
+          referer = "/";
+        }
+        response.redirect(referer);
+        Main.restart();
+      }
+      break;
       default:
     }
   }
