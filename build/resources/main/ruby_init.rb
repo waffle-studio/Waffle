@@ -77,12 +77,6 @@ def exec_listener_script(conductorRun, run)
     end
 end
 
-def exec_update_value(entity, value)
-    registry = Registry.new(entity.project)
-    v = update_value(value, registry)
-    retun v
-end
-
 def parameter_extract(run)
 end
 

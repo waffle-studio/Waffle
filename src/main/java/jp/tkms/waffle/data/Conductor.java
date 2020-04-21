@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.component.template.Html;
+import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
@@ -264,6 +266,25 @@ public class Conductor extends ProjectData {
         e.printStackTrace();
       }
     }
+  }
+
+  public boolean checkSyntax() {
+    String mainScriptSyntaxError = RubyConductor.checkSyntax(getScriptPath());
+    if (! "".equals(mainScriptSyntaxError)) {
+      return false;
+    }
+
+    for (File child : getLocation().toFile().listFiles()) {
+      String fileName = child.getName();
+      if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
+        String scriptSyntaxError = RubyConductor.checkSyntax(child.toPath());
+        if (! "".equals(scriptSyntaxError)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   @Override

@@ -69,8 +69,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     conductor = Conductor.getInstance(project, request.params("id"));
 
     if (mode == Mode.Prepare) {
-      parent = ConductorRun.getInstance(project, request.params("parent"));
-      renderPrepareForm();
+      if (conductor.checkSyntax()) {
+        parent = ConductorRun.getInstance(project, request.params("parent"));
+        renderPrepareForm();
+      } else {
+        response.redirect(getUrl(conductor));
+      }
     } else if (mode == Mode.Run) {
       parent = ConductorRun.getInstance(project, request.params("parent"));
       ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor);

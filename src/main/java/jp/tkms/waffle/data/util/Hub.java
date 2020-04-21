@@ -56,6 +56,9 @@ public class Hub {
 
   public ConductorRun createConductorRun(String name) {
     Conductor conductor = Conductor.find(project, name);
+    if (conductor == null) {
+      throw new RuntimeException("Conductor\"(" + name + "\") is not found");
+    }
     ConductorRun createdRun = ConductorRun.create(this.conductorRun, conductor);
     createdRunList.add(createdRun);
     return createdRun;
@@ -63,7 +66,13 @@ public class Hub {
 
   public SimulatorRun createSimulatorRun(String name, String hostName) {
     Simulator simulator = Simulator.find(project, name);
+    if (simulator == null) {
+      throw new RuntimeException("Simulator(\"" + name + "\") is not found");
+    }
     Host host = Host.find(hostName);
+    if (host == null) {
+      throw new RuntimeException("Host\"(" + hostName + "\") is not found");
+    }
     SimulatorRun createdRun = SimulatorRun.create(conductorRun, simulator, host);
     createdRunList.add(createdRun);
     return createdRun;
@@ -78,12 +87,10 @@ public class Hub {
       container.runScriptlet(RubyConductor.getListenerTemplateScript());
       container.runScriptlet(script);
       container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, run);
-
-      container.terminate();
     } catch (EvalFailedException e) {
-      container.terminate();
       BrowserMessage.addMessage("toastr.error('invokeListener: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
     }
+    container.terminate();
   }
 
   public void close() {
