@@ -117,7 +117,7 @@ public class ConductorRun extends AbstractRun {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME +
-          " where " + KEY_STATE + "!=" + State.Finished.ordinal() + " or " + KEY_STATE + "!=" + State.Failed.ordinal() + ";");
+          " where " + KEY_STATE + "!=" + State.Finished.ordinal() + " and " + KEY_STATE + "!=" + State.Failed.ordinal() + ";");
         while (resultSet.next()) {
           list.add(new ConductorRun(
             project,

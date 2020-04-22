@@ -11,6 +11,8 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static jp.tkms.waffle.component.template.Html.*;
+
 public class ProjectComponent extends AbstractAccessControlledComponent {
   public enum Mode {Default, NotFound, EditConstModel, AddConductor}
   Mode mode;
@@ -175,6 +177,26 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             null
           );
         } else {
+          ArrayList<ConductorRun> notFinishedList = new ArrayList<>();
+          for (ConductorRun notFinished : ConductorRun.getNotFinishedList(project)) {
+            if (!notFinished.isRoot()) {
+              if (notFinished.getParent() != null && notFinished.getParent().isRoot()) {
+                notFinishedList.add(notFinished);
+              }
+            }
+          }
+
+          content += Html.element("script", new Attributes(value("type", "text/javascript")),
+              "var updateConductorJobNum = function(c,n) {" +
+              "if (n > 0) {" +
+              "document.getElementById('conductor-jobnum-' + c).style.display = 'inline-block';" +
+              "document.getElementById('conductor-jobnum-' + c).innerHTML = n;" +
+              "} else {" +
+              "document.getElementById('conductor-jobnum-' + c).style.display = 'none';" +
+              "}" +
+              "};updateJobNum(" + Job.getNum() + ");"
+          );
+
           content += Lte.card(Html.faIcon("user-tie") + "Conductors",
             Html.a(getUrl(project, "add_conductor"),
               null, null, Html.faIcon("plus-square")
@@ -192,14 +214,25 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 for (Conductor conductor : Conductor.getList(project)) {
+                  int runningCount = 0;
+                  for (ConductorRun notFinished : notFinishedList) {
+                    if (notFinished.getConductor().getId().equals(conductor.getId())) {
+                      runningCount += 1;
+                    }
+                  }
+
                   list.add(new Lte.TableRow(
                     new Lte.TableValue("",
                       Html.a(ConductorComponent.getUrl(conductor),
                         null, null, conductor.getShortId())),
                     new Lte.TableValue("", conductor.getName()),
                     new Lte.TableValue("text-align:right;",
-                      Html.a(ConductorComponent.getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
-                        Html.span("right badge badge-secondary", null, "run")
+                      Html.span(null, null,
+                        Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
+                        Html.a(ConductorComponent.getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
+                          Html.span("right badge badge-secondary", null, "run")
+                        ),
+                        Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
                       )
                     )
                   ));

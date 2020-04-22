@@ -173,7 +173,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "setTimeout(loadBrowserMessage, 2000);" +
               "var updateJobNum = function(n) {" +
               "if (n > 0) {" +
-              "document.getElementById('jobnum').style.display = 'inline';" +
+              "document.getElementById('jobnum').style.display = 'inline-block';" +
               "document.getElementById('jobnum').innerHTML = n;" +
               "} else {" +
               "document.getElementById('jobnum').style.display = 'none';" +
