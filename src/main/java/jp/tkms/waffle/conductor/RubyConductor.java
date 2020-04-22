@@ -22,11 +22,9 @@ public class RubyConductor extends CycleConductor {
     try {
       container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
       container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_script", conductorRun);
-    } catch (ParseFailedException e) {
-      System.err.println(e.getMessage());
-      BrowserMessage.addMessage("toastr.error('conductor_script: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     } catch (Exception e) {
       System.err.println(e.getMessage());
+      conductorRun.appendErrorNote(e.getMessage());
       BrowserMessage.addMessage("toastr.error('conductor_script: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
     }
     container.terminate();
@@ -44,6 +42,8 @@ public class RubyConductor extends CycleConductor {
           container.runScriptlet(script);
           container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, simulatorRun);
         } catch (Exception e) {
+          System.err.println(e.getMessage());
+          conductorRun.appendErrorNote(e.getMessage());
           BrowserMessage.addMessage("toastr.error('simulator_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
         }
         container.terminate();
@@ -61,7 +61,8 @@ public class RubyConductor extends CycleConductor {
         container.runScriptlet(script);
         container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, conductorRun);
       } catch (Exception e) {
-        container.terminate();
+        System.err.println(e.getMessage());
+        conductorRun.appendErrorNote(e.getMessage());
         BrowserMessage.addMessage("toastr.error('conductor_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
       }
       container.terminate();

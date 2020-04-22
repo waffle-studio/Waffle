@@ -16,7 +16,6 @@ import java.util.Collections;
 public class TrialsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  ;
   private Project project;
   private ConductorRun conductorRun;
   public TrialsComponent(Mode mode) {
@@ -95,6 +94,18 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
           "var runUpdated = function(id) {location.reload();};",
           "var runCreated = function(id) {location.reload();};"
         );
+
+        String errorNote = conductorRun.getErrorNote();
+        if (! "".equals(errorNote)) {
+          contents += Lte.card(Html.faIcon("circle-info") + "Error",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.errorNoticeTextAreaGroup(errorNote)
+              )
+            )
+            , null);
+        }
 
         if (! conductorRun.getParameters().isEmpty()) {
           contents += Lte.card(Html.faIcon("poll") + "Parameters",

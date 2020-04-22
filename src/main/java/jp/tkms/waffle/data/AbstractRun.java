@@ -16,6 +16,8 @@ abstract public class AbstractRun extends ProjectData {
   protected static final String KEY_PARAMETERS = "parameters";
   protected static final String KEY_FINALIZER = "finalizer";
   protected static final String KEY_STATE = "state";
+  protected static final String KEY_ERROR_NOTE = "error_note";
+  protected static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
 
   abstract public void start();
   abstract public boolean isRunning();
@@ -76,6 +78,22 @@ abstract public class AbstractRun extends ProjectData {
         statement.execute();
       }
     });
+  }
+
+  public void appendErrorNote(String note) {
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ERROR_NOTE + "=" + KEY_ERROR_NOTE + "||? where " + KEY_ID + "=?;");
+        statement.setString(1, note + '\n');
+        statement.setString(2, getId());
+        statement.execute();
+      }
+    });
+  }
+
+  public String getErrorNote() {
+    return getFromDB(KEY_ERROR_NOTE);
   }
 
   public void addRawFinalizerScript(String script) {
@@ -139,10 +157,9 @@ abstract public class AbstractRun extends ProjectData {
     handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, parameters.toString());
-        statement.setString(2, getId());
-        statement.execute();
+       new Sql.Update(db, getTableName(),
+          Sql.Value.equal( KEY_PARAMETERS, parameters.toString() )
+        ).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
     return value;

@@ -50,7 +50,7 @@ public class SimulatorRun extends AbstractRun {
     handleDatabase(new SimulatorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createSelect(TABLE_NAME,
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
           KEY_ID,
           KEY_NAME,
           KEY_CONDUCTOR,
@@ -58,9 +58,7 @@ public class SimulatorRun extends AbstractRun {
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
+        ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
           run[0] = new SimulatorRun(
             project,
@@ -95,21 +93,20 @@ public class SimulatorRun extends AbstractRun {
     handleDatabase(new SimulatorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createSelect(TABLE_NAME,
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
           KEY_ID,
-          KEY_CONDUCTOR,
+          KEY_NAME,
           KEY_PARENT,
           KEY_SIMULATOR,
           KEY_HOST,
           KEY_STATE
-        ).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
-        statement.setString(1, parent.getId());
-        ResultSet resultSet = statement.executeQuery();
+        ).where(Sql.Value.equal(KEY_PARENT, parent.getId()))
+          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
           list.add(new SimulatorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_CONDUCTOR),
+            resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE))
@@ -140,29 +137,26 @@ public class SimulatorRun extends AbstractRun {
     handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createInsert(TABLE_NAME,
-          KEY_ID,
-          KEY_CONDUCTOR,
-          KEY_PARENT,
-          KEY_SIMULATOR,
-          KEY_HOST,
-          KEY_STATE,
-          KEY_PARAMETERS
-        ).toPreparedStatement();
-        statement.setString(1, run.getId());
-        statement.setString(2, conductorId);
-        statement.setString(3, parent.getId());
-        statement.setString(4, simulatorId);
-        statement.setString(5, hostId);
-        statement.setInt(6, run.getState().ordinal());
-        statement.setString(7, parameters.toString());
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal(KEY_ID, run.getId()),
+          Sql.Value.equal(KEY_CONDUCTOR, conductorId),
+          Sql.Value.equal(KEY_PARENT, parent.getId()),
+          Sql.Value.equal(KEY_SIMULATOR, simulatorId),
+          Sql.Value.equal(KEY_HOST, hostId),
+          Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
+          Sql.Value.equal(KEY_PARAMETERS, parameters.toString())
+        ).execute();
       }
     });
 
     new RunStatusUpdater(run);
 
     return run;
+  }
+
+  @Override
+  public void appendErrorNote(String note) {
+    super.appendErrorNote(note);
   }
 
   public void setState(State state) {
@@ -265,10 +259,7 @@ public class SimulatorRun extends AbstractRun {
     handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_ENVIRONMENTS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, environments.toString());
-        statement.setString(2, getId());
-        statement.execute();
+        new Sql.Update(db, getTableName(), Sql.Value.equal(KEY_ENVIRONMENTS, environments.toString())).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
     return value;
@@ -330,7 +321,8 @@ public class SimulatorRun extends AbstractRun {
                 KEY_EXIT_STATUS + " default -1," +
                 KEY_ENVIRONMENTS + " default '{}'," +
                 KEY_RESTART_COUNT + " default 0," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                KEY_ERROR_NOTE + " default ''," +
+                KEY_TIMESTAMP_CREATE + " timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }
           }

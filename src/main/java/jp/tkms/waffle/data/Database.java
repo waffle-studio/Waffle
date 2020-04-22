@@ -28,6 +28,10 @@ public class Database implements AutoCloseable {
     connection.setAutoCommit(false);
   }
 
+  public String getUrl() {
+    return url;
+  }
+
   private static void initialize() {
     if (!initialized) {
       try {
@@ -112,13 +116,5 @@ public class Database implements AutoCloseable {
 
   public PreparedStatement preparedStatement(String sql) throws SQLException {
     return connection.prepareStatement(sql);
-  }
-
-  public Sql.Insert createInsert(String table, String... keys) {
-    return new Sql.Insert(this, table, keys);
-  }
-
-  public Sql.Select createSelect(String table, String... keys) {
-    return new Sql.Select(this, table, keys);
   }
 }

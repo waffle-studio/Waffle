@@ -65,9 +65,8 @@ public class Parameter extends SimulatorData {
     handleDatabase(new Parameter(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
-        statement.setString(1, parent.getId());
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet
+          = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).where(Sql.Value.equal(KEY_PARENT, parent.getId())).executeQuery();
         while (resultSet.next()) {
           collectorList.add(new Parameter(
             parent.getSimulator(),
@@ -87,12 +86,11 @@ public class Parameter extends SimulatorData {
     handleDatabase(new Parameter(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_PARENT).toPreparedStatement();
-        statement.setString(1, parameter.getId());
-        statement.setString(2, parameter.getName());
-        statement.setString(3, parent.getId());
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal( KEY_ID, parameter.getId() ),
+          Sql.Value.equal( KEY_NAME, parameter.getName() ),
+          Sql.Value.equal( KEY_PARENT, parent.getId() )
+        ).execute();
       }
     });
 
@@ -139,10 +137,7 @@ public class Parameter extends SimulatorData {
     if (handleDatabase((new Parameter(getSimulator())), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_DEFAULT_VALUE).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, value);
-        statement.setString(2, getId());
-        statement.execute();
+        new Sql.Update(db, getTableName(), Sql.Value.equal(KEY_DEFAULT_VALUE, value)).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     })) {
       defaultValue = value;

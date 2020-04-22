@@ -42,9 +42,7 @@ public class ParameterGroup extends SimulatorData {
     handleDatabase(new ParameterGroup(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
           extractor[0] = new ParameterGroup(
             simulator,
@@ -69,9 +67,8 @@ public class ParameterGroup extends SimulatorData {
     handleDatabase(new ParameterGroup(parent.getSimulator()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT).where(Sql.Value.equalP(KEY_PARENT)).toPreparedStatement();
-        statement.setString(1, parent.getId());
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT)
+          .where(Sql.Value.equal(KEY_PARENT, parent.getId())).executeQuery();
         while (resultSet.next()) {
           collectorList.add(new ParameterGroup(
             parent.getSimulator(),
@@ -92,12 +89,10 @@ public class ParameterGroup extends SimulatorData {
     handleDatabase(new ParameterGroup(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_PARENT).toPreparedStatement();
-        statement.setString(1, group.getId());
-        statement.setString(2, group.getName());
-        statement.setString(3, group.getParent().getId());
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal(KEY_ID, group.getId()),
+          Sql.Value.equal(KEY_NAME, group.getName()),
+          Sql.Value.equal(KEY_PARENT, group.getParent().getId())).execute();
       }
     });
 
@@ -157,10 +152,10 @@ public class ParameterGroup extends SimulatorData {
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {
-              PreparedStatement statement = new Sql.Insert(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
-              statement.setString(1, ROOT_UUID.toString());
-              statement.setString(2, ROOT_NAME);
-              statement.execute();
+              new Sql.Insert(db, TABLE_NAME,
+                Sql.Value.equal(KEY_ID, ROOT_UUID.toString()),
+                Sql.Value.equal(KEY_NAME, ROOT_NAME)
+              ).execute();
             }
           }
         ));

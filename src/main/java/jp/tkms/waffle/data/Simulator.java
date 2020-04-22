@@ -167,10 +167,8 @@ public class Simulator extends ProjectData {
     if (handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_SIMULATION_COMMAND).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, command);
-        statement.setString(2, getId());
-        statement.execute();
+        new Sql.Update(db, getTableName(),
+          Sql.Value.equal(KEY_SIMULATION_COMMAND, command)).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     })) {
       simulationCommand = command;

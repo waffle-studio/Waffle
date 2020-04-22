@@ -117,24 +117,18 @@ public class Job extends Data {
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = new Sql.Select(db, TABLE_NAME, "count(*) as count").where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, run.getId());
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet
+          = new Sql.Select(db, TABLE_NAME, "count(*) as count").where(Sql.Value.equal(KEY_ID, run.getId())).executeQuery();
         int count = 0;
         while (resultSet.next()) {
           count = resultSet.getInt("count");
         }
         if (count <= 0) {
-          statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-            + KEY_PROJECT + ","
-            + KEY_HOST
-            + ") values(?,?,?);");
-          statement.setString(1, run.getId());
-          statement.setString(2, run.getProject().getId());
-          statement.setString(3, hostId);
-          statement.execute();
+          new Sql.Insert(db, TABLE_NAME,
+            Sql.Value.equal(KEY_ID, run.getId()),
+            Sql.Value.equal(KEY_PROJECT, run.getProject().getId()),
+            Sql.Value.equal(KEY_HOST, hostId)
+            ).execute();
         }
       }
     });

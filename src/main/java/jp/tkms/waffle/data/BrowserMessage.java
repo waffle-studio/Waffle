@@ -38,11 +38,9 @@ public class BrowserMessage extends Data {
     handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createSelect(TABLE_NAME,
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
           KEY_ID, KEY_MESSAGE, KEY_ROWID
-        ).where(Sql.Value.greeterThanP(KEY_ROWID)).toPreparedStatement();
-        statement.setString(1, currentRowId);
-        ResultSet resultSet = statement.executeQuery();
+        ).where(Sql.Value.greeterThan(KEY_ROWID, currentRowId)).executeQuery();
         while (resultSet.next()) {
           list.add(new BrowserMessage(
             UUID.fromString(resultSet.getString(KEY_ID)),
@@ -68,10 +66,10 @@ public class BrowserMessage extends Data {
       void handling(Database db) throws SQLException {
         removeExpired(db);
 
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME, KEY_ID, KEY_MESSAGE).toPreparedStatement();
-        statement.setString(1, UUID.randomUUID().toString());
-        statement.setString(2, "try{" + message + "}catch(e){}");
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal( KEY_ID, UUID.randomUUID().toString() ),
+          Sql.Value.equal( KEY_MESSAGE, "try{" + message + "}catch(e){}" )
+        ).execute();
       }
     });
   }
@@ -81,7 +79,7 @@ public class BrowserMessage extends Data {
     handleDatabase(new BrowserMessage(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, "max(rowid) as cid").toPreparedStatement().executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, "max(rowid) as cid").executeQuery();
         while (resultSet.next()) {
             currentRowId[0] = resultSet.getInt("cid");
         }

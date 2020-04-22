@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 abstract public class Data {
+  protected static final String KEY_ROWID = "rowid";
   protected static final String KEY_ID = "id";
   protected static final String KEY_NAME = "name";
 
@@ -73,10 +74,10 @@ abstract public class Data {
     handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, Database.SYSTEM_TABLE, Database.KEY_NAME, Database.KEY_VALUE).toPreparedStatement();
-        statement.setString(1, name);
-        statement.setString(2, value.toString());
-        statement.execute();
+        new Sql.Insert(db, Database.SYSTEM_TABLE,
+          Sql.Value.equal( Database.KEY_NAME, name ),
+          Sql.Value.equal( Database.KEY_VALUE, value.toString() )
+        ).execute();
       }
     });
   }
@@ -123,10 +124,7 @@ abstract public class Data {
     return handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), key).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, value);
-        statement.setString(2, getId());
-        statement.execute();
+        new Sql.Update(db, getTableName(), Sql.Value.equal(key, value)).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
   }
@@ -135,10 +133,7 @@ abstract public class Data {
     return handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), key).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setInt(1, value);
-        statement.setString(2, getId());
-        statement.execute();
+        new Sql.Update(db, getTableName(), Sql.Value.equal(key, value)).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
   }

@@ -60,8 +60,8 @@ public class ParameterExtractor extends SimulatorData {
     handleDatabase(new ParameterExtractor(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet =
+          new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).executeQuery();
         while (resultSet.next()) {
           collectorList.add(new ParameterExtractor(
             simulator,
@@ -81,12 +81,11 @@ public class ParameterExtractor extends SimulatorData {
     handleDatabase(new ParameterExtractor(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_SCRIPT).toPreparedStatement();
-        statement.setString(1, extractor.getId());
-        statement.setString(2, extractor.getName());
-        statement.setString(3, script);
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal(KEY_ID, extractor.getId()),
+          Sql.Value.equal(KEY_NAME, extractor.getName()),
+          Sql.Value.equal(KEY_SCRIPT, script)
+        ).execute();
       }
     });
 
@@ -101,13 +100,10 @@ public class ParameterExtractor extends SimulatorData {
     handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, TABLE_NAME,
-          KEY_NAME, KEY_SCRIPT
-        ).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, name);
-        statement.setString(2, script);
-        statement.setString(3, getId());
-        statement.execute();
+        new Sql.Update(db, TABLE_NAME,
+          Sql.Value.equal(KEY_NAME, name),
+          Sql.Value.equal(KEY_SCRIPT, script)
+        ).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
   }

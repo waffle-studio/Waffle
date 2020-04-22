@@ -112,15 +112,13 @@ public class Spool extends Data {
     handleDatabase(new Spool(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_WORKBASE, KEY_XSUB, KEY_MAX_JOBS, KEY_POLLING).toPreparedStatement();
-        statement.setString(1, host.getId());
-        statement.setString(2, host.getName());
-        statement.setString(3, "/tmp/waffle");
-        statement.setString(4, "");
-        statement.setInt(5, 1);
-        statement.setInt(6, 10);
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal(KEY_ID, host.getId()),
+          Sql.Value.equal(KEY_NAME, host.getName()),
+          Sql.Value.equal(KEY_WORKBASE, "/tmp/waffle"),
+          Sql.Value.equal(KEY_XSUB, ""),
+          Sql.Value.equal(KEY_MAX_JOBS, 1),
+          Sql.Value.equal(KEY_POLLING, 10)).execute();
       }
     });
     return host;
@@ -206,10 +204,7 @@ public class Spool extends Data {
     handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, jsonObject.toString());
-        statement.setString(2, getId());
-        statement.execute();
+        new Sql.Update(db, getTableName(), Sql.Value.equal(KEY_PARAMETERS, jsonObject.toString())).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
   }
@@ -237,21 +232,14 @@ public class Spool extends Data {
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
 
-              PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-                KEY_ID, KEY_NAME,
-                KEY_WORKBASE,
-                KEY_XSUB,
-                KEY_MAX_JOBS,
-                KEY_POLLING
-                ).toPreparedStatement();
-              statement.setString(1, LOCAL_UUID.toString());
-              statement.setString(2, "LOCAL");
-              statement.setString(3, Constants.LOCAL_WORK_DIR);
-              statement.setString(4, Constants.LOCAL_XSUB_DIR);
-              statement.setInt(5, 1);
-              statement.setInt(6, 5);
-              statement.execute();
-
+              new Sql.Insert(db, TABLE_NAME,
+                Sql.Value.equal(KEY_ID, LOCAL_UUID.toString()),
+                Sql.Value.equal(KEY_NAME, "LOCAL"),
+                Sql.Value.equal(KEY_WORKBASE, Constants.LOCAL_WORK_DIR),
+                Sql.Value.equal(KEY_XSUB, Constants.LOCAL_XSUB_DIR),
+                Sql.Value.equal(KEY_MAX_JOBS, 1),
+                Sql.Value.equal(KEY_POLLING, 5)
+              ).execute();
               try {
                 Files.createDirectories(Paths.get(Constants.LOCAL_WORK_DIR));
               } catch (IOException e) {

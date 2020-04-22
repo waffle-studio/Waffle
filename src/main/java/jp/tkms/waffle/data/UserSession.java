@@ -32,10 +32,8 @@ public class UserSession extends Data {
     handleDatabase(new UserSession(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = new Sql.Select(db, TABLE_NAME, KEY_ID).where(Sql.Value.equalP(KEY_NAME)).toPreparedStatement();
-        statement.setString(1, sessionId);
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet
+          = new Sql.Select(db, TABLE_NAME, KEY_ID).where(Sql.Value.equal(KEY_NAME, sessionId)).executeQuery();
         while (resultSet.next()) {
           isContains[0] = true;
         }
@@ -51,10 +49,8 @@ public class UserSession extends Data {
     handleDatabase(new UserSession(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = new Sql.Select(db, TABLE_NAME, KEY_ID).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet
+          = new Sql.Select(db, TABLE_NAME, KEY_ID).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
           browser[0] = new UserSession(
             resultSet.getString(KEY_ID)
@@ -72,7 +68,7 @@ public class UserSession extends Data {
     handleDatabase(null, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID).toPreparedStatement().executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID).executeQuery();
         while (resultSet.next()) {
           list.add(new UserSession(
             resultSet.getString(KEY_ID)
@@ -90,11 +86,7 @@ public class UserSession extends Data {
     handleDatabase(new UserSession(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = new Sql.Insert(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
-        statement.setString(1, session.getId());
-        statement.setString(2, session.getName());
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME, Sql.Value.equal(KEY_ID, session.getId()), Sql.Value.equal(KEY_NAME, session.getName())).execute();
       }
     });
 

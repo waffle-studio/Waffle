@@ -67,8 +67,7 @@ public class ResultCollector extends SimulatorData {
     handleDatabase(new ResultCollector(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).toPreparedStatement();
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME).executeQuery();
         while (resultSet.next()) {
           collectorList.add(new ResultCollector(
             simulator,
@@ -89,13 +88,12 @@ public class ResultCollector extends SimulatorData {
     handleDatabase(new ResultCollector(simulator), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_COLLECTOR_TYPE, KEY_CONTENTS).toPreparedStatement();
-        statement.setString(1, resultCollector.getId());
-        statement.setString(2, resultCollector.getName());
-        statement.setString(3, collector.getClass().getCanonicalName());
-        statement.setString(4, contents);
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal(KEY_ID, resultCollector.getId()),
+          Sql.Value.equal(KEY_NAME, resultCollector.getName()),
+          Sql.Value.equal(KEY_COLLECTOR_TYPE, collector.getClass().getCanonicalName()),
+          Sql.Value.equal(KEY_CONTENTS, contents)
+        ).execute();
       }
     });
 

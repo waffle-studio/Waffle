@@ -13,9 +13,8 @@ import java.util.Arrays;
 
 public class ProjectComponent extends AbstractAccessControlledComponent {
   public enum Mode {Default, NotFound, EditConstModel, AddConductor}
-  private Mode mode;
+  Mode mode;
 
-  ;
   private String requestedId;
   private Project project;
   public ProjectComponent(Mode mode) {
@@ -50,10 +49,12 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
+    Mode mode = this.mode;
+
     requestedId = request.params("id");
     project = Project.getInstance(requestedId);
 
-    if (!project.isValid()) {
+    if (project == null) {
       mode = Mode.NotFound;
     }
 

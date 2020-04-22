@@ -89,9 +89,9 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_PARENT + "=?;");
-        statement.setString(1, parent.getId());
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME)
+          .where(Sql.Value.equal(KEY_PARENT, parent.getId()))
+          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
           ConductorRun conductorRun = new ConductorRun(
             project,
@@ -137,22 +137,14 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID,
-          KEY_NAME,
-          KEY_PARENT,
-          KEY_CONDUCTOR,
-          KEY_PARAMETERS,
-          KEY_STATE
-          ).toPreparedStatement();
-        statement.setString(1, conductorRun.getId());
-        statement.setString(2, conductorRun.getName());
-        statement.setString(3, parent.getId());
-        statement.setString(4, conductor.getId());
-        statement.setString(5, parent.getParameters().toString());
-        statement.setInt(6, State.Created.ordinal());
-        statement.execute();
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal( KEY_ID, conductorRun.getId() ),
+          Sql.Value.equal( KEY_NAME, conductorRun.getName() ),
+          Sql.Value.equal( KEY_PARENT, parent.getId() ),
+          Sql.Value.equal( KEY_CONDUCTOR, conductor.getId() ),
+          Sql.Value.equal( KEY_PARAMETERS, parent.getParameters().toString() ),
+          Sql.Value.equal( KEY_STATE, State.Created.ordinal() )
+        ).execute();
       }
     });
 
@@ -164,7 +156,9 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void finish() {
-    setIntToDB(KEY_STATE, State.Finished.ordinal());
+    if (! getState().equals(State.Failed)) {
+      setState(State.Finished);
+    }
     if (!isRoot()) {
       getParent().update(this);
     }
@@ -236,6 +230,12 @@ public class ConductorRun extends AbstractRun {
   }
 
   @Override
+  public void appendErrorNote(String note) {
+    super.appendErrorNote(note);
+    setState(State.Failed);
+  }
+
+  @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
       @Override
@@ -254,7 +254,8 @@ public class ConductorRun extends AbstractRun {
                 + KEY_PARAMETERS + " default '{}',"
                 + KEY_FINALIZER + " default '[]',"
                 + KEY_STATE + ","
-                + "timestamp_create timestamp default (DATETIME('now','localtime'))" +
+                + KEY_ERROR_NOTE + " default '',"
+                + KEY_TIMESTAMP_CREATE + " timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }
           },
