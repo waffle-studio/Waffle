@@ -86,13 +86,13 @@ public class Main {
   }
 
   public static void hibernate() {
-    System.out.println("System will hibernate");
-    hibernateFlag = true;
-    PollingThread.waitForShutdown();
-    System.out.println("System hibernated");
     new Thread(){
       @Override
       public void run() {
+        System.out.println("System will hibernate");
+        hibernateFlag = true;
+        PollingThread.waitForShutdown();
+        System.out.println("System hibernated");
         try {
           Thread.sleep(500);
         } catch (InterruptedException e) {
