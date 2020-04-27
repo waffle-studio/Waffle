@@ -131,7 +131,18 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        String argumentsText = conductor.getArguments().toString(2);
+        ConductorRun lastConductorRun = ConductorRun.getLastInstance(project, conductor);
+
+        if (lastConductorRun != null && ! lastConductorRun.getErrorNote().equals("")) {
+          content += Lte.card(Html.faIcon("exclamation-triangle") + "Last run error",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.errorNoticeTextAreaGroup(lastConductorRun.getErrorNote())
+              )
+            )
+            , null, "card-danger", null);
+        }
 
         content += Lte.card(Html.faIcon("terminal") + "Basic",
           Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
@@ -142,6 +153,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             Lte.readonlyTextInput("Base Script", conductor.getScriptFileName())
           )
           , null, "collapsed-card", null);
+
+        String argumentsText = conductor.getArguments().toString(2);
 
         content +=
           Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,

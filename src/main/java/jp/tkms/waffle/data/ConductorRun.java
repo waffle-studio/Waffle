@@ -49,11 +49,6 @@ public class ConductorRun extends AbstractRun {
         }
       }
     });
-    if (conductorRun[0] != null && State.Created.equals(conductorRun[0].getState())) {
-      if (!conductorRun[0].isRunning()) {
-        conductorRun[0].setState(State.Failed);
-      }
-    }
 
     return conductorRun[0];
   }
@@ -95,7 +90,7 @@ public class ConductorRun extends AbstractRun {
         while (resultSet.next()) {
           ConductorRun conductorRun = new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id")),
+            UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME)
           );
           list.add(conductorRun);
@@ -104,6 +99,51 @@ public class ConductorRun extends AbstractRun {
     });
 
     return list;
+  }
+
+  public static ArrayList<ConductorRun> getList(Project project, Conductor conductor) {
+    ArrayList<ConductorRun> list = new ArrayList<>();
+
+    handleDatabase(new ConductorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME)
+          .where(Sql.Value.equal(KEY_CONDUCTOR, conductor.getId()))
+          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
+        while (resultSet.next()) {
+          ConductorRun conductorRun = new ConductorRun(
+            project,
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME)
+          );
+          list.add(conductorRun);
+        }
+      }
+    });
+
+    return list;
+  }
+
+  public static ConductorRun getLastInstance(Project project, Conductor conductor) {
+    final ConductorRun[] conductorRun = {null};
+
+    handleDatabase(new ConductorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where conductor=? order by " + KEY_TIMESTAMP_CREATE + " desc, " + KEY_ROWID + " desc limit 1;");
+        statement.setString(1, conductor.getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          conductorRun[0] = new ConductorRun(
+            project,
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME)
+          );
+        }
+      }
+    });
+
+    return conductorRun[0];
   }
 
   public static ArrayList<ConductorRun> getList(Project project, String parentId) {

@@ -97,14 +97,14 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
 
         String errorNote = conductorRun.getErrorNote();
         if (! "".equals(errorNote)) {
-          contents += Lte.card(Html.faIcon("circle-info") + "Error",
+          contents += Lte.card(Html.faIcon("exclamation-triangle") + "Error",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
                 Lte.errorNoticeTextAreaGroup(errorNote)
               )
             )
-            , null);
+            , null, "card-danger", null);
         }
 
         if (! conductorRun.getParameters().isEmpty()) {
