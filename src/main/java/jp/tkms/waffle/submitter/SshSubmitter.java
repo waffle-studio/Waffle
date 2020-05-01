@@ -9,6 +9,8 @@ import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
@@ -71,6 +73,9 @@ public class SshSubmitter extends AbstractSubmitter {
 
       session = new SshSession();
       session.setSession(user, hostName, port);
+      System.out.println(identityFile);
+      System.out.println(Files.exists(Paths.get(identityFile)));
+      System.out.println(identityPass);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
       } else {
