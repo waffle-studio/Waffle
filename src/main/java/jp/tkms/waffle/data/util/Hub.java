@@ -9,7 +9,6 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 public class Hub {
 
@@ -71,7 +70,11 @@ public class Hub {
     }
     Host host = Host.find(hostName);
     if (host == null) {
-      throw new RuntimeException("Host\"(" + hostName + "\") is not found");
+      throw new RuntimeException("Host(\"" + hostName + "\") is not found");
+    }
+    host.update();
+    if (! host.getState().equals(HostState.Viable)) {
+      throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }
     SimulatorRun createdRun = SimulatorRun.create(conductorRun, simulator, host);
     createdRunList.add(createdRun);

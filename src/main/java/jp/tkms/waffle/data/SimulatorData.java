@@ -23,6 +23,6 @@ abstract public class SimulatorData extends Data {
   }
 
   protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(simulator.getLocation() + File.separator + Constants.SIMULATOR_DB_NAME));
+    return Database.getDatabase(Paths.get(simulator.getDirectory() + File.separator + Constants.SIMULATOR_DB_NAME));
   }
 }

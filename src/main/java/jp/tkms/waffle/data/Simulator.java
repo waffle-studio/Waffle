@@ -4,6 +4,8 @@ import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.Sql;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,12 +15,12 @@ import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 
 public class Simulator extends ProjectData {
-  public static final String BIN_DIR = "bin";
+  public static final String KEY_MASTER = "master";
+  public static final String KEY_REMOTE = "REMOTE";
 
   protected static final String TABLE_NAME = "simulator";
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
@@ -129,29 +131,68 @@ public class Simulator extends ProjectData {
       })
     ) {
       try {
-        Files.createDirectories(simulator.getLocation());
-        Files.createDirectories(simulator.getBinDirectoryLocation());
+        Files.createDirectories(simulator.getDirectory());
+        Files.createDirectories(simulator.getBinDirectory());
       } catch (IOException e) {
         e.printStackTrace();
       }
 
       ParameterExtractor.create(simulator, "command arguments", ResourceFile.getContents("/command_arguments.rb"));
       ResultCollector.create(simulator, "_output.json", AbstractResultCollector.getInstance(JsonResultCollector.class.getCanonicalName()));
+
+      try{
+        Git git = Git.init().setDirectory(simulator.getDirectory().toFile()).call();
+        git.add().addFilepattern(".").call();
+        git.commit().setMessage("Initial").setAuthor("waffle","waffle@tkms.jp").call();
+        git.branchCreate().setName(KEY_REMOTE).call();
+        git.checkout().setName(KEY_MASTER).call();
+      } catch (GitAPIException e) {
+        e.printStackTrace();
+      }
     }
 
     return simulator;
   }
 
-  public Path getLocation() {
+  public void update() {
+    try{
+      Git git = Git.open(getDirectory().toFile());
+      git.add().addFilepattern(".").call();
+
+      for (String missing : git.status().call().getMissing()) {
+        git.rm().addFilepattern(missing).call();
+      }
+
+      if (!git.status().call().isClean()) {
+        Set<String> changed = new HashSet<>();
+        changed.addAll(git.status().addPath(KEY_REMOTE).call().getAdded());
+        changed.addAll(git.status().addPath(KEY_REMOTE).call().getModified());
+        changed.addAll(git.status().addPath(KEY_REMOTE).call().getRemoved());
+        changed.addAll(git.status().addPath(KEY_REMOTE).call().getChanged());
+
+        git.commit().setMessage((changed.isEmpty()?"":"R ") + LocalDateTime.now()).setAuthor("waffle","waffle@tkms.jp").call();
+
+        if (!changed.isEmpty()) {
+          git.checkout().setName(KEY_REMOTE).call();
+          git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
+          git.checkout().setName(KEY_MASTER).call();
+        }
+      }
+    } catch (GitAPIException | IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public Path getDirectory() {
     Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + name + '_' + shortId
     );
     return path;
   }
 
-  public Path getBinDirectoryLocation() {
+  public Path getBinDirectory() {
     Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
-      TABLE_NAME + File.separator + name + '_' + shortId + File.separator + BIN_DIR
+      TABLE_NAME + File.separator + name + '_' + shortId + File.separator + KEY_REMOTE
     );
     return path;
   }

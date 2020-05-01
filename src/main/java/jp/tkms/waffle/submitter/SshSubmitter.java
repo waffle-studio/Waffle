@@ -9,8 +9,6 @@ import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
@@ -73,9 +71,6 @@ public class SshSubmitter extends AbstractSubmitter {
 
       session = new SshSession();
       session.setSession(user, hostName, port);
-      System.out.println(identityFile);
-      System.out.println(Files.exists(Paths.get(identityFile)));
-      System.out.println(identityPass);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
       } else {
@@ -108,7 +103,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
     String sep = run.getHost().getDirectorySeparetor();
-    String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.BIN_DIR;
+    String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
 
     return toAbsoluteHomePath(pathString);
   }

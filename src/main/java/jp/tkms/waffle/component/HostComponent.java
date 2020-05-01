@@ -77,7 +77,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += Lte.card(Html.faIcon("terminal") + "Properties",
-          null,
+          host.getState().getStatusBadge(),
           Html.form(getUrl(host, "update"), Html.Method.Post,
             Html.div(null,
               Lte.formInputGroup("text", KEY_XSUB,

@@ -55,6 +55,7 @@ public class Main {
     BrowserMessageComponent.register();
 
     ProjectsComponent.register();
+    TemplatesComponent.register();
     JobsComponent.register();
     HostsComponent.register();
     ConductorTemplatesComponent.register();

@@ -1,6 +1,8 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.data.SimulatorRun;
 import org.json.JSONObject;
 
@@ -32,11 +34,20 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
-    return run.getSimulator().getBinDirectoryLocation().toAbsolutePath().toString();
+    String sep = run.getHost().getDirectorySeparetor();
+    String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    return pathString;
   }
 
   @Override
   void prepareSubmission(SimulatorRun run) {
+    try {
+      Files.createDirectories(Paths.get(getSimulatorBinDirectory(run)));
+      //session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    BrowserMessage.info("Run(" + run.getShortId() + ") was prepared");
   }
 
   @Override

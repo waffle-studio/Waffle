@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
@@ -15,7 +16,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.UUID;
 
 public class Host extends Data {
@@ -28,6 +28,7 @@ public class Host extends Data {
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_OS = "os";
   private static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_STATE = "state";
 
   private String hostName = null;
   private String workBaseDirectory = null;
@@ -136,7 +137,21 @@ public class Host extends Data {
   }
 
   public void update() {
-    setXsubTemplate(AbstractSubmitter.getXsubTemplate(this, false));
+    try {
+      JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
+      setXsubTemplate(jsonObject);
+      setState(HostState.Viable);
+    } catch (RuntimeException e) {
+      setState(HostState.Invalid);
+    }
+  }
+
+  private void setState(HostState state) {
+    setIntToDB(KEY_STATE, state.ordinal());
+  }
+
+  public HostState getState() {
+    return HostState.valueOf(getIntFromDB(KEY_STATE));
   }
 
   public Path getLocation() {
@@ -355,6 +370,12 @@ public class Host extends Data {
             @Override
             void task(Database db) throws SQLException {
               db.execute("alter table " + TABLE_NAME + " add " + KEY_OS + " default 'U';");
+            }
+          },
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("alter table " + TABLE_NAME + " add " + KEY_STATE + " default " + HostState.Invalid.ordinal() + ";");
             }
           }
         ));

@@ -243,31 +243,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             , null, null, "p-0");
         }
 
-        content += Lte.card(Html.faIcon("list") + "Registry", null,
-          Lte.table("table-condensed table-sm", new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("", "Key"));
-              list.add(new Lte.TableValue("", "Value"));
-              return list;
-            }
-
-            @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (KeyValue e : Registry.getList(project)) {
-                if (e.getKey().indexOf('.') == 0) { continue; }
-                list.add(new Lte.TableRow(
-                  new Lte.TableValue("", e.getKey()),
-                  new Lte.TableValue("", e.getValue())
-                ));
-              }
-              return list;
-            }
-          })
-          , null, null, "p-0");
-
         return content;
       }
     }.render(this);

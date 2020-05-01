@@ -134,8 +134,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         ConductorRun lastConductorRun = ConductorRun.getLastInstance(project, conductor);
 
         if (lastConductorRun != null && ! lastConductorRun.getErrorNote().equals("")) {
-          content += Lte.card(Html.faIcon("exclamation-triangle") + "Last run error",
-            Lte.cardToggleButton(true),
+          content += Lte.card(Html.faIcon("exclamation-triangle") + "Error of last run",
+            Lte.cardToggleButton(false),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
                 Lte.errorNoticeTextAreaGroup(lastConductorRun.getErrorNote())

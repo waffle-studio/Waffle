@@ -198,14 +198,18 @@ abstract public class AbstractSubmitter {
       );
   }
 
-  public static JSONObject getXsubTemplate(Host host, boolean retry) {
+  public static JSONObject getXsubTemplate(Host host, boolean retry) throws RuntimeException {
     AbstractSubmitter submitter = getInstance(host).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
       getXsubBinDirectory(host) + "xsub -t";
     String json = submitter.exec(command);
     if (json != null) {
-      jsonObject = new JSONObject(json);
+      try {
+        jsonObject = new JSONObject(json);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to parse JSON");
+      }
     }
     return jsonObject;
   }

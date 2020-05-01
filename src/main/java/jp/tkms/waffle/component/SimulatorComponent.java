@@ -84,7 +84,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         content += Lte.card(Html.faIcon("terminal") + "Properties", null,
           Html.form(getUrl(simulator, "update"), Html.Method.Post,
             Html.div(null,
-              Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectoryLocation().toString()),
+              Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectory().toString()),
               Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors),
               Lte.formSubmitButton("primary", "Update")
             )
@@ -181,6 +181,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   void updateSimulator() {
     simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
+    simulator.update();
     response.redirect(getUrl(simulator));
   }
 

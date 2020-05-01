@@ -73,6 +73,12 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     elementWithClass("li", "nav-item",
+                      a(TemplatesComponent.getUrl(), "nav-link", null,
+                        faIcon("layer-group", "nav-icon"),
+                        p("Templates")
+                      )
+                    ),
+                    elementWithClass("li", "nav-item",
                       a(JobsComponent.getUrl(), "nav-link", null,
                         faIcon("running", "nav-icon"),
                         p("Jobs", span("right badge badge-warning", new Attributes(value("id", "jobnum"))))
