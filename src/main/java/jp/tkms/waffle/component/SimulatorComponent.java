@@ -85,15 +85,16 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("terminal") + "Properties", null,
+        content +=
           Html.form(getUrl(simulator, "update"), Html.Method.Post,
-            Html.div(null,
-              Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectory().toString()),
-              Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors),
+            Lte.card(Html.faIcon("terminal") + "Properties", null,
+              Html.div(null,
+                Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectory().toString()),
+                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors)
+              ),
               Lte.formSubmitButton("primary", "Update")
             )
-          )
-          , null);
+          );
 
         ParameterGroup rootGroup = ParameterGroup.getRootInstance(simulator);
 

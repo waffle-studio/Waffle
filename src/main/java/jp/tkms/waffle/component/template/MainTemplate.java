@@ -30,6 +30,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/select2.min.css"),
           link("stylesheet", "/css/icheck-bootstrap.min.css"),
           link("stylesheet", "/css/toastr.min.css"),
+          link("stylesheet", "/css/custom.css"),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
         body("hold-transition sidebar-mini",

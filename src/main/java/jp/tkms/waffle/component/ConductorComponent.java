@@ -164,11 +164,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, argumentsText.split("\\n").length, argumentsText, null),
-                  Lte.formSubmitButton("success", "Update")
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, argumentsText.split("\\n").length, argumentsText, null)
                 )
-              )
-              , null, "collapsed-card.stop", null)
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop", null)
           );
 
         String mainScriptSyntaxError = RubyConductor.checkSyntax(conductor.getScriptPath());
@@ -180,11 +180,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                 Lte.divCol(Lte.DivSize.F12,
                   ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
                   Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainScriptContents(), errors),
-                  getGuideHtml(),
-                  Lte.formSubmitButton("success", "Update")
+                  getGuideHtml()
                 )
-              )
-              , null, "collapsed-card.stop", null)
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop", null)
           );
 
         content +=
@@ -213,11 +213,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                       Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
                       ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
                       Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getFileContents(fileName), errors),
-                      getGuideHtml(),
-                      Lte.formSubmitButton("success", "Update")
+                      getGuideHtml()
                     )
-                  )
-                  , null, "collapsed-card.stop", null)
+                  ),
+                  Lte.formSubmitButton("success", "Update"),
+                  "collapsed-card.stop", null)
               );
           }
         }
