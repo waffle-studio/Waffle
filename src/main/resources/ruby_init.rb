@@ -44,21 +44,68 @@ def get_store(registry, entity_id)
     end
 end
 
+def get_template_argument(registry, entity_id)
+    serialized_template_argument = registry.get(".TA:" + entity_id, "[]")
+    if serialized_template_argument == "[]" then
+        template_argument = TemplateArgument.new()
+    else
+        template_argument = Marshal.load(serialized_template_argument)
+    end
+end
+
+class TemplateArgument
+    def initialize
+        @p = Hash.new
+        @f = Hash.new
+    end
+
+    def p
+        @p
+    end
+
+    def f
+        @f
+    end
+end
+
 class Hub < Java::jp.tkms.waffle.data.util.Hub
-    def initialize(conductorRun, run)
-        super(conductorRun, run)
+    def initialize(conductorRun, run, template)
+        super(conductorRun, run, template)
         @store = get_store(registry, conductorRun.id)
+        @template_argument =  get_template_argument(registry, conductorRun.id)
     end
 
     def close
+    #TODO: check with depth
+        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+        registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
         super
         registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+        registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
+    end
+
+    def loadConductorTemplate(name)
+        super
+        @template_argument
+    end
+
+    def loadListenerTemplate(name)
+        super
+        @template_argument
+    end
+
+    def p
+        @template_argument.p
+    end
+
+    def f
+        @template_argument.f
     end
 end
 
 def exec_process(conductorRun, run, &block)
     result = true
-    hub = Hub.new(conductorRun, run)
+    hub = Hub.new(conductorRun, run, nil)
     result = block.call(hub)
     hub.close
     return result
@@ -76,35 +123,22 @@ def exec_listener_script(conductorRun, run)
     end
 end
 
-
-class TemplatesHub < Java::jp.tkms.waffle.data.util.Hub
-    def initialize(conductorRun, run, arguments)
-        super(conductorRun, run, arguments)
-        @store = get_store(registry, conductorRun.id)
-    end
-
-    def close
-        super
-        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
-    end
-end
-
-def exec_template_process(conductorRun, run, arguments, &block)
+def exec_template_process(conductorRun, run, template, &block)
     result = true
-    hub = TemplatesHub.new(conductorRun, run, arguments)
+    hub = Hub.new(conductorRun, run, template)
     result = block.call(hub)
     hub.close
     return result
 end
 
-def exec_conductor_template_script(conductorRun, arguments)
-    exec_template_process conductorRun, conductorRun, arguments do | hub |
+def exec_conductor_template_script(conductorRun, conductorTemplate)
+    exec_template_process conductorRun, conductorRun, conductorTemplate do | hub |
         next conductor_script(hub, conductorRun)
     end
 end
 
-def exec_listener_template_script(conductorRun, run, arguments)
-    exec_template_process conductorRun, run, arguments do | hub |
+def exec_listener_template_script(conductorRun, run)
+    exec_template_process conductorRun, run, nil do | hub |
         next listener_script(hub, run)
     end
 end

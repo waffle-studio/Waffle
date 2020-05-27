@@ -22,23 +22,22 @@ public class Hub {
   String parameterStoreName;
 
   //TODO: do refactor
+  ConductorTemplate parentConductorTemplate = null;
   ConductorTemplate conductorTemplate = null;
   ListenerTemplate listenerTemplate = null;
-  TemplateArguments templateArguments;
 
-  public Hub(ConductorRun conductorRun, AbstractRun run, TemplateArguments templateArguments) {
+  public Hub(ConductorRun conductorRun, AbstractRun run, ConductorTemplate conductorTemplate) {
     this.project = conductorRun.getProject();
     this.conductorRun = conductorRun;
     this.run = run;
     this.registry = new Registry(conductorRun.getProject());
     this.createdRunList = new ArrayList<>();
     switchParameterStore(null);
-    this.templateArguments = templateArguments;
+    parentConductorTemplate = conductorTemplate;
   }
 
   public Hub(ConductorRun conductorRun, AbstractRun run) {
     this(conductorRun, run, null);
-    this.templateArguments = new TemplateArguments();
   }
 
   public Project getProject() {
@@ -94,41 +93,53 @@ public class Hub {
   }
 
   public void invokeListener(String name) {
-    String fileName = conductorRun.getConductor().getListenerScriptFileName(name);
-    String script = conductorRun.getConductor().getFileContents(fileName);
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    try {
-      container.runScriptlet(RubyConductor.getInitScript());
-      container.runScriptlet(RubyConductor.getListenerTemplateScript());
-      container.runScriptlet(script);
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, run);
-    } catch (EvalFailedException e) {
-      BrowserMessage.addMessage("toastr.error('invokeListener: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
-    }
-    container.terminate();
-  }
-
-  public TemplateArguments loadConductorTemplate(String name) {
-    conductorTemplate = ConductorTemplate.find(name);
-    return templateArguments;
-  }
-
-  public TemplateArguments loadListenerTemplate(String name) {
-    listenerTemplate = ListenerTemplate.find(name);
-    return templateArguments;
-  }
-
-  public void close() {
-    //TODO: do refactor
-    if (conductorTemplate != null) {
-      String fileName = conductorTemplate.getScriptFileName();
-      String script = listenerTemplate.getFileContents(fileName);
+    if (parentConductorTemplate != null) {
+      String fileName = conductorTemplate.getListenerScriptFileName(name);
+      String script = conductorTemplate.getFileContents(fileName);
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());
         container.runScriptlet(RubyConductor.getListenerTemplateScript());
         container.runScriptlet(script);
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", conductorRun, templateArguments);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", conductorRun, run);
+      } catch (EvalFailedException e) {
+        BrowserMessage.addMessage("toastr.error('invokeListenerTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+      }
+      container.terminate();
+    } else {
+      String fileName = conductorRun.getConductor().getListenerScriptFileName(name);
+      String script = conductorRun.getConductor().getFileContents(fileName);
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+      try {
+        container.runScriptlet(RubyConductor.getInitScript());
+        container.runScriptlet(RubyConductor.getListenerTemplateScript());
+        container.runScriptlet(script);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, run);
+      } catch (EvalFailedException e) {
+        BrowserMessage.addMessage("toastr.error('invokeListener: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+      }
+      container.terminate();
+    }
+  }
+
+  public void loadConductorTemplate(String name) {
+    conductorTemplate = ConductorTemplate.find(name);
+  }
+
+  public void loadListenerTemplate(String name) {
+    listenerTemplate = ListenerTemplate.find(name);
+  }
+
+  public void close() {
+    //TODO: do refactor
+    if (conductorTemplate != null) {
+      String script = conductorTemplate.getMainScriptContents();
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+      try {
+        container.runScriptlet(RubyConductor.getInitScript());
+        container.runScriptlet(RubyConductor.getListenerTemplateScript());
+        container.runScriptlet(script);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", conductorRun, conductorTemplate);
       } catch (EvalFailedException e) {
         BrowserMessage.addMessage("toastr.error('invokeConductorTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
       }
@@ -141,7 +152,7 @@ public class Hub {
         container.runScriptlet(RubyConductor.getInitScript());
         container.runScriptlet(RubyConductor.getListenerTemplateScript());
         container.runScriptlet(script);
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", conductorRun, run, templateArguments);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", conductorRun, run);
       } catch (EvalFailedException e) {
         BrowserMessage.addMessage("toastr.error('invokeListenerTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
       }
@@ -203,14 +214,5 @@ public class Hub {
   @Override
   public String toString() {
     return super.toString();
-  }
-
-  public HashMap p() { return templateArguments.parameters; }
-  public HashMap f() { return templateArguments.functions; }
-
-
-  public class TemplateArguments {
-    HashMap<String, Object> parameters = new HashMap<>();
-    HashMap<String, Object> functions = new HashMap<>();
   }
 }

@@ -231,7 +231,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return Html.div(null,
       Html.div(null, "hub.invokeListener(\"&lt;NAME&gt;\")"),
       Html.div(null, "hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
-      Html.div(null, "hub.createConductorRun(\"&lt;NAME&gt;\")")
+      Html.div(null, "hub.createConductorRun(\"&lt;NAME&gt;\")"),
+      Html.div(null, "hub.loadConductorTemplate(\"&lt;NAME&gt;\")"),
+      Html.div(null, "hub.loadListenerTemplate(\"&lt;NAME&gt;\")")
     );
   }
 
@@ -267,11 +269,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 10, conductor.getArguments().toString(2), null),
-                  Lte.formSubmitButton("primary", "Run")
+                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 10, conductor.getArguments().toString(2), null)
                 )
               )
-            , null)
+              ,Lte.formSubmitButton("primary", "Run")
+            )
           );
 
         return content;

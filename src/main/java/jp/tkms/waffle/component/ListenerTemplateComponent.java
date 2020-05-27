@@ -124,11 +124,10 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScriptContents(), errors),
-                  Lte.formSubmitButton("success", "Update")
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScriptContents(), errors)
                 )
               )
-              , null, "collapsed-card.stop", null)
+              ,Lte.formSubmitButton("success", "Update") , "collapsed-card.stop", null)
           );
 
         content += Lte.card(Html.faIcon("file") + "Files",

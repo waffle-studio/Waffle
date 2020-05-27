@@ -145,11 +145,11 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScriptContents(), errors),
-                  Lte.formSubmitButton("success", "Update")
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScriptContents(), errors)
+
                 )
               )
-              , null, "collapsed-card.stop", null)
+              , Lte.formSubmitButton("success", "Update"), "collapsed-card.stop", null)
           );
 
         content +=
@@ -158,11 +158,11 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_NAME, KEY_NAME, "", "", errors),
-                  Lte.formSubmitButton("primary", "Create")
+                  Lte.formInputGroup("text", KEY_NAME, KEY_NAME, "", "", errors)
+
                 )
               )
-              , null, "collapsed-card", null)
+              , Lte.formSubmitButton("primary", "Create"), "collapsed-card", null)
           );
 
         for (File child : module.getLocation().toFile().listFiles()) {
@@ -175,11 +175,10 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
                   Lte.divRow(
                     Lte.divCol(Lte.DivSize.F12,
                       Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
-                      Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", module.getFileContents(fileName), errors),
-                      Lte.formSubmitButton("success", "Update")
+                      Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", module.getFileContents(fileName), errors)
                     )
                   )
-                  , null, "collapsed-card.stop", null)
+                  , Lte.formSubmitButton("success", "Update"), "collapsed-card.stop", null)
               );
           }
         }
