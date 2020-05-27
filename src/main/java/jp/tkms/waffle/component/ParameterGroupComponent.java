@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
@@ -85,7 +86,7 @@ public class ParameterGroupComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderParameterModelGroup() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return group.getName();
@@ -182,7 +183,7 @@ public class ParameterGroupComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderParameterGroupAddForm(ArrayList<Lte.FormError> errors) {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return group.getName();
@@ -235,7 +236,7 @@ public class ParameterGroupComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderParameterAddForm(ArrayList<Lte.FormError> errors) {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return group.getName();

@@ -109,8 +109,7 @@ public class Lte {
     );
   }
 
-  public static String readonlyTextAreaGroup(String name, String label, int rows,
-                                         String contents) {
+  public static String readonlyTextAreaGroup(String name, String label, int rows, String contents) {
     String id = "input" + name;
     return div("form-group",
       (label != null ?
@@ -126,6 +125,10 @@ public class Lte {
         , contents
       )
     );
+  }
+
+  public static String readonlyTextAreaGroup(String name, String label, String contents) {
+    return readonlyTextAreaGroup(name, label, contents.split("\\n").length, contents);
   }
 
   public static String formInputGroup(String type, String name, String label,

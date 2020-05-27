@@ -2,6 +2,8 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
+import org.jruby.embed.LocalContextScope;
+import org.jruby.embed.ScriptingContainer;
 import spark.Spark;
 
 import java.io.File;
@@ -80,6 +82,8 @@ public class Main {
         return;
       }
     }.start();
+
+    (new ScriptingContainer(LocalContextScope.THREADSAFE)).terminate();
 
     new SystemUpdater(null);
 

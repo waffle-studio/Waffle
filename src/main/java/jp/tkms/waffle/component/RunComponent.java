@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.SimulatorRun;
@@ -58,7 +59,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderRun() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return run.getId();
@@ -114,7 +115,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           Lte.cardToggleButton(false),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, 10, run.getVariables().toString(2))
+              Lte.readonlyTextAreaGroup("", null, run.getVariables().toString(2))
             )
           )
           , null, "collapsed-card", null);
@@ -123,7 +124,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, 10, run.getParameters().toString(2))
+              Lte.readonlyTextAreaGroup("", null, run.getParameters().toString(2))
             )
           )
           , null);
@@ -132,7 +133,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, 10, run.getResults().toString(2))
+              Lte.readonlyTextAreaGroup("", null, run.getResults().toString(2))
             )
           )
           , null);

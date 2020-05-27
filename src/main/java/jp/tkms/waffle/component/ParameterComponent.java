@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Parameter;
 import jp.tkms.waffle.data.ParameterGroup;
 import jp.tkms.waffle.data.Project;
@@ -61,7 +62,7 @@ public class ParameterComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderParameter() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return parameter.getName();

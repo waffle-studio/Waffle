@@ -7,6 +7,8 @@ import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Job;
 
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -33,19 +35,7 @@ abstract public class MainTemplate extends AbstractTemplate {
         body("hold-transition sidebar-mini",
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
-              elementWithClass("ul", "navbar-nav",
-                elementWithClass("li", "nav-item",
-                  a("#", "nav-link", new Attributes(value("data-widget", "pushmenu")),
-                    faIcon("bars")
-                  )
-                )/*,
-                                elementWithClass("li", "nav-item d-none d-sm-inline-block",
-                                    a("#", "nav-link", null, "T0")
-                                ),
-                                elementWithClass("li", "nav-item d-none d-sm-inline-block",
-                                    a("#", "nav-link", null, "T1")
-                                )*/
-              )
+              randerPageNavigation()
             ),
             elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
               a(Constants.ROOT_PAGE, "brand-link navbar-light",
@@ -205,6 +195,24 @@ abstract public class MainTemplate extends AbstractTemplate {
     );
   }
 
+  String randerPageNavigation() {
+    String innerContent = elementWithClass("li", "nav-item",
+        a("#", "nav-link", new Attributes(value("data-widget", "pushmenu")),
+          faIcon("bars")
+        )
+    );
+
+    if (pageNavigation() != null) {
+      for (Map.Entry<String, String> entry : pageNavigation()) {
+        innerContent += elementWithClass("li", "nav-item",
+          a(entry.getValue(), "nav-link", null, entry.getKey())
+        );
+      }
+    }
+
+    return elementWithClass("ul", "navbar-nav", innerContent);
+  }
+
   String randerPageBreadcrumb() {
     String innerContent = elementWithClass("li", "breadcrumb-item",
       a(Constants.ROOT_PAGE, null, null, faIcon("home"))
@@ -219,6 +227,8 @@ abstract public class MainTemplate extends AbstractTemplate {
 
     return elementWithClass("ol", "breadcrumb float-sm-right", innerContent);
   }
+
+  protected abstract ArrayList<Map.Entry<String, String>> pageNavigation();
 
   protected abstract String pageTitle();
 

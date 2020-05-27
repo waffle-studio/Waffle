@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
@@ -61,7 +62,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderAddForm(ArrayList<Lte.FormError> errors) {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Simulators";
@@ -113,7 +114,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderSimulatorList() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Simulators";

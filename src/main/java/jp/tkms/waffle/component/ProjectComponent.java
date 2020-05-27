@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.KeyValue;
@@ -14,6 +15,8 @@ import java.util.Arrays;
 import static jp.tkms.waffle.component.template.Html.*;
 
 public class ProjectComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "Project";
+
   public enum Mode {Default, NotFound, EditConstModel, AddConductor}
   Mode mode;
 
@@ -83,7 +86,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderProjectNotFound() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "[" + requestedId + "]";
@@ -107,7 +110,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderConductorAddForm(ArrayList<Lte.FormError> errors) {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Conductors";
@@ -146,7 +149,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderProject() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return project.getName();
@@ -256,7 +259,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     String name = request.queryParams("name");
     String type = request.queryParams("type");
     AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    Conductor.create(project, name, abstractConductor, abstractConductor.defaultScriptName());
-    response.redirect(ProjectComponent.getUrl(project));
+    Conductor conductor = Conductor.create(project, name, abstractConductor, abstractConductor.defaultScriptName());
+    response.redirect(ConductorComponent.getUrl(conductor));
   }
 }

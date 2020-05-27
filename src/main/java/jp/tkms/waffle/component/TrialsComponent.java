@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.SimulatorRun;
@@ -14,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class TrialsComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "Trials";
   private Mode mode;
 
   private Project project;
@@ -62,7 +64,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderTrialsList() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Trials";
@@ -114,7 +116,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
         }
 
         if (! conductorRun.getVariables().isEmpty()) {
-          contents += Lte.card(Html.faIcon("poll") + "Parameters",
+          contents += Lte.card(Html.faIcon("poll") + "Variables",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,

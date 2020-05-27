@@ -8,6 +8,8 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class ConductorTemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ConductorTemplates";
@@ -60,6 +62,11 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
   private void renderAddForm(ArrayList<Lte.FormError> errors) {
     new MainTemplate() {
       @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return TITLE;
       }
@@ -100,6 +107,11 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
 
   private void renderProjectList() {
     new MainTemplate() {
+      @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
       @Override
       protected String pageTitle() {
         return TITLE;

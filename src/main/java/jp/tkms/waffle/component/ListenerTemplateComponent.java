@@ -10,6 +10,8 @@ import spark.Spark;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class ListenerTemplateComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ListenerTemplate";
@@ -63,6 +65,11 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
 
   private void renderConductor() {
     new MainTemplate() {
+      @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
       @Override
       protected String pageTitle() {
         return module.getName();

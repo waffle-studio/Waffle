@@ -145,8 +145,8 @@ public class SimulatorRun extends AbstractRun {
         parameters.put(entry.getKey(), entry.getValue());
       }
     }
-
      */
+
 
     handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
@@ -158,7 +158,7 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_SIMULATOR, simulatorId),
           Sql.Value.equal(KEY_HOST, hostId),
           Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
-          Sql.Value.equal(KEY_VARIABLES, "{}")
+          Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString())
         ).execute();
       }
     });

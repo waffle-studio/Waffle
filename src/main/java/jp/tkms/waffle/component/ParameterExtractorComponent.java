@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
 import spark.Spark;
@@ -77,7 +78,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   private void renderParameterExtractor() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return extractor.getName();
@@ -120,7 +121,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   private void renderAddParameterExtractorForm() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Parameter Extractor";

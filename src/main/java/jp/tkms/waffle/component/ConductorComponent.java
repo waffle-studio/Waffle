@@ -3,6 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
@@ -10,6 +11,7 @@ import spark.Spark;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.TreeMap;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_MAIN_SCRIPT = "main_script";
@@ -109,7 +111,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderConductor() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return conductor.getName();
@@ -234,7 +236,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderPrepareForm() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return conductor.getName();

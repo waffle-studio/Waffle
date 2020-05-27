@@ -9,6 +9,8 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class ListenerTemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ListenerTemplates";
@@ -61,6 +63,11 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
   private void renderAddForm(ArrayList<Lte.FormError> errors) {
     new MainTemplate() {
       @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return TITLE;
       }
@@ -101,6 +108,11 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
 
   private void renderProjectList() {
     new MainTemplate() {
+      @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
       @Override
       protected String pageTitle() {
         return TITLE;

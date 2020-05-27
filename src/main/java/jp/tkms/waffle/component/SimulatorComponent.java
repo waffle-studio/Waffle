@@ -3,13 +3,17 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class SimulatorComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "Simulators";
+
   private Mode mode;
 
   private Project project;
@@ -59,7 +63,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderSimulator() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return simulator.getName();
@@ -176,6 +180,27 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             }
           })
           , null, null, "p-0");
+
+        content += Lte.card(Html.faIcon("file") + "Files",
+          Lte.cardToggleButton(false),
+          Lte.table("table-sm", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              return null;
+            }
+
+            @Override
+            public ArrayList<Lte.TableRow> tableRows() {
+              ArrayList<Lte.TableRow> list = new ArrayList<>();
+              for (File child : simulator.getBinDirectory().toFile().listFiles()) {
+                list.add(new Lte.TableRow(
+                  child.getName())
+                );
+              }
+              return list;
+            }
+          })
+          , null, "collapsed-card.stop", "p-0");
 
         return content;
       }
