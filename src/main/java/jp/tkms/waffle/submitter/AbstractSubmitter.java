@@ -12,13 +12,13 @@ import java.util.Map;
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
   protected static final String SIMULATOR_DIR = "simulator";
-  protected static final String INNER_WORK_DIR = "WORK";
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
   protected static final String ENVIRONMENTS_FILE = "environments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract public AbstractSubmitter connect(boolean retry);
+  abstract String getRunDirectory(SimulatorRun run);
   abstract String getWorkDirectory(SimulatorRun run);
   abstract String getSimulatorBinDirectory(SimulatorRun run);
   abstract void prepareSubmission(SimulatorRun run);
@@ -74,11 +74,13 @@ abstract public class AbstractSubmitter {
   String makeBatchFileText(SimulatorRun run) {
     return "#!/bin/sh\n" +
       "\n" +
-      "export PATH='" + getSimulatorBinDirectory(run) + "':$PATH\n" +
-      "mkdir " + INNER_WORK_DIR + "\n" +
+      "export REMOTE='" + getSimulatorBinDirectory(run) + "'\n" +
+      "chmod a+x '" + getSimulatorBinDirectory(run) + "/" + run.getSimulator().getSimulationCommand() + "'\n" +
+      "export PATH=\"" + getSimulatorBinDirectory(run) + ":$PATH\"\n" +
+      "mkdir -p " + getWorkDirectory(run) + "\n" +
       "BATCH_WORKING_DIR=`pwd`\n" +
-      "cd " + INNER_WORK_DIR + "\n" +
-      "cat ../" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
+      "cd " + getWorkDirectory(run) + "\n" +
+      "cat ${BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
       run.getSimulator().getSimulationCommand() + " >${BATCH_WORKING_DIR}/stdout.txt 2>${BATCH_WORKING_DIR}/stderr.txt\n" +
       "EXIT_STATUS=$?\n" +
       "cd ${BATCH_WORKING_DIR}\n" +
@@ -103,14 +105,14 @@ abstract public class AbstractSubmitter {
   }
 
   String xsubSubmitCommand(Job job) {
-    //return xsubCommand(job) + " -d '" + getWorkDirectory(job.getRun()) + "' " + BATCH_FILE;
+    //return xsubCommand(job) + " -d '" + getRunDirectory(job.getRun()) + "' " + BATCH_FILE;
     return xsubCommand(job) + " " + BATCH_FILE;
   }
 
   String xsubCommand(Job job) {
     Host host = job.getHost();
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
-      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(job.getRun()) + "'; " +
+      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()) + "'; " +
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
@@ -155,13 +157,13 @@ abstract public class AbstractSubmitter {
           } catch (Exception e) {
             /*
             if (job.getErrorCount() >= 5) {
-              System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
+              System.err.println(getRunDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
             } else {
               job.incrementErrorCount();
               break;
             }
             */
-            System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
+            System.err.println(getRunDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
           }
 
           if (exitStatus == 0) {
@@ -188,8 +190,7 @@ abstract public class AbstractSubmitter {
   }
 
   String getContentsPath(SimulatorRun run, String path) {
-    return getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + INNER_WORK_DIR
-       + run.getHost().getDirectorySeparetor() + path;
+    return getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + path;
   }
 
   public static String getXsubBinDirectory(Host host) {

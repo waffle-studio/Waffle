@@ -17,7 +17,7 @@ public class RubyParameterExtractor extends AbstractParameterExtractor {
     try {
       container.runScriptlet(getInitScript(run));
       container.runScriptlet(extractor.getScript());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "parameter_extract", run);
+      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_parameter_extract", run);
       container.terminate();
     } catch (EvalFailedException e) {
       container.terminate();

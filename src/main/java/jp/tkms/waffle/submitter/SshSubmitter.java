@@ -80,13 +80,14 @@ public class SshSubmitter extends AbstractSubmitter {
       session.connect(retry);
     } catch (Exception e) {
       e.printStackTrace();
+      throw new RuntimeException(e.getMessage());
     }
 
     return this;
   }
 
   @Override
-  String getWorkDirectory(SimulatorRun run) {
+  String getRunDirectory(SimulatorRun run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
       + RUN_DIR + host.getDirectorySeparetor() + run.getId();
@@ -101,6 +102,11 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  String getWorkDirectory(SimulatorRun run) {
+    return getRunDirectory(run) + "/" + SimulatorRun.WORKING_DIR; // do refactor
+  }
+
+  @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
     String sep = run.getHost().getDirectorySeparetor();
     String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
@@ -112,7 +118,10 @@ public class SshSubmitter extends AbstractSubmitter {
   void prepareSubmission(SimulatorRun run) {
     try {
       session.mkdir(getSimulatorBinDirectory(run), "/tmp");
-      //session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+      if (true) {  // TODO: Check if the simulator has been updated
+        session.scp(run.getSimulator().getBinDirectory().toFile(), getSimulatorBinDirectory(run), "/tmp");
+        session.scp(run.getWorkPath().toFile(), getRunDirectory(run), "/tmp");
+      }
     } catch (JSchException e) {
       e.printStackTrace();
     }
@@ -139,7 +148,7 @@ public class SshSubmitter extends AbstractSubmitter {
   int getExitStatus(SimulatorRun run) throws Exception {
     int status = -1;
 
-    status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
+    status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getRunDirectory(run)).replaceAll("\\r|\\n", ""));
 
     return status;
   }
@@ -147,7 +156,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   void postProcess(SimulatorRun run) {
     try {
-      //session.rmdir(getWorkDirectory(run), "/tmp");
+      //session.rmdir(getRunDirectory(run), "/tmp");
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -162,7 +171,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   public void putText(SimulatorRun run, String path, String text) {
     try {
-      session.putText(text, path, getWorkDirectory(run));
+      session.putText(text, path, getRunDirectory(run));
     } catch (JSchException e) {
       e.printStackTrace();
     }

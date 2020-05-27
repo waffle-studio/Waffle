@@ -93,6 +93,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         ParameterGroup rootGroup = ParameterGroup.getRootInstance(simulator);
 
+        /*
         content += Lte.card(Html.faIcon("list-alt") + "Parameter Models",
           Html.a(ParameterGroupComponent.getUrl(ParameterGroup.getRootInstance(simulator), ParameterGroupComponent.MODE_ADD_PARAMETER_GROUP), Html.faIcon("plus-square") + "Group") +
             "/" + Html.a(ParameterGroupComponent.getUrl(rootGroup, ParameterGroupComponent.MODE_ADD_PARAMETER), Html.faIcon("plus") + "Parameter"),
@@ -124,6 +125,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             }
           })
           , null, null, "p-0");
+
+         */
 
         content += Lte.card(Html.faIcon("file-import") + "Parameter Extractors",
           Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus")),

@@ -8,6 +8,7 @@ import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 
 public class Hub {
@@ -20,13 +21,24 @@ public class Hub {
 
   String parameterStoreName;
 
-  public Hub(ConductorRun conductorRun, AbstractRun run) {
+  //TODO: do refactor
+  ConductorTemplate conductorTemplate = null;
+  ListenerTemplate listenerTemplate = null;
+  TemplateArguments templateArguments;
+
+  public Hub(ConductorRun conductorRun, AbstractRun run, TemplateArguments templateArguments) {
     this.project = conductorRun.getProject();
     this.conductorRun = conductorRun;
     this.run = run;
     this.registry = new Registry(conductorRun.getProject());
     this.createdRunList = new ArrayList<>();
     switchParameterStore(null);
+    this.templateArguments = templateArguments;
+  }
+
+  public Hub(ConductorRun conductorRun, AbstractRun run) {
+    this(conductorRun, run, null);
+    this.templateArguments = new TemplateArguments();
   }
 
   public Project getProject() {
@@ -96,7 +108,46 @@ public class Hub {
     container.terminate();
   }
 
+  public TemplateArguments loadConductorTemplate(String name) {
+    conductorTemplate = ConductorTemplate.find(name);
+    return templateArguments;
+  }
+
+  public TemplateArguments loadListenerTemplate(String name) {
+    listenerTemplate = ListenerTemplate.find(name);
+    return templateArguments;
+  }
+
   public void close() {
+    //TODO: do refactor
+    if (conductorTemplate != null) {
+      String fileName = conductorTemplate.getScriptFileName();
+      String script = listenerTemplate.getFileContents(fileName);
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+      try {
+        container.runScriptlet(RubyConductor.getInitScript());
+        container.runScriptlet(RubyConductor.getListenerTemplateScript());
+        container.runScriptlet(script);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", conductorRun, templateArguments);
+      } catch (EvalFailedException e) {
+        BrowserMessage.addMessage("toastr.error('invokeConductorTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+      }
+      container.terminate();
+    } else if (listenerTemplate != null) {
+      String fileName = listenerTemplate.getScriptFileName();
+      String script = listenerTemplate.getFileContents(fileName);
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+      try {
+        container.runScriptlet(RubyConductor.getInitScript());
+        container.runScriptlet(RubyConductor.getListenerTemplateScript());
+        container.runScriptlet(script);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", conductorRun, run, templateArguments);
+      } catch (EvalFailedException e) {
+        BrowserMessage.addMessage("toastr.error('invokeListenerTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+      }
+      container.terminate();
+    }
+
     for (AbstractRun createdRun : createdRunList) {
       if (! createdRun.isStarted()) {
         createdRun.start();
@@ -104,48 +155,62 @@ public class Hub {
     }
   }
 
-  public Object getVariable(String key) {
+  public Object getRegistry(String key) {
     return registry.get(key);
   }
 
-  public void putVariable(String key, Object value) {
+  public void putRegistry(String key, Object value) {
     registry.put(key, value);
   }
 
-  private final HashMap<Object, Object> variableMapWrapper  = new HashMap<Object, Object>() {
+  private final HashMap<Object, Object> registryMapWrapper  = new HashMap<Object, Object>() {
     @Override
     public Object get(Object key) {
-      return getVariable(key.toString());
+      return getRegistry(key.toString());
     }
 
     @Override
     public Object put(Object key, Object value) {
-      putVariable(key.toString(), value);
+      putRegistry(key.toString(), value);
       return value;
     }
   };
-  public HashMap variables() { return variableMapWrapper; }
-  public HashMap v() { return variableMapWrapper; }
+  //public HashMap registry() { return registryMapWrapper; }
+  public HashMap r() { return registryMapWrapper; }
 
-  private final HashMap<Object, Object> parameterMapWrapper  = new HashMap<Object, Object>() {
+  private final HashMap<Object, Object> variablesMapWrapper  = new HashMap<Object, Object>() {
     @Override
     public Object get(Object key) {
       if (run instanceof SimulatorRun) {
-        return run.getParent().getParameter(key.toString());
+        return run.getParent().getVariable(key.toString());
       }
-      return run.getParameter(key.toString());
+      return run.getVariable(key.toString());
     }
 
     @Override
     public Object put(Object key, Object value) {
       if (run instanceof SimulatorRun) {
-        run.getParent().putParameter(key.toString(), value);
+        run.getParent().putVariable(key.toString(), value);
       } else {
-        run.putParameter(key.toString(), value);
+        run.putVariable(key.toString(), value);
       }
       return value;
     }
   };
-  public HashMap parameters() { return parameterMapWrapper; }
-  public HashMap p() { return parameterMapWrapper; }
+  public HashMap variables() { return variablesMapWrapper; }
+  public HashMap v() { return variablesMapWrapper; }
+
+  @Override
+  public String toString() {
+    return super.toString();
+  }
+
+  public HashMap p() { return templateArguments.parameters; }
+  public HashMap f() { return templateArguments.functions; }
+
+
+  public class TemplateArguments {
+    HashMap<String, Object> parameters = new HashMap<>();
+    HashMap<String, Object> functions = new HashMap<>();
+  }
 }

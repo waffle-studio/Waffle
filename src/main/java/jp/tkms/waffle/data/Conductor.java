@@ -29,6 +29,7 @@ public class Conductor extends ProjectData {
   private static final String KEY_SCRIPT = "script_file";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_LISTENER = "listener";
+  private static final String KEY_EXT_JSON = ".json";
   private static final String KEY_EXT_RUBY = ".rb";
 
   private String conductorType = null;
@@ -188,26 +189,27 @@ public class Conductor extends ProjectData {
 
   public JSONObject getArguments() {
     if (arguments == null) {
-      arguments = getFromDB(KEY_ARGUMENTS);
+      arguments = getFileContents(KEY_ARGUMENTS + KEY_EXT_JSON);
+      if (arguments.equals("")) {
+        arguments = "{}";
+        try {
+          FileWriter filewriter = new FileWriter(getLocation().resolve(KEY_ARGUMENTS + KEY_EXT_JSON).toFile());
+          filewriter.write(arguments);
+          filewriter.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
     }
     return new JSONObject(arguments);
   }
 
   public void setArguments(String json) {
-    JSONObject args = new JSONObject(json);
-    if (args != null) {
-      arguments = args.toString();
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, arguments);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
+    try {
+      JSONObject object = new JSONObject(json);
+      updateFileContents(KEY_ARGUMENTS + KEY_EXT_JSON, object.toString(2));
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
 
@@ -302,7 +304,7 @@ public class Conductor extends ProjectData {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," + KEY_ARGUMENTS + " default '{}'," +
+                "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

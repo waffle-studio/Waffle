@@ -23,6 +23,7 @@ public class RubyConductor extends CycleConductor {
       container.runScriptlet(PathType.ABSOLUTE, conductorRun.getConductor().getScriptPath().toString());
       container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_script", conductorRun);
     } catch (Exception e) {
+      e.printStackTrace();
       System.err.println(e.getMessage());
       conductorRun.appendErrorNote(e.getMessage());
       BrowserMessage.addMessage("toastr.error('conductor_script: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");

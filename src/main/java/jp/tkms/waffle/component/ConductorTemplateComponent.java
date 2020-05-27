@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ConductorTemplateComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "ConductorTemplate";
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_ARGUMENTS = "arguments";
@@ -91,7 +92,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ConductorTemplatesComponent.getUrl(), ConductorTemplatesComponent.TITLE),
+          Html.a(TemplatesComponent.getUrl(), TemplatesComponent.TITLE),
           module.getId()
         ));
       }
@@ -115,6 +116,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
           )
           , null, "collapsed-card", null);
 
+        /*
         content +=
           Html.form(getUrl(module, "update-arguments"), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Arguments",
@@ -127,6 +129,8 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
               )
               , null, "collapsed-card.stop", null)
           );
+
+         */
 
         content +=
           Html.form(getUrl(module, "update-main-script"), Html.Method.Post,

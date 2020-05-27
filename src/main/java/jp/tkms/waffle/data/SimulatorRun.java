@@ -6,6 +6,10 @@ import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,6 +23,10 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_ENVIRONMENTS = "environments";
+  protected static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_RESULTS = "results";
+  protected static final String KEY_EXT_JSON = ".json";
+  public static final String WORKING_DIR = "WORK";
 
   protected SimulatorRun(Project project) {
     super(project);
@@ -29,6 +37,8 @@ public class SimulatorRun extends AbstractRun {
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
+  private JSONObject parameters = null;
+  private JSONObject results = null;
   private JSONObject environments;
   private JSONArray arguments;
 
@@ -127,12 +137,16 @@ public class SimulatorRun extends AbstractRun {
     String conductorId = parent.getConductor().getId();
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
+
+    /*
     JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
     if (copyParameters) {
       for (Map.Entry<String, Object> entry : parent.getParameters().toMap().entrySet()) {
         parameters.put(entry.getKey(), entry.getValue());
       }
     }
+
+     */
 
     handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
@@ -144,14 +158,23 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_SIMULATOR, simulatorId),
           Sql.Value.equal(KEY_HOST, hostId),
           Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
-          Sql.Value.equal(KEY_PARAMETERS, parameters.toString())
+          Sql.Value.equal(KEY_VARIABLES, "{}")
         ).execute();
       }
     });
 
     new RunStatusUpdater(run);
 
+    try {
+      Files.createDirectories(run.getWorkPath());
+    } catch (Exception e) {}
+    run.updateParametersStore();
+
     return run;
+  }
+
+  public Path getWorkPath() {
+    return getPath().resolve(WORKING_DIR).toAbsolutePath();
   }
 
   @Override
@@ -265,6 +288,154 @@ public class SimulatorRun extends AbstractRun {
     return value;
   }
 
+  protected void updateParametersStore() {
+    if (! Files.exists(getPath())) {
+      try {
+        Files.createDirectories(getPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (parameters == null) {
+      parameters = new JSONObject();
+    }
+
+    Path storePath = getPath().resolve(KEY_PARAMETERS + KEY_EXT_JSON);
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(parameters.toString(2));
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String getFromParametersStore() {
+    Path storePath = getPath().resolve(KEY_PARAMETERS + KEY_EXT_JSON);
+    String json = "{}";
+    if (Files.exists(storePath)) {
+      try {
+        json = new String(Files.readAllBytes(storePath));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return json;
+  }
+
+  public void putParametersByJson(String json) {
+    getParameters(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      e.printStackTrace();
+    }
+    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject map = new JSONObject(getFromParametersStore());
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        parameters.put(key, valueMap.get(key));
+      }
+
+      updateParametersStore();
+    }
+  }
+
+  public void putParameter(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putParametersByJson(obj.toString());
+  }
+
+  public JSONObject getParameters() {
+    if (parameters == null) {
+      parameters = new JSONObject(getFromParametersStore());
+    }
+    return parameters;
+  }
+
+  public Object getParameter(String key) {
+    return getParameters().get(key);
+  }
+
+  protected void updateResultsStore() {
+    if (! Files.exists(getPath())) {
+      try {
+        Files.createDirectories(getPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (results == null) {
+      results = new JSONObject();
+    }
+
+    Path storePath = getPath().resolve(KEY_RESULTS + KEY_EXT_JSON);
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(results.toString(2));
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String getFromResultsStore() {
+    Path storePath = getPath().resolve(KEY_RESULTS + KEY_EXT_JSON);
+    String json = "{}";
+    if (Files.exists(storePath)) {
+      try {
+        json = new String(Files.readAllBytes(storePath));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return json;
+  }
+
+  public void putResultsByJson(String json) {
+    getResults(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      e.printStackTrace();
+    }
+    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject map = new JSONObject(getFromResultsStore());
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        results.put(key, valueMap.get(key));
+      }
+
+      updateResultsStore();
+    }
+  }
+
+  public void putResult(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putResultsByJson(obj.toString());
+  }
+
+  public JSONObject getResults() {
+    if (results == null) {
+      results = new JSONObject(getFromResultsStore());
+    }
+    return results;
+  }
+
+  public Object getResult(String key) {
+    return getResults().get(key);
+  }
+
   @Override
   public boolean isRunning() {
     return !(state.equals(State.Finished) || state.equals(State.Failed));
@@ -315,7 +486,7 @@ public class SimulatorRun extends AbstractRun {
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
-                KEY_PARAMETERS + " default '{}'," +
+                KEY_VARIABLES + " default '{}'," +
                 KEY_FINALIZER + " default '[]'," +
                 KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
@@ -343,6 +514,7 @@ public class SimulatorRun extends AbstractRun {
     }
     return environmentsWrapper;
   }
+  public HashMap<String, Object> e() { return environments(); }
 
   private ArrayList<Object> argumentsWrapper = null;
   public ArrayList<Object> arguments() {
@@ -357,4 +529,31 @@ public class SimulatorRun extends AbstractRun {
     }
     return argumentsWrapper;
   }
+  public ArrayList<Object> a() { return arguments(); }
+
+  private HashMap<Object, Object> parametersWrapper = null;
+  public HashMap parameters() {
+    if (parametersWrapper == null) {
+      parametersWrapper = new HashMap<Object, Object>() {
+        @Override
+        public Object get(Object key) {
+          return getVariable(key.toString());
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+          putParameter(key.toString(), value);
+          return value;
+        }
+
+        @Override
+        public String toString() {
+          return getParameters().toString();
+        }
+      };
+    }
+
+    return parametersWrapper;
+  }
+  public HashMap p() { return parameters(); }
 }

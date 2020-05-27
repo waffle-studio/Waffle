@@ -156,7 +156,7 @@ public class AbciSubmitter extends SshSubmitter {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-    packBatchTextList.put(packId, packBatchTextList.get(packId) + getWorkDirectory(run) + "\n");
+    packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(run) + "\n");
 
     packWaitThread.addReadyJob(job);
     packWaitThreadSemaphore.release();

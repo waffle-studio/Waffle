@@ -182,7 +182,7 @@ public class ConductorRun extends AbstractRun {
           Sql.Value.equal( KEY_NAME, conductorRun.getName() ),
           Sql.Value.equal( KEY_PARENT, parent.getId() ),
           Sql.Value.equal( KEY_CONDUCTOR, conductor.getId() ),
-          Sql.Value.equal( KEY_PARAMETERS, parent.getParameters().toString() ),
+          Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
           Sql.Value.equal( KEY_STATE, State.Created.ordinal() )
         ).execute();
       }
@@ -202,10 +202,6 @@ public class ConductorRun extends AbstractRun {
     if (!isRoot()) {
       getParent().update(this);
     }
-  }
-
-  public boolean isRoot() {
-    return getParent() == null;
   }
 
   public ArrayList<ConductorRun> getChildConductorRunList() {
@@ -291,7 +287,7 @@ public class ConductorRun extends AbstractRun {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
                 "id,name," + KEY_PARENT + "," + KEY_CONDUCTOR + ","
-                + KEY_PARAMETERS + " default '{}',"
+                + KEY_VARIABLES + " default '{}',"
                 + KEY_FINALIZER + " default '[]',"
                 + KEY_STATE + ","
                 + KEY_ERROR_NOTE + " default '',"

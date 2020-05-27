@@ -2,7 +2,6 @@ package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.data.SimulatorRun;
 import org.json.JSONObject;
 
@@ -18,7 +17,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getWorkDirectory(SimulatorRun run) {
+  String getRunDirectory(SimulatorRun run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
       + RUN_DIR + host.getDirectorySeparetor() + run.getId();
@@ -33,20 +32,30 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  String getWorkDirectory(SimulatorRun run) {
+    return run.getWorkPath().toString();
+  }
+
+  @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
     String sep = run.getHost().getDirectorySeparetor();
-    String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    //String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    String pathString = run.getSimulator().getBinDirectory().toAbsolutePath().toString();
     return pathString;
   }
 
   @Override
   void prepareSubmission(SimulatorRun run) {
+    /*
+     * preparing a host's simulator working directory is not needed
+     *
     try {
       Files.createDirectories(Paths.get(getSimulatorBinDirectory(run)));
-      //session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+      session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
     } catch (IOException e) {
       e.printStackTrace();
     }
+     */
     BrowserMessage.info("Run(" + run.getShortId() + ") was prepared");
   }
 
@@ -80,7 +89,7 @@ public class LocalSubmitter extends AbstractSubmitter {
 
     try {
       FileReader file
-        = new FileReader(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + EXIT_STATUS_FILE);
+        = new FileReader(getRunDirectory(run) + run.getHost().getDirectorySeparetor() + EXIT_STATUS_FILE);
       BufferedReader r  = new BufferedReader(file);
       String line;
       while ((line = r.readLine()) != null) {
@@ -99,7 +108,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   void postProcess(SimulatorRun run) {
     try {
-      //deleteDirectory(getWorkDirectory(run));
+      //deleteDirectory(getRunDirectory(run));
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -114,7 +123,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   public void putText(SimulatorRun run, String path, String text) {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + path)
+        new FileWriter(getRunDirectory(run) + run.getHost().getDirectorySeparetor() + path)
       ));
       pw.println(text);
       pw.close();

@@ -4,6 +4,10 @@ import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -11,10 +15,11 @@ import java.util.HashMap;
 import java.util.UUID;
 
 abstract public class AbstractRun extends ProjectData {
+  protected static final String KEY_TRIAL = "trial";
   protected static final String KEY_PARENT = "parent";
   protected static final String KEY_CONDUCTOR = "conductor";
-  protected static final String KEY_PARAMETERS = "parameters";
   protected static final String KEY_FINALIZER = "finalizer";
+  protected static final String KEY_VARIABLES = "variables";
   protected static final String KEY_STATE = "state";
   protected static final String KEY_ERROR_NOTE = "error_note";
   protected static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
@@ -46,6 +51,18 @@ abstract public class AbstractRun extends ProjectData {
     }
     return parentConductorRun;
   }
+
+  public boolean isRoot() {
+    return getParent() == null;
+  }
+
+  public Path getPath() {
+    if (isRoot()) {
+      return getProject().getLocation().resolve(KEY_TRIAL);
+    }
+    return getParent().getPath().resolve(getId());
+  }
+
 
   public Conductor getConductor() {
     if (conductor == null) {
@@ -107,71 +124,62 @@ abstract public class AbstractRun extends ProjectData {
     addRawFinalizerScript(getConductor().getFileContents(fileName));
   }
 
-  public void putParametersByJson(String json) {
-    getParameters(); // init.
+  protected void updateVariablesStore() {
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        new Sql.Update(db, getTableName(),
+          Sql.Value.equal( KEY_VARIABLES, getVariables().toString() )
+        ).where(Sql.Value.equal(KEY_ID, getId())).execute();
+      }
+    });
+  }
+
+  public void putVariablesByJson(String json) {
+    getVariables(); // init.
     JSONObject valueMap = null;
     try {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
       BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      e.printStackTrace();
     }
-    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject map = new JSONObject(getFromDB(KEY_VARIABLES));
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
         parameters.put(key, valueMap.get(key));
       }
 
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
+      updateVariablesStore();
     }
   }
 
-  public void putParameter(String key, Object value) {
+  public void putVariable(String key, Object value) {
     JSONObject obj = new JSONObject();
     obj.put(key, value);
-    putParametersByJson(obj.toString());
+    putVariablesByJson(obj.toString());
   }
 
-  public JSONObject getParameters() {
+  public JSONObject getVariables() {
     if (parameters == null) {
-      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
+      parameters = new JSONObject(getFromDB(KEY_VARIABLES));
     }
     return parameters;
   }
 
-  public Object getParameter(String key) {
-    return getParameters().get(key);
+  public Object getVariable(String key) {
+    return getVariables().get(key);
   }
 
-  public Object setParameter(String key, Object value) {
-    getParameters();
-    parameters.put(key, value);
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-       new Sql.Update(db, getTableName(),
-          Sql.Value.equal( KEY_PARAMETERS, parameters.toString() )
-        ).where(Sql.Value.equal(KEY_ID, getId())).execute();
-      }
-    });
-    return value;
-  }
 
-  private HashMap<Object, Object> parameterWrapper = null;
-  public HashMap parameters() {
-    if (parameterWrapper == null) {
-      parameterWrapper = new HashMap<Object, Object>() {
+  private HashMap<Object, Object> variablesWrapper = null;
+  public HashMap variables() {
+    if (variablesWrapper == null) {
+      variablesWrapper = new HashMap<Object, Object>() {
         @Override
         public Object get(Object key) {
-          return getParameter(key.toString());
+          return getVariable(key.toString());
         }
 
         @Override
@@ -182,19 +190,7 @@ abstract public class AbstractRun extends ProjectData {
       };
     }
 
-    return parameterWrapper;
+    return variablesWrapper;
   }
-  public HashMap p() { return parameterWrapper; }
-  public class ParameterMapInterface extends HashMap<Object, Object> {
-    @Override
-    public Object get(Object key) {
-      return getParameter(key.toString());
-    }
-
-    @Override
-    public Object put(Object key, Object value) {
-      //putArgument(key.toString(), value);
-      return value;
-    }
-  }
+  public HashMap v() { return variables(); }
 }

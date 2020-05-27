@@ -90,18 +90,6 @@ abstract public class MainTemplate extends AbstractTemplate {
                         p("Hosts")
                       )
                     ),
-                    elementWithClass("li", "nav-item",
-                      a(ConductorTemplatesComponent.getUrl(), "nav-link", null,
-                        faIcon("cubes", "nav-icon"),
-                        p("ConductorTemplates")
-                      )
-                    ),
-                    elementWithClass("li", "nav-item",
-                      a(ListenerTemplatesComponent.getUrl(), "nav-link", null,
-                        faIcon("circle", "nav-icon"),
-                        p("ListenerTemplates")
-                      )
-                    ),
                     elementWithClass("li", "nav-header", "Status"),
                     elementWithClass("li", "nav-item",
                       Lte.disabledTextInput("info", null, "Screen reloaded"),

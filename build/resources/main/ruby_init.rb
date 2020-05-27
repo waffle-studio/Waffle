@@ -80,6 +80,12 @@ end
 def parameter_extract(run)
 end
 
+def exec_parameter_extract(run)
+    Dir.chdir(run.getWorkPath().toString()) do
+        parameter_extract(run)
+    end
+end
+
 class Java::JavaLang::Object
     def is_group?()
         return self.is_a?(Java::JavaUtil::HashMap)

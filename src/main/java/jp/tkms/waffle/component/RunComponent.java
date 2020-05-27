@@ -69,7 +69,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          "Trials"
+          Html.a(TrialsComponent.getUrl(project), "Trials")
         ));
         ArrayList<String> conductorRunList = new ArrayList<>();
         ConductorRun parent = run.getParent();
@@ -77,6 +77,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
           parent = parent.getParent();
         }
+        conductorRunList.remove(conductorRunList.size() -1);
         Collections.reverse(conductorRunList);
         breadcrumb.addAll(conductorRunList);
         breadcrumb.add(run.getId());
@@ -109,11 +110,29 @@ public class RunComponent extends AbstractAccessControlledComponent {
             })
           , null, null, "p-0");
 
+        content += Lte.card(Html.faIcon("list-alt") + "Variables",
+          Lte.cardToggleButton(false),
+          Lte.divRow(
+            Lte.divCol(Lte.DivSize.F12,
+              Lte.readonlyTextAreaGroup("", null, 10, run.getVariables().toString(2))
+            )
+          )
+          , null, "collapsed-card", null);
+
         content += Lte.card(Html.faIcon("list-alt") + "Parameters",
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
               Lte.readonlyTextAreaGroup("", null, 10, run.getParameters().toString(2))
+            )
+          )
+          , null);
+
+        content += Lte.card(Html.faIcon("list-alt") + "Results",
+          Lte.cardToggleButton(true),
+          Lte.divRow(
+            Lte.divCol(Lte.DivSize.F12,
+              Lte.readonlyTextAreaGroup("", null, 10, run.getResults().toString(2))
             )
           )
           , null);

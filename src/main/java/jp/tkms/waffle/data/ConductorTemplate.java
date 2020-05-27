@@ -26,6 +26,7 @@ public class ConductorTemplate extends Data {
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_FUNCTIONS = "functionss";
   private static final String KEY_LISTENER = "listener";
+  private static final String KEY_PROPERTY_JSON = "property.json";
   private static final String KEY_EXT_RUBY = ".rb";
 
   private String arguments = null;

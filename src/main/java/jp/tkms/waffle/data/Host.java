@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.Sql;
@@ -142,7 +143,7 @@ public class Host extends Data {
       setXsubTemplate(jsonObject);
       setState(HostState.Viable);
     } catch (RuntimeException e) {
-      setState(HostState.Invalid);
+      setState(HostState.Unviable);
     }
   }
 
@@ -375,7 +376,7 @@ public class Host extends Data {
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {
-              db.execute("alter table " + TABLE_NAME + " add " + KEY_STATE + " default " + HostState.Invalid.ordinal() + ";");
+              db.execute("alter table " + TABLE_NAME + " add " + KEY_STATE + " default " + HostState.Unviable.ordinal() + ";");
             }
           }
         ));

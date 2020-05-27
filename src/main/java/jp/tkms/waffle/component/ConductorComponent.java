@@ -79,7 +79,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       parent = ConductorRun.getInstance(project, request.params("parent"));
       ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor);
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        conductorRun.putParametersByJson(request.queryParams(KEY_ARGUMENTS));
+        conductorRun.putVariablesByJson(request.queryParams(KEY_ARGUMENTS));
       }
       conductorRun.start(true);
       response.redirect(ProjectComponent.getUrl(project));
@@ -178,6 +178,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                 Lte.divCol(Lte.DivSize.F12,
                   ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
                   Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainScriptContents(), errors),
+                  getGuideHtml(),
                   Lte.formSubmitButton("success", "Update")
                 )
               )
@@ -210,6 +211,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                       Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
                       ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
                       Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getFileContents(fileName), errors),
+                      getGuideHtml(),
                       Lte.formSubmitButton("success", "Update")
                     )
                   )
@@ -218,30 +220,17 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           }
         }
 
-        content += Lte.card(Html.faIcon("file") + "Files",
-          Lte.cardToggleButton(true),
-          Lte.table("table-sm", new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              return null;
-            }
-
-            @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (File child : conductor.getLocation().toFile().listFiles()) {
-                list.add(new Lte.TableRow(
-                  child.getName())
-                );
-              }
-              return list;
-            }
-          })
-          , null, "collapsed-card", "p-0");
-
         return content;
       }
     }.render(this);
+  }
+
+  private String getGuideHtml() {
+    return Html.div(null,
+      Html.div(null, "hub.invokeListener(\"&lt;NAME&gt;\")"),
+      Html.div(null, "hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
+      Html.div(null, "hub.createConductorRun(\"&lt;NAME&gt;\")")
+    );
   }
 
   private void renderPrepareForm() {

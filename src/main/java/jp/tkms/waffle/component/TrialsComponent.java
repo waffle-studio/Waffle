@@ -72,18 +72,24 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          "Trials"
+          Html.a(ProjectComponent.getUrl(project), project.getShortId())
         ));
         ArrayList<String> conductorRunList = new ArrayList<>();
         ConductorRun parent = conductorRun.getParent();
-        while (parent != null) {
-          conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
-          parent = parent.getParent();
+        if (parent == null) {
+          breadcrumb.add("Trials");
+        } else {
+          while (parent != null) {
+            conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
+            parent = parent.getParent();
+          }
+          conductorRunList.remove(conductorRunList.size() - 1);
+          Collections.reverse(conductorRunList);
+          breadcrumb.addAll(conductorRunList);
+          if (! conductorRunList.isEmpty()) {
+            breadcrumb.add(conductorRun.getId());
+          }
         }
-        Collections.reverse(conductorRunList);
-        breadcrumb.addAll(conductorRunList);
-        breadcrumb.add(conductorRun.getId());
         return breadcrumb;
       }
 
@@ -107,12 +113,12 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             , null, "card-danger", null);
         }
 
-        if (! conductorRun.getParameters().isEmpty()) {
+        if (! conductorRun.getVariables().isEmpty()) {
           contents += Lte.card(Html.faIcon("poll") + "Parameters",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, 10, conductorRun.getParameters().toString(2))
+                Lte.readonlyTextAreaGroup("", null, 10, conductorRun.getVariables().toString(2))
               )
             )
             , null);

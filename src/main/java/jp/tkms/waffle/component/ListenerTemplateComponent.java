@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ListenerTemplateComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "ListenerTemplate";
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_ARGUMENTS = "arguments";
   private Mode mode;
@@ -70,7 +71,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          "ConductorTemplates",
+          Html.a(TemplatesComponent.getUrl(), TemplatesComponent.TITLE),
           module.getId()
         ));
       }
@@ -84,7 +85,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
         content += Lte.card(Html.faIcon("terminal") + "Basic",
           Lte.cardToggleButton(true),
           Html.div(null,
-            Lte.readonlyTextInput("ConductorTemplate Directory", module.getLocation().toAbsolutePath().toString()),
+            Lte.readonlyTextInput(TITLE + " Directory", module.getLocation().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Main Script", module.getScriptFileName())
           )
           , null, "collapsed-card", null);
@@ -94,6 +95,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
           argumentsText += s + "\n";
         }
 
+        /*
         content +=
           Html.form(getUrl(module, "update-arguments"), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Arguments",
@@ -106,6 +108,8 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
               )
               , null, "collapsed-card.stop", null)
           );
+
+         */
 
         content +=
           Html.form(getUrl(module, "update-main-script"), Html.Method.Post,
