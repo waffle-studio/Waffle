@@ -62,7 +62,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return run.getId();
+        return (run.getName() == null || "".equals(run.getName()) ? run.getId() : run.getName());
       }
 
       @Override
@@ -120,20 +120,14 @@ public class RunComponent extends AbstractAccessControlledComponent {
           )
           , null, "collapsed-card", null);
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameters",
+        content += Lte.card(Html.faIcon("list-alt") + "Parameters & Results",
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, run.getParameters().toString(2))
-            )
-          )
-          , null);
-
-        content += Lte.card(Html.faIcon("list-alt") + "Results",
-          Lte.cardToggleButton(true),
-          Lte.divRow(
+              Lte.readonlyTextAreaGroup("", "Parameters", run.getParameters().toString(2))
+            ),
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, run.getResults().toString(2))
+              Lte.readonlyTextAreaGroup("", "Results", run.getResults().toString(2))
             )
           )
           , null);

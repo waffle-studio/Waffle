@@ -120,7 +120,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, 10, conductorRun.getVariables().toString(2))
+                Lte.readonlyTextAreaGroup("", null, conductorRun.getVariables().toString(2))
               )
             )
             , null);
