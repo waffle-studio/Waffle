@@ -64,7 +64,6 @@ def exec_process(conductorRun, run, &block)
     return result
 end
 
-
 def exec_conductor_script(conductorRun)
     exec_process conductorRun, conductorRun do | hub |
         next conductor_script(hub, conductorRun)
@@ -73,6 +72,39 @@ end
 
 def exec_listener_script(conductorRun, run)
     exec_process conductorRun, run do | hub |
+        next listener_script(hub, run)
+    end
+end
+
+
+class TemplatesHub < Java::jp.tkms.waffle.data.util.Hub
+    def initialize(conductorRun, run, arguments)
+        super(conductorRun, run, arguments)
+        @store = get_store(registry, conductorRun.id)
+    end
+
+    def close
+        super
+        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+    end
+end
+
+def exec_template_process(conductorRun, run, arguments, &block)
+    result = true
+    hub = TemplatesHub.new(conductorRun, run, arguments)
+    result = block.call(hub)
+    hub.close
+    return result
+end
+
+def exec_conductor_template_script(conductorRun, arguments)
+    exec_template_process conductorRun, conductorRun, arguments do | hub |
+        next conductor_script(hub, conductorRun)
+    end
+end
+
+def exec_listener_template_script(conductorRun, run, arguments)
+    exec_template_process conductorRun, run, arguments do | hub |
         next listener_script(hub, run)
     end
 end
