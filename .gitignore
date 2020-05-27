@@ -8,8 +8,7 @@ waffle.dat
 work/
 tmp/
 
-
-build/scriptsShadow/
+build/
 
 # Compiled class file
 *.class
