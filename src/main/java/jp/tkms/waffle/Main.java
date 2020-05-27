@@ -8,8 +8,11 @@ import spark.Spark;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 import static spark.Spark.*;
 
@@ -19,15 +22,27 @@ public class Main {
   public static boolean restartFlag = false;
 
   public static void main(String[] args) {
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
+
     System.out.println("PID: " + PID);
     int port = 4567;
 
     if (args.length >= 1) {
-      port = Integer.valueOf(args[1]);
-      if (Integer.valueOf(args[1]) >= 1024) {
-        port(port);
+      if (Integer.valueOf(args[0]) >= 1024) {
+        port = Integer.valueOf(args[0]);
       }
+    } else {
+      port = IntStream.range(port, 65535)
+        .filter(i -> {
+          try (ServerSocket socket = new ServerSocket(i, 1, InetAddress.getByName("localhost"))) {
+            return true;
+          } catch (IOException e) {
+            return false;
+          }
+        })
+        .findFirst().orElseThrow(IllegalStateException::new); // Finding free port from 4567
     }
+    port(port);
     System.out.println("PORT: " + port);
 
     Runtime.getRuntime().addShutdownHook(new Thread()
@@ -41,8 +56,6 @@ public class Main {
         return;
       }
     });
-
-    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
 
     staticFiles.location("/static");
 
