@@ -15,7 +15,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
   private Project project;
   private Simulator simulator;
-  private ParameterExtractor extractor;
+  private String extractorName;
 
   public ParameterExtractorComponent(Mode mode) {
     super();
@@ -27,10 +27,10 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ParameterExtractorComponent());
+    Spark.get(getUrl(null, null), new ParameterExtractorComponent());
     Spark.get(getStaticUrl(null, "add"), new ParameterExtractorComponent(Mode.Add));
     Spark.post(getStaticUrl(null, "add"), new ParameterExtractorComponent(Mode.Add));
-    Spark.post(getUrl(null, "update"), new ParameterExtractorComponent(Mode.Update));
+    Spark.post(getUrl(null, null, "update"), new ParameterExtractorComponent(Mode.Update));
 
     SimulatorsComponent.register();
     TrialsComponent.register();
@@ -41,14 +41,14 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
       + (simulator == null ? ":project/:simulator" : simulator.getProject().getId() + "/" + simulator.getId());
   }
 
-  public static String getUrl(ParameterExtractor extractor) {
+  public static String getUrl(Simulator simulator, String name) {
     return "/parameter_extractor/"
-      + (extractor == null ? ":project/:simulator/:id"
-      : extractor.getSimulator().getProject().getId() + '/' + extractor.getSimulator().getId() + '/' +  extractor.getId());
+      + (name == null ? ":project/:simulator/:name"
+      : simulator.getProject().getId() + '/' + simulator.getId() + '/' +  name);
   }
 
-  public static String getUrl(ParameterExtractor extractor, String mode) {
-    return getUrl(extractor) + '/' + mode;
+  public static String getUrl(Simulator simulator, String name, String mode) {
+    return getUrl(simulator, name) + '/' + mode;
   }
 
   @Override
@@ -57,7 +57,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     simulator = Simulator.getInstance(project, request.params("simulator"));
 
     if (mode.equals(Mode.Default) || mode.equals(Mode.Update)) {
-      extractor = ParameterExtractor.getInstance(simulator, request.params("id"));
+      extractorName = request.params("name");
     }
 
     switch (mode) {
@@ -80,7 +80,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return extractor.getName();
+        return extractorName;
       }
 
       @Override
@@ -91,7 +91,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
           "Parameter Extractor",
-          extractor.getId()
+          extractorName
         ));
         return breadcrumb;
       }
@@ -104,10 +104,10 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         content += Lte.card(Html.faIcon("tasks") + "Properties",
           null,
-          Html.form(getUrl(extractor, "update"), Html.Method.Post,
+          Html.form(getUrl(simulator, extractorName, "update"), Html.Method.Post,
             Html.div(null,
-              Lte.formInputGroup("text", "name", "Name", "Name", extractor.getName(), errors),
-              Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", extractor.getScript(), errors),
+              Lte.formInputGroup("text", "name", "Name", "Name", extractorName, errors),
+              Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", simulator.getExtractorScript(extractorName), errors),
               Lte.formSubmitButton("primary", "Update")
             )
           )
@@ -152,7 +152,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         content += Lte.card(Html.faIcon("tasks") + "Properties",
           null,
-          Html.form(getUrl(extractor, "add"), Html.Method.Post,
+          Html.form(getUrl(simulator, extractorName, "add"), Html.Method.Post,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", "", errors),
               Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", ResourceFile.getContents("/default_parameter_extractor.rb"), errors),
@@ -171,14 +171,14 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     String name = request.queryParams("name");
     String script = request.queryParams("extract_script");
     ParameterExtractor extractor = ParameterExtractor.create(simulator, name, script);
-    response.redirect(getUrl(extractor));
+    response.redirect(getUrl(simulator, extractorName));
   }
 
   public void updateParameterExtractor() {
     String name = request.queryParams("name");
     String script = request.queryParams("extract_script");
-    extractor.update(name, script);
-    response.redirect(getUrl(extractor));
+    simulator.updateExtractorScript(name, script);
+    response.redirect(getUrl(simulator, extractorName));
   }
 
   public enum Mode {Default, Add, Update}
