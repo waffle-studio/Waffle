@@ -81,6 +81,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
         if (parent == null) {
           breadcrumb.add("Trials");
         } else {
+          breadcrumb.add(Html.a(TrialsComponent.getUrl(project), "Trials"));
           while (parent != null) {
             conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
             parent = parent.getParent();
@@ -117,7 +118,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
 
         if (! conductorRun.getVariables().isEmpty()) {
           contents += Lte.card(Html.faIcon("poll") + "Variables",
-            Lte.cardToggleButton(true),
+            Lte.cardToggleButton(false),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
                 Lte.readonlyTextAreaGroup("", null, conductorRun.getVariables().toString(2))

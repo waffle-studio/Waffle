@@ -112,7 +112,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           , null, null, "p-0");
 
         content += Lte.card(Html.faIcon("list-alt") + "Variables",
-          Lte.cardToggleButton(false),
+          Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
               Lte.readonlyTextAreaGroup("", null, run.getVariables().toString(2))
@@ -121,7 +121,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           , null, "collapsed-card", null);
 
         content += Lte.card(Html.faIcon("list-alt") + "Parameters & Results",
-          Lte.cardToggleButton(true),
+          Lte.cardToggleButton(false),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
               Lte.readonlyTextAreaGroup("", "Parameters", run.getParameters().toString(2))
