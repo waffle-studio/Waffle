@@ -195,7 +195,7 @@ abstract public class Data {
     }
   }
 
-  protected String getFromProperty(String key) {
+  protected String getStringFromProperty(String key) {
     return getPropertyStore().getString(key);
   }
 

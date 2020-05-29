@@ -2,7 +2,6 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
@@ -156,7 +155,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
           Html.form(getUrl(extractor, "add"), Html.Method.Post,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", "", errors),
-              Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", ResourceFile.getContents("/command_arguments.rb"), errors),
+              Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", ResourceFile.getContents("/default_parameter_extractor.rb"), errors),
               Lte.formSubmitButton("success", "Add")
             )
           )

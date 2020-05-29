@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.Sql;
@@ -30,7 +31,6 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_CREATED_AT = "created_at";
   private static final String KEY_SUBMITTED_AT = "submitted_at";
   private static final String KEY_FINISHED_AT = "finished_at";
-  protected static final String KEY_EXT_JSON = ".json";
   private static final String KEY_RUN = "run";
   public static final String WORKING_DIR = "WORK";
 
@@ -198,7 +198,7 @@ public class SimulatorRun extends AbstractRun {
 
   @Override
   protected Path getPropertyStorePath() {
-    return getPath().resolve(KEY_RUN + KEY_EXT_JSON);
+    return getPath().resolve(KEY_RUN + Constants.EXT_JSON);
   }
 
   public Path getWorkPath() {
@@ -321,7 +321,7 @@ public class SimulatorRun extends AbstractRun {
       parameters = new JSONObject();
     }
 
-    Path storePath = getPath().resolve(KEY_PARAMETERS + KEY_EXT_JSON);
+    Path storePath = getPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
     try {
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(parameters.toString(2));
@@ -332,7 +332,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   private String getFromParametersStore() {
-    Path storePath = getPath().resolve(KEY_PARAMETERS + KEY_EXT_JSON);
+    Path storePath = getPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
     String json = "{}";
     if (Files.exists(storePath)) {
       try {
@@ -395,7 +395,7 @@ public class SimulatorRun extends AbstractRun {
       results = new JSONObject();
     }
 
-    Path storePath = getPath().resolve(KEY_RESULTS + KEY_EXT_JSON);
+    Path storePath = getPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
     try {
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(results.toString(2));
@@ -406,7 +406,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   private String getFromResultsStore() {
-    Path storePath = getPath().resolve(KEY_RESULTS + KEY_EXT_JSON);
+    Path storePath = getPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
     String json = "{}";
     if (Files.exists(storePath)) {
       try {

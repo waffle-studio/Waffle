@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
   import jp.tkms.waffle.Constants;
 
   import java.io.File;
+  import java.nio.file.Path;
   import java.nio.file.Paths;
   import java.util.UUID;
 
@@ -22,7 +23,8 @@ abstract public class SimulatorData extends Data {
     return simulator;
   }
 
-  protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(simulator.getDirectory() + File.separator + Constants.SIMULATOR_DB_NAME));
+  @Override
+  protected Path getPropertyStorePath() {
+    return simulator.getDirectory().resolve(Simulator.KEY_SIMULATOR + Constants.EXT_JSON);
   }
 }

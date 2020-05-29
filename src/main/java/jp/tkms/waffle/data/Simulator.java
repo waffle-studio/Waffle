@@ -1,13 +1,16 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.collector.JsonResultCollector;
+import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.util.ResourceFile;
-import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +22,11 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public class Simulator extends ProjectData {
+  public static final String KEY_SIMULATOR = "simulator";
+  public static final String KEY_EXTRACTOR = "extractor";
+  public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
+  public static final String KEY_COLLECTOR = "collector";
+
   public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
 
@@ -26,7 +34,6 @@ public class Simulator extends ProjectData {
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
 
   private String simulationCommand = null;
-  private String versionCommand = null;
 
   public Simulator(Project project, UUID id, String name) {
     super(project, id, name);
@@ -39,6 +46,11 @@ public class Simulator extends ProjectData {
   @Override
   protected String getTableName() {
     return TABLE_NAME;
+  }
+
+  @Override
+  protected Path getPropertyStorePath() {
+    return getDirectory().resolve(KEY_SIMULATOR + Constants.EXT_JSON);
   }
 
   public static Simulator getInstance(Project project, String id) {
@@ -137,7 +149,10 @@ public class Simulator extends ProjectData {
         e.printStackTrace();
       }
 
-      ParameterExtractor.create(simulator, "command arguments", ResourceFile.getContents("/command_arguments.rb"));
+      simulator.setSimulatorCommand(simulationCommand);
+      simulator.createExtractor(KEY_COMMAND_ARGUMENTS);
+      simulator.updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("default_parameter_extractor.rb"));
+
       ResultCollector.create(simulator, "_output.json", AbstractResultCollector.getInstance(JsonResultCollector.class.getCanonicalName()));
 
       try{
@@ -199,21 +214,116 @@ public class Simulator extends ProjectData {
 
   public String getSimulationCommand() {
     if (simulationCommand == null) {
-      simulationCommand = getStringFromDB(KEY_SIMULATION_COMMAND);
+      simulationCommand = getStringFromProperty(KEY_SIMULATION_COMMAND);
     }
     return simulationCommand;
   }
 
   public void setSimulatorCommand(String command) {
-    if (handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        new Sql.Update(db, getTableName(),
-          Sql.Value.equal(KEY_SIMULATION_COMMAND, command)).where(Sql.Value.equal(KEY_ID, getId())).execute();
+    simulationCommand = command;
+    setToProperty(KEY_SIMULATION_COMMAND, simulationCommand);
+  }
+
+  public Path getExtractorScriptPath(String name) {
+    return getDirectory().resolve(KEY_EXTRACTOR).resolve(name).toAbsolutePath();
+  }
+
+  public void createExtractor(String name) {
+    Path path = getCollectorScriptPath(name);
+    Path dirPath = getCollectorScriptPath(name).getParent();
+    if (! Files.exists(dirPath)) {
+      try {
+        Files.createDirectories(dirPath);
+      } catch (IOException e) {
+        e.printStackTrace();
       }
-    })) {
-      simulationCommand = command;
     }
+
+    try {
+      FileWriter filewriter = new FileWriter(path.toFile());
+      filewriter.write(new RubyParameterExtractor().contentsTemplate());
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void updateExtractorScript(String name, String script) {
+    Path path = getExtractorScriptPath(name);
+    if (Files.exists(path)) {
+      try {
+        FileWriter filewriter = new FileWriter(path.toFile());
+        filewriter.write(script);
+        filewriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public String getExtractorScript(String name) {
+    String script = "";
+
+    Path path = getExtractorScriptPath(name);
+    if (Files.exists(path)) {
+      try {
+        script = new String(Files.readAllBytes(path));
+      } catch (IOException e) {
+      }
+    }
+
+    return script;
+  }
+
+  public Path getCollectorScriptPath(String name) {
+    return getDirectory().resolve(KEY_COLLECTOR).resolve(name).toAbsolutePath();
+  }
+
+  public void createCollector(String name) {
+    Path path = getCollectorScriptPath(name);
+    Path dirPath = getCollectorScriptPath(name).getParent();
+    if (! Files.exists(dirPath)) {
+      try {
+        Files.createDirectories(dirPath);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    try {
+      FileWriter filewriter = new FileWriter(path.toFile());
+      filewriter.write(new RubyResultCollector().contentsTemplate());
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void updateCollectorScript(String name, String script) {
+    Path path = getCollectorScriptPath(name);
+    if (Files.exists(path)) {
+      try {
+        FileWriter filewriter = new FileWriter(path.toFile());
+        filewriter.write(script);
+        filewriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public String getCollectorScript(String name) {
+    String script = "";
+
+    Path path = getCollectorScriptPath(name);
+    if (Files.exists(path)) {
+      try {
+        script = new String(Files.readAllBytes(path));
+      } catch (IOException e) {
+      }
+    }
+
+    return script;
   }
 
   @Override
