@@ -1,13 +1,9 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
-import org.jruby.Ruby;
-import org.jruby.embed.*;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -27,14 +23,14 @@ public class Conductor extends ProjectData {
   protected static final String TABLE_NAME = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
-  private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_LISTENER = "listener";
   private static final String KEY_EXT_JSON = ".json";
   private static final String KEY_EXT_RUBY = ".rb";
 
   private String conductorType = null;
   private String scriptFileName = null;
-  private String arguments = null;
+  private String defaultVariables = null;
 
   public Conductor(Project project) {
     super(project);
@@ -187,27 +183,27 @@ public class Conductor extends ProjectData {
     return conductorType;
   }
 
-  public JSONObject getArguments() {
-    if (arguments == null) {
-      arguments = getFileContents(KEY_ARGUMENTS + KEY_EXT_JSON);
-      if (arguments.equals("")) {
-        arguments = "{}";
+  public JSONObject getDefaultVariables() {
+    if (defaultVariables == null) {
+      defaultVariables = getFileContents(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON);
+      if (defaultVariables.equals("")) {
+        defaultVariables = "{}";
         try {
-          FileWriter filewriter = new FileWriter(getLocation().resolve(KEY_ARGUMENTS + KEY_EXT_JSON).toFile());
-          filewriter.write(arguments);
+          FileWriter filewriter = new FileWriter(getLocation().resolve(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON).toFile());
+          filewriter.write(defaultVariables);
           filewriter.close();
         } catch (IOException e) {
           e.printStackTrace();
         }
       }
     }
-    return new JSONObject(arguments);
+    return new JSONObject(defaultVariables);
   }
 
-  public void setArguments(String json) {
+  public void setDefaultVariables(String json) {
     try {
       JSONObject object = new JSONObject(json);
-      updateFileContents(KEY_ARGUMENTS + KEY_EXT_JSON, object.toString(2));
+      updateFileContents(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON, object.toString(2));
     } catch (Exception e) {
       e.printStackTrace();
     }

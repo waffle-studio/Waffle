@@ -183,6 +183,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
           }
         }
 
+        /*
         content += Lte.card(Html.faIcon("file") + "Files",
           Lte.cardToggleButton(true),
           Lte.table("table-sm", new Lte.Table() {
@@ -203,6 +204,8 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
             }
           })
           , null, "collapsed-card", "p-0");
+
+         */
 
         return content;
       }

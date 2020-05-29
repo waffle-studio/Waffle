@@ -33,6 +33,6 @@ public class TestConductor extends AbstractConductor {
 
   @Override
   public void prepareConductor(Conductor conductor) {
-    conductor.setArguments("{'host':'LOCAL'}");
+    conductor.setDefaultVariables("{'host':'LOCAL'}");
   }
 }

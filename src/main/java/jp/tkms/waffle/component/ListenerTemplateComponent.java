@@ -130,6 +130,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
               ,Lte.formSubmitButton("success", "Update") , "collapsed-card.stop", null)
           );
 
+        /*
         content += Lte.card(Html.faIcon("file") + "Files",
           Lte.cardToggleButton(true),
           Lte.table("table-sm", new Lte.Table() {
@@ -150,6 +151,8 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
             }
           })
           , null, "collapsed-card", "p-0");
+
+         */
 
         return content;
       }

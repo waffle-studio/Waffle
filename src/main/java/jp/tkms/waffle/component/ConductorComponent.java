@@ -2,7 +2,6 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
@@ -11,12 +10,11 @@ import spark.Spark;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.TreeMap;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
-  private static final String KEY_ARGUMENTS = "arguments";
+  private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_LISTENER = "listener";
   private static final String KEY_EXT_RUBY = ".rb";
   private static final String KEY_LISTENER_FILENAME = "listener_filename";
@@ -80,14 +78,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     } else if (mode == Mode.Run) {
       parent = ConductorRun.getInstance(project, request.params("parent"));
       ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor);
-      if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        conductorRun.putVariablesByJson(request.queryParams(KEY_ARGUMENTS));
+      if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+        conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
       conductorRun.start(true);
       response.redirect(ProjectComponent.getUrl(project));
     } else if (mode == Mode.UpdateArguments) {
-      if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        conductor.setArguments(request.queryParams(KEY_ARGUMENTS));
+      if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+        conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
       response.redirect(getUrl(conductor));
     } else if (mode == Mode.UpdateMainScript) {
@@ -156,15 +154,15 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           )
           , null, "collapsed-card", null);
 
-        String argumentsText = conductor.getArguments().toString(2);
+        String defaultVariablesText = conductor.getDefaultVariables().toString(2);
 
         content +=
           Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Arguments",
+            Lte.card(Html.faIcon("terminal") + "Default variables",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, argumentsText.split("\\n").length, argumentsText, null)
+                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, null, defaultVariablesText.split("\\n").length, defaultVariablesText, null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
@@ -265,11 +263,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Arguments",
+            Lte.card(Html.faIcon("terminal") + "Default variables",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_ARGUMENTS, null, 10, conductor.getArguments().toString(2), null)
+                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, null, 10, conductor.getDefaultVariables().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")
