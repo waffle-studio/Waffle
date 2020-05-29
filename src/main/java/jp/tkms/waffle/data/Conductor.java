@@ -163,7 +163,7 @@ public class Conductor extends ProjectData {
 
   public String getScriptFileName() {
     if (scriptFileName == null) {
-      scriptFileName = getFromDB(KEY_SCRIPT);
+      scriptFileName = getStringFromDB(KEY_SCRIPT);
     }
     return scriptFileName;
   }
@@ -178,7 +178,7 @@ public class Conductor extends ProjectData {
 
   public String getConductorType() {
     if (conductorType == null) {
-      conductorType = getFromDB(KEY_CONDUCTOR_TYPE);
+      conductorType = getStringFromDB(KEY_CONDUCTOR_TYPE);
     }
     return conductorType;
   }

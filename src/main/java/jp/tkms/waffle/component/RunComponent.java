@@ -106,6 +106,9 @@ public class RunComponent extends AbstractAccessControlledComponent {
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
                   Lte.badge("secondary", null, "ReCheck")):"")));
+                list.add(new Lte.TableRow("Created at", run.getCreatedDateTime().toString()));
+                list.add(new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString()));
+                list.add(new Lte.TableRow("Finished at", run.getFinishedDateTime().toString()));
                 return list;
               }
             })

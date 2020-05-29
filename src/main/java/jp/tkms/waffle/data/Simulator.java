@@ -199,7 +199,7 @@ public class Simulator extends ProjectData {
 
   public String getSimulationCommand() {
     if (simulationCommand == null) {
-      simulationCommand = getFromDB(KEY_SIMULATION_COMMAND);
+      simulationCommand = getStringFromDB(KEY_SIMULATION_COMMAND);
     }
     return simulationCommand;
   }

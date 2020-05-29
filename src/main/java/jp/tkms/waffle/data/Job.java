@@ -188,14 +188,14 @@ public class Job extends Data {
 
   public Project getProject() {
     if (project == null) {
-      project = Project.getInstance(getFromDB(KEY_PROJECT));
+      project = Project.getInstance(getStringFromDB(KEY_PROJECT));
     }
     return project;
   }
 
   public Host getHost() {
     if (host == null) {
-      host = Host.getInstance(getFromDB(KEY_HOST));
+      host = Host.getInstance(getStringFromDB(KEY_HOST));
     }
     return host;
   }
@@ -209,14 +209,14 @@ public class Job extends Data {
 
   public String getJobId() {
     if (jobId == null) {
-      jobId = getFromDB(KEY_JOB_ID);
+      jobId = getStringFromDB(KEY_JOB_ID);
     }
     return jobId;
   }
 
   public int getErrorCount() {
     if (errorCount == null) {
-      errorCount = Integer.valueOf(getFromDB(KEY_ERROR_COUNT));
+      errorCount = Integer.valueOf(getStringFromDB(KEY_ERROR_COUNT));
     }
     return errorCount;
   }

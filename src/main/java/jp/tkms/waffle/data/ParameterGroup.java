@@ -4,7 +4,6 @@ import jp.tkms.util.Values;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONObject;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -112,7 +111,7 @@ public class ParameterGroup extends SimulatorData {
 
   public Integer getInstanceSize() {
     if (instanceSize == null) {
-      instanceSize = Integer.valueOf(getFromDB(KEY_INSTANCE_SIZE));
+      instanceSize = Integer.valueOf(getStringFromDB(KEY_INSTANCE_SIZE));
     }
     return instanceSize;
   }

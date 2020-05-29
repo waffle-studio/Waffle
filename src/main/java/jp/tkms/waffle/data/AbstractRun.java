@@ -4,9 +4,6 @@ import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -47,7 +44,7 @@ abstract public class AbstractRun extends ProjectData {
 
   public ConductorRun getParent() {
     if (parentConductorRun == null) {
-      parentConductorRun = ConductorRun.getInstance(getProject(), getFromDB(KEY_PARENT));
+      parentConductorRun = ConductorRun.getInstance(getProject(), getStringFromDB(KEY_PARENT));
     }
     return parentConductorRun;
   }
@@ -66,14 +63,14 @@ abstract public class AbstractRun extends ProjectData {
 
   public Conductor getConductor() {
     if (conductor == null) {
-      conductor = Conductor.getInstance(getProject(), getFromDB(KEY_CONDUCTOR));
+      conductor = Conductor.getInstance(getProject(), getStringFromDB(KEY_CONDUCTOR));
     }
     return conductor;
   }
 
   public ArrayList<String> getFinalizers() {
     if (finalizers == null) {
-      finalizers = new JSONArray(getFromDB(KEY_FINALIZER));
+      finalizers = new JSONArray(getStringFromDB(KEY_FINALIZER));
     }
     ArrayList<String> stringList = new ArrayList<>();
     for (Object o : finalizers.toList()) {
@@ -110,7 +107,7 @@ abstract public class AbstractRun extends ProjectData {
   }
 
   public String getErrorNote() {
-    return getFromDB(KEY_ERROR_NOTE);
+    return getStringFromDB(KEY_ERROR_NOTE);
   }
 
   public void addRawFinalizerScript(String script) {
@@ -144,7 +141,7 @@ abstract public class AbstractRun extends ProjectData {
       BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       e.printStackTrace();
     }
-    JSONObject map = new JSONObject(getFromDB(KEY_VARIABLES));
+    JSONObject map = new JSONObject(getStringFromDB(KEY_VARIABLES));
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
@@ -163,7 +160,7 @@ abstract public class AbstractRun extends ProjectData {
 
   public JSONObject getVariables() {
     if (parameters == null) {
-      parameters = new JSONObject(getFromDB(KEY_VARIABLES));
+      parameters = new JSONObject(getStringFromDB(KEY_VARIABLES));
     }
     return parameters;
   }

@@ -1,11 +1,6 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.Sql;
-import org.jruby.Ruby;
-import org.jruby.embed.LocalContextScope;
-import org.jruby.embed.ScriptingContainer;
-import org.json.JSONObject;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -99,14 +94,14 @@ public class Parameter extends SimulatorData {
 
   public ParameterGroup getParent() {
     if (parent == null) {
-      parent = ParameterGroup.getInstance(getSimulator(), getFromDB(KEY_PARENT));
+      parent = ParameterGroup.getInstance(getSimulator(), getStringFromDB(KEY_PARENT));
     }
     return parent;
   }
 
   public boolean isQuantitative() {
     if (isQuantitative == null) {
-      isQuantitative = Boolean.valueOf( getFromDB(KEY_IS_QUANTITATIVE) );
+      isQuantitative = Boolean.valueOf( getStringFromDB(KEY_IS_QUANTITATIVE) );
     }
     return isQuantitative;
   }
@@ -128,7 +123,7 @@ public class Parameter extends SimulatorData {
 
   public String getDefaultValue() {
     if (defaultValue == null) {
-      defaultValue = getFromDB(KEY_DEFAULT_VALUE);
+      defaultValue = getStringFromDB(KEY_DEFAULT_VALUE);
     }
     return defaultValue;
   }

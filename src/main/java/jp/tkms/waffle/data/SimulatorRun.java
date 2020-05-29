@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
+import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public class SimulatorRun extends AbstractRun {
@@ -25,7 +27,11 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_ENVIRONMENTS = "environments";
   protected static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_RESULTS = "results";
+  private static final String KEY_CREATED_AT = "created_at";
+  private static final String KEY_SUBMITTED_AT = "submitted_at";
+  private static final String KEY_FINISHED_AT = "finished_at";
   protected static final String KEY_EXT_JSON = ".json";
+  private static final String KEY_RUN = "run";
   public static final String WORKING_DIR = "WORK";
 
   protected SimulatorRun(Project project) {
@@ -163,6 +169,11 @@ public class SimulatorRun extends AbstractRun {
       }
     });
 
+    run.setExitStatus(-1);
+    run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());
+    run.setToProperty(KEY_SUBMITTED_AT, -1);
+    run.setToProperty(KEY_FINISHED_AT, -1);
+
     new RunStatusUpdater(run);
 
     try {
@@ -171,6 +182,23 @@ public class SimulatorRun extends AbstractRun {
     run.updateParametersStore();
 
     return run;
+  }
+
+  public DateTime getCreatedDateTime() {
+    return new DateTime(getLongFromProperty(KEY_CREATED_AT));
+  }
+
+  public DateTime getSubmittedDateTime() {
+    return new DateTime(getLongFromProperty(KEY_SUBMITTED_AT));
+  }
+
+  public DateTime getFinishedDateTime() {
+    return new DateTime(getLongFromProperty(KEY_FINISHED_AT));
+  }
+
+  @Override
+  protected Path getPropertyStorePath() {
+    return getPath().resolve(KEY_RUN + KEY_EXT_JSON);
   }
 
   public Path getWorkPath() {
@@ -200,46 +228,38 @@ public class SimulatorRun extends AbstractRun {
         new RunStatusUpdater(this);
 
         if (state.equals(State.Finished) || state.equals(State.Failed)) {
+          setToProperty(KEY_FINISHED_AT, ZonedDateTime.now().toEpochSecond());
           getParent().update(this);
+        } else if (state.equals(State.Submitted)) {
+          setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
         }
       }
     }
   }
 
-  public void setExitStatus(int exitStatus) {
-    if (
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_EXIT_STATUS + "=?" + " where id=?;");
-          statement.setInt(1, exitStatus);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      })
-    ) {
-      this.exitStatus = exitStatus;
-    }
-  }
-
   public int getRestartCount() {
     if (restartCount == null) {
-      restartCount = Integer.valueOf(getFromDB(KEY_RESTART_COUNT));
+      restartCount = Integer.valueOf(getStringFromDB(KEY_RESTART_COUNT));
     }
     return restartCount;
   }
 
+  public void setExitStatus(int exitStatus) {
+    setToProperty(KEY_EXIT_STATUS, exitStatus);
+    this.exitStatus = exitStatus;
+  }
+
+
   public int getExitStatus() {
     if (exitStatus == null) {
-      exitStatus = Integer.valueOf(getFromDB(KEY_EXIT_STATUS));
+      exitStatus = getIntFromProperty(KEY_EXIT_STATUS);
     }
     return exitStatus;
   }
 
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
-      arguments = new JSONArray(getFromDB(KEY_ARGUMENTS));
+      arguments = new JSONArray(getStringFromDB(KEY_ARGUMENTS));
     }
     return new ArrayList<>(arguments.toList());
   }
@@ -267,7 +287,7 @@ public class SimulatorRun extends AbstractRun {
 
   public JSONObject getEnvironments() {
     if (environments == null) {
-      environments = (new JSONObject(getFromDB(KEY_ENVIRONMENTS)));
+      environments = (new JSONObject(getStringFromDB(KEY_ENVIRONMENTS)));
     }
     return environments;
   }
@@ -447,7 +467,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void restart() {
-    setIntToDB(KEY_RESTART_COUNT, getRestartCount() +1);
+    setToDB(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
     Job.addRun(this);

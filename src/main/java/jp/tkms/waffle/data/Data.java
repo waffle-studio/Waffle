@@ -1,7 +1,13 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONObject;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -82,7 +88,7 @@ abstract public class Data {
     });
   }
 
-  protected String getFromDB(String key) {
+  protected String getStringFromDB(String key) {
     final String[] result = {null};
 
     handleDatabase(this, new Handler() {
@@ -120,7 +126,7 @@ abstract public class Data {
     return result[0];
   }
 
-  protected boolean setStringToDB(String key, String value) {
+  protected boolean setToDB(String key, String value) {
     return handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -129,7 +135,7 @@ abstract public class Data {
     });
   }
 
-  protected boolean setIntToDB(String key, int value) {
+  protected boolean setToDB(String key, int value) {
     return handleDatabase(this, new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -140,10 +146,80 @@ abstract public class Data {
 
   public void setName(String name) {
     if (
-      setStringToDB(KEY_NAME, name)
+      setToDB(KEY_NAME, name)
     ) {
       this.name = name;
     }
+  }
+
+  protected Path getPropertyStorePath() {
+    return Paths.get("waffle.json");
+  }
+
+  private JSONObject propertyStore = null;
+  private JSONObject getPropertyStore() {
+    if (propertyStore == null) {
+      Path storePath = getPropertyStorePath();
+      String json = "{}";
+      if (Files.exists(storePath)) {
+        try {
+          json = new String(Files.readAllBytes(storePath));
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+      propertyStore = new JSONObject(json);
+    }
+    return propertyStore;
+  }
+
+  private void updatePropertyStore() {
+    if (propertyStore != null) {
+      Path directoryPath = getPropertyStorePath().getParent();
+      if (! Files.exists(directoryPath)) {
+        try {
+          Files.createDirectories(directoryPath);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+
+      Path storePath = getPropertyStorePath();
+      try {
+        FileWriter filewriter = new FileWriter(storePath.toFile());
+        filewriter.write(propertyStore.toString(2));
+        filewriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  protected String getFromProperty(String key) {
+    return getPropertyStore().getString(key);
+  }
+
+  protected int getIntFromProperty(String key) {
+    return getPropertyStore().getInt(key);
+  }
+
+  protected long getLongFromProperty(String key) {
+    return getPropertyStore().getLong(key);
+  }
+
+  protected void setToProperty(String key, String value) {
+    getPropertyStore().put(key, value);
+    updatePropertyStore();
+  }
+
+  protected void setToProperty(String key, int value) {
+    getPropertyStore().put(key, value);
+    updatePropertyStore();
+  }
+
+  protected void setToProperty(String key, long value) {
+    getPropertyStore().put(key, value);
+    updatePropertyStore();
   }
 
   protected Database getDatabase() {

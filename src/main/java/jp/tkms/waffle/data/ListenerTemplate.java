@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
@@ -168,7 +167,7 @@ public class ListenerTemplate extends Data {
 
   public ArrayList<String> getArguments() {
     if (arguments == null) {
-      arguments = getFromDB(KEY_ARGUMENTS);
+      arguments = getStringFromDB(KEY_ARGUMENTS);
     }
     ArrayList<String> list = new ArrayList<>();
     for (Object o : (new JSONArray(arguments)).toList()) {

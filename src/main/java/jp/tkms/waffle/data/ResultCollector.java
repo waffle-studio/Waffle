@@ -3,7 +3,6 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.collector.AbstractResultCollector;
 import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -106,14 +105,14 @@ public class ResultCollector extends SimulatorData {
 
   public AbstractResultCollector getResultCollector() {
     if (resultCollector == null) {
-      resultCollector = AbstractResultCollector.getInstance(getFromDB(KEY_COLLECTOR_TYPE));
+      resultCollector = AbstractResultCollector.getInstance(getStringFromDB(KEY_COLLECTOR_TYPE));
     }
     return resultCollector;
   }
 
   public String getContents() {
     if (contents == null) {
-      contents = getFromDB(KEY_CONTENTS);
+      contents = getStringFromDB(KEY_CONTENTS);
     }
     return contents;
   }

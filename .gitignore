@@ -6,6 +6,7 @@
 waffle.dat
 *.db
 work/
+waffle/
 tmp/
 
 build/

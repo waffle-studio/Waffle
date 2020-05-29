@@ -1,6 +1,7 @@
 package jp.tkms.waffle.component.template;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
 import jp.tkms.waffle.data.BrowserMessage;
@@ -94,7 +95,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                     )
                     ,
                     elementWithClass("li", "nav-item",
-                      a(SystemComponent.getUrl("hibernate"), "nav-link", null,
+                      a(SystemComponent.getUrl("hibernate"), "nav-link", new Attributes(value("title", String.valueOf(Main.PID))),
                         faIcon("power-off", "nav-icon"),
                         p("Hibernate")
                       )

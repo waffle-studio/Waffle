@@ -1,10 +1,6 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.collector.AbstractResultCollector;
-import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -110,7 +106,7 @@ public class ParameterExtractor extends SimulatorData {
 
   public String getScript() {
     if (script == null) {
-      script = getFromDB(KEY_SCRIPT);
+      script = getStringFromDB(KEY_SCRIPT);
     }
     return script;
   }

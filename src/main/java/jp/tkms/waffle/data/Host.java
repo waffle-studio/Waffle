@@ -1,6 +1,5 @@
 package jp.tkms.waffle.data;
 
-import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.Sql;
@@ -148,7 +147,7 @@ public class Host extends Data {
   }
 
   private void setState(HostState state) {
-    setIntToDB(KEY_STATE, state.ordinal());
+    setToDB(KEY_STATE, state.ordinal());
   }
 
   public HostState getState() {
@@ -166,14 +165,14 @@ public class Host extends Data {
 
   public String getWorkBaseDirectory() {
     if (workBaseDirectory == null) {
-      workBaseDirectory = getFromDB(KEY_WORKBASE);
+      workBaseDirectory = getStringFromDB(KEY_WORKBASE);
     }
     return workBaseDirectory;
   }
 
   public void setWorkBaseDirectory(String workBaseDirectory) {
     if (
-      setStringToDB(KEY_WORKBASE, workBaseDirectory)
+      setToDB(KEY_WORKBASE, workBaseDirectory)
     ) {
       this.workBaseDirectory = workBaseDirectory;
     }
@@ -181,14 +180,14 @@ public class Host extends Data {
 
   public String getXsubDirectory() {
     if (xsubDirectory == null) {
-      xsubDirectory = getFromDB(KEY_XSUB);
+      xsubDirectory = getStringFromDB(KEY_XSUB);
     }
     return xsubDirectory;
   }
 
   public void setXsubDirectory(String xsubDirectory) {
     if (
-      setStringToDB(KEY_XSUB, xsubDirectory)
+      setToDB(KEY_XSUB, xsubDirectory)
     ) {
       this.xsubDirectory = xsubDirectory;
     }
@@ -196,7 +195,7 @@ public class Host extends Data {
 
   public String getOs() {
     if (os == null) {
-      os = getFromDB(KEY_OS);
+      os = getStringFromDB(KEY_OS);
     }
     return os;
   }
@@ -211,14 +210,14 @@ public class Host extends Data {
 
   public Integer getPollingInterval() {
     if (pollingInterval == null) {
-      pollingInterval = Integer.valueOf(getFromDB(KEY_POLLING));
+      pollingInterval = Integer.valueOf(getStringFromDB(KEY_POLLING));
     }
     return pollingInterval;
   }
 
   public void setPollingInterval(Integer pollingInterval) {
     if (
-      setIntToDB(KEY_POLLING, pollingInterval)
+      setToDB(KEY_POLLING, pollingInterval)
     ) {
       this.pollingInterval = pollingInterval;
     }
@@ -226,14 +225,14 @@ public class Host extends Data {
 
   public Integer getMaximumNumberOfJobs() {
     if (maximumNumberOfJobs == null) {
-      maximumNumberOfJobs = Integer.valueOf(getFromDB(KEY_MAX_JOBS));
+      maximumNumberOfJobs = Integer.valueOf(getStringFromDB(KEY_MAX_JOBS));
     }
     return maximumNumberOfJobs;
   }
 
   public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
     if (
-      setIntToDB(KEY_MAX_JOBS, maximumNumberOfJobs)
+      setToDB(KEY_MAX_JOBS, maximumNumberOfJobs)
     ) {
       this.maximumNumberOfJobs = maximumNumberOfJobs;
     }
@@ -249,7 +248,7 @@ public class Host extends Data {
 
   public JSONObject getParametersWithoutXsubParameter() {
     JSONObject parameters = AbstractSubmitter.getParameters(this);
-    JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject jsonObject = new JSONObject(getStringFromDB(KEY_PARAMETERS));
     for (String key : jsonObject.keySet()) {
       parameters.put(key, jsonObject.get(key));
     }
@@ -259,7 +258,7 @@ public class Host extends Data {
   public JSONObject getParameters() {
     if (parameters == null) {
       parameters = getDefaultParametersWithXsubParametersTemplate();
-      JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
+      JSONObject jsonObject = new JSONObject(getStringFromDB(KEY_PARAMETERS));
       for (String key : jsonObject.keySet()) {
         parameters.put(key, jsonObject.get(key));
       }
@@ -273,7 +272,7 @@ public class Host extends Data {
 
   public void setParameters(JSONObject jsonObject) {
     if (
-      setStringToDB(KEY_PARAMETERS, jsonObject.toString())
+      setToDB(KEY_PARAMETERS, jsonObject.toString())
     ) {
       this.parameters = jsonObject;
     }
@@ -288,14 +287,14 @@ public class Host extends Data {
 
   public JSONObject getXsubTemplate() {
     if (xsubTemplate == null) {
-      xsubTemplate = new JSONObject(getFromDB(KEY_XSUB_TEMPLATE));
+      xsubTemplate = new JSONObject(getStringFromDB(KEY_XSUB_TEMPLATE));
     }
     return xsubTemplate;
   }
 
   public void setXsubTemplate(JSONObject jsonObject) {
     if (
-      setStringToDB(KEY_XSUB_TEMPLATE, jsonObject.toString())
+      setToDB(KEY_XSUB_TEMPLATE, jsonObject.toString())
     ) {
       this.xsubTemplate = jsonObject;
     }

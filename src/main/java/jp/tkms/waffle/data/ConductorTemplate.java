@@ -1,14 +1,12 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -174,7 +172,7 @@ public class ConductorTemplate extends Data {
 
   public ArrayList<String> getArguments() {
     if (arguments == null) {
-      arguments = getFromDB(KEY_ARGUMENTS);
+      arguments = getStringFromDB(KEY_ARGUMENTS);
     }
     ArrayList<String> list = new ArrayList<>();
     for (Object o : (new JSONArray(arguments)).toList()) {

@@ -3,7 +3,6 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -172,7 +171,8 @@ public class ConductorRun extends AbstractRun {
   }
 
   public static ConductorRun create(Project project, ConductorRun parent, Conductor conductor) {
-    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), conductor.getName() + " : " + LocalDateTime.now().toString());
+    String name = conductor.getName() + " : " + LocalDateTime.now().toString();
+    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), name);
 
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
@@ -224,7 +224,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   private void setState(State state) {
-    setIntToDB(KEY_STATE, state.ordinal());
+    setToDB(KEY_STATE, state.ordinal());
   }
 
   @Override

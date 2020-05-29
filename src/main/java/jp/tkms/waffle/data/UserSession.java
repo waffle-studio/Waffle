@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
 
+import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -133,5 +134,4 @@ public class UserSession extends Data {
       }
     };
   }
-
 }

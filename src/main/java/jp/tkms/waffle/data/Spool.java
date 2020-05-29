@@ -2,7 +2,6 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -135,14 +134,14 @@ public class Spool extends Data {
 
   public String getWorkBaseDirectory() {
     if (workBaseDirectory == null) {
-      workBaseDirectory = getFromDB(KEY_WORKBASE);
+      workBaseDirectory = getStringFromDB(KEY_WORKBASE);
     }
     return workBaseDirectory;
   }
 
   public void setWorkBaseDirectory(String workBaseDirectory) {
     if (
-      setStringToDB(KEY_WORKBASE, workBaseDirectory)
+      setToDB(KEY_WORKBASE, workBaseDirectory)
     ) {
       this.workBaseDirectory = workBaseDirectory;
     }
@@ -150,14 +149,14 @@ public class Spool extends Data {
 
   public String getXsubDirectory() {
     if (xsubDirectory == null) {
-      xsubDirectory = getFromDB(KEY_XSUB);
+      xsubDirectory = getStringFromDB(KEY_XSUB);
     }
     return xsubDirectory;
   }
 
   public void setXsubDirectory(String xsubDirectory) {
     if (
-      setStringToDB(KEY_XSUB, xsubDirectory)
+      setToDB(KEY_XSUB, xsubDirectory)
     ) {
       this.xsubDirectory = xsubDirectory;
     }
@@ -165,7 +164,7 @@ public class Spool extends Data {
 
   public String getOs() {
     if (os == null) {
-      os = getFromDB(KEY_OS);
+      os = getStringFromDB(KEY_OS);
     }
     return os;
   }
@@ -180,14 +179,14 @@ public class Spool extends Data {
 
   public Integer getPollingInterval() {
     if (pollingInterval == null) {
-      pollingInterval = Integer.valueOf(getFromDB(KEY_POLLING));
+      pollingInterval = Integer.valueOf(getStringFromDB(KEY_POLLING));
     }
     return pollingInterval;
   }
 
   public void setPollingInterval(Integer pollingInterval) {
     if (
-      setIntToDB(KEY_POLLING, pollingInterval)
+      setToDB(KEY_POLLING, pollingInterval)
     ) {
       this.pollingInterval = pollingInterval;
     }
@@ -195,7 +194,7 @@ public class Spool extends Data {
 
   public Integer getMaximumNumberOfJobs() {
     if (maximumNumberOfJobs == null) {
-      maximumNumberOfJobs = Integer.valueOf(getFromDB(KEY_MAX_JOBS));
+      maximumNumberOfJobs = Integer.valueOf(getStringFromDB(KEY_MAX_JOBS));
     }
     return maximumNumberOfJobs;
   }
