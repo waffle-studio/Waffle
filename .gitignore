@@ -5,11 +5,11 @@
 
 waffle.dat
 *.db
-work/
-waffle/
-tmp/
+/work/
+/waffle/
+/tmp/
 
-build/
+/build/
 
 # Compiled class file
 *.class
