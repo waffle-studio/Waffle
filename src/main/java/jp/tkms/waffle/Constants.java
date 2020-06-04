@@ -20,4 +20,5 @@ public class Constants {
   static final public String LOCAL_WORK_DIR = "tmp";
   static final public String LOCAL_XSUB_DIR = "./xsub";
   public static final String EXT_JSON = ".json";
+  public static final String EXT_RUBY = ".rb";
 }

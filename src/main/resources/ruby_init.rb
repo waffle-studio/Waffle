@@ -152,6 +152,15 @@ def exec_parameter_extract(run)
     end
 end
 
+def result_collect(run, remote)
+end
+
+def exec_result_collect(run, remote)
+    Dir.chdir(run.getWorkPath().toString()) do
+        result_collect(run, remote)
+    end
+end
+
 class Java::JavaLang::Object
     def is_group?()
         return self.is_a?(Java::JavaUtil::HashMap)

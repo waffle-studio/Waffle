@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.FileWriter;
@@ -207,6 +208,10 @@ abstract public class Data {
     return getPropertyStore().getLong(key);
   }
 
+  protected JSONArray getArrayFromProperty(String key) {
+    return getPropertyStore().getJSONArray(key);
+  }
+
   protected void setToProperty(String key, String value) {
     getPropertyStore().put(key, value);
     updatePropertyStore();
@@ -219,6 +224,39 @@ abstract public class Data {
 
   protected void setToProperty(String key, long value) {
     getPropertyStore().put(key, value);
+    updatePropertyStore();
+  }
+
+  protected void putNewArrayToProperty(String key) {
+    getPropertyStore().put(key, new ArrayList<>());
+    updatePropertyStore();
+  }
+
+  protected void putToArrayOfProperty(String key, String value) {
+    JSONArray array = null;
+    boolean isContain = false;
+    try {
+      array = getPropertyStore().getJSONArray(key);
+      isContain = array.toList().contains(value);
+    } catch (Exception e) {}
+    if (array == null) {
+      getPropertyStore().put(key, new ArrayList<>());
+      array = getPropertyStore().getJSONArray(key);
+    }
+    if (! isContain) {
+      array.put(value);
+    }
+    updatePropertyStore();
+  }
+
+  protected void removeFromArrayOfProperty(String key, String value) {
+    try {
+      JSONArray array = getPropertyStore().getJSONArray(key);
+      int index = array.toList().indexOf(value);
+      if (index >= 0) {
+        array.remove(index);
+      }
+    } catch (Exception e) {}
     updatePropertyStore();
   }
 

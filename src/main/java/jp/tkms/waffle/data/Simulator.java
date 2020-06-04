@@ -1,31 +1,32 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.collector.AbstractResultCollector;
-import jp.tkms.waffle.collector.JsonResultCollector;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Simulator extends ProjectData {
+public class Simulator extends ProjectData implements DataDirectory {
   public static final String KEY_SIMULATOR = "simulator";
   public static final String KEY_EXTRACTOR = "extractor";
   public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
   public static final String KEY_COLLECTOR = "collector";
+  public static final String KEY_OUTPUT_JSON = "_output.json";
+  private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
 
   public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
@@ -34,6 +35,7 @@ public class Simulator extends ProjectData {
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
 
   private String simulationCommand = null;
+  private String defaultParameters = null;
 
   public Simulator(Project project, UUID id, String name) {
     super(project, id, name);
@@ -50,7 +52,7 @@ public class Simulator extends ProjectData {
 
   @Override
   protected Path getPropertyStorePath() {
-    return getDirectory().resolve(KEY_SIMULATOR + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(KEY_SIMULATOR + Constants.EXT_JSON);
   }
 
   public static Simulator getInstance(Project project, String id) {
@@ -94,6 +96,10 @@ public class Simulator extends ProjectData {
       }
     });
 
+    if (Files.exists(project.getSimulatorDirectoryPath().resolve(name))) {
+      simulator[0] = create(project, name);
+    }
+
     return simulator[0];
   }
 
@@ -107,6 +113,17 @@ public class Simulator extends ProjectData {
   public static ArrayList<Simulator> getList(Project project) {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
 
+    try {
+      Files.list(project.getSimulatorDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          simulatorList.add(getInstanceByName(project, path.getFileName().toString()));
+        }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    /*
     handleDatabase(new Simulator(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -120,11 +137,12 @@ public class Simulator extends ProjectData {
         }
       }
     });
+    */
 
     return simulatorList;
   }
 
-  public static Simulator create(Project project, String name, String simulationCommand) {
+  public static Simulator create(Project project, String name) {
     Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
 
     if (
@@ -132,37 +150,45 @@ public class Simulator extends ProjectData {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,"
-            + KEY_SIMULATION_COMMAND
-            + ") values(?,?,?);");
+            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name"
+            + ") values(?,?);");
           statement.setString(1, simulator.getId());
           statement.setString(2, simulator.getName());
-          statement.setString(3, simulationCommand);
           statement.execute();
         }
       })
     ) {
       try {
-        Files.createDirectories(simulator.getDirectory());
+        Files.createDirectories(simulator.getDirectoryPath());
         Files.createDirectories(simulator.getBinDirectory());
       } catch (IOException e) {
         e.printStackTrace();
       }
 
-      simulator.setSimulatorCommand(simulationCommand);
-      simulator.createExtractor(KEY_COMMAND_ARGUMENTS);
-      simulator.updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("default_parameter_extractor.rb"));
+      if (simulator.getSimulationCommand() == null) {
+        simulator.setSimulatorCommand("");
+      }
 
-      ResultCollector.create(simulator, "_output.json", AbstractResultCollector.getInstance(JsonResultCollector.class.getCanonicalName()));
+      if (simulator.getExtractorNameList() == null) {
+        simulator.createExtractor(KEY_COMMAND_ARGUMENTS);
+        simulator.updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("/default_parameter_extractor.rb"));
+      }
 
-      try{
-        Git git = Git.init().setDirectory(simulator.getDirectory().toFile()).call();
-        git.add().addFilepattern(".").call();
-        git.commit().setMessage("Initial").setAuthor("waffle","waffle@tkms.jp").call();
-        git.branchCreate().setName(KEY_REMOTE).call();
-        git.checkout().setName(KEY_MASTER).call();
-      } catch (GitAPIException e) {
-        e.printStackTrace();
+      if (simulator.getCollectorNameList() == null) {
+        simulator.createCollector(KEY_OUTPUT_JSON);
+        simulator.updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
+      }
+
+      if (! Files.exists(simulator.getDirectoryPath().resolve(".git"))) {
+        try {
+          Git git = Git.init().setDirectory(simulator.getDirectoryPath().toFile()).call();
+          git.add().addFilepattern(".").call();
+          git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
+          git.branchCreate().setName(KEY_REMOTE).call();
+          git.checkout().setName(KEY_MASTER).call();
+        } catch (GitAPIException e) {
+          e.printStackTrace();
+        }
       }
     }
 
@@ -171,7 +197,7 @@ public class Simulator extends ProjectData {
 
   public void update() {
     try{
-      Git git = Git.open(getDirectory().toFile());
+      Git git = Git.open(getDirectoryPath().toFile());
       git.add().addFilepattern(".").call();
 
       for (String missing : git.status().call().getMissing()) {
@@ -198,24 +224,21 @@ public class Simulator extends ProjectData {
     }
   }
 
-  public Path getDirectory() {
-    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
-      TABLE_NAME + File.separator + name + '_' + shortId
-    );
-    return path;
+  @Override
+  public Path getDirectoryPath() {
+    return getProject().getSimulatorDirectoryPath().resolve(name);
   }
 
   public Path getBinDirectory() {
-    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
-      TABLE_NAME + File.separator + name + '_' + shortId + File.separator + KEY_REMOTE
-    );
-    return path;
+    return getDirectoryPath().resolve(KEY_REMOTE);
   }
 
   public String getSimulationCommand() {
-    if (simulationCommand == null) {
-      simulationCommand = getStringFromProperty(KEY_SIMULATION_COMMAND);
-    }
+    try {
+      if (simulationCommand == null) {
+        simulationCommand = getStringFromProperty(KEY_SIMULATION_COMMAND);
+      }
+    } catch (Exception e) {}
     return simulationCommand;
   }
 
@@ -224,13 +247,34 @@ public class Simulator extends ProjectData {
     setToProperty(KEY_SIMULATION_COMMAND, simulationCommand);
   }
 
+  public JSONObject getDefaultParameters() {
+    if (defaultParameters == null) {
+      defaultParameters = getFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON);
+      if (defaultParameters.equals("")) {
+        defaultParameters = "{}";
+        createNewFile(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON);
+        updateFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON, defaultParameters);
+      }
+    }
+    return new JSONObject(defaultParameters);
+  }
+
+  public void setDefaultParameters(String json) {
+    try {
+      JSONObject object = new JSONObject(json);
+      updateFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON, object.toString(2));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
   public Path getExtractorScriptPath(String name) {
-    return getDirectory().resolve(KEY_EXTRACTOR).resolve(name).toAbsolutePath();
+    return getDirectoryPath().resolve(KEY_EXTRACTOR).resolve(name + Constants.EXT_RUBY).toAbsolutePath();
   }
 
   public void createExtractor(String name) {
-    Path path = getCollectorScriptPath(name);
-    Path dirPath = getCollectorScriptPath(name).getParent();
+    Path path = getExtractorScriptPath(name);
+    Path dirPath = path.getParent();
     if (! Files.exists(dirPath)) {
       try {
         Files.createDirectories(dirPath);
@@ -243,9 +287,15 @@ public class Simulator extends ProjectData {
       FileWriter filewriter = new FileWriter(path.toFile());
       filewriter.write(new RubyParameterExtractor().contentsTemplate());
       filewriter.close();
+
+      putToArrayOfProperty(KEY_EXTRACTOR, name);
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  public void removeExtractor(String name) {
+    removeFromArrayOfProperty(KEY_EXTRACTOR, name);
   }
 
   public void updateExtractorScript(String name, String script) {
@@ -275,8 +325,38 @@ public class Simulator extends ProjectData {
     return script;
   }
 
+  public List<String> getExtractorNameList() {
+    List<String> list = null;
+    try {
+      JSONArray array = getArrayFromProperty(KEY_EXTRACTOR);
+      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
+      for (String name : list) {
+        if (! Files.exists(getExtractorScriptPath(name))) {
+          removeFromArrayOfProperty(KEY_EXTRACTOR, name);
+        }
+      }
+    } catch (JSONException e) {
+    }
+    return list;
+  }
+
+  public List<String> getCollectorNameList() {
+    List<String> list = null;
+    try {
+      JSONArray array = getArrayFromProperty(KEY_COLLECTOR);
+      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
+      for (String name : list) {
+        if (! Files.exists(getCollectorScriptPath(name))) {
+          removeFromArrayOfProperty(KEY_COLLECTOR, name);
+        }
+      }
+    } catch (JSONException e) {
+    }
+    return list;
+  }
+
   public Path getCollectorScriptPath(String name) {
-    return getDirectory().resolve(KEY_COLLECTOR).resolve(name).toAbsolutePath();
+    return getDirectoryPath().resolve(KEY_COLLECTOR).resolve(name + Constants.EXT_RUBY).toAbsolutePath();
   }
 
   public void createCollector(String name) {
@@ -294,9 +374,15 @@ public class Simulator extends ProjectData {
       FileWriter filewriter = new FileWriter(path.toFile());
       filewriter.write(new RubyResultCollector().contentsTemplate());
       filewriter.close();
+
+      putToArrayOfProperty(KEY_COLLECTOR, name);
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  public void removeCollector(String name) {
+    removeFromArrayOfProperty(KEY_COLLECTOR, name);
   }
 
   public void updateCollectorScript(String name, String script) {
@@ -341,7 +427,7 @@ public class Simulator extends ProjectData {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_SIMULATION_COMMAND + "," +
+                "id,name," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

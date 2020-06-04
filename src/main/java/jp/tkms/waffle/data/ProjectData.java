@@ -23,6 +23,6 @@ abstract public class ProjectData extends Data {
   }
 
   protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(project.getLocation() + File.separator + Constants.PROJECT_DB_NAME));
+    return Database.getDatabase(Paths.get(project.getDirectoryPath() + File.separator + Constants.PROJECT_DB_NAME));
   }
 }

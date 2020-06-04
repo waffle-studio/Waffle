@@ -153,7 +153,6 @@ public class SimulatorRun extends AbstractRun {
     }
      */
 
-
     handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -179,6 +178,7 @@ public class SimulatorRun extends AbstractRun {
     try {
       Files.createDirectories(run.getWorkPath());
     } catch (Exception e) {}
+    run.parameters = new JSONObject(simulator.getDefaultParameters().toString());
     run.updateParametersStore();
 
     return run;

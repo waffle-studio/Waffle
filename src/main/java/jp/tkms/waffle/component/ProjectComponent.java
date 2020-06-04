@@ -258,8 +258,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   private void addConductor() {
     String name = request.queryParams("name");
     String type = request.queryParams("type");
-    AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    Conductor conductor = Conductor.create(project, name, abstractConductor, abstractConductor.defaultScriptName());
+    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
+    Conductor conductor = Conductor.create(project, name);
     response.redirect(ConductorComponent.getUrl(conductor));
   }
 }

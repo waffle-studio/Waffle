@@ -142,7 +142,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (File child : module.getLocation().toFile().listFiles()) {
+              for (File child : module.getDirectoryPath().toFile().listFiles()) {
                 list.add(new Lte.TableRow(
                   child.getName())
                 );

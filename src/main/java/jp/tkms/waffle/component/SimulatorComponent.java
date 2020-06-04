@@ -2,7 +2,6 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
@@ -10,9 +9,12 @@ import spark.Spark;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class SimulatorComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Simulators";
+  private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
+  private static final String KEY_UPDATE_PARAMETERS = "update-parameters";
 
   private Mode mode;
 
@@ -30,10 +32,10 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getUrl(null), new SimulatorComponent());
     Spark.post(getUrl(null, "update"), new SimulatorComponent(Mode.Update));
+    Spark.post(getUrl(null, KEY_UPDATE_PARAMETERS), new SimulatorComponent(Mode.UpdateParameters));
 
-    SimulatorsComponent.register();
-    TrialsComponent.register();
     ParameterExtractorComponent.register();
+    ResultCollectorComponent.register();
   }
 
   public static String getUrl(Simulator simulator) {
@@ -53,6 +55,9 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     switch (mode) {
       case Update:
         updateSimulator();
+        break;
+      case UpdateParameters:
+        updateDefaultParameters();
         break;
       default:
         renderSimulator();
@@ -90,7 +95,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
                 Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectory().toString()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors)
               ),
-              Lte.formSubmitButton("primary", "Update")
+              Lte.formSubmitButton("success", "Update")
             )
           );
 
@@ -132,56 +137,70 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
          */
 
+        String defaultParametersText = simulator.getDefaultParameters().toString(2);
+
+        content +=
+          Html.form(getUrl(simulator, KEY_UPDATE_PARAMETERS), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "Default Parameters",
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_DEFAULT_PARAMETERS, null, defaultParametersText.split("\\n").length, defaultParametersText, null)
+                )
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop", null)
+          );
+
         content += Lte.card(Html.faIcon("file-import") + "Parameter Extractors",
-          Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus")),
+          Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
+              return null;
             }
 
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ParameterExtractor extractor : ParameterExtractor.getList(simulator)) {
-                list.add(new Lte.TableRow(
-                  Html.a(ParameterExtractorComponent.getUrl(extractor), null, null, extractor.getShortId()),
-                  extractor.getName())
-                );
+              List<String> nameList = simulator.getExtractorNameList();
+              if (nameList != null) {
+                for (String extractorName : nameList) {
+                  list.add(new Lte.TableRow(
+                    Html.a(ParameterExtractorComponent.getUrl(simulator, extractorName), null, null, extractorName))
+                  );
+                }
               }
               return list;
             }
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("dolly-flatbed") + "Result Collectors", null,
+        content += Lte.card(Html.faIcon("dolly-flatbed") + "Result Collectors",
+          Html.a(ResultCollectorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
+              return null;
             }
 
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ResultCollector collector : ResultCollector.getList(simulator)) {
-                list.add(new Lte.TableRow(
-                  Html.a("", null, null, collector.getShortId()),
-                  collector.getName())
-                );
+              List<String> nameList = simulator.getCollectorNameList();
+              if (nameList != null) {
+                for (String collectorName : nameList) {
+                  list.add(new Lte.TableRow(
+                    Html.a(ResultCollectorComponent.getUrl(simulator, collectorName), null, null, collectorName))
+                  );
+                }
               }
               return list;
             }
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("file") + "Files",
+        content += Lte.card(Html.faIcon("file") + "Files in REMOTE",
           Lte.cardToggleButton(false),
           Lte.table("table-sm", new Lte.Table() {
             @Override
@@ -213,5 +232,11 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     response.redirect(getUrl(simulator));
   }
 
-  public enum Mode {Default, Update}
+  void updateDefaultParameters() {
+    simulator.setDefaultParameters(request.queryParams(KEY_DEFAULT_PARAMETERS));
+    simulator.update();
+    response.redirect(getUrl(simulator));
+  }
+
+  public enum Mode {Default, Update, UpdateParameters}
 }

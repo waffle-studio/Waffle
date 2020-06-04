@@ -8,6 +8,7 @@ import jp.tkms.waffle.data.*;
 import spark.Spark;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -90,7 +91,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       response.redirect(getUrl(conductor));
     } else if (mode == Mode.UpdateMainScript) {
       if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-        conductor.updateMainScriptContents(request.queryParams(KEY_MAIN_SCRIPT));
+        conductor.updateMainScript(request.queryParams(KEY_MAIN_SCRIPT));
       }
       response.redirect(getUrl(conductor));
     } else if (mode == Mode.NewListener) {
@@ -144,12 +145,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             , null, "card-danger", null);
         }
 
-        content += Lte.card(Html.faIcon("terminal") + "Basic",
+        content += Lte.card(Html.faIcon("terminal") + "Properties",
           Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
             Html.span("right badge badge-secondary", null, "run")
           ) + Lte.cardToggleButton(true) ,
           Html.div(null,
-            Lte.readonlyTextInput("Conductor Directory", conductor.getLocation().toAbsolutePath().toString()),
+            Lte.readonlyTextInput("Conductor Directory", conductor.getDirectoryPath().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Base Script", conductor.getScriptFileName())
           )
           , null, "collapsed-card", null);
@@ -158,7 +159,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Default variables",
+            Lte.card(Html.faIcon("terminal") + "Default Variables",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -177,7 +178,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainScriptContents(), errors),
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainScript(), errors),
                   getGuideHtml()
                 )
               ),
@@ -191,33 +192,31 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_NAME, KEY_NAME, "", "", errors),
-                  Lte.formSubmitButton("primary", "Create")
+                  Lte.formInputGroup("text", KEY_NAME, KEY_NAME, "", "", errors)
                 )
               )
-              , null, "collapsed-card", null)
+              , Lte.formSubmitButton("primary", "Create")
+              , "collapsed-card", null)
           );
 
-        for (File child : conductor.getLocation().toFile().listFiles()) {
-          String fileName = child.getName();
-          if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
-            String scriptSyntaxError = RubyConductor.checkSyntax(child.toPath());
-            content +=
-              Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
-                Lte.card(Html.faIcon("terminal") + fileName.substring(9, fileName.length() -3) + " (Event Listener)",
-                  Lte.cardToggleButton(false),
-                  Lte.divRow(
-                    Lte.divCol(Lte.DivSize.F12,
-                      Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
-                      ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                      Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getFileContents(fileName), errors),
-                      getGuideHtml()
-                    )
-                  ),
-                  Lte.formSubmitButton("success", "Update"),
-                  "collapsed-card.stop", null)
-              );
-          }
+        for (String listenerName : conductor.getListenerNameList()) {
+          Path path = conductor.getListenerScriptPath(listenerName);
+          String scriptSyntaxError = RubyConductor.checkSyntax(path);
+          content +=
+            Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
+              Lte.card(Html.faIcon("terminal") + listenerName + " (Event Listener)",
+                Lte.cardToggleButton(false),
+                Lte.divRow(
+                  Lte.divCol(Lte.DivSize.F12,
+                    Html.inputHidden(KEY_LISTENER_FILENAME, listenerName),
+                    ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
+                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getListenerScript(listenerName), errors),
+                    getGuideHtml()
+                  )
+                ),
+                Lte.formSubmitButton("success", "Update"),
+                "collapsed-card.stop", null)
+            );
         }
 
         return content;

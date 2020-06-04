@@ -137,10 +137,8 @@ public class AbciSubmitter extends SshSubmitter {
 
     putText(run, BATCH_FILE, makeBatchFileText(run));
 
-    for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-      AbstractParameterExtractor instance
-        = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-      instance.extract(run, extractor, this);
+    for (String extractorName : run.getSimulator().getExtractorNameList()) {
+      new RubyParameterExtractor().extract(this, run, extractorName);
     }
 
     putText(run, EXIT_STATUS_FILE, "-2");

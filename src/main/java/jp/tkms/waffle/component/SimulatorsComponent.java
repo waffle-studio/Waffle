@@ -102,10 +102,8 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void addSimulator() {
-    Simulator simulator = Simulator.create(project,
-      request.queryParams("name"),
-      request.queryParams("sim_cmd")
-    );
+    Simulator simulator = Simulator.create(project, request.queryParams("name"));
+    simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
     response.redirect(SimulatorComponent.getUrl(simulator));
   }
 

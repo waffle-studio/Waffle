@@ -90,13 +90,13 @@ public class Project extends Data {
             = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,location) values(?,?,?);");
           statement.setString(1, project.getId());
           statement.setString(2, project.getName());
-          statement.setString(3, project.getLocation().toString());
+          statement.setString(3, project.getDirectoryPath().toString());
           statement.execute();
         }
       })
     ) {
       try {
-        Files.createDirectories(project.getLocation());
+        Files.createDirectories(project.getDirectoryPath());
 
         if (new ProjectInitializer(project).init()) {
           /*
@@ -113,10 +113,17 @@ public class Project extends Data {
     return project;
   }
 
-  public Path getLocation() {
+  public Path getDirectoryPath() {
     return location;
   }
 
+  public Path getSimulatorDirectoryPath() {
+    return location.resolve(Simulator.KEY_SIMULATOR);
+  }
+
+  public Path getConductorDirectoryPath() {
+    return location.resolve(Conductor.KEY_CONDUCTOR);
+  }
 
   @Override
   protected Updater getDatabaseUpdater() {

@@ -213,7 +213,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public Path getLocation() {
-    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
+    Path path = Paths.get(getProject().getDirectoryPath().toAbsolutePath() + File.separator +
       TABLE_NAME + File.separator + name + '_' + shortId
     );
     return path;

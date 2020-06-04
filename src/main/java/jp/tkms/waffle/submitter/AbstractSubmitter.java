@@ -1,5 +1,6 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.AbstractParameterExtractor;
@@ -51,9 +52,8 @@ abstract public class AbstractSubmitter {
 
     putText(run, BATCH_FILE, makeBatchFileText(run));
 
-    for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-      AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-      instance.extract(run, extractor, this);
+    for (String extractorName : run.getSimulator().getExtractorNameList()) {
+      new RubyParameterExtractor().extract(this, run, extractorName);
     }
 
     putText(run, EXIT_STATUS_FILE, "-2");
@@ -76,7 +76,7 @@ abstract public class AbstractSubmitter {
       "\n" +
       "export REMOTE='" + getSimulatorBinDirectory(run) + "'\n" +
       "chmod a+x '" + getSimulatorBinDirectory(run) + "/" + run.getSimulator().getSimulationCommand() + "'\n" +
-      "export PATH=\"" + getSimulatorBinDirectory(run) + ":$PATH\"\n" +
+      "export PATH=\"$REMOTE:$PATH\"\n" +
       "mkdir -p " + getWorkDirectory(run) + "\n" +
       "BATCH_WORKING_DIR=`pwd`\n" +
       "cd " + getWorkDirectory(run) + "\n" +
@@ -169,8 +169,8 @@ abstract public class AbstractSubmitter {
           if (exitStatus == 0) {
             BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
             job.getRun().setState(State.Finished);
-            for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
-              collector.getResultCollector().collect(this, job.getRun(), collector);
+            for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+              new RubyResultCollector().collect(this, job.getRun(), collectorName);
             }
           } else {
             job.getRun().setState(State.Failed);

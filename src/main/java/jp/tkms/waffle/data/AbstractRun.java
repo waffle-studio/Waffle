@@ -55,7 +55,7 @@ abstract public class AbstractRun extends ProjectData {
 
   public Path getPath() {
     if (isRoot()) {
-      return getProject().getLocation().resolve(KEY_TRIAL);
+      return getProject().getDirectoryPath().resolve(KEY_TRIAL);
     }
     return getParent().getPath().resolve(getId());
   }

@@ -1,9 +1,12 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -17,10 +20,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
-public class Conductor extends ProjectData {
+public class Conductor extends ProjectData implements DataDirectory {
   protected static final String TABLE_NAME = "conductor";
+  protected static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
@@ -50,6 +55,11 @@ public class Conductor extends ProjectData {
   @Override
   protected String getTableName() {
     return TABLE_NAME;
+  }
+
+  @Override
+  protected Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(KEY_CONDUCTOR + Constants.EXT_JSON);
   }
 
   public static Conductor getInstance(Project project, String id) {
@@ -93,6 +103,10 @@ public class Conductor extends ProjectData {
       }
     });
 
+    if (Files.exists(project.getConductorDirectoryPath().resolve(name))) {
+      conductor[0] = create(project, name);
+    }
+
     return conductor[0];
   }
 
@@ -106,6 +120,17 @@ public class Conductor extends ProjectData {
   public static ArrayList<Conductor> getList(Project project) {
     ArrayList<Conductor> simulatorList = new ArrayList<>();
 
+    try {
+      Files.list(project.getConductorDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          simulatorList.add(getInstanceByName(project, path.getFileName().toString()));
+        }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    /*
     handleDatabase(new Conductor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -119,11 +144,12 @@ public class Conductor extends ProjectData {
         }
       }
     });
+     */
 
     return simulatorList;
   }
 
-  public static Conductor create(Project project, String name, AbstractConductor abstractConductor, String scriptFileName) {
+  public static Conductor create(Project project, String name) {
     Conductor conductor = new Conductor(project, UUID.randomUUID(), name);
 
     if (
@@ -136,44 +162,75 @@ public class Conductor extends ProjectData {
             + KEY_SCRIPT + ") values(?,?,?,?);");
           statement.setString(1, conductor.getId());
           statement.setString(2, conductor.getName());
-          statement.setString(3, abstractConductor.getClass().getCanonicalName());
-          statement.setString(4, scriptFileName);
+          statement.setString(3, RubyConductor.class.getCanonicalName());
+          statement.setString(4, "");
           statement.execute();
         }
       })
     ) {
       try {
-        Files.createDirectories(conductor.getLocation());
+        Files.createDirectories(conductor.getDirectoryPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
 
-    abstractConductor.prepareConductor(conductor);
+    if (! Files.exists(conductor.getScriptPath())) {
+      new RubyConductor().prepareConductor(conductor);
+    }
+    //abstractConductor.prepareConductor(conductor);
+
+    if (! Files.exists(conductor.getDirectoryPath().resolve(KEY_LISTENER))) {
+      try {
+        Files.createDirectories(conductor.getDirectoryPath().resolve(KEY_LISTENER));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    conductor.putNewArrayToProperty(KEY_LISTENER);
 
     return conductor;
   }
 
-  public Path getLocation() {
-    Path path = Paths.get(getProject().getLocation().toAbsolutePath() + File.separator +
-      TABLE_NAME + File.separator + getUnifiedName()
-    );
-    return path;
+  @Override
+  public Path getDirectoryPath() {
+    return getProject().getConductorDirectoryPath().resolve(name);
   }
 
   public String getScriptFileName() {
-    if (scriptFileName == null) {
-      scriptFileName = getStringFromDB(KEY_SCRIPT);
-    }
-    return scriptFileName;
-  }
-
-  public String getListenerScriptFileName(String name) {
-    return KEY_LISTENER + "-" + name + KEY_EXT_RUBY;
+    return "main.rb";
   }
 
   public Path getScriptPath() {
-    return getLocation().resolve(getScriptFileName());
+    return getDirectoryPath().resolve(getScriptFileName());
+  }
+
+  public String getListenerScriptFileName(String name) {
+    return name + KEY_EXT_RUBY;
+  }
+
+  public Path getListenerScriptPath(String name) {
+    return getDirectoryPath().resolve(KEY_LISTENER).resolve(getListenerScriptFileName(name));
+  }
+
+  public String getListenerScript(String name) {
+    return getFileContents(KEY_LISTENER + File.separator + getListenerScriptFileName(name));
+  }
+
+  public List<String> getListenerNameList() {
+    List<String> list = null;
+    try {
+      JSONArray array = getArrayFromProperty(KEY_LISTENER);
+      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
+      for (String name : list) {
+        if (! Files.exists(getListenerScriptPath(name))) {
+          removeFromArrayOfProperty(KEY_LISTENER, name);
+        }
+      }
+    } catch (JSONException e) {
+    }
+    return list;
   }
 
   public String getConductorType() {
@@ -189,7 +246,7 @@ public class Conductor extends ProjectData {
       if (defaultVariables.equals("")) {
         defaultVariables = "{}";
         try {
-          FileWriter filewriter = new FileWriter(getLocation().resolve(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON).toFile());
+          FileWriter filewriter = new FileWriter(getDirectoryPath().resolve(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON).toFile());
           filewriter.write(defaultVariables);
           filewriter.close();
         } catch (IOException e) {
@@ -209,16 +266,7 @@ public class Conductor extends ProjectData {
     }
   }
 
-  public String getFileContents(String fileName) {
-    String contents = "";
-    try {
-      contents = new String(Files.readAllBytes(getLocation().resolve(fileName)));
-    } catch (IOException e) {
-    }
-    return contents;
-  }
-
-  public String getMainScriptContents() {
+  public String getMainScript() {
     String mainScript = "";
     try {
       mainScript = new String(Files.readAllBytes(getScriptPath()));
@@ -228,8 +276,7 @@ public class Conductor extends ProjectData {
   }
 
   public void createNewListener(String name) {
-    String fileName = getListenerScriptFileName(name);
-    Path path = getLocation().resolve(fileName);
+    Path path = getListenerScriptPath(name);
     if (! Files.exists(path)) {
       try {
         FileWriter filewriter = new FileWriter(path.toFile());
@@ -239,14 +286,15 @@ public class Conductor extends ProjectData {
         e.printStackTrace();
       }
     }
+    putToArrayOfProperty(KEY_LISTENER, name);
   }
 
-  public void updateFileContents(String fileName, String contents) {
-    Path path = getLocation().resolve(fileName);
+  public void updateListenerScript(String name, String script) {
+    Path path = getListenerScriptPath(name);
     if (Files.exists(path)) {
       try {
         FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(contents);
+        filewriter.write(script);
         filewriter.close();
       } catch (IOException e) {
         e.printStackTrace();
@@ -254,7 +302,7 @@ public class Conductor extends ProjectData {
     }
   }
 
-  public void updateMainScriptContents(String contents) {
+  public void updateMainScript(String contents) {
     if (Files.exists(getScriptPath())) {
       try {
         FileWriter filewriter = new FileWriter(getScriptPath().toFile());
@@ -272,7 +320,7 @@ public class Conductor extends ProjectData {
       return false;
     }
 
-    for (File child : getLocation().toFile().listFiles()) {
+    for (File child : getDirectoryPath().toFile().listFiles()) {
       String fileName = child.getName();
       if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
         String scriptSyntaxError = RubyConductor.checkSyntax(child.toPath());

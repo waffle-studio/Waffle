@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
@@ -49,6 +51,15 @@ public class Database implements AutoCloseable {
   public static synchronized Database getDatabase(Path path) {
     if (path == null) {
       path = Paths.get( Constants.WORK_DIR + File.separator + Constants.MAIN_DB_NAME);
+    }
+
+    Path dirPath = path.getParent();
+    if (! Files.exists(dirPath)) {
+      try {
+        Files.createDirectories(dirPath);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
 
     initialize();

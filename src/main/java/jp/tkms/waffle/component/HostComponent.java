@@ -83,9 +83,9 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("terminal") + "Properties",
-          host.getState().getStatusBadge(),
-          Html.form(getUrl(host, "update"), Html.Method.Post,
+        content += Html.form(getUrl(host, "update"), Html.Method.Post,
+          Lte.card(Html.faIcon("terminal") + "Properties",
+            host.getState().getStatusBadge(),
             Html.div(null,
               Lte.formInputGroup("text", KEY_XSUB,
                 "Xsub directory on host",
@@ -96,11 +96,11 @@ public class HostComponent extends AbstractAccessControlledComponent {
                 "Maximum number of jobs", "", host.getMaximumNumberOfJobs().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
-              Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", 10, host.getParameters().toString(2), null),
-              Lte.formSubmitButton("success", "Update")
+              Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", 10, host.getParameters().toString(2), null)
             )
+            , Lte.formSubmitButton("success", "Update")
           )
-          , null);
+        );
 
         return content;
       }

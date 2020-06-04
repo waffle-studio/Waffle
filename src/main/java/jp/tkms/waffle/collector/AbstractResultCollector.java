@@ -1,6 +1,5 @@
 package jp.tkms.waffle.collector;
 
-import jp.tkms.waffle.data.ResultCollector;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
@@ -9,7 +8,7 @@ import java.util.HashMap;
 
 abstract public class AbstractResultCollector {
 
-  abstract public void collect(AbstractSubmitter submitter, SimulatorRun run, ResultCollector collector);
+  abstract public void collect(AbstractSubmitter submitter, SimulatorRun run, String collectorName);
   abstract public String contentsTemplate();
 
   public AbstractResultCollector() {
