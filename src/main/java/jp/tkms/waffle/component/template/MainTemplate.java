@@ -167,6 +167,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "};updateJobNum(" + Job.getNum() + ");"
           ),
           element("script", new Html.Attributes( Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
+          element("script", new Html.Attributes( Html.value("src", "/ace/ext-language_tools.js"), Html.value("type", "text/javascript")), ""),
           element("script",new Html.Attributes(Html.value("type", "text/javascript")),
             "$(function() {\n" +
               "  $('textarea[data-editor]').each(function() {\n" +
@@ -179,11 +180,47 @@ abstract public class MainTemplate extends AbstractTemplate {
               "      'class': textarea.attr('class')\n" +
               "    }).insertBefore(textarea);\n" +
               "    textarea.css('display', 'none');\n" +
+              "    ace.require(\"ace/ext/language_tools\");\n" +
               "    var editor = ace.edit(editDiv[0]);\n" +
               "    editor.renderer.setShowGutter(true);\n" +
               "    editor.getSession().setValue(textarea.val());\n" +
               "    editor.getSession().setMode(\"ace/mode/\" + mode);\n" +
               "    editor.setTheme(\"ace/theme/textmate\");\n" +
+              "    editor.setOptions({enableBasicAutocompletion: true, enableSnippets: true, enableLiveAutocompletion: true});\n" +
+              "ace.config.loadModule('ace/snippets/snippets', function () {\n" +
+              "        var snippetManager = ace.require('ace/snippets').snippetManager; \n" +
+              "        ace.config.loadModule('ace/snippets/ruby', function(m) {\n" +
+              "            if (m) { \n" +
+              "                snippetManager.files.ruby = m;\n" +
+              "                m.snippets = snippetManager.parseSnippetFile(m.snippetText);\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: 'hub.invokeListener(\"${1:listener name}\")', \n" +
+              "                    tabTrigger: 'hub.invokeListener' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: 'hub.loadConductorTemplate(\"${1:conductor template name}\")', \n" +
+              "                    tabTrigger: 'hub.loadConductorTemplate' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: 'hub.loadListenerTemplate(\"${1:listener template name}\")', \n" +
+              "                    tabTrigger: 'hub.loadListenerTemplate' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: '${1:run} = hub.createSimulatorRun(\"${2:simulator name}\", \"${3:host name}\")', \n" +
+              "                    tabTrigger: 'hub.createSimulatorRun' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: '${1:run} = hub.createConductorRun(\"${2:conductor name}\")', \n" +
+              "                    tabTrigger: 'hub.createConductorRun' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: 'addFinalizer(\"${1:listener name}\")', \n" +
+              "                    tabTrigger: 'addFinalizer' \n" +
+              "                });\n" +
+              "                snippetManager.register(m.snippets, m.scope); \n" +
+              "            }\n" +
+              "        });\n" +
+              "    });\n" +
               "    editor.resize();\n" +
               "    // copy back to textarea on form submit...\n" +
               "    textarea.closest('form').submit(function() {\n" +

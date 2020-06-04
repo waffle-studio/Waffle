@@ -118,7 +118,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
         content += Lte.card(Html.faIcon("terminal") + "Basic",
             Lte.cardToggleButton(true) ,
           Html.div(null,
-            Lte.readonlyTextInput("Conductor Directory", module.getLocation().toAbsolutePath().toString()),
+            Lte.readonlyTextInput("Conductor Directory", module.getDirectoryPath().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Base Script", module.getScriptFileName())
           )
           , null, "collapsed-card", null);
@@ -165,7 +165,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
               , Lte.formSubmitButton("primary", "Create"), "collapsed-card", null)
           );
 
-        for (File child : module.getLocation().toFile().listFiles()) {
+        for (File child : module.getDirectoryPath().toFile().listFiles()) {
           String fileName = child.getName();
           if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
             content +=

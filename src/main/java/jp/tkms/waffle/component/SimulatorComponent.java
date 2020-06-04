@@ -10,11 +10,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SimulatorComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Simulators";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   private static final String KEY_UPDATE_PARAMETERS = "update-parameters";
+  private static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_RUN = "run";
+  private static final String KEY_HOST = "host";
 
   private Mode mode;
 
@@ -33,6 +37,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null), new SimulatorComponent());
     Spark.post(getUrl(null, "update"), new SimulatorComponent(Mode.Update));
     Spark.post(getUrl(null, KEY_UPDATE_PARAMETERS), new SimulatorComponent(Mode.UpdateParameters));
+    Spark.get(getUrl(null, KEY_RUN), new SimulatorComponent(Mode.TestRun));
+    Spark.post(getUrl(null, KEY_RUN), new SimulatorComponent(Mode.TestRun));
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();
@@ -58,6 +64,12 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         break;
       case UpdateParameters:
         updateDefaultParameters();
+        break;
+      case TestRun:
+        if (isPost()) {
+          runSimulator();
+        }
+        renderTestRun();
         break;
       default:
         renderSimulator();
@@ -90,7 +102,10 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(simulator, "update"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Properties", null,
+            Lte.card(Html.faIcon("terminal") + "Properties",
+              Html.a(getUrl(simulator, KEY_RUN),
+                Html.span("right badge badge-secondary", null, "test run")
+              ),
               Html.div(null,
                 Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectory().toString()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", simulator.getSimulationCommand(), errors)
@@ -226,6 +241,87 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
+  private void renderTestRun() {
+    new ProjectMainTemplate(project) {
+      @Override
+      protected String pageTitle() {
+        return simulator.getName();
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return "TestRun";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          Html.a(ProjectsComponent.getUrl(), "Projects"),
+          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          "Simulators",
+          simulator.getId()
+        ));
+      }
+
+      @Override
+      protected String pageContent() {
+        String content = "";
+
+        String parametersText = simulator.getDefaultParameters().toString(2);
+
+        SimulatorRun latestRun = simulator.getLatestTestRun();
+
+        if (latestRun != null) {
+
+          content += Lte.card(Html.faIcon("poll-h") + "Latest Run", null,
+            Lte.table("table-condensed table-sm", new Lte.Table() {
+              @Override
+              public ArrayList<Lte.TableValue> tableHeaders() {
+                ArrayList<Lte.TableValue> list = new ArrayList<>();
+                list.add(new Lte.TableValue("width:6.5em;", "ID"));
+                list.add(new Lte.TableValue("", "Host"));
+                list.add(new Lte.TableValue("width:2em;", ""));
+                return list;
+              }
+
+              @Override
+              public ArrayList<Lte.TableRow> tableRows() {
+                ArrayList<Lte.TableRow> list = new ArrayList<>();
+                list.add(new Lte.TableRow(
+                  Html.a(RunComponent.getUrl(project, latestRun), latestRun.getShortId()),
+                  latestRun.getHost().getName(),
+                  Html.spanWithId(latestRun.getId() + "-badge", latestRun.getState().getStatusBadge())
+                ));
+                return list;
+              }
+            })
+            , null, null, "p-0");
+        }
+
+        content +=
+          Html.form(getUrl(simulator, "run"), Html.Method.Post,
+            Lte.card(Html.faIcon("terminal") + "TestRun",
+              null,
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formSelectGroup(KEY_HOST, "Host", Host.getViableList().stream().map(host -> host.getName()).collect(Collectors.toList()), null),
+                  Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", parametersText.length() < 10 ? 10 : parametersText.length(), simulator.getDefaultParameters().toString(2), null)
+                )
+              )
+              ,Lte.formSubmitButton("primary", "Run")
+            )
+          );
+
+        return content;
+      }
+    }.render(this);
+  }
+
+  void runSimulator() {
+    simulator.runTest(Host.find(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
+    response.redirect(getUrl(simulator, KEY_RUN));
+  }
+
   void updateSimulator() {
     simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
     simulator.update();
@@ -238,5 +334,5 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     response.redirect(getUrl(simulator));
   }
 
-  public enum Mode {Default, Update, UpdateParameters}
+  public enum Mode {Default, Update, UpdateParameters, TestRun}
 }

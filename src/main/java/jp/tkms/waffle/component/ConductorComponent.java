@@ -226,11 +226,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   private String getGuideHtml() {
     return Html.div(null,
-      Html.div(null, "hub.invokeListener(\"&lt;NAME&gt;\")"),
-      Html.div(null, "hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
-      Html.div(null, "hub.createConductorRun(\"&lt;NAME&gt;\")"),
+      Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
       Html.div(null, "hub.loadConductorTemplate(\"&lt;NAME&gt;\")"),
-      Html.div(null, "hub.loadListenerTemplate(\"&lt;NAME&gt;\")")
+      Html.div(null, "hub.loadListenerTemplate(\"&lt;NAME&gt;\")"),
+      Html.div(null, "<b>[RUN(Simulation)]</b> = hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
+      Html.div(null, "<b>[RUN(Conductor)]</b> = hub.createConductorRun(\"&lt;NAME&gt;\")"),
+      Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
+      Html.div(null, "<b>[RUN]</b>.v[:&lt;NAME&gt;] = &lt;VALUE&gt;"),
+      Html.div(null, "<b>[RUN(Simulation)]</b>.p[:&lt;NAME&gt;] = &lt;VALUE&gt;")
     );
   }
 

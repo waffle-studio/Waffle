@@ -6,7 +6,6 @@ import jp.tkms.waffle.conductor.AbstractConductor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,14 +13,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class Project extends Data {
+public class Project extends Data implements DataDirectory {
   protected static final String TABLE_NAME = "project";
-
-  private Path location;
 
   public Project(UUID id, String name) {
     super(id, name);
-    this.location = Paths.get(Constants.DEFAULT_PROJECT_DIR.replaceFirst( "\\$\\{NAME\\}", getUnifiedName()));
+    initialize();
   }
 
   @Override
@@ -31,11 +28,9 @@ public class Project extends Data {
 
   public Project() { }
 
-  protected void setLocation(Path location) {
-    this.location = location;
-  }
-
   public static Project getInstance(String id) {
+    initializeWorkDirectory();
+
     final Project[] project = {null};
 
     handleDatabase(new Project(), new Handler() {
@@ -50,17 +45,56 @@ public class Project extends Data {
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
           );
-          project[0].setLocation(Paths.get(resultSet.getString("location")));
         }
       }
     });
+
+    project[0].initialize();
+
+    return project[0];
+  }
+
+  public static Project getInstanceByName(String name) {
+    final Project[] project = {null};
+
+    handleDatabase(new Project(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          project[0] = new Project(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    if (project[0] == null && Files.exists(getBaseDirectoryPath().resolve(name))) {
+      project[0] = create(name);
+    }
 
     return project[0];
   }
 
   public static ArrayList<Project> getList() {
+    initializeWorkDirectory();
+
     ArrayList<Project> projectList = new ArrayList<>();
 
+    try {
+      Files.list(getBaseDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          projectList.add(getInstanceByName(path.getFileName().toString()));
+        }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    /*
     handleDatabase(new Project(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -70,16 +104,18 @@ public class Project extends Data {
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
           );
-          project.setLocation(null);
           projectList.add(project);
         }
       }
     });
+     */
 
     return projectList;
   }
 
   public static Project create(String name) {
+    initializeWorkDirectory();
+
     Project project = new Project(UUID.randomUUID(), name);
 
     if (
@@ -113,16 +149,21 @@ public class Project extends Data {
     return project;
   }
 
+  public static Path getBaseDirectoryPath() {
+    return Data.getWorkDirectoryPath().resolve(Constants.PROJECT);
+  }
+
+  @Override
   public Path getDirectoryPath() {
-    return location;
+    return getBaseDirectoryPath().resolve(name);
   }
 
   public Path getSimulatorDirectoryPath() {
-    return location.resolve(Simulator.KEY_SIMULATOR);
+    return getDirectoryPath().resolve(Simulator.KEY_SIMULATOR);
   }
 
   public Path getConductorDirectoryPath() {
-    return location.resolve(Conductor.KEY_CONDUCTOR);
+    return getDirectoryPath().resolve(Conductor.KEY_CONDUCTOR);
   }
 
   @Override
@@ -180,6 +221,34 @@ public class Project extends Data {
 
     @Override
     protected Updater getDatabaseUpdater() { return null; }
+  }
+
+  @Override
+  public void initialize() {
+    super.initialize();
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (! Files.exists(Conductor.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(Conductor.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (! Files.exists(Simulator.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(Simulator.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   public void hibernate() {

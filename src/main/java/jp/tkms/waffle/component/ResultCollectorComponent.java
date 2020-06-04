@@ -161,7 +161,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getUrl(simulator, collectorName, "add"), Html.Method.Post,
+        content += Html.form(getStaticUrl(simulator,  "add"), Html.Method.Post,
           Lte.card(Html.faIcon("tasks") + "Properties",
             null,
             Html.div(null,
@@ -183,7 +183,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
     String script = request.queryParams("collect_script");
     simulator.createExtractor(name);
     simulator.updateCollectorScript(name, script);
-    response.redirect(getUrl(simulator, collectorName));
+    response.redirect(getUrl(simulator, name));
   }
 
   public void updateResultCollector() {

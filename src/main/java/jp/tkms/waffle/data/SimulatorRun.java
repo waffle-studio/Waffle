@@ -140,7 +140,8 @@ public class SimulatorRun extends AbstractRun {
 
   public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host, boolean copyParameters) {
     SimulatorRun run = new SimulatorRun(parent, simulator, host);
-    String conductorId = parent.getConductor().getId();
+    Conductor conductor = parent.getConductor();
+    String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
 
@@ -259,7 +260,18 @@ public class SimulatorRun extends AbstractRun {
 
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
-      arguments = new JSONArray(getStringFromDB(KEY_ARGUMENTS));
+      Path storePath = getPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
+      String json = "[]";
+      if (Files.exists(storePath)) {
+        try {
+          json = new String(Files.readAllBytes(storePath));
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } else {
+        setArguments(new ArrayList<>());
+      }
+      arguments = new JSONArray(json);
     }
     return new ArrayList<>(arguments.toList());
   }
@@ -268,15 +280,14 @@ public class SimulatorRun extends AbstractRun {
     this.arguments = new JSONArray(arguments);
     String argumentsJson = this.arguments.toString();
 
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-        statement.setString(1, argumentsJson);
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    });
+    Path storePath = getPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(argumentsJson);
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public void addArgument(Object o) {
@@ -554,7 +565,7 @@ public class SimulatorRun extends AbstractRun {
   private HashMap<Object, Object> parametersWrapper = null;
   public HashMap parameters() {
     if (parametersWrapper == null) {
-      parametersWrapper = new HashMap<Object, Object>() {
+      parametersWrapper = new HashMap<Object, Object>(getParameters().toMap()) {
         @Override
         public Object get(Object key) {
           return getVariable(key.toString());
@@ -562,6 +573,7 @@ public class SimulatorRun extends AbstractRun {
 
         @Override
         public Object put(Object key, Object value) {
+          super.put(key, value);
           putParameter(key.toString(), value);
           return value;
         }

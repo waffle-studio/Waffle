@@ -2,6 +2,7 @@ package jp.tkms.waffle.component.template;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -148,7 +149,7 @@ public class Lte {
     );
   }
 
-  public static String formSelectGroup(String name, String label, ArrayList<String> optionList, ArrayList<FormError> errors) {
+  public static String formSelectGroup(String name, String label, List<String> optionList, ArrayList<FormError> errors) {
     String id = "input" + name;
     String options = "";
     for (String option : optionList) {

@@ -11,7 +11,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ListenerTemplate extends Data {
+public class ListenerTemplate extends Data implements DataDirectory {
   protected static final String TABLE_NAME = "listener_template";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_FUNCTIONS = "functions";
@@ -132,14 +131,14 @@ public class ListenerTemplate extends Data {
       })
     ) {
       try {
-        Files.createDirectories(conductor.getLocation());
+        Files.createDirectories(conductor.getDirectoryPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
 
     String fileName = conductor.getScriptFileName();
-    Path path = conductor.getLocation().resolve(fileName);
+    Path path = conductor.getDirectoryPath().resolve(fileName);
     if (! Files.exists(path)) {
       try {
         FileWriter filewriter = new FileWriter(path.toFile());
@@ -153,8 +152,13 @@ public class ListenerTemplate extends Data {
     return conductor;
   }
 
-  public Path getLocation() {
-    return Paths.get(Constants.LISTENER_TEMPLATE_DIR.replaceFirst( "\\$\\{NAME\\}", getUnifiedName()));
+  public static Path getBaseDirectoryPath() {
+    return Data.getWorkDirectoryPath().resolve(Constants.LISTENER_TEMPLATE);
+  }
+
+  @Override
+  public Path getDirectoryPath() {
+    return getBaseDirectoryPath().resolve(name);
   }
 
   public String getScriptFileName() {
@@ -162,7 +166,7 @@ public class ListenerTemplate extends Data {
   }
 
   public Path getScriptPath() {
-    return getLocation().resolve(getScriptFileName());
+    return getDirectoryPath().resolve(getScriptFileName());
   }
 
   public ArrayList<String> getArguments() {
@@ -197,7 +201,7 @@ public class ListenerTemplate extends Data {
   public String getFileContents(String fileName) {
     String contents = "";
     try {
-      contents = new String(Files.readAllBytes(getLocation().resolve(fileName)));
+      contents = new String(Files.readAllBytes(getDirectoryPath().resolve(fileName)));
     } catch (IOException e) {
     }
     return contents;
@@ -213,7 +217,7 @@ public class ListenerTemplate extends Data {
   }
 
   public void updateFileContents(String fileName, String contents) {
-    Path path = getLocation().resolve(fileName);
+    Path path = getDirectoryPath().resolve(fileName);
     if (Files.exists(path)) {
       try {
         FileWriter filewriter = new FileWriter(path.toFile());

@@ -3,15 +3,12 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.ConductorTemplate;
 import jp.tkms.waffle.data.ListenerTemplate;
 import spark.Spark;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class ListenerTemplateComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ListenerTemplate";
@@ -92,7 +89,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
         content += Lte.card(Html.faIcon("terminal") + "Basic",
           Lte.cardToggleButton(true),
           Html.div(null,
-            Lte.readonlyTextInput(TITLE + " Directory", module.getLocation().toAbsolutePath().toString()),
+            Lte.readonlyTextInput(TITLE + " Directory", module.getDirectoryPath().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Main Script", module.getScriptFileName())
           )
           , null, "collapsed-card", null);

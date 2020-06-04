@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.conductor.AbstractConductor;
+import jp.tkms.waffle.conductor.EmptyConductor;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 
@@ -15,7 +16,7 @@ import java.util.*;
 
 public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
-  public static final String ROOT_NAME = "ROOT";
+  public static final String ROOT_NAME = "trial";
 
   public ConductorRun(Project project, UUID id, String name) {
     super(project, id, name);
@@ -52,6 +53,28 @@ public class ConductorRun extends AbstractRun {
     return conductorRun[0];
   }
 
+  public static ConductorRun getInstanceByName(Project project, String name) {
+    final ConductorRun[] conductorRun = {null};
+
+    handleDatabase(new ConductorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          conductorRun[0] = new ConductorRun(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString(KEY_NAME)
+          );
+        }
+      }
+    });
+
+    return conductorRun[0];
+  }
+
   public static ConductorRun getRootInstance(Project project) {
     final ConductorRun[] conductorRuns = {null};
 
@@ -59,7 +82,7 @@ public class ConductorRun extends AbstractRun {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet
-          = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "';");
+          = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "' and parent='';");
         while (resultSet.next()) {
           conductorRuns[0] = new ConductorRun(
             project,
@@ -73,8 +96,11 @@ public class ConductorRun extends AbstractRun {
     return conductorRuns[0];
   }
 
-  public static ConductorRun find(String project, String id) {
-    return getInstance(Project.getInstance(project), id);
+  public static ConductorRun find(Project project, String key) {
+    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
+      return getInstance(project, key);
+    }
+    return getInstanceByName(project, key);
   }
 
   public static ArrayList<ConductorRun> getList(Project project, ConductorRun parent) {
@@ -171,7 +197,9 @@ public class ConductorRun extends AbstractRun {
   }
 
   public static ConductorRun create(Project project, ConductorRun parent, Conductor conductor) {
-    String name = conductor.getName() + " : " + LocalDateTime.now().toString();
+    String conductorId = (conductor == null ? "" : conductor.getId());
+    String conductorName = (conductor == null ? "NON_CONDUCTOR" : conductor.getName());
+    String name = conductorName + " : " + LocalDateTime.now().toString();
     ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), name);
 
     handleDatabase(new ConductorRun(project), new Handler() {
@@ -181,7 +209,7 @@ public class ConductorRun extends AbstractRun {
           Sql.Value.equal( KEY_ID, conductorRun.getId() ),
           Sql.Value.equal( KEY_NAME, conductorRun.getName() ),
           Sql.Value.equal( KEY_PARENT, parent.getId() ),
-          Sql.Value.equal( KEY_CONDUCTOR, conductor.getId() ),
+          Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
           Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
           Sql.Value.equal( KEY_STATE, State.Created.ordinal() )
         ).execute();
@@ -260,8 +288,12 @@ public class ConductorRun extends AbstractRun {
 
   public void update(AbstractRun run) {
     if (!isRoot()) {
-      AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
-      abstractConductor.eventHandle(this, run);
+      if (this.getConductor() != null) {
+        AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
+        abstractConductor.eventHandle(this, run);
+      } else {
+        new EmptyConductor().eventHandle(this, run);
+      }
     }
   }
 

@@ -34,7 +34,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/ROOT");
+    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + ConductorRun.ROOT_NAME);
   }
 
   public static String getUrl(Project project, ConductorRun conductorRun) {

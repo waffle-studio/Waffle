@@ -27,6 +27,7 @@ public class Simulator extends ProjectData implements DataDirectory {
   public static final String KEY_COLLECTOR = "collector";
   public static final String KEY_OUTPUT_JSON = "_output.json";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
+  public static final String KEY_TESTRUN = "testrun";
 
   public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
@@ -48,6 +49,10 @@ public class Simulator extends ProjectData implements DataDirectory {
   @Override
   protected String getTableName() {
     return TABLE_NAME;
+  }
+
+  public static Path getBaseDirectoryPath(Project project) {
+    return project.getDirectoryPath().resolve(KEY_SIMULATOR);
   }
 
   @Override
@@ -96,7 +101,7 @@ public class Simulator extends ProjectData implements DataDirectory {
       }
     });
 
-    if (Files.exists(project.getSimulatorDirectoryPath().resolve(name))) {
+    if (simulator[0] == null && Files.exists(project.getSimulatorDirectoryPath().resolve(name))) {
       simulator[0] = create(project, name);
     }
 
@@ -412,6 +417,23 @@ public class Simulator extends ProjectData implements DataDirectory {
     return script;
   }
 
+  public void runTest(Host host, String parametersJsonText) {
+    String baseRunName = "TESTRUN-" + name;
+    ConductorRun baseRun = ConductorRun.getInstanceByName(getProject(), baseRunName);
+    if (baseRun == null) {
+      baseRun = ConductorRun.create(getProject(), ConductorRun.getRootInstance(getProject()), null);
+      baseRun.setName(baseRunName);
+    }
+    SimulatorRun run = SimulatorRun.create(baseRun, this, host);
+    setToDB(KEY_TESTRUN, run.getId());
+    run.putParametersByJson(parametersJsonText);
+    run.start();
+  }
+
+  public SimulatorRun getLatestTestRun() {
+    return SimulatorRun.getInstance(getProject(), getStringFromDB(KEY_TESTRUN));
+  }
+
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -427,7 +449,7 @@ public class Simulator extends ProjectData implements DataDirectory {
             @Override
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," +
+                "id,name," + KEY_TESTRUN + " default ''," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

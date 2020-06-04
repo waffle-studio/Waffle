@@ -59,6 +59,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     switch (mode) {
       case Add:
         if (isPost()) {
+          System.out.println("OK");
           addParameterExtractor();
         } else {
           renderAddParameterExtractorForm();
@@ -160,7 +161,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getUrl(simulator, extractorName, "add"), Html.Method.Post,
+        content += Html.form(getStaticUrl(simulator,"add"), Html.Method.Post,
           Lte.card(Html.faIcon("tasks") + "Properties",
             null,
             Html.div(null,
@@ -182,7 +183,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     String script = request.queryParams("extract_script");
     simulator.createExtractor(name);
     simulator.updateExtractorScript(name, script);
-    response.redirect(getUrl(simulator, extractorName));
+    response.redirect(getUrl(simulator, name));
   }
 
   public void updateParameterExtractor() {

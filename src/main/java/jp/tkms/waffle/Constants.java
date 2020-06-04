@@ -13,10 +13,10 @@ public class Constants {
   static final public String MAIN_DB_NAME = ".main.db";
   static final public String PROJECT_DB_NAME = ".project.db";
   static final public String ROOT_PAGE = ProjectsComponent.getUrl();
-  static final public String WORK_DIR = "." + File.separator + APP_NAME.toLowerCase();
-  static final public String DEFAULT_PROJECT_DIR = WORK_DIR + File.separator + "project" + File.separator + "${NAME}";
-  static final public String CONDUCTOR_TEMPLATE_DIR = WORK_DIR + File.separator + "conductor-template" + File.separator + "${NAME}";
-  static final public String LISTENER_TEMPLATE_DIR = WORK_DIR + File.separator + "listener-template" + File.separator + "${NAME}";
+  static final public Path WORK_DIR = Paths.get("." + File.separator + APP_NAME.toLowerCase());
+  static final public String PROJECT = "project";
+  static final public String CONDUCTOR_TEMPLATE = "conductor-template";
+  static final public String LISTENER_TEMPLATE = "listener-template";
   static final public String LOCAL_WORK_DIR = "tmp";
   static final public String LOCAL_XSUB_DIR = "./xsub";
   public static final String EXT_JSON = ".json";

@@ -15,6 +15,7 @@ public class Hub {
 
   Project project;
   ConductorRun conductorRun;
+  ConductorRun nextParentConductorRun;
   AbstractRun run;
   Registry registry;
   ArrayList<AbstractRun> createdRunList;
@@ -29,6 +30,7 @@ public class Hub {
   public Hub(ConductorRun conductorRun, AbstractRun run, ConductorTemplate conductorTemplate) {
     this.project = conductorRun.getProject();
     this.conductorRun = conductorRun;
+    this.nextParentConductorRun = conductorRun;
     this.run = run;
     this.registry = new Registry(conductorRun.getProject());
     this.createdRunList = new ArrayList<>();
@@ -64,12 +66,16 @@ public class Hub {
     }
   }
 
+  public void changeParent(String name) {
+    nextParentConductorRun = ConductorRun.find(project, name);
+  }
+
   public ConductorRun createConductorRun(String name) {
     Conductor conductor = Conductor.find(project, name);
     if (conductor == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
-    ConductorRun createdRun = ConductorRun.create(this.conductorRun, conductor);
+    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor);
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -87,7 +93,7 @@ public class Hub {
     if (! host.getState().equals(HostState.Viable)) {
       throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }
-    SimulatorRun createdRun = SimulatorRun.create(conductorRun, simulator, host);
+    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host);
     createdRunList.add(createdRun);
     return createdRun;
   }

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -43,6 +44,10 @@ abstract public class Data {
   public static String getShortName(String name) {
     String replacedName = name.replaceAll("[^0-9a-zA-Z_\\-]", "");
     return replacedName.substring(0, (replacedName.length() < 8 ? replacedName.length() : 8));
+  }
+
+  public static Path getWorkDirectoryPath() {
+    return Constants.WORK_DIR;
   }
 
   public static String getUnifiedName(UUID id, String name) {
@@ -258,6 +263,44 @@ abstract public class Data {
       }
     } catch (Exception e) {}
     updatePropertyStore();
+  }
+
+  public static void initializeWorkDirectory() {
+    if (!Files.exists(Constants.WORK_DIR)) {
+      try {
+        Files.createDirectories(Constants.WORK_DIR);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (!Files.exists(Project.getBaseDirectoryPath())) {
+      try {
+        Files.createDirectories(Project.getBaseDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (!Files.exists(ConductorTemplate.getBaseDirectoryPath())) {
+      try {
+        Files.createDirectories(ConductorTemplate.getBaseDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (!Files.exists(ListenerTemplate.getBaseDirectoryPath())) {
+      try {
+        Files.createDirectories(ListenerTemplate.getBaseDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public void initialize() {
+    initializeWorkDirectory();
   }
 
   protected Database getDatabase() {

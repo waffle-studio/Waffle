@@ -219,7 +219,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                 for (Conductor conductor : Conductor.getList(project)) {
                   int runningCount = 0;
                   for (ConductorRun notFinished : notFinishedList) {
-                    if (notFinished.getConductor().getId().equals(conductor.getId())) {
+                    if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(conductor.getId())) {
                       runningCount += 1;
                     }
                   }

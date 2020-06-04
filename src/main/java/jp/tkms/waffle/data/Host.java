@@ -118,6 +118,25 @@ public class Host extends Data {
     return list;
   }
 
+  public static ArrayList<Host> getViableList() {
+    ArrayList<Host> list = new ArrayList<>();
+
+    handleDatabase(new Host(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + " where " + KEY_STATE + "=" + HostState.Viable.ordinal() + ";");
+        while (resultSet.next()) {
+          list.add(new Host(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name"))
+          );
+        }
+      }
+    });
+
+    return list;
+  }
+
   public static Host create(String name) {
     Host host = new Host(UUID.randomUUID(), name);
     handleDatabase(new Host(), new Handler() {

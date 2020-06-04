@@ -62,6 +62,10 @@ public class Conductor extends ProjectData implements DataDirectory {
     return getDirectoryPath().resolve(KEY_CONDUCTOR + Constants.EXT_JSON);
   }
 
+  public static Path getBaseDirectoryPath(Project project) {
+    return project.getDirectoryPath().resolve(KEY_CONDUCTOR);
+  }
+
   public static Conductor getInstance(Project project, String id) {
     final Conductor[] conductor = {null};
 
@@ -103,7 +107,7 @@ public class Conductor extends ProjectData implements DataDirectory {
       }
     });
 
-    if (Files.exists(project.getConductorDirectoryPath().resolve(name))) {
+    if (conductor[0] == null && Files.exists(project.getConductorDirectoryPath().resolve(name))) {
       conductor[0] = create(project, name);
     }
 
