@@ -235,7 +235,7 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   public Path getBinDirectory() {
-    return getDirectoryPath().resolve(KEY_REMOTE);
+    return getDirectoryPath().resolve(KEY_REMOTE).toAbsolutePath();
   }
 
   public String getSimulationCommand() {
