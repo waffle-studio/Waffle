@@ -102,6 +102,12 @@ public class RunComponent extends AbstractAccessControlledComponent {
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 list.add(new Lte.TableRow("Status", run.getState().getStatusBadge()));
+                if (run.getConductor() != null) {
+                  list.add(new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getConductor()), run.getConductor().getName())));
+                } else {
+                  list.add(new Lte.TableRow("Conductor", "No Conductor"));
+                }
+                list.add(new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName())));
                 list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
