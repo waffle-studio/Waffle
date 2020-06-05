@@ -268,6 +268,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         String content = "";
 
         String parametersText = simulator.getDefaultParameters().toString(2);
+        int parameterLines = parametersText.split("\n").length;
 
         SimulatorRun latestRun = simulator.getLatestTestRun();
 
@@ -305,7 +306,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formSelectGroup(KEY_HOST, "Host", Host.getViableList().stream().map(host -> host.getName()).collect(Collectors.toList()), null),
-                  Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", parametersText.length() < 10 ? 10 : parametersText.length(), simulator.getDefaultParameters().toString(2), null)
+                  Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", parameterLines < 5 ? 5 : parameterLines, simulator.getDefaultParameters().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")
@@ -318,8 +319,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   }
 
   void runSimulator() {
-    simulator.runTest(Host.find(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
-    response.redirect(getUrl(simulator, KEY_RUN));
+    SimulatorRun run = simulator.runTest(Host.find(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
+    response.redirect(RunComponent.getUrl(project, run));
   }
 
   void updateSimulator() {

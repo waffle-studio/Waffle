@@ -17,8 +17,10 @@ public class Constants {
   static final public String PROJECT = "project";
   static final public String CONDUCTOR_TEMPLATE = "conductor-template";
   static final public String LISTENER_TEMPLATE = "listener-template";
-  static final public String LOCAL_WORK_DIR = "tmp";
-  static final public String LOCAL_XSUB_DIR = "./xsub";
+  static final public String LOCAL_WORK_DIR = "~/tmp";
+  static final public String LOCAL_XSUB_DIR = "~/xsub";
   public static final String EXT_JSON = ".json";
   public static final String EXT_RUBY = ".rb";
+  public static final String STDOUT_FILE = "stdout.txt";
+  public static final String STDERR_FILE = "stderr.txt";
 }

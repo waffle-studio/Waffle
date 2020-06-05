@@ -6,6 +6,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Locale;
@@ -171,6 +172,48 @@ public class SshSession {
     return result;
   }
 
+  public boolean scp(String remote, File local, String workDir) throws JSchException {
+    ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
+    boolean result = false;
+    do {
+      try {
+        channelSftp.connect();
+        try {
+          channelSftp.cd(workDir);
+          Files.createDirectories(local.toPath());
+          if(channelSftp.stat(remote).isDir()) {
+            for (Object o : channelSftp.ls(remote)) {
+              ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) o;
+              transferFiles(entry.getFilename(), local.toPath(), channelSftp);
+            }
+          } else {
+            transferFiles(remote, local.toPath(), channelSftp);
+          }
+          result = true;
+        } catch (Exception e) {
+          e.printStackTrace();
+        } finally {
+          channelSftp.disconnect();
+          channelSemaphore.release();
+        }
+      } catch (JSchException e) {
+        if (e.getMessage().equals("channel is not opened.")) {
+          channelSemaphore.release();
+          System.err.println("Retry to open channel after 1 sec.");
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ex) {
+            ex.printStackTrace();
+          }
+          channelSftp = (ChannelSftp) openChannel("sftp");
+        } else {
+          throw e;
+        }
+      }
+    } while (!result);
+    return result;
+  }
+
   public boolean scp(File local, String dest, String workDir) throws JSchException {
     ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
     boolean result = false;
@@ -209,6 +252,28 @@ public class SshSession {
       }
     } while (!result);
     return result;
+  }
+
+  private static void transferFiles(String remotePath, Path localPath, ChannelSftp clientChannel) throws SftpException, IOException {
+    String name = Paths.get(remotePath).getFileName().toString();
+    if(clientChannel.stat(remotePath).isDir()){
+      Files.createDirectories(localPath.resolve(name));
+
+      for(Object o: clientChannel.ls(remotePath)){
+        ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) o;
+        transferFiles(entry.getFilename(), localPath.resolve(name), clientChannel);
+      }
+    } else {
+      transferFile(remotePath, localPath.resolve(name), clientChannel);
+    }
+  }
+
+  private static void transferFile(String remotePath, Path localPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
+    try {
+      Files.copy(clientChannel.get(remotePath), localPath);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   private static void transferFiles(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {

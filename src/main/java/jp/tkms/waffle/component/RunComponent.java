@@ -1,14 +1,15 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -108,6 +109,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                   list.add(new Lte.TableRow("Conductor", "No Conductor"));
                 }
                 list.add(new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName())));
+                list.add(new Lte.TableRow("Host", Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())));
                 list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
@@ -140,6 +142,28 @@ public class RunComponent extends AbstractAccessControlledComponent {
             )
           )
           , null);
+
+        if (Files.exists(run.getDirectoryPath().resolve(Constants.STDOUT_FILE))) {
+          content += Lte.card(Html.faIcon("file") + "Standard Output",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.readonlyTextAreaGroup("", null, run.getFileContents(Constants.STDOUT_FILE))
+              )
+            )
+            , null, "collapsed-card", null);
+        }
+
+        if (Files.exists(run.getDirectoryPath().resolve(Constants.STDERR_FILE))) {
+          content += Lte.card(Html.faIcon("file") + "Standard Error",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.readonlyTextAreaGroup("", null, run.getFileContents(Constants.STDERR_FILE))
+              )
+            )
+            , null, "collapsed-card", null);
+        }
 
         return content;
       }

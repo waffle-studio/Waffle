@@ -294,6 +294,17 @@ public class ConductorRun extends AbstractRun {
       } else {
         new EmptyConductor().eventHandle(this, run);
       }
+
+      //TODO: do refactor
+      if (getConductor() != null) {
+        int runningCount = 0;
+        for (ConductorRun notFinished : ConductorRun.getNotFinishedList(getProject()) ) {
+          if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(getConductor().getId())) {
+            runningCount += 1;
+          }
+        }
+        BrowserMessage.addMessage("updateConductorJobNum('" + getConductor().getId() + "'," + runningCount + ")");
+      }
     }
   }
 

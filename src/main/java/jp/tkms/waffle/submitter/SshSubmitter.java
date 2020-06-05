@@ -9,6 +9,7 @@ import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
@@ -195,6 +196,24 @@ public class SshSubmitter extends AbstractSubmitter {
     jsonObject.put("identity_pass", "");
     jsonObject.put("port", 22);
     return jsonObject;
+  }
+
+  @Override
+  void transferFile(Path localPath, String remotePath) {
+    try {
+      session.scp(localPath.toFile(), remotePath, "/tmp");
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Override
+  void transferFile(String remotePath, Path localPath) {
+    try {
+      session.scp(remotePath, localPath.toFile(), "/tmp");
+    } catch (JSchException e) {
+      e.printStackTrace();
+    }
   }
 
   protected String toAbsoluteHomePath(String pathString) {

@@ -417,7 +417,7 @@ public class Simulator extends ProjectData implements DataDirectory {
     return script;
   }
 
-  public void runTest(Host host, String parametersJsonText) {
+  public SimulatorRun runTest(Host host, String parametersJsonText) {
     String baseRunName = "TESTRUN-" + name;
     ConductorRun baseRun = ConductorRun.getInstanceByName(getProject(), baseRunName);
     if (baseRun == null) {
@@ -428,6 +428,7 @@ public class Simulator extends ProjectData implements DataDirectory {
     setToDB(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();
+    return run;
   }
 
   public SimulatorRun getLatestTestRun() {

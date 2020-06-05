@@ -7,7 +7,9 @@ import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class LocalSubmitter extends AbstractSubmitter {
@@ -140,6 +142,25 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   public JSONObject defaultParameters(Host host) {
     return new JSONObject();
+  }
+
+  @Override
+  void transferFile(Path localPath, String remotePath) {
+    try {
+      Files.copy(localPath, Paths.get(remotePath).resolve(localPath.getFileName().toString()));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Override
+  void transferFile(String remotePath, Path localPath) {
+    try {
+      Path remote = Paths.get(remotePath);
+      Files.copy(remote, localPath.resolve(remote.getFileName().toString()));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public static void deleteDirectory(final String dirPath) throws Exception {

@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static jp.tkms.waffle.component.template.Html.value;
+
 public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
@@ -134,6 +136,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         ConductorRun lastConductorRun = ConductorRun.getLastInstance(project, conductor);
 
+        int runningCount = 0;
+        for (ConductorRun notFinished : ConductorRun.getNotFinishedList(project)) {
+          if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(conductor.getId())) {
+            runningCount += 1;
+          }
+        }
+
         if (lastConductorRun != null && ! lastConductorRun.getErrorNote().equals("")) {
           content += Lte.card(Html.faIcon("exclamation-triangle") + "Error of last run",
             Lte.cardToggleButton(false),
@@ -145,10 +154,26 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             , null, "card-danger", null);
         }
 
+        content += Html.element("script", new Html.Attributes(value("type", "text/javascript")),
+          "var updateConductorJobNum = function(c,n) {" +
+            "if (n > 0) {" +
+            "document.getElementById('conductor-jobnum-' + c).style.display = 'inline-block';" +
+            "document.getElementById('conductor-jobnum-' + c).innerHTML = n;" +
+            "} else {" +
+            "document.getElementById('conductor-jobnum-' + c).style.display = 'none';" +
+            "}" +
+            "};updateJobNum(" + Job.getNum() + ");"
+        );
+
         content += Lte.card(Html.faIcon("terminal") + "Properties",
-          Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
-            Html.span("right badge badge-secondary", null, "run")
-          ) + Lte.cardToggleButton(true) ,
+          Html.span(null, null,
+            Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
+            Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
+              Html.span("right badge badge-secondary", null, "run")
+            ),
+            Lte.cardToggleButton(true),
+            Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
+          ),
           Html.div(null,
             Lte.readonlyTextInput("Conductor Directory", conductor.getDirectoryPath().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Base Script", conductor.getScriptFileName())
@@ -226,14 +251,19 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   private String getGuideHtml() {
     return Html.div(null,
-      Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
-      Html.div(null, "hub.loadConductorTemplate(\"&lt;NAME&gt;\")"),
-      Html.div(null, "hub.loadListenerTemplate(\"&lt;NAME&gt;\")"),
-      Html.div(null, "hub.v[:&lt;NAME&gt;] = &lt;VALUE&gt;"),
-      Html.div(null, "<b>[RUN(Simulation)]</b> = hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
-      Html.div(null, "<b>[RUN(Conductor)]</b> = hub.createConductorRun(\"&lt;NAME&gt;\")"),
-      Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
-      Html.div(null, "<b>[RUN(Simulation)]</b>.p[:&lt;NAME&gt;] = &lt;VALUE&gt;")
+      Html.div(null, "<b style='color:green;'>以下，主要コマンド仮表示</b>"),
+      Html.element("div", new Html.Attributes(Html.value("style", "padding-left:1em;font-size:0.8em;")),
+        Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
+        Html.div(null, "hub.loadConductorTemplate(\"&lt;NAME&gt;\")"),
+        Html.div(null, "hub.loadListenerTemplate(\"&lt;NAME&gt;\")"),
+        Html.div(null, "hub.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
+        Html.div(null, "<b>[RUN(Simulation)]</b> = hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
+        Html.div(null, "<b>[RUN(Conductor)]</b> = hub.createConductorRun(\"&lt;NAME&gt;\")"),
+        Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
+        Html.div(null, "<b>[RUN(Simulation)]</b>.p[:&lt;NAME&gt;] = &lt;VALUE&gt;"),
+        Html.div(null, "<b>[RUN(Simulation)]</b>.makeLocalShared(\"&lt;KEY&gt\", \"&lt;REMOTE_FILE&gt\");"),
+        Html.div(null, "&lt;VALUE&gt = <b>[RUN(Simulation)]</b>.getResult(\"&lt;VALUE&gt\");")
+      )
     );
   }
 

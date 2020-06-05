@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
-abstract public class AbstractRun extends ProjectData {
+abstract public class AbstractRun extends ProjectData implements DataDirectory {
   protected static final String KEY_TRIAL = "trial";
   protected static final String KEY_PARENT = "parent";
   protected static final String KEY_CONDUCTOR = "conductor";
@@ -53,11 +53,12 @@ abstract public class AbstractRun extends ProjectData {
     return getParent() == null;
   }
 
-  public Path getPath() {
+  @Override
+  public Path getDirectoryPath() {
     if (isRoot()) {
       return getProject().getDirectoryPath().resolve(KEY_TRIAL);
     }
-    return getParent().getPath().resolve(getId());
+    return getParent().getDirectoryPath().resolve(getId());
   }
 
 

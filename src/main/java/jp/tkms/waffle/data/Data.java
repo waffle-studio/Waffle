@@ -232,6 +232,11 @@ abstract public class Data {
     updatePropertyStore();
   }
 
+  protected void setToProperty(String key, JSONArray value) {
+    getPropertyStore().put(key, value);
+    updatePropertyStore();
+  }
+
   protected void putNewArrayToProperty(String key) {
     getPropertyStore().put(key, new ArrayList<>());
     updatePropertyStore();

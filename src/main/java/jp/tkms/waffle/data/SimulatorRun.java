@@ -32,6 +32,8 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_SUBMITTED_AT = "submitted_at";
   private static final String KEY_FINISHED_AT = "finished_at";
   private static final String KEY_RUN = "run";
+  private static final String KEY_ENTRY = "entry";
+  private static final String KEY_LOCAL_SHARED = "local_shared";
   public static final String WORKING_DIR = "WORK";
 
   protected SimulatorRun(Project project) {
@@ -47,6 +49,7 @@ public class SimulatorRun extends AbstractRun {
   private JSONObject results = null;
   private JSONObject environments;
   private JSONArray arguments;
+  private JSONArray locaSharedList;
 
   private SimulatorRun(ConductorRun parent, Simulator simulator, Host host) {
     this(parent.getProject(), UUID.randomUUID(),"",
@@ -199,11 +202,11 @@ public class SimulatorRun extends AbstractRun {
 
   @Override
   protected Path getPropertyStorePath() {
-    return getPath().resolve(KEY_RUN + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(KEY_RUN + Constants.EXT_JSON);
   }
 
   public Path getWorkPath() {
-    return getPath().resolve(WORKING_DIR).toAbsolutePath();
+    return getDirectoryPath().resolve(WORKING_DIR).toAbsolutePath();
   }
 
   @Override
@@ -260,7 +263,7 @@ public class SimulatorRun extends AbstractRun {
 
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
-      Path storePath = getPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
+      Path storePath = getDirectoryPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
       String json = "[]";
       if (Files.exists(storePath)) {
         try {
@@ -280,7 +283,7 @@ public class SimulatorRun extends AbstractRun {
     this.arguments = new JSONArray(arguments);
     String argumentsJson = this.arguments.toString();
 
-    Path storePath = getPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
+    Path storePath = getDirectoryPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
     try {
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(argumentsJson);
@@ -320,9 +323,9 @@ public class SimulatorRun extends AbstractRun {
   }
 
   protected void updateParametersStore() {
-    if (! Files.exists(getPath())) {
+    if (! Files.exists(getDirectoryPath())) {
       try {
-        Files.createDirectories(getPath());
+        Files.createDirectories(getDirectoryPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -332,7 +335,7 @@ public class SimulatorRun extends AbstractRun {
       parameters = new JSONObject();
     }
 
-    Path storePath = getPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+    Path storePath = getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
     try {
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(parameters.toString(2));
@@ -343,7 +346,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   private String getFromParametersStore() {
-    Path storePath = getPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+    Path storePath = getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
     String json = "{}";
     if (Files.exists(storePath)) {
       try {
@@ -394,9 +397,9 @@ public class SimulatorRun extends AbstractRun {
   }
 
   protected void updateResultsStore() {
-    if (! Files.exists(getPath())) {
+    if (! Files.exists(getDirectoryPath())) {
       try {
-        Files.createDirectories(getPath());
+        Files.createDirectories(getDirectoryPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -406,7 +409,7 @@ public class SimulatorRun extends AbstractRun {
       results = new JSONObject();
     }
 
-    Path storePath = getPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+    Path storePath = getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
     try {
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(results.toString(2));
@@ -417,7 +420,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   private String getFromResultsStore() {
-    Path storePath = getPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+    Path storePath = getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
     String json = "{}";
     if (Files.exists(storePath)) {
       try {
@@ -489,6 +492,64 @@ public class SimulatorRun extends AbstractRun {
     setState(State.Running);
     Job.addRun(this);
   }
+
+  public JSONArray getLocalSharedList() {
+    if (locaSharedList == null) {
+      try {
+        locaSharedList = getArrayFromProperty(KEY_LOCAL_SHARED);
+      } catch (Exception e) {}
+      if (locaSharedList == null) {
+        putNewArrayToProperty(KEY_LOCAL_SHARED);
+        locaSharedList = new JSONArray();
+      }
+    }
+    return locaSharedList;
+  }
+
+  public void makeLocalShared(String key, String remote) {
+    locaSharedList = getLocalSharedList();
+    JSONArray entry = new JSONArray();
+    entry.put(key);
+    entry.put(remote);
+    locaSharedList.put(entry);
+    setToProperty(KEY_LOCAL_SHARED, this.locaSharedList);
+  }
+
+  /*
+  public ArrayList<Object> getStageInList() {
+    if (stageInList == null) {
+      stageInList = getArrayFromProperty(KEY_STAGE_IN);
+      if (stageInList == null) {
+        putNewArrayToProperty(KEY_STAGE_IN);
+        stageInList = new JSONArray();
+      }
+    }
+    return new ArrayList<>(stageInList.toList());
+  }
+
+  public void setStageInList(ArrayList<Object> stageInList) {
+    this.stageInList = new JSONArray(stageInList);
+    setToProperty(KEY_STAGE_IN, this.stageInList);
+  }
+
+  public void stageIn(String name, String remote) {
+    ArrayList<Object> stageInList = getStageInList();
+    JSONArray entry = new JSONArray();
+    entry.put(name);
+    entry.put(remote);
+    stageInList.add(entry);
+    setStageInList(stageInList);
+  }
+
+  public void stageOut(String name, String remote) {
+    try {
+      AbstractSubmitter submitter = AbstractSubmitter.getInstance(getHost()).connect();
+      submitter.connect(true);
+      submitter.stageOut(this, name, remote);
+      submitter.close();
+    } catch (Exception e) {}
+  }
+   */
 
   @Override
   protected String getTableName() {

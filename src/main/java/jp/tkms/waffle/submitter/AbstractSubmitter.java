@@ -1,12 +1,15 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -15,7 +18,6 @@ abstract public class AbstractSubmitter {
   protected static final String SIMULATOR_DIR = "simulator";
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
-  protected static final String ENVIRONMENTS_FILE = "environments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract public AbstractSubmitter connect(boolean retry);
@@ -30,6 +32,8 @@ abstract public class AbstractSubmitter {
   abstract public void putText(SimulatorRun run, String path, String text);
   abstract public String getFileContents(SimulatorRun run, String path);
   abstract public JSONObject defaultParameters(Host host);
+  abstract void transferFile(Path localPath, String remotePath);
+  abstract void transferFile(String remotePath, Path localPath);
 
   public AbstractSubmitter connect() {
     return connect(true);
@@ -58,7 +62,7 @@ abstract public class AbstractSubmitter {
 
     putText(run, EXIT_STATUS_FILE, "-2");
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
-    putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
+    //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
     prepareSubmission(run);
 
@@ -72,20 +76,50 @@ abstract public class AbstractSubmitter {
   }
 
   String makeBatchFileText(SimulatorRun run) {
-    return "#!/bin/sh\n" +
+    JSONArray localSharedList = run.getLocalSharedList();
+
+    String text = "#!/bin/sh\n" +
       "\n" +
-      "export REMOTE='" + getSimulatorBinDirectory(run) + "'\n" +
-      "chmod a+x '" + getSimulatorBinDirectory(run) + "/" + run.getSimulator().getSimulationCommand() + "'\n" +
-      "export PATH=\"$REMOTE:$PATH\"\n" +
-      "mkdir -p " + getWorkDirectory(run) + "\n" +
-      "BATCH_WORKING_DIR=`pwd`\n" +
+      "export WAFFLE_REMOTE='" + getSimulatorBinDirectory(run) + "'\n" +
+      "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
+      "mkdir -p " + getWorkDirectory(run) +"\n" +
       "cd " + getWorkDirectory(run) + "\n" +
-      "cat ${BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
-      run.getSimulator().getSimulationCommand() + " >${BATCH_WORKING_DIR}/stdout.txt 2>${BATCH_WORKING_DIR}/stderr.txt\n" +
-      "EXIT_STATUS=$?\n" +
-      "cd ${BATCH_WORKING_DIR}\n" +
+      "export WAFFLE_WORKING_DIR=`pwd`\n" +
+      "cd '" + getSimulatorBinDirectory(run) + "'\n" +
+      "chmod a+x '" + run.getSimulator().getSimulationCommand() + "' >/dev/null 2>&1\n" +
+      "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
+      "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
+      "export WAFFLE_LOCAL_SHARED=\"" + run.getHost().getWorkBaseDirectory() + "/local_shared/" + run.getProject().getId() + "\"\n" +
+      "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
+      "cd \"${WAFFLE_WORKING_DIR}\"\n";
+
+    for (int i = 0; i < localSharedList.length(); i++) {
+      JSONArray a = localSharedList.getJSONArray(i);
+      text += makeLocalSharingPreCommandText(a.getString(0), a.getString(1));
+    }
+
+    text += "\n" + "cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
+      run.getSimulator().getSimulationCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + "\n" +
+      "EXIT_STATUS=$?\n";
+
+    for (int i = 0; i < localSharedList.length(); i++) {
+      JSONArray a = localSharedList.getJSONArray(i);
+      text += makeLocalSharingPostCommandText(a.getString(0), a.getString(1));
+    }
+
+    text += "\n" + "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
       "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" +
-      "";
+      "\n";
+
+    return text;
+  }
+
+  String makeLocalSharingPreCommandText(String key, String remote) {
+    return "mkdir -p `dirname \"" + remote + "\"`;ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"\n";
+  }
+
+  String makeLocalSharingPostCommandText(String key, String remote) {
+    return "";//"\n";
   }
 
   String makeArgumentFileText(SimulatorRun run) {
@@ -96,7 +130,7 @@ abstract public class AbstractSubmitter {
     return text;
   }
 
-  String makeEnvironmentFileText(SimulatorRun run) {
+  String makeEnvironmentCommandText(SimulatorRun run) {
     String text = "";
     for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
       text += "export " + entry.getKey() + "='" + entry.getValue().toString() + "'\n";
@@ -169,6 +203,10 @@ abstract public class AbstractSubmitter {
           if (exitStatus == 0) {
             BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
             job.getRun().setState(State.Finished);
+
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath());
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath());
+
             for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
               new RubyResultCollector().collect(this, job.getRun(), collectorName);
             }
@@ -178,6 +216,7 @@ abstract public class AbstractSubmitter {
 
           job.getRun().setExitStatus(exitStatus);
           job.remove();
+
           postProcess(job.getRun());
           break;
       }
@@ -261,4 +300,17 @@ abstract public class AbstractSubmitter {
   public void hibernate() {
 
   }
+
+  /*
+  public boolean stageIn(SimulatorRun run, String name, String remote) {
+    if (updated) {
+      tranfar file to remote shared dir from local shared dir
+    }
+    soft copy to run dir from remote shared dir
+  }
+
+  public boolean stageOut(SimulatorRun run, String name, String remote) {
+
+  }
+   */
 }

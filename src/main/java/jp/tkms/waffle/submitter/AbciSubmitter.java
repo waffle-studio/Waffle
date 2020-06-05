@@ -143,7 +143,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     putText(run, EXIT_STATUS_FILE, "-2");
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
-    putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
+    //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
     prepareSubmission(run);
 

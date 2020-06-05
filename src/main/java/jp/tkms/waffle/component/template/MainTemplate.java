@@ -34,7 +34,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/custom.css"),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
-        body("hold-transition sidebar-mini",
+        body("hold-transition",
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
               randerPageNavigation()
@@ -216,6 +216,14 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                m.snippets.push({ \n" +
               "                    content: 'addFinalizer(\"${1:listener name}\")', \n" +
               "                    tabTrigger: 'addFinalizer' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: 'getResult(\"${1:key}\")', \n" +
+              "                    tabTrigger: 'getResult' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
+              "                    content: 'makeLocalShared(\"${1:key}\", \"${2:file}\")', \n" +
+              "                    tabTrigger: 'makeLocalShared' \n" +
               "                });\n" +
               "                snippetManager.register(m.snippets, m.scope); \n" +
               "            }\n" +
