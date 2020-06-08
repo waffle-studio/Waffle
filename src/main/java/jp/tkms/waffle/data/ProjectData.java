@@ -22,6 +22,7 @@ abstract public class ProjectData extends Data {
     return project;
   }
 
+  @Override
   protected Database getDatabase() {
     return Database.getDatabase(Paths.get(project.getDirectoryPath() + File.separator + Constants.PROJECT_DB_NAME));
   }

@@ -46,7 +46,7 @@ abstract public class Data {
     return replacedName.substring(0, (replacedName.length() < 8 ? replacedName.length() : 8));
   }
 
-  public static Path getWorkDirectoryPath() {
+  public static Path getWaffleDirectoryPath() {
     return Constants.WORK_DIR;
   }
 

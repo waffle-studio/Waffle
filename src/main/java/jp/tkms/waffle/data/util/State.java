@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum State {
-  Created, Queued, Submitted, Running, Finished, Failed;
+  Created, Queued, Submitted, Running, Finished, Failed, Excepted, Canceled;
 
   public static State valueOf(int i) {
     return values()[i];
@@ -29,6 +29,10 @@ public enum State {
         return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Failed:
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), name());
+      case Excepted:
+        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+      case Canceled:
+        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
     }
     return null;
   }

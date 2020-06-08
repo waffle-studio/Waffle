@@ -3,6 +3,7 @@ package jp.tkms.waffle.submitter;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -58,7 +59,7 @@ public class LocalSubmitter extends AbstractSubmitter {
       e.printStackTrace();
     }
      */
-    BrowserMessage.info("Run(" + run.getShortId() + ") was prepared");
+    InfoLogMessage.issue("Run(" + run.getShortId() + ") was prepared");
   }
 
   @Override

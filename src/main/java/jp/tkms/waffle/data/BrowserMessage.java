@@ -132,8 +132,4 @@ public class BrowserMessage extends Data {
       }
     };
   }
-
-  public static void info(String message) {
-    addMessage("info('" + message + "');");
-  }
 }

@@ -3,6 +3,8 @@ package jp.tkms.waffle.submitter;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONArray;
@@ -55,12 +57,17 @@ abstract public class AbstractSubmitter {
     SimulatorRun run = job.getRun();
 
     putText(run, BATCH_FILE, makeBatchFileText(run));
-
-    for (String extractorName : run.getSimulator().getExtractorNameList()) {
-      new RubyParameterExtractor().extract(this, run, extractorName);
-    }
-
     putText(run, EXIT_STATUS_FILE, "-2");
+
+    try {
+      for (String extractorName : run.getSimulator().getExtractorNameList()) {
+        new RubyParameterExtractor().extract(this, run, extractorName);
+      }
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.getRun().setState(State.Excepted);
+      return;
+    }
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
@@ -168,7 +175,7 @@ abstract public class AbstractSubmitter {
       String jobId = object.getString("job_id");
       job.setJobId(jobId);
       job.getRun().setState(State.Submitted);
-      BrowserMessage.info("Run(" + job.getRun().getShortId() + ") was submitted");
+      InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") was submitted");
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println(json);
@@ -176,7 +183,7 @@ abstract public class AbstractSubmitter {
   }
 
   void processXstat(Job job, String json) {
-    BrowserMessage.info("Run(" + job.getRun().getShortId() + ") will be checked");
+    InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") will be checked");
     JSONObject object = new JSONObject(json);
     try {
       String status = object.getString("status");
@@ -201,14 +208,19 @@ abstract public class AbstractSubmitter {
           }
 
           if (exitStatus == 0) {
-            BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
+            InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") results will be collected");
             job.getRun().setState(State.Finished);
 
             transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath());
             transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath());
 
-            for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
-              new RubyResultCollector().collect(this, job.getRun(), collectorName);
+            try {
+              for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+                new RubyResultCollector().collect(this, job.getRun(), collectorName);
+              }
+            } catch (Exception e) {
+              job.getRun().setState(State.Excepted);
+              WarnLogMessage.issue(e);
             }
           } else {
             job.getRun().setState(State.Failed);
@@ -279,12 +291,17 @@ abstract public class AbstractSubmitter {
         case Submitted:
         case Running:
           State state = update(job);
-          if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
+          if (!(State.Finished.equals(state)
+            || State.Failed.equals(state)
+            || State.Excepted.equals(state)
+            || State.Canceled.equals(state))) {
             submittedCount++;
           }
           break;
         case Finished:
         case Failed:
+        case Excepted:
+        case Canceled:
           job.remove();
       }
     }

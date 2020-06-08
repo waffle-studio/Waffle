@@ -153,7 +153,7 @@ public class ListenerTemplate extends Data implements DataDirectory {
   }
 
   public static Path getBaseDirectoryPath() {
-    return Data.getWorkDirectoryPath().resolve(Constants.LISTENER_TEMPLATE);
+    return Data.getWaffleDirectoryPath().resolve(Constants.LISTENER_TEMPLATE);
   }
 
   @Override

@@ -231,7 +231,10 @@ public class SimulatorRun extends AbstractRun {
         this.state = state;
         new RunStatusUpdater(this);
 
-        if (state.equals(State.Finished) || state.equals(State.Failed)) {
+        if (state.equals(State.Finished)
+          || state.equals(State.Failed)
+          || state.equals((State.Excepted))
+          || state.equals(State.Canceled)) {
           setToProperty(KEY_FINISHED_AT, ZonedDateTime.now().toEpochSecond());
           getParent().update(this);
         } else if (state.equals(State.Submitted)) {
@@ -472,7 +475,11 @@ public class SimulatorRun extends AbstractRun {
 
   @Override
   public boolean isRunning() {
-    return !(state.equals(State.Finished) || state.equals(State.Failed));
+    return !(state.equals(State.Finished)
+      || state.equals(State.Excepted)
+      || state.equals(State.Canceled)
+      || state.equals(State.Failed)
+    );
   }
 
   public void start() {

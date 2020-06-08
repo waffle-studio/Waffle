@@ -3,6 +3,7 @@ package jp.tkms.waffle;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
 import java.util.HashMap;
@@ -19,7 +20,7 @@ public class PollingThread extends Thread {
 
   @Override
   public void run() {
-    System.out.println("Submitter started");
+    InfoLogMessage.issue("Submitter started");
 
     do {
       try { sleep(host.getPollingInterval() * 1000); } catch (InterruptedException e) { e.printStackTrace(); }
@@ -30,7 +31,7 @@ public class PollingThread extends Thread {
       }
       submitter.pollingTask(host);
       submitter.close();
-      BrowserMessage.info("Host(" + host.getName() + ") was scanned");
+      InfoLogMessage.issue("Host(" + host.getName() + ") was scanned");
       host = Host.getInstance(host.getId());
       System.gc();
       if (Main.hibernateFlag) {
@@ -41,7 +42,7 @@ public class PollingThread extends Thread {
 
     threadMap.remove(host.getId());
 
-    System.out.println("Submitter closed");
+    InfoLogMessage.issue("Submitter closed");
   }
 
   synchronized public static void startup() {

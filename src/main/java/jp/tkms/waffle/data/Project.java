@@ -150,7 +150,7 @@ public class Project extends Data implements DataDirectory {
   }
 
   public static Path getBaseDirectoryPath() {
-    return Data.getWorkDirectoryPath().resolve(Constants.PROJECT);
+    return Data.getWaffleDirectoryPath().resolve(Constants.PROJECT);
   }
 
   @Override

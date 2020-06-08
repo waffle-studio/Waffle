@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
@@ -126,7 +127,7 @@ public class SshSubmitter extends AbstractSubmitter {
     } catch (JSchException e) {
       e.printStackTrace();
     }
-    BrowserMessage.info("Run(" + run.getShortId() + ") was prepared");
+    InfoLogMessage.issue("Run(" + run.getShortId() + ") was prepared");
   }
 
   @Override

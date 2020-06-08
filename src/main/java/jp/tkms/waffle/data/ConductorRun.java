@@ -182,7 +182,11 @@ public class ConductorRun extends AbstractRun {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME +
-          " where " + KEY_STATE + "!=" + State.Finished.ordinal() + " and " + KEY_STATE + "!=" + State.Failed.ordinal() + ";");
+          " where "
+          + KEY_STATE + "!=" + State.Finished.ordinal() + " and "
+          + KEY_STATE + "!=" + State.Excepted.ordinal() + " and "
+          + KEY_STATE + "!=" + State.Canceled.ordinal() + " and "
+          + KEY_STATE + "!=" + State.Failed.ordinal() + ";");
         while (resultSet.next()) {
           list.add(new ConductorRun(
             project,
@@ -224,7 +228,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void finish() {
-    if (! getState().equals(State.Failed)) {
+    if (! getState().equals(State.Failed) || getState().equals(State.Excepted) || getState().equals(State.Canceled)) {
       setState(State.Finished);
     }
     if (!isRoot()) {
@@ -311,7 +315,7 @@ public class ConductorRun extends AbstractRun {
   @Override
   public void appendErrorNote(String note) {
     super.appendErrorNote(note);
-    setState(State.Failed);
+    //setState(State.Failed);
   }
 
   @Override
