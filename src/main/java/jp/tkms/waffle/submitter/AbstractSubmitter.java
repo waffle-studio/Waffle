@@ -28,6 +28,7 @@ abstract public class AbstractSubmitter {
   abstract String getSimulatorBinDirectory(SimulatorRun run);
   abstract void prepareSubmission(SimulatorRun run);
   abstract String exec(String command);
+  abstract boolean exists(String path);
   abstract int getExitStatus(SimulatorRun run) throws Exception;
   abstract void postProcess(SimulatorRun run);
   abstract public void close();
@@ -56,6 +57,8 @@ abstract public class AbstractSubmitter {
   public void submit(Job job) {
     SimulatorRun run = job.getRun();
 
+    run.getSimulator().updateVersionId();
+
     putText(run, BATCH_FILE, makeBatchFileText(run));
     putText(run, EXIT_STATUS_FILE, "-2");
 
@@ -70,6 +73,11 @@ abstract public class AbstractSubmitter {
     }
     putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
+
+    if (! exists(Paths.get(getSimulatorBinDirectory(run)).toAbsolutePath().toString())) {
+      Path binPath = run.getSimulator().getBinDirectory().toAbsolutePath();
+      transferFile(binPath, Paths.get(getSimulatorBinDirectory(run)).toAbsolutePath().toString());
+    }
 
     prepareSubmission(run);
 
@@ -211,8 +219,8 @@ abstract public class AbstractSubmitter {
             InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") results will be collected");
             job.getRun().setState(State.Finished);
 
-            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath());
-            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath());
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
 
             try {
               for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {

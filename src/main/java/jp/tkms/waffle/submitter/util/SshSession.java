@@ -222,12 +222,17 @@ public class SshSession {
         channelSftp.connect();
         try {
           channelSftp.cd(workDir);
-          try {
-            channelSftp.mkdir(dest);
-          } catch (SftpException e) {}
-          channelSftp.cd(dest);
-          for(File file: local.listFiles()){
-            transferFiles(file, dest, channelSftp);
+          if (local.isDirectory()) {
+            //try {
+            //channelSftp.mkdir(dest);
+            mkdir(dest, "~/");
+            //} catch (SftpException e) {}
+            channelSftp.cd(dest);
+            for(File file: local.listFiles()){
+              transferFiles(file, dest, channelSftp);
+            }
+          } else {
+            transferFile(local, dest, channelSftp);
           }
           result = true;
         } catch (Exception e) {

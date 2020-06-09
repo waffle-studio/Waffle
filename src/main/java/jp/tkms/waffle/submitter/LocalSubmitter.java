@@ -1,5 +1,6 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.SimulatorRun;
@@ -42,8 +43,9 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
     String sep = run.getHost().getDirectorySeparetor();
-    //String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = run.getSimulator().getBinDirectory().toAbsolutePath().toString();
+    //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep + run.getSimulator().getVersionId();
+
     return pathString;
   }
 
@@ -84,6 +86,11 @@ public class LocalSubmitter extends AbstractSubmitter {
     }
 
     return result;
+  }
+
+  @Override
+  boolean exists(String path) {
+    return Files.exists(Paths.get(path));
   }
 
   @Override
@@ -148,7 +155,13 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   void transferFile(Path localPath, String remotePath) {
     try {
-      Files.copy(localPath, Paths.get(remotePath).resolve(localPath.getFileName().toString()));
+      Path remote = Paths.get(remotePath);
+      Files.createDirectories(remote.getParent());
+      if (Files.isDirectory(localPath)) {
+        transferDirectory(localPath.toFile(), remote.toFile());
+      } else {
+        Files.copy(localPath, remote);
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -158,10 +171,33 @@ public class LocalSubmitter extends AbstractSubmitter {
   void transferFile(String remotePath, Path localPath) {
     try {
       Path remote = Paths.get(remotePath);
-      Files.copy(remote, localPath.resolve(remote.getFileName().toString()));
+      Files.createDirectories(localPath.getParent());
+      if (Files.isDirectory(remote)) {
+        transferDirectory(remote.toFile(), localPath.toFile());
+      } else {
+        Files.copy(remote, localPath);
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  void transferDirectory(File src, File dest) {
+    try {
+      if (src.isDirectory()) {
+        if (!dest.exists()) {
+          dest.mkdir();
+        }
+        String files[]= src.list();
+        for (String file : files) {
+          File srcFile = new File(src, file);
+          File destFile = new File(dest, file);
+          transferDirectory(srcFile, destFile);
+        }
+      }else{
+        Files.copy(src.toPath(), dest.toPath());
+      }
+    } catch (Exception e) {}
   }
 
   public static void deleteDirectory(final String dirPath) throws Exception {

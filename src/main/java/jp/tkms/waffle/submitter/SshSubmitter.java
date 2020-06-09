@@ -11,6 +11,7 @@ import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
@@ -111,7 +112,8 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
     String sep = run.getHost().getDirectorySeparetor();
-    String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep + run.getSimulator().getVersionId();
 
     return toAbsoluteHomePath(pathString);
   }
@@ -121,8 +123,8 @@ public class SshSubmitter extends AbstractSubmitter {
     try {
       session.mkdir(getSimulatorBinDirectory(run), "/tmp");
       if (true) {  // TODO: Check if the simulator has been updated
-        session.scp(run.getSimulator().getBinDirectory().toFile(), getSimulatorBinDirectory(run), "/tmp");
-        session.scp(run.getWorkPath().toFile(), getRunDirectory(run), "/tmp");
+        Path work = run.getWorkPath();
+        session.scp(work.toFile(), Paths.get(getRunDirectory(run)).resolve(work.getFileName()).toString(), "/tmp");
       }
     } catch (JSchException e) {
       e.printStackTrace();
@@ -144,6 +146,15 @@ public class SshSubmitter extends AbstractSubmitter {
     }
 
     return result;
+  }
+
+  @Override
+  boolean exists(String path) {
+    try {
+      return session.exec("test -e \"" + path + "\"", "").getExitStatus() == 0;
+    } catch (JSchException e) {
+    }
+    return false;
   }
 
   @Override

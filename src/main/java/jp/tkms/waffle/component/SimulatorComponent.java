@@ -325,13 +325,11 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   void updateSimulator() {
     simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
-    simulator.update();
     response.redirect(getUrl(simulator));
   }
 
   void updateDefaultParameters() {
     simulator.setDefaultParameters(request.queryParams(KEY_DEFAULT_PARAMETERS));
-    simulator.update();
     response.redirect(getUrl(simulator));
   }
 

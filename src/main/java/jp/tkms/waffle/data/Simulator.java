@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,6 +38,7 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   private String simulationCommand = null;
   private String defaultParameters = null;
+  private String versionId = null;
 
   public Simulator(Project project, UUID id, String name) {
     super(project, id, name);
@@ -200,7 +202,7 @@ public class Simulator extends ProjectData implements DataDirectory {
     return simulator;
   }
 
-  public void update() {
+  public void updateVersionId() {
     try{
       Git git = Git.open(getDirectoryPath().toFile());
       git.add().addFilepattern(".").call();
@@ -224,9 +226,25 @@ public class Simulator extends ProjectData implements DataDirectory {
           git.checkout().setName(KEY_MASTER).call();
         }
       }
+      git.log().setMaxCount(1).call().forEach(c -> c.getId());
     } catch (GitAPIException | IOException e) {
       e.printStackTrace();
     }
+  }
+
+  public String getVersionId() {
+    if (versionId == null) {
+      try{
+        Git git = Git.open(getDirectoryPath().toFile());
+        git.checkout().setName(KEY_REMOTE).call();
+        RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
+        versionId = commit.getId().getName();
+        git.checkout().setName(KEY_MASTER).call();
+      } catch (Exception e) {
+        return "0";
+      }
+    }
+    return versionId;
   }
 
   @Override

@@ -35,21 +35,23 @@ public class BrowserMessage extends Data {
   public static ArrayList<BrowserMessage> getList(String currentRowId) {
     ArrayList<BrowserMessage> list = new ArrayList<>();
 
-    handleDatabase(new BrowserMessage(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
-          KEY_ID, KEY_MESSAGE, KEY_ROWID
-        ).where(Sql.Value.greeterThan(KEY_ROWID, currentRowId)).executeQuery();
-        while (resultSet.next()) {
-          list.add(new BrowserMessage(
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getInt(KEY_ROWID),
-            resultSet.getString(KEY_MESSAGE)
-          ));
+    try {
+      handleDatabase(new BrowserMessage(), new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
+            KEY_ID, KEY_MESSAGE, KEY_ROWID
+          ).where(Sql.Value.greeterThan(KEY_ROWID, currentRowId)).executeQuery();
+          while (resultSet.next()) {
+            list.add(new BrowserMessage(
+              UUID.fromString(resultSet.getString(KEY_ID)),
+              resultSet.getInt(KEY_ROWID),
+              resultSet.getString(KEY_MESSAGE)
+            ));
+          }
         }
-      }
-    });
+      });
+    } catch (Exception e) {}
 
     return list;
   }
