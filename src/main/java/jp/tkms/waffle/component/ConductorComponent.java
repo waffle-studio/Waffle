@@ -7,7 +7,6 @@ import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,7 +19,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_LISTENER = "listener";
   private static final String KEY_EXT_RUBY = ".rb";
-  private static final String KEY_LISTENER_FILENAME = "listener_filename";
+  private static final String KEY_LISTENER_NAME = "listener_name";
   private static final String KEY_NAME = "Name";
   private Mode mode;
 
@@ -102,8 +101,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       }
       response.redirect(getUrl(conductor));
     } else if (mode == Mode.UpdateListenerScript) {
-      if (request.queryMap().hasKey(KEY_LISTENER_FILENAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-        conductor.updateFileContents(request.queryParams(KEY_LISTENER_FILENAME), request.queryParams(KEY_LISTENER_SCRIPT));
+      if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
+        conductor.updateListenerScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
       }
       response.redirect(getUrl(conductor));
     } else {
@@ -233,7 +232,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                 Lte.cardToggleButton(false),
                 Lte.divRow(
                   Lte.divCol(Lte.DivSize.F12,
-                    Html.inputHidden(KEY_LISTENER_FILENAME, listenerName),
+                    Html.inputHidden(KEY_LISTENER_NAME, listenerName),
                     ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
                     Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getListenerScript(listenerName), errors)
                   )
