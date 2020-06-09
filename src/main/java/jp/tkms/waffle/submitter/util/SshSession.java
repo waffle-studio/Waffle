@@ -180,14 +180,15 @@ public class SshSession {
         channelSftp.connect();
         try {
           channelSftp.cd(workDir);
-          Files.createDirectories(local.toPath());
           if(channelSftp.stat(remote).isDir()) {
+            Files.createDirectories(local.toPath());
             for (Object o : channelSftp.ls(remote)) {
               ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) o;
               transferFiles(entry.getFilename(), local.toPath(), channelSftp);
             }
           } else {
-            transferFiles(remote, local.toPath(), channelSftp);
+            Files.createDirectories(local.toPath().getParent());
+            transferFile(remote, local.toPath(), channelSftp);
           }
           result = true;
         } catch (Exception e) {

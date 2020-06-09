@@ -235,8 +235,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                   Lte.divCol(Lte.DivSize.F12,
                     Html.inputHidden(KEY_LISTENER_FILENAME, listenerName),
                     ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getListenerScript(listenerName), errors),
-                    getGuideHtml()
+                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getListenerScript(listenerName), errors)
                   )
                 ),
                 Lte.formSubmitButton("success", "Update"),
