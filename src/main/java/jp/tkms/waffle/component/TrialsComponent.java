@@ -15,7 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class TrialsComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "Trials";
+  public static final String TITLE = "Runs";
   private Mode mode;
 
   private Project project;
@@ -67,21 +67,21 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "Trials";
+        return "Runs";
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId())
+          Html.a(ProjectComponent.getUrl(project), project.getName())
         ));
         ArrayList<String> conductorRunList = new ArrayList<>();
         ConductorRun parent = conductorRun.getParent();
         if (parent == null) {
-          breadcrumb.add("Trials");
+          breadcrumb.add("Runs");
         } else {
-          breadcrumb.add(Html.a(TrialsComponent.getUrl(project), "Trials"));
+          breadcrumb.add(Html.a(TrialsComponent.getUrl(project), "Runs"));
           while (parent != null) {
             conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
             parent = parent.getParent();

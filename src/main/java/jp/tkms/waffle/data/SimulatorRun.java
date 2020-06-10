@@ -466,7 +466,8 @@ public class SimulatorRun extends AbstractRun {
     if (results == null) {
       results = new JSONObject(getFromResultsStore());
     }
-    return results;
+    //return results;
+    return new JSONObject(getFromResultsStore());
   }
 
   public Object getResult(String key) {
@@ -636,7 +637,7 @@ public class SimulatorRun extends AbstractRun {
       parametersWrapper = new HashMap<Object, Object>(getParameters().toMap()) {
         @Override
         public Object get(Object key) {
-          return getVariable(key.toString());
+          return getParameter(key.toString());
         }
 
         @Override

@@ -8,7 +8,6 @@ import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 
 public class Hub {
@@ -100,8 +99,7 @@ public class Hub {
 
   public void invokeListener(String name) {
     if (parentConductorTemplate != null) {
-      String fileName = conductorTemplate.getListenerScriptFileName(name);
-      String script = conductorTemplate.getFileContents(fileName);
+      String script = conductorTemplate.getListenerScript(name);
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());
@@ -128,17 +126,17 @@ public class Hub {
   }
 
   public void loadConductorTemplate(String name) {
-    conductorTemplate = ConductorTemplate.find(name);
+    conductorTemplate = ConductorTemplate.getInstance(name);
   }
 
   public void loadListenerTemplate(String name) {
-    listenerTemplate = ListenerTemplate.find(name);
+    listenerTemplate = ListenerTemplate.getInstance(name);
   }
 
   public void close() {
     //TODO: do refactor
     if (conductorTemplate != null) {
-      String script = conductorTemplate.getMainScriptContents();
+      String script = conductorTemplate.getMainScript();
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());
@@ -150,8 +148,7 @@ public class Hub {
       }
       container.terminate();
     } else if (listenerTemplate != null) {
-      String fileName = listenerTemplate.getScriptFileName();
-      String script = listenerTemplate.getFileContents(fileName);
+      String script = listenerTemplate.getScript();
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());

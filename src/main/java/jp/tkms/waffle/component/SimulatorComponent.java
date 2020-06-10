@@ -88,9 +88,9 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          simulator.getId()
+          simulator.getName()
         ));
       }
 
@@ -257,9 +257,9 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Simulators",
-          simulator.getId()
+          simulator.getName()
         ));
       }
 
@@ -290,7 +290,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 list.add(new Lte.TableRow(
                   Html.a(RunComponent.getUrl(project, latestRun), latestRun.getShortId()),
-                  latestRun.getHost().getName(),
+                  (latestRun.getHost() == null ? "NotFound" : latestRun.getHost().getName()),
                   Html.spanWithId(latestRun.getId() + "-badge", latestRun.getState().getStatusBadge())
                 ));
                 return list;

@@ -114,7 +114,7 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
             null
           );
         } else {
-          contents += Lte.card(null,
+          contents += Lte.card("ConductorTemplate",
             Html.a(getUrl(KEY_ADD_CONDUCTOR),
               null, null, Html.faIcon("plus-square")
             ),
@@ -122,8 +122,7 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
                 ArrayList<Lte.TableValue> list = new ArrayList<>();
-                list.add(new Lte.TableValue("width:8em;", "ID"));
-                list.add(new Lte.TableValue("", "Name"));
+                //list.add(new Lte.TableValue("", "Name"));
                 return list;
               }
 
@@ -132,8 +131,8 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 for (ConductorTemplate module : conductorTemplateList) {
                   list.add(new Lte.TableRow(
-                    Html.a(ConductorTemplateComponent.getUrl(module), null, null, module.getShortId()),
-                    module.getName())
+                    Html.a(ConductorTemplateComponent.getUrl(module), null, null, module.getName())
+                    )
                   );
                 }
                 return list;
@@ -151,7 +150,7 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
             null
           );
         } else {
-          contents += Lte.card(null,
+          contents += Lte.card("ListenerTemplate",
             Html.a(getUrl(KEY_ADD_LISTENER),
               null, null, Html.faIcon("plus-square")
             ),
@@ -159,8 +158,7 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
                 ArrayList<Lte.TableValue> list = new ArrayList<>();
-                list.add(new Lte.TableValue("width:8em;", "ID"));
-                list.add(new Lte.TableValue("", "Name"));
+                //list.add(new Lte.TableValue("", "Name"));
                 return list;
               }
 
@@ -169,8 +167,8 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 for (ListenerTemplate module : listenerTemplateList) {
                   list.add(new Lte.TableRow(
-                    Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getShortId()),
-                    module.getName())
+                    Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getName())
+                    )
                   );
                 }
                 return list;

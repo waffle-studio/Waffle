@@ -1,53 +1,54 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
-import org.json.JSONObject;
+import org.json.JSONException;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.UUID;
+import java.util.List;
 
-public class ConductorTemplate extends Data implements DataDirectory {
-  protected static final String TABLE_NAME = "conductor_template";
+public class ConductorTemplate extends DirectoryBaseData {
+  protected static final String KEY_CONDUCTOR_TEMPLATE = "conductor_template";
+  private static final String KEY_LISTENER = "listener";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_FUNCTIONS = "functionss";
-  private static final String KEY_LISTENER = "listener";
-  private static final String KEY_PROPERTY_JSON = "property.json";
-  private static final String KEY_EXT_RUBY = ".rb";
 
   private String arguments = null;
 
-  public ConductorTemplate() {
-    super();
+  public ConductorTemplate(String name) {
+    super(name);
   }
 
-  public static ArrayList<String> getConductorNameList() {
-    return new ArrayList<>(Arrays.asList(
-      RubyConductor.class.getCanonicalName(),
-      TestConductor.class.getCanonicalName()
-    ));
+  public static ConductorTemplate getInstance(String name) {
+    ConductorTemplate conductorTemplate = null;
+
+    if (Files.exists(getBaseDirectoryPath().resolve(name))) {
+      conductorTemplate = new ConductorTemplate(name);
+
+      if (! Files.exists(conductorTemplate.getMainScriptPath())) {
+        conductorTemplate.createNewFile(conductorTemplate.getMainScriptPath());
+        conductorTemplate.updateMainScript(ResourceFile.getContents("/ruby_conductor_template.rb"));
+      }
+
+      try {
+        Files.createDirectories(conductorTemplate.getDirectoryPath().resolve(KEY_LISTENER));
+      } catch (IOException e) { }
+
+      if (conductorTemplate.getListenerNameList() == null) {
+        conductorTemplate.putNewArrayToProperty(KEY_LISTENER);
+      }
+    }
+
+    return conductorTemplate;
   }
 
-  public ConductorTemplate(UUID id, String name) {
-    super(id, name);
-  }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
-
+  /*
   public static ConductorTemplate getInstance(String id) {
     final ConductorTemplate[] conductor = {null};
 
@@ -96,61 +97,48 @@ public class ConductorTemplate extends Data implements DataDirectory {
     }
     return getInstanceByName(key);
   }
+  dd
+   */
 
   public static ArrayList<ConductorTemplate> getList() {
-    ArrayList<ConductorTemplate> simulatorList = new ArrayList<>();
+    ArrayList<ConductorTemplate> conductorTemplates = new ArrayList<>();
 
-    handleDatabase(new ConductorTemplate(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          simulatorList.add(new ConductorTemplate(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name"))
-          );
+    initializeWorkDirectory();
+
+    try {
+      Files.list(getBaseDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          conductorTemplates.add(new ConductorTemplate(path.getFileName().toString()));
+        }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return conductorTemplates;
+  }
+
+
+  public List<String> getListenerNameList() {
+    List<String> list = null;
+    try {
+      JSONArray array = getArrayFromProperty(KEY_LISTENER);
+      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
+      for (String name : list) {
+        if (! Files.exists(getListenerScriptPath(name))) {
+          removeFromArrayOfProperty(KEY_LISTENER, name);
         }
       }
-    });
-
-    return simulatorList;
+    } catch (JSONException e) {
+    }
+    return list;
   }
 
   public static ConductorTemplate create(String name) {
-    ConductorTemplate conductor = new ConductorTemplate(UUID.randomUUID(), name);
-
-    if (
-      handleDatabase(new ConductorTemplate(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name) values(?,?);");
-          statement.setString(1, conductor.getId());
-          statement.setString(2, conductor.getName());
-          statement.execute();
-        }
-      })
-    ) {
-      try {
-        Files.createDirectories(conductor.getDirectoryPath());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-
-      String fileName = conductor.getScriptFileName();
-      Path path = conductor.getDirectoryPath().resolve(fileName);
-      if (! Files.exists(path)) {
-        try {
-          FileWriter filewriter = new FileWriter(path.toFile());
-          filewriter.write(ResourceFile.getContents("/ruby_conductor_template.rb"));
-          filewriter.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }
-    }
-
-    return conductor;
+    try {
+      Files.createDirectories(getBaseDirectoryPath().resolve(name));
+    } catch (IOException e) { }
+    return new ConductorTemplate(name);
   }
 
   public static Path getBaseDirectoryPath() {
@@ -158,22 +146,32 @@ public class ConductorTemplate extends Data implements DataDirectory {
   }
 
   @Override
+  protected Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(KEY_CONDUCTOR_TEMPLATE + Constants.EXT_JSON);
+  }
+
+  @Override
   public Path getDirectoryPath() {
     return getBaseDirectoryPath().resolve(name);
   }
 
-  public String getScriptFileName() {
+  public String getMainScriptFileName() {
     return "main.rb";
   }
 
+  public Path getMainScriptPath() {
+    return getDirectoryPath().resolve(getMainScriptFileName());
+  }
+
   public String getListenerScriptFileName(String name) {
-    return KEY_LISTENER + "-" + name + KEY_EXT_RUBY;
+    return name + Constants.EXT_RUBY;
   }
 
-  public Path getScriptPath() {
-    return getDirectoryPath().resolve(getScriptFileName());
+  public Path getListenerScriptPath(String name) {
+    return getDirectoryPath().resolve(KEY_LISTENER).resolve(getListenerScriptFileName(name));
   }
 
+  /*
   public ArrayList<String> getArguments() {
     if (arguments == null) {
       arguments = getStringFromDB(KEY_ARGUMENTS);
@@ -202,88 +200,31 @@ public class ConductorTemplate extends Data implements DataDirectory {
       });
     }
   }
+  */
 
-  public String getFileContents(String fileName) {
-    String contents = "";
-    try {
-      contents = new String(Files.readAllBytes(getDirectoryPath().resolve(fileName)));
-    } catch (IOException e) {
-    }
-    return contents;
+
+  public String getListenerScript(String name) {
+    return getFileContents(getListenerScriptPath(name));
   }
 
-  public String getMainScriptContents() {
-    String mainScript = "";
-    try {
-      mainScript = new String(Files.readAllBytes(getScriptPath()));
-    } catch (IOException e) {
-    }
-    return mainScript;
+  public String getMainScript() {
+    return getFileContents(getMainScriptPath());
   }
 
   public void createNewListener(String name) {
-    String fileName = getListenerScriptFileName(name);
-    Path path = getDirectoryPath().resolve(fileName);
+    Path path = getListenerScriptPath(name);
     if (! Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(ResourceFile.getContents("/ruby_listener_template.rb"));
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      createNewFile(path);
+      updateListenerScript(name, ResourceFile.getContents("/ruby_listener_template.rb"));
     }
+    putToArrayOfProperty(KEY_LISTENER, name);
   }
 
-  public void updateFileContents(String fileName, String contents) {
-    Path path = getDirectoryPath().resolve(fileName);
-    if (Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(contents);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
+  public void updateListenerScript(String name, String script) {
+    updateFileContents( getListenerScriptPath(name), script );
   }
 
-  public void updateMainScriptContents(String contents) {
-    if (Files.exists(getScriptPath())) {
-      try {
-        FileWriter filewriter = new FileWriter(getScriptPath().toFile());
-        filewriter.write(contents);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "("
-                + "id,name,"
-                + KEY_ARGUMENTS + " default '[]',"
-                + KEY_FUNCTIONS + " default '[]',"
-                + "timestamp_create timestamp default (DATETIME('now','localtime'))"
-                + ");");
-            }
-          }
-        ));
-      }
-    };
+  public void updateMainScript(String script) {
+    updateFileContents(getMainScriptPath(), script);
   }
 }

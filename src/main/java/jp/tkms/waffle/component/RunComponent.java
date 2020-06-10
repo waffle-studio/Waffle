@@ -70,8 +70,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          Html.a(TrialsComponent.getUrl(project), "Trials")
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          Html.a(TrialsComponent.getUrl(project), "Runs")
         ));
         ArrayList<String> conductorRunList = new ArrayList<>();
         ConductorRun parent = run.getParent();

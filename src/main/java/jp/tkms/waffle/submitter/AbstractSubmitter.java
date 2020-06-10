@@ -215,17 +215,18 @@ abstract public class AbstractSubmitter {
             System.err.println(getRunDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
           }
 
+          transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+          transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+
           if (exitStatus == 0) {
             InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") results will be collected");
-            job.getRun().setState(State.Finished);
-
-            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
-            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
 
             try {
               for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
                 new RubyResultCollector().collect(this, job.getRun(), collectorName);
               }
+
+              job.getRun().setState(State.Finished);
             } catch (Exception e) {
               job.getRun().setState(State.Excepted);
               WarnLogMessage.issue(e);

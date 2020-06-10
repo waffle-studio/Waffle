@@ -10,7 +10,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class ConductorTemplateComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ConductorTemplate";
@@ -47,7 +46,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
 
   public static String getUrl(ConductorTemplate module) {
     return "/conductor-template/"
-      + (module == null ? ":id" : module.getId());
+      + (module == null ? ":name" : module.getName());
   }
 
   public static String getUrl(ConductorTemplate module, String mode) {
@@ -57,16 +56,16 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
   @Override
   public void controller() {
 
-    module = ConductorTemplate.getInstance(request.params("id"));
+    module = ConductorTemplate.getInstance(request.params("name"));
 
     if (mode == Mode.UpdateArguments) {
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        module.setArguments(request.queryParams(KEY_ARGUMENTS));
+        //module.setArguments(request.queryParams(KEY_ARGUMENTS));
       }
       response.redirect(getUrl(module));
     } else if (mode == Mode.UpdateMainScript) {
       if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-        module.updateMainScriptContents(request.queryParams(KEY_MAIN_SCRIPT));
+        module.updateMainScript(request.queryParams(KEY_MAIN_SCRIPT));
       }
       response.redirect(getUrl(module));
     } else if (mode == Mode.NewListener) {
@@ -76,7 +75,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
       response.redirect(getUrl(module));
     } else if (mode == Mode.UpdateListenerScript) {
       if (request.queryMap().hasKey(KEY_LISTENER_FILENAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-        module.updateFileContents(request.queryParams(KEY_LISTENER_FILENAME), request.queryParams(KEY_LISTENER_SCRIPT));
+        module.updateListenerScript(request.queryParams(KEY_LISTENER_FILENAME), request.queryParams(KEY_LISTENER_SCRIPT));
       }
       response.redirect(getUrl(module));
     } else {
@@ -100,7 +99,8 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(TemplatesComponent.getUrl(), TemplatesComponent.TITLE),
-          module.getId()
+          "ConductorTemplate",
+          module.getName()
         ));
       }
 
@@ -110,16 +110,19 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
+        /*
         String argumentsText = "";
         for (String s : module.getArguments()) {
           argumentsText += s + "\n";
         }
 
-        content += Lte.card(Html.faIcon("terminal") + "Basic",
+         */
+
+        content += Lte.card(Html.faIcon("terminal") + "Properties",
             Lte.cardToggleButton(true) ,
           Html.div(null,
             Lte.readonlyTextInput("Conductor Directory", module.getDirectoryPath().toAbsolutePath().toString()),
-            Lte.readonlyTextInput("Base Script", module.getScriptFileName())
+            Lte.readonlyTextInput("Base Script", module.getMainScriptFileName())
           )
           , null, "collapsed-card", null);
 
@@ -145,7 +148,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScriptContents(), errors)
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScript(), errors)
 
                 )
               )
@@ -165,22 +168,19 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
               , Lte.formSubmitButton("primary", "Create"), "collapsed-card", null)
           );
 
-        for (File child : module.getDirectoryPath().toFile().listFiles()) {
-          String fileName = child.getName();
-          if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
-            content +=
-              Html.form(getUrl(module, "update-listener-script"), Html.Method.Post,
-                Lte.card(Html.faIcon("terminal") + fileName.substring(9, fileName.length() -3) + " (Event Listener)",
-                  Lte.cardToggleButton(false),
-                  Lte.divRow(
-                    Lte.divCol(Lte.DivSize.F12,
-                      Html.inputHidden(KEY_LISTENER_FILENAME, fileName),
-                      Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", module.getFileContents(fileName), errors)
-                    )
+        for (String listenerName : module.getListenerNameList()) {
+          content +=
+            Html.form(getUrl(module, "update-listener-script"), Html.Method.Post,
+              Lte.card(Html.faIcon("terminal") + listenerName + " (Event Listener)",
+                Lte.cardToggleButton(false),
+                Lte.divRow(
+                  Lte.divCol(Lte.DivSize.F12,
+                    Html.inputHidden(KEY_LISTENER_FILENAME, listenerName),
+                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", module.getListenerScript(listenerName), errors)
                   )
-                  , Lte.formSubmitButton("success", "Update"), "collapsed-card.stop", null)
-              );
-          }
+                )
+                , Lte.formSubmitButton("success", "Update"), "collapsed-card.stop", null)
+            );
         }
 
         /*

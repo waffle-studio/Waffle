@@ -158,14 +158,14 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"), project.getId()));
+          Html.a(ProjectsComponent.getUrl(), "Projects"), project.getName()));
       }
 
       @Override
       protected String pageContent() {
         String content = Lte.divRow(
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
-            Html.a(TrialsComponent.getUrl(project), "Trials"), ""),
+            Html.a(TrialsComponent.getUrl(project), "Runs"), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
             Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );

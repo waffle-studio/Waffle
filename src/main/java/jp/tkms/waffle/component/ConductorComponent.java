@@ -121,9 +121,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Conductors",
-          conductor.getId()
+          conductor.getName()
         ));
       }
 
@@ -291,9 +291,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Conductors",
-          conductor.getId()
+          conductor.getName()
         ));
       }
 

@@ -18,142 +18,65 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ListenerTemplate extends Data implements DataDirectory {
-  protected static final String TABLE_NAME = "listener_template";
-  private static final String KEY_ARGUMENTS = "arguments";
-  private static final String KEY_FUNCTIONS = "functions";
+public class ListenerTemplate extends DirectoryBaseData {
+  protected static final String KEY_LISTENER_TEMPLATE = "listener_template";
   private static final String KEY_LISTENER = "listener";
-  private static final String KEY_EXT_RUBY = ".rb";
+  //private static final String KEY_ARGUMENTS = "arguments";
+  //private static final String KEY_FUNCTIONS = "functions";
 
   private String arguments = null;
 
-  public ListenerTemplate() {
-    super();
+  public ListenerTemplate(String name) {
+    super(name);
   }
 
-  public static ArrayList<String> getConductorNameList() {
-    return new ArrayList<>(Arrays.asList(
-      RubyConductor.class.getCanonicalName(),
-      TestConductor.class.getCanonicalName()
-    ));
-  }
+  public static ListenerTemplate getInstance(String name) {
+    ListenerTemplate listenerTemplate = null;
 
-  public ListenerTemplate(UUID id, String name) {
-    super(id, name);
-  }
+    if (Files.exists(getBaseDirectoryPath().resolve(name))) {
+      listenerTemplate = new ListenerTemplate(name);
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
-
-  public static ListenerTemplate getInstance(String id) {
-    final ListenerTemplate[] conductor = {null};
-
-    handleDatabase(new ListenerTemplate(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          conductor[0] = new ListenerTemplate(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
+      if (! Files.exists(listenerTemplate.getScriptPath())) {
+        listenerTemplate.createNewFile(listenerTemplate.getScriptPath());
+        listenerTemplate.updateScript(ResourceFile.getContents("/ruby_listener_template.rb"));
       }
-    });
-
-    return conductor[0];
-  }
-
-  public static ListenerTemplate getInstanceByName(String name) {
-    final ListenerTemplate[] conductor = {null};
-
-    handleDatabase(new ListenerTemplate(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
-        statement.setString(1, name);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          conductor[0] = new ListenerTemplate(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
-      }
-    });
-
-    return conductor[0];
-  }
-
-  public static ListenerTemplate find(String key) {
-    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
-      return getInstance(key);
     }
-    return getInstanceByName(key);
+
+    return listenerTemplate;
   }
 
   public static ArrayList<ListenerTemplate> getList() {
-    ArrayList<ListenerTemplate> simulatorList = new ArrayList<>();
+    ArrayList<ListenerTemplate> listenerTemplates = new ArrayList<>();
 
-    handleDatabase(new ListenerTemplate(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          simulatorList.add(new ListenerTemplate(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name"))
-          );
+    initializeWorkDirectory();
+
+    try {
+      Files.list(getBaseDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          listenerTemplates.add(new ListenerTemplate(path.getFileName().toString()));
         }
-      }
-    });
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
 
-    return simulatorList;
+    return listenerTemplates;
   }
 
   public static ListenerTemplate create(String name) {
-    ListenerTemplate conductor = new ListenerTemplate(UUID.randomUUID(), name);
-
-    if (
-      handleDatabase(new ListenerTemplate(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name) values(?,?);");
-          statement.setString(1, conductor.getId());
-          statement.setString(2, conductor.getName());
-          statement.execute();
-        }
-      })
-    ) {
-      try {
-        Files.createDirectories(conductor.getDirectoryPath());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    String fileName = conductor.getScriptFileName();
-    Path path = conductor.getDirectoryPath().resolve(fileName);
-    if (! Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(ResourceFile.getContents("/ruby_listener_template.rb"));
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    return conductor;
+    try {
+      Files.createDirectories(getBaseDirectoryPath().resolve(name));
+    } catch (IOException e) { }
+    return new ListenerTemplate(name);
   }
 
   public static Path getBaseDirectoryPath() {
     return Data.getWaffleDirectoryPath().resolve(Constants.LISTENER_TEMPLATE);
+  }
+
+  @Override
+  protected Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(KEY_LISTENER_TEMPLATE + Constants.EXT_JSON);
   }
 
   @Override
@@ -162,109 +85,18 @@ public class ListenerTemplate extends Data implements DataDirectory {
   }
 
   public String getScriptFileName() {
-    return KEY_LISTENER + "-" + name + KEY_EXT_RUBY;
+    return "main.rb";
   }
 
   public Path getScriptPath() {
     return getDirectoryPath().resolve(getScriptFileName());
   }
 
-  public ArrayList<String> getArguments() {
-    if (arguments == null) {
-      arguments = getStringFromDB(KEY_ARGUMENTS);
-    }
-    ArrayList<String> list = new ArrayList<>();
-    for (Object o : (new JSONArray(arguments)).toList()) {
-      list.add(o.toString());
-    }
-    return list;
+  public String getScript() {
+    return getFileContents(getScriptPath());
   }
 
-  public void setArguments(String json) {
-    JSONObject args = new JSONObject(json);
-    if (args != null) {
-      arguments = args.toString();
-
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, arguments);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
-    }
-  }
-
-  public String getFileContents(String fileName) {
-    String contents = "";
-    try {
-      contents = new String(Files.readAllBytes(getDirectoryPath().resolve(fileName)));
-    } catch (IOException e) {
-    }
-    return contents;
-  }
-
-  public String getMainScriptContents() {
-    String mainScript = "";
-    try {
-      mainScript = new String(Files.readAllBytes(getScriptPath()));
-    } catch (IOException e) {
-    }
-    return mainScript;
-  }
-
-  public void updateFileContents(String fileName, String contents) {
-    Path path = getDirectoryPath().resolve(fileName);
-    if (Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(contents);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  public void updateMainScriptContents(String contents) {
-    if (Files.exists(getScriptPath())) {
-      try {
-        FileWriter filewriter = new FileWriter(getScriptPath().toFile());
-        filewriter.write(contents);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "("
-                + "id,name,"
-                + KEY_ARGUMENTS + " default '[]',"
-                + KEY_FUNCTIONS + " default '[]',"
-                + "timestamp_create timestamp default (DATETIME('now','localtime'))"
-                + ");");
-            }
-          }
-        ));
-      }
-    };
+  public void updateScript(String script) {
+    updateFileContents(getScriptPath(), script);
   }
 }

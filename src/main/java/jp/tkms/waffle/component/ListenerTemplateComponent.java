@@ -34,7 +34,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
 
   public static String getUrl(ListenerTemplate module) {
     return "/listener-template/"
-      + (module == null ? ":id" : module.getId());
+      + (module == null ? ":name" : module.getName());
   }
 
   public static String getUrl(ListenerTemplate module, String mode) {
@@ -43,16 +43,16 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
 
   @Override
   public void controller() {
-    module = ListenerTemplate.getInstance(request.params("id"));
+    module = ListenerTemplate.getInstance(request.params("name"));
 
     if (mode == Mode.UpdateArguments) {
       if (request.queryMap().hasKey(KEY_ARGUMENTS)) {
-        module.setArguments(request.queryParams(KEY_ARGUMENTS));
+        //module.setArguments(request.queryParams(KEY_ARGUMENTS));
       }
       response.redirect(getUrl(module));
     } else if (mode == Mode.UpdateMainScript) {
       if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-        module.updateMainScriptContents(request.queryParams(KEY_MAIN_SCRIPT));
+        module.updateScript(request.queryParams(KEY_MAIN_SCRIPT));
       }
       response.redirect(getUrl(module));
     } else {
@@ -76,7 +76,8 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(TemplatesComponent.getUrl(), TemplatesComponent.TITLE),
-          module.getId()
+          "ListenerTemplate",
+          module.getName()
         ));
       }
 
@@ -86,7 +87,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("terminal") + "Basic",
+        content += Lte.card(Html.faIcon("terminal") + "Properties",
           Lte.cardToggleButton(true),
           Html.div(null,
             Lte.readonlyTextInput(TITLE + " Directory", module.getDirectoryPath().toAbsolutePath().toString()),
@@ -94,12 +95,12 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
           )
           , null, "collapsed-card", null);
 
+        /*
         String argumentsText = "";
         for (String s : module.getArguments()) {
           argumentsText += s + "\n";
         }
 
-        /*
         content +=
           Html.form(getUrl(module, "update-arguments"), Html.Method.Post,
             Lte.card(Html.faIcon("terminal") + "Arguments",
@@ -121,7 +122,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getMainScriptContents(), errors)
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", module.getScript(), errors)
                 )
               )
               ,Lte.formSubmitButton("success", "Update") , "collapsed-card.stop", null)
