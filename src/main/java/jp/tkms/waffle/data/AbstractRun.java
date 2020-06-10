@@ -118,8 +118,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   public void addFinalizer(String name) {
-    String fileName = getConductor().getListenerScriptFileName(name);
-    addRawFinalizerScript(getConductor().getFileContents(fileName));
+    System.out.println(getParent().getConductor().name + "   ---->    " + name);
+    addRawFinalizerScript(getParent().getConductor().getListenerScript(name));
   }
 
   protected void updateVariablesStore() {

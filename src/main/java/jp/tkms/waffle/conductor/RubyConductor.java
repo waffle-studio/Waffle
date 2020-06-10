@@ -54,13 +54,19 @@ public class RubyConductor extends CycleConductor {
 
   @Override
   protected void finalizeProcess(ConductorRun conductorRun) {
+    //TODO: do refactor
+    ConductorRun parent = conductorRun.getParent();
+    if (parent == null) {
+      parent = conductorRun;
+    }
+
     for (String script : conductorRun.getFinalizers()) {
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(getInitScript());
         container.runScriptlet(getListenerTemplateScript());
         container.runScriptlet(script);
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, conductorRun);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", parent, conductorRun);
       } catch (Exception e) {
         System.err.println(e.getMessage());
         conductorRun.appendErrorNote(e.getMessage());

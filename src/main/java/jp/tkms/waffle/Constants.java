@@ -1,16 +1,15 @@
 package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.ProjectsComponent;
-import org.jruby.lexer.yacc.SyntaxException;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Constants {
+  static final public String JAR_URL = "https://desk.tkms.jp/resource/WjjMKKgC2MdI4GpepkzGOy4yQ3dWEOxM/waffle-all.jar";
   static final public String APP_NAME = "WAFFLE";
   static final public String APP_FULL_NAME = "Workflow Administration Framework to Facilitate Lucid Exploration";
   static final public String MAIN_DB_NAME = ".main.db";

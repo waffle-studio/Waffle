@@ -135,12 +135,22 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         ConductorRun lastConductorRun = ConductorRun.getLastInstance(project, conductor);
 
-        int runningCount = 0;
+        // TODO: do refactoring
+        ArrayList<ConductorRun> notFinishedList = new ArrayList<>();
         for (ConductorRun notFinished : ConductorRun.getNotFinishedList(project)) {
+          if (!notFinished.isRoot()) {
+            if (notFinished.getParent() != null && notFinished.getParent().isRoot()) {
+              notFinishedList.add(notFinished);
+            }
+          }
+        }
+        int runningCount = 0;
+        for (ConductorRun notFinished : notFinishedList) {
           if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(conductor.getId())) {
             runningCount += 1;
           }
         }
+
 
         if (lastConductorRun != null && ! lastConductorRun.getErrorNote().equals("")) {
           content += Lte.card(Html.faIcon("exclamation-triangle") + "Error of last run",

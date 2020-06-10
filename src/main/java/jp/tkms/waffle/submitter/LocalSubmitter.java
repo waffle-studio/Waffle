@@ -1,5 +1,6 @@
 package jp.tkms.waffle.submitter;
 
+import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
@@ -32,7 +33,7 @@ public class LocalSubmitter extends AbstractSubmitter {
       e.printStackTrace();
     }
 
-    return pathString;
+    return toAbsoluteHomePath(pathString);
   }
 
   @Override
@@ -46,7 +47,7 @@ public class LocalSubmitter extends AbstractSubmitter {
     //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
     String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep + run.getSimulator().getVersionId();
 
-    return pathString;
+    return toAbsoluteHomePath(pathString);
   }
 
   @Override
@@ -215,5 +216,12 @@ public class LocalSubmitter extends AbstractSubmitter {
       }
     }
     file.delete();
+  }
+
+  protected String toAbsoluteHomePath(String pathString) {
+    if (pathString.indexOf('~') == 0) {
+      pathString = pathString.replaceAll("^~", System.getProperty("user.home"));
+    }
+    return pathString;
   }
 }

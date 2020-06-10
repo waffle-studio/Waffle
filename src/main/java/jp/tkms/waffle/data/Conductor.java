@@ -192,7 +192,11 @@ public class Conductor extends ProjectData implements DataDirectory {
       }
     }
 
-    conductor.putNewArrayToProperty(KEY_LISTENER);
+    try {
+      conductor.getArrayFromProperty(KEY_LISTENER);
+    } catch (Exception e) {
+      conductor.putNewArrayToProperty(KEY_LISTENER);
+    }
 
     return conductor;
   }

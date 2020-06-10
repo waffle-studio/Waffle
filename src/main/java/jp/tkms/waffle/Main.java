@@ -7,11 +7,8 @@ import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import spark.Spark;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.URISyntaxException;
+import java.io.*;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.stream.IntStream;
 
@@ -21,6 +18,7 @@ public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
+  public static boolean updateFlag = false;
 
   public static void main(String[] args) {
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
@@ -134,22 +132,32 @@ public class Main {
     hibernate();
   }
 
+  public static void update() {
+    updateFlag = true;
+    restart();
+  }
+
   public static void restartProcess()
   {
     try {
       final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
       final File currentJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
 
-      if(!currentJar.getName().endsWith(".jar"))
+      if(!currentJar.getName().endsWith(".jar")) {
         return;
+      }
 
       final ArrayList<String> command = new ArrayList<String>();
       command.add(javaBin);
       command.add("-jar");
       command.add(currentJar.getPath());
 
+      if (updateFlag) {
+        updateProcess();
+      }
+
       final ProcessBuilder builder = new ProcessBuilder(command);
-      System.out.println(builder.toString());
+      System.out.println("System will fork and restert");
       builder.start();
     } catch (URISyntaxException e) {
       e.printStackTrace();
@@ -157,6 +165,51 @@ public class Main {
       e.printStackTrace();
     }
     System.exit(0);
+  }
+
+  public static void updateProcess() {
+    try {
+      final File currentJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+
+      if(!currentJar.getName().endsWith(".jar")) {
+        return;
+      }
+
+      URL url = new URL(Constants.JAR_URL);
+
+      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+      connection.setAllowUserInteraction(false);
+      connection.setInstanceFollowRedirects(true);
+      connection.setRequestMethod("GET");
+      connection.connect();
+
+      int httpStatusCode = connection.getResponseCode();
+
+      if(httpStatusCode != HttpURLConnection.HTTP_OK){
+        throw new Exception();
+      }
+
+      DataInputStream dataInStream = new DataInputStream( connection.getInputStream());
+
+      DataOutputStream dataOutStream = new DataOutputStream( new BufferedOutputStream( new FileOutputStream(
+        currentJar.getPath()
+      )));
+
+      byte[] b = new byte[4096];
+      int readByte = 0;
+
+      while(-1 != (readByte = dataInStream.read(b))){
+        dataOutStream.write(b, 0, readByte);
+      }
+
+      dataInStream.close();
+      dataOutStream.close();
+
+      Main.restart();
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
 }

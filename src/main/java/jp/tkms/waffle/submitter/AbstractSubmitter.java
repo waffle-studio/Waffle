@@ -130,11 +130,11 @@ abstract public class AbstractSubmitter {
   }
 
   String makeLocalSharingPreCommandText(String key, String remote) {
-    return "mkdir -p `dirname \"" + remote + "\"`;ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"\n";
+    return "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi\n";
   }
 
   String makeLocalSharingPostCommandText(String key, String remote) {
-    return "";//"\n";
+    return "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi";
   }
 
   String makeArgumentFileText(SimulatorRun run) {

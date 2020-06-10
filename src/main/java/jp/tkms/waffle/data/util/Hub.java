@@ -113,8 +113,7 @@ public class Hub {
       }
       container.terminate();
     } else {
-      String fileName = conductorRun.getConductor().getListenerScriptFileName(name);
-      String script = conductorRun.getConductor().getFileContents(fileName);
+      String script = conductorRun.getConductor().getListenerScript(name);
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());
@@ -198,19 +197,12 @@ public class Hub {
   private final HashMap<Object, Object> variablesMapWrapper  = new HashMap<Object, Object>() {
     @Override
     public Object get(Object key) {
-      if (run instanceof SimulatorRun) {
-        return run.getParent().getVariable(key.toString());
-      }
-      return run.getVariable(key.toString());
+      return conductorRun.getVariable(key.toString());
     }
 
     @Override
     public Object put(Object key, Object value) {
-      if (run instanceof SimulatorRun) {
-        run.getParent().putVariable(key.toString(), value);
-      } else {
-        run.putVariable(key.toString(), value);
-      }
+      conductorRun.putVariable(key.toString(), value);
       return value;
     }
   };

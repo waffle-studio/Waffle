@@ -143,7 +143,8 @@ abstract public class MainTemplate extends AbstractTemplate {
               )
             ),
             elementWithClass("footer", "main-footer", div("float-right d-none d-sm-block"),
-              element("strong", null, "Copyright &copy; 2019 S.T.")
+              element("strong", null, "Copyright &copy; 2019 S.T."),
+              a(SystemComponent.getUrl("update"), Lte.badge("secondary", null, "update"))
             )
           ),
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),
@@ -206,11 +207,11 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    tabTrigger: 'hub.loadListenerTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = hub.createSimulatorRun(\"${2:simulator name}\", \"${3:host name}\")', \n" +
+              "                    content: '${1:r} = hub.createSimulatorRun(\"${2:simulator name}\", \"${3:host name}\")', \n" +
               "                    tabTrigger: 'hub.createSimulatorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = hub.createConductorRun(\"${2:conductor name}\")', \n" +
+              "                    content: '${1:r} = hub.createConductorRun(\"${2:conductor name}\")', \n" +
               "                    tabTrigger: 'hub.createConductorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
