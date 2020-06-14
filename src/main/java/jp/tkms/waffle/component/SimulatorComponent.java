@@ -319,7 +319,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   }
 
   void runSimulator() {
-    SimulatorRun run = simulator.runTest(Host.find(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
+    SimulatorRun run = simulator.runTest(Host.getInstance(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
     response.redirect(RunComponent.getUrl(project, run));
   }
 

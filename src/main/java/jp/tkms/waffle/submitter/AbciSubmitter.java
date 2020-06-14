@@ -169,9 +169,9 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   String getWorkDirectory(UUID packId) {
-    String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + RUN_DIR + host.getDirectorySeparetor()
-      + "pack" + host.getDirectorySeparetor()
+    String pathString = host.getWorkBaseDirectory() + '/'
+      + RUN_DIR + '/'
+      + "pack" + '/'
       + packId.toString();
 
     try {

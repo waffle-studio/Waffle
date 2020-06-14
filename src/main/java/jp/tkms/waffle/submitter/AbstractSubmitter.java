@@ -10,6 +10,7 @@ import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -250,13 +251,13 @@ abstract public class AbstractSubmitter {
   }
 
   String getContentsPath(SimulatorRun run, String path) {
-    return getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + path;
+    String separator = (run.getHost().isLocal() ? File.separator : "/");
+    return getWorkDirectory(run) + separator + path;
   }
 
   public static String getXsubBinDirectory(Host host) {
-    return (host.getXsubDirectory().equals("") ? "":
-      host.getXsubDirectory() + host.getDirectorySeparetor() + "bin" + host.getDirectorySeparetor()
-      );
+    String separator = (host.isLocal() ? File.separator : "/");
+    return (host.getXsubDirectory().equals("") ? "": host.getXsubDirectory() + separator + "bin" + separator);
   }
 
   public static JSONObject getXsubTemplate(Host host, boolean retry) throws RuntimeException {

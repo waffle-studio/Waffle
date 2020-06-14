@@ -92,8 +92,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   String getRunDirectory(SimulatorRun run) {
     Host host = run.getHost();
-    String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + RUN_DIR + host.getDirectorySeparetor() + run.getId();
+    String pathString = host.getWorkBaseDirectory() + '/' + RUN_DIR + '/' + run.getId();
 
     try {
       session.mkdir(pathString, "~/");
@@ -111,9 +110,8 @@ public class SshSubmitter extends AbstractSubmitter {
 
   @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
-    String sep = run.getHost().getDirectorySeparetor();
     //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep + run.getSimulator().getVersionId();
+    String pathString = run.getHost().getWorkBaseDirectory() + '/' + SIMULATOR_DIR + '/' + run.getSimulator().getVersionId();
 
     return toAbsoluteHomePath(pathString);
   }

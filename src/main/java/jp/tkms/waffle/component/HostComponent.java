@@ -38,7 +38,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Host host) {
-    return "/host/" + (host == null ? ":id" : host.getId());
+    return "/host/" + (host == null ? ":name" : host.getName());
   }
 
   public static String getUrl(Host host, String mode) {
@@ -47,7 +47,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    host = Host.getInstance(request.params("id"));
+    host = Host.getInstance(request.params("name"));
     switch (mode) {
       case Update:
         updateHost();
@@ -73,7 +73,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(HostsComponent.getUrl(), "Hosts"),
-          host.getId()
+          host.getName()
         ));
       }
 

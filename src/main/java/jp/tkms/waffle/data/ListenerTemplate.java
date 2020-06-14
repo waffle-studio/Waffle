@@ -64,9 +64,7 @@ public class ListenerTemplate extends DirectoryBaseData {
   }
 
   public static ListenerTemplate create(String name) {
-    try {
-      Files.createDirectories(getBaseDirectoryPath().resolve(name));
-    } catch (IOException e) { }
+    createDirectories(getBaseDirectoryPath().resolve(name));
     return new ListenerTemplate(name);
   }
 

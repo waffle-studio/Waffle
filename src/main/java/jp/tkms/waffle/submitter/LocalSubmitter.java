@@ -24,11 +24,11 @@ public class LocalSubmitter extends AbstractSubmitter {
   @Override
   String getRunDirectory(SimulatorRun run) {
     Host host = run.getHost();
-    String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + RUN_DIR + host.getDirectorySeparetor() + run.getId();
+    String pathString = host.getWorkBaseDirectory() + File.separator
+      + RUN_DIR + File.separator + run.getId();
 
     try {
-      Files.createDirectories(Paths.get(pathString + host.getDirectorySeparetor()));
+      Files.createDirectories(Paths.get(pathString + File.separator));
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -43,9 +43,8 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   @Override
   String getSimulatorBinDirectory(SimulatorRun run) {
-    String sep = run.getHost().getDirectorySeparetor();
     //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = run.getHost().getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep + run.getSimulator().getVersionId();
+    String pathString = run.getHost().getWorkBaseDirectory() + File.separator + SIMULATOR_DIR + File.separator + run.getSimulator().getVersionId();
 
     return toAbsoluteHomePath(pathString);
   }
@@ -100,7 +99,7 @@ public class LocalSubmitter extends AbstractSubmitter {
 
     try {
       FileReader file
-        = new FileReader(getRunDirectory(run) + run.getHost().getDirectorySeparetor() + EXIT_STATUS_FILE);
+        = new FileReader(getRunDirectory(run) + File.separator + EXIT_STATUS_FILE);
       BufferedReader r  = new BufferedReader(file);
       String line;
       while ((line = r.readLine()) != null) {
@@ -134,7 +133,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   public void putText(SimulatorRun run, String path, String text) {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getRunDirectory(run) + run.getHost().getDirectorySeparetor() + path)
+        new FileWriter(getRunDirectory(run) + File.separator + path)
       ));
       pw.println(text);
       pw.close();

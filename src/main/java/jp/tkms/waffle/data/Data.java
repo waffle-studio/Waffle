@@ -1,6 +1,8 @@
 package jp.tkms.waffle.data;
 
+import jnr.ffi.annotations.In;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.Sql;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -14,15 +16,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 abstract public class Data {
-  protected static final String KEY_ROWID = "rowid";
-  protected static final String KEY_ID = "id";
-  protected static final String KEY_NAME = "name";
+  public static final String KEY_ROWID = "rowid";
+  public static final String KEY_ID = "id";
+  public static final String KEY_NAME = "name";
+  public static final String KEY_UUID = "uuid";
+  public static final String KEY_DIRECTORY = "directory";
 
   protected UUID id = null;
-  protected String shortId;
+  protected String shortId = null;
   protected String name;
 
   public Data() {}
@@ -71,10 +76,16 @@ abstract public class Data {
   }
 
   public String getId() {
+    if (id == null) {
+      getUuid();
+    }
     return id.toString();
   }
 
   public String getShortId() {
+    if (shortId == null) {
+      shortId = getShortId(getUuid());
+    }
     return shortId;
   }
 
@@ -113,7 +124,7 @@ abstract public class Data {
     return result[0];
   }
 
-  protected int getIntFromDB(String key) {
+  protected Integer getIntFromDB(String key) {
     final Integer[] result = {null};
 
     handleDatabase(this, new Handler() {
@@ -202,15 +213,24 @@ abstract public class Data {
   }
 
   protected String getStringFromProperty(String key) {
-    return getPropertyStore().getString(key);
+    try {
+      return getPropertyStore().getString(key);
+    } catch (Exception e) {}
+    return null;
   }
 
-  protected int getIntFromProperty(String key) {
-    return getPropertyStore().getInt(key);
+  protected Integer getIntFromProperty(String key) {
+    try {
+      return getPropertyStore().getInt(key);
+    } catch (Exception e) {}
+    return null;
   }
 
-  protected long getLongFromProperty(String key) {
-    return getPropertyStore().getLong(key);
+  protected Long getLongFromProperty(String key) {
+    try {
+      return getPropertyStore().getLong(key);
+    } catch (Exception e) {}
+    return null;
   }
 
   protected JSONArray getArrayFromProperty(String key) {
@@ -271,35 +291,45 @@ abstract public class Data {
   }
 
   public static void initializeWorkDirectory() {
-    if (!Files.exists(Constants.WORK_DIR)) {
-      try {
-        Files.createDirectories(Constants.WORK_DIR);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
+    createDirectories(Constants.WORK_DIR);
+    createDirectories(Project.getBaseDirectoryPath());
+    createDirectories(ConductorTemplate.getBaseDirectoryPath());
+    createDirectories(ListenerTemplate.getBaseDirectoryPath());
+    createDirectories(Host.getBaseDirectoryPath());
 
-    if (!Files.exists(Project.getBaseDirectoryPath())) {
-      try {
-        Files.createDirectories(Project.getBaseDirectoryPath());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
+    initializeMainDatabase();
+  }
 
-    if (!Files.exists(ConductorTemplate.getBaseDirectoryPath())) {
-      try {
-        Files.createDirectories(ConductorTemplate.getBaseDirectoryPath());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
+  private static synchronized void initializeMainDatabase() {
+    try(Database db = Database.getDatabase(null)) {
+      new Updater(){
+        @Override
+        String tableName() {
+          return KEY_UUID;
+        }
 
-    if (!Files.exists(ListenerTemplate.getBaseDirectoryPath())) {
+        @Override
+        ArrayList<UpdateTask> updateTasks() {
+          return new ArrayList<Updater.UpdateTask>(Arrays.asList(
+            new UpdateTask() {
+              @Override
+              void task(Database db) throws SQLException {
+                new Sql.Create(db, tableName(), KEY_ID, KEY_DIRECTORY).execute();
+              }
+            }
+          ));
+        }
+      }.update(db);
+      db.commit();
+    } catch (SQLException e) { }
+  }
+
+  protected static void createDirectories(Path path) {
+    if (!Files.exists(path)) {
       try {
-        Files.createDirectories(ListenerTemplate.getBaseDirectoryPath());
+        Files.createDirectories(path);
       } catch (IOException e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
     }
   }

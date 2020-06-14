@@ -18,6 +18,7 @@ public class Constants {
   static final public String ROOT_PAGE = ProjectsComponent.getUrl();
   static final public Path WORK_DIR = Paths.get("." + File.separator + APP_NAME.toLowerCase()).toAbsolutePath();
   static final public String PROJECT = "project";
+  static final public String HOST = "host";
   static final public String LOG = "log";
   static final public String CONDUCTOR_TEMPLATE = "conductor-template";
   static final public String LISTENER_TEMPLATE = "listener-template";

@@ -8,4 +8,8 @@ public class ErrorLogMessage extends LogMessage {
   public static void issue(String message) {
     new ErrorLogMessage(message).printMessage();
   }
+
+  public static void issue(Exception e) {
+    new ErrorLogMessage(getStackTrace(e)).printMessage();
+  }
 }
