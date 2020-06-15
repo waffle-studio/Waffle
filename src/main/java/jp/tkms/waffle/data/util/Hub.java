@@ -84,7 +84,7 @@ public class Hub {
     if (simulator == null) {
       throw new RuntimeException("Simulator(\"" + name + "\") is not found");
     }
-    Host host = Host.getInstance(hostName);
+    Host host = Host.find(hostName);
     if (host == null) {
       throw new RuntimeException("Host(\"" + hostName + "\") is not found");
     }

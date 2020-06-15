@@ -95,7 +95,9 @@ public class Main {
       }
     }.start();
 
-    (new ScriptingContainer(LocalContextScope.THREADSAFE)).terminate();
+    ScriptingContainer scriptingContainer = new ScriptingContainer(LocalContextScope.THREADSAFE);
+    scriptingContainer.runScriptlet("print \"\"");
+    scriptingContainer.terminate();
 
     new SystemUpdater(null);
 

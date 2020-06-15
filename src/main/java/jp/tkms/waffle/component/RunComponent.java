@@ -109,7 +109,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                   list.add(new Lte.TableRow("Conductor", "No Conductor"));
                 }
                 list.add(new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName())));
-                list.add(new Lte.TableRow("Host", Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())));
+                list.add(new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName()))) );
                 list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),

@@ -25,6 +25,7 @@ abstract public class Data {
   public static final String KEY_NAME = "name";
   public static final String KEY_UUID = "uuid";
   public static final String KEY_DIRECTORY = "directory";
+  public static final String KEY_CLASS = "class";
 
   protected UUID id = null;
   protected String shortId = null;
@@ -296,8 +297,6 @@ abstract public class Data {
     createDirectories(ConductorTemplate.getBaseDirectoryPath());
     createDirectories(ListenerTemplate.getBaseDirectoryPath());
     createDirectories(Host.getBaseDirectoryPath());
-
-    initializeMainDatabase();
   }
 
   private static synchronized void initializeMainDatabase() {
@@ -314,7 +313,7 @@ abstract public class Data {
             new UpdateTask() {
               @Override
               void task(Database db) throws SQLException {
-                new Sql.Create(db, tableName(), KEY_ID, KEY_DIRECTORY).execute();
+                new Sql.Create(db, tableName(), KEY_ID, KEY_NAME, KEY_CLASS, KEY_DIRECTORY).execute();
               }
             }
           ));
@@ -345,8 +344,10 @@ abstract public class Data {
   synchronized protected static boolean handleDatabase(Data base, Handler handler) {
     boolean isSuccess = true;
 
-    try(Database db = base.getDatabase()) {
-      Updater updater = base.getDatabaseUpdater();
+    initializeMainDatabase();
+
+    try(Database db = (base == null ? Database.getDatabase(null) : base.getDatabase())) {
+      Updater updater = (base == null ? null : base.getDatabaseUpdater());
       if (updater != null) {
         updater.update(db);
       } else {

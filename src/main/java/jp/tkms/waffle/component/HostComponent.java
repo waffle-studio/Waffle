@@ -47,7 +47,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    host = Host.getInstance(request.params("name"));
+    host = Host.find(request.params("name"));
     switch (mode) {
       case Update:
         updateHost();

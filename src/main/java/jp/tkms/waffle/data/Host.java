@@ -50,8 +50,16 @@ public class Host extends DirectoryBaseData {
     return TABLE_NAME;
   }
 
-  public static Host getInstance(String name) {
+  public static Host getInstance(String id) {
+    return getInstanceByName(getName(id));
+  }
+
+  public static Host getInstanceByName(String name) {
     Host host = null;
+
+    if (name == null) {
+      return null;
+    }
 
     if (Files.exists(getBaseDirectoryPath().resolve(name))) {
       host = new Host(name);
@@ -77,35 +85,12 @@ public class Host extends DirectoryBaseData {
     return host;
   }
 
-  /*
-  public static Host getInstanceByName(String name) {
-    final Host[] host = {null};
-
-    handleDatabase(new Host(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
-        statement.setString(1, name);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          host[0] = new Host(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
-      }
-    });
-
-    return host[0];
-  }
-
   public static Host find(String key) {
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(key);
     }
     return getInstanceByName(key);
   }
-  */
 
   public static ArrayList<Host> getList() {
     ArrayList<Host> list = new ArrayList<>();
@@ -115,7 +100,7 @@ public class Host extends DirectoryBaseData {
     try {
       Files.list(getBaseDirectoryPath()).forEach(path -> {
         if (Files.isDirectory(path)) {
-          list.add(getInstance(path.getFileName().toString()));
+          list.add(getInstanceByName(path.getFileName().toString()));
         }
       });
     } catch (IOException e) {

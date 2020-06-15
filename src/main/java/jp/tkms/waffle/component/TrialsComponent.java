@@ -175,7 +175,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
                   Html.a(RunComponent.getUrl(project, run), run.getShortId()),
                   run.getName(),
                   run.getSimulator().getName(),
-                  run.getHost().getName(),
+                  (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())),
                   Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
                 ));
               }

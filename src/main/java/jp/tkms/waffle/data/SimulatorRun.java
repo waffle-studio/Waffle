@@ -53,7 +53,7 @@ public class SimulatorRun extends AbstractRun {
 
   private SimulatorRun(ConductorRun parent, Simulator simulator, Host host) {
     this(parent.getProject(), UUID.randomUUID(),"",
-      simulator.getId(), host.getId(), State.Created);
+      simulator.getId(), host.getName(), State.Created);
   }
 
   private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state) {
