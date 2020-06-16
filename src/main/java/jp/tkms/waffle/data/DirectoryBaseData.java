@@ -61,7 +61,7 @@ public abstract class DirectoryBaseData extends Data implements DataDirectory {
       void handling(Database db) throws SQLException {
         ResultSet resultSet = new Sql.Select(db, KEY_UUID, KEY_NAME).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
-          name[0] = resultSet.getString(KEY_ID);
+          name[0] = resultSet.getString(KEY_NAME);
         }
       }
     });

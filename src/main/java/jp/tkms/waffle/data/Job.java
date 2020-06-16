@@ -82,7 +82,7 @@ public class Job extends Data {
       void handling(Database db) throws SQLException {
         PreparedStatement statement
           = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
-        statement.setString(1, host.getName());
+        statement.setString(1, host.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           list.add(new Job(

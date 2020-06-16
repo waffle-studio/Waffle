@@ -118,7 +118,6 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   public void addFinalizer(String name) {
-    System.out.println(getParent().getConductor().name + "   ---->    " + name);
     addRawFinalizerScript(getParent().getConductor().getListenerScript(name));
   }
 
