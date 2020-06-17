@@ -45,7 +45,7 @@ public class AbciSubmitter extends SshSubmitter {
     public void run() {
       resetWaitTime();
 
-      while (readyJobList.size() < queuedJobList.get(packId).size() || waitTime >= 0) {
+      while (readyJobList.size() < queuedJobList.get(packId).size() && waitTime >= 0) {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -63,7 +63,6 @@ public class AbciSubmitter extends SshSubmitter {
         packWaitThreadSemaphore.acquire();
       } catch (InterruptedException e) {
       }
-
       submitQueue(packId);
 
       packWaitThreadSemaphore.release();
@@ -126,12 +125,6 @@ public class AbciSubmitter extends SshSubmitter {
 
     packWaitThread.resetWaitTime();
     packWaitThreadSemaphore.release();
-
-    try {
-      Thread.sleep((int)(2000.0 * Math.random()));
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
 
     SimulatorRun run = job.getRun();
 
@@ -213,6 +206,13 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   public void pollingTask(Host host) {
+
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     ArrayList<Job> jobList = Job.getList(host);
 
     int maximumNumberOfJobs = host.getMaximumNumberOfJobs();

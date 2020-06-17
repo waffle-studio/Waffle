@@ -135,7 +135,7 @@ public class Host extends DirectoryBaseData {
     return host;
   }
 
-  public void update() {
+  public synchronized void update() {
     try {
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
       setXsubTemplate(jsonObject);

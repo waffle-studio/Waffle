@@ -88,7 +88,7 @@ public class Hub {
     if (host == null) {
       throw new RuntimeException("Host(\"" + hostName + "\") is not found");
     }
-    host.update();
+    //host.update();
     if (! host.getState().equals(HostState.Viable)) {
       throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }

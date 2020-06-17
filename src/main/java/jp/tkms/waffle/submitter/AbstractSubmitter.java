@@ -216,10 +216,18 @@ abstract public class AbstractSubmitter {
             System.err.println(getRunDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
           }
 
-          transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
-          transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+          try {
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+          } catch (Exception e) {
+            WarnLogMessage.issue(e);
+          }
+          try {
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+          } catch (Exception e) {
+            WarnLogMessage.issue(e);
+          }
 
-          if (exitStatus == 0) {
+      if (exitStatus == 0) {
             InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") results will be collected");
 
             try {

@@ -187,19 +187,24 @@ public class Simulator extends ProjectData implements DataDirectory {
       }
 
       if (! Files.exists(simulator.getDirectoryPath().resolve(".git"))) {
-        try {
-          Git git = Git.init().setDirectory(simulator.getDirectoryPath().toFile()).call();
-          git.add().addFilepattern(".").call();
-          git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
-          git.branchCreate().setName(KEY_REMOTE).call();
-          git.checkout().setName(KEY_MASTER).call();
-        } catch (GitAPIException e) {
-          e.printStackTrace();
-        }
+        simulator.initializeGit();
       }
     }
 
     return simulator;
+  }
+
+  private void initializeGit() {
+      try {
+        Git git = Git.init().setDirectory(getDirectoryPath().toFile()).call();
+        git.add().addFilepattern(".").call();
+        git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
+        git.branchCreate().setName(KEY_REMOTE).call();
+        git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
+        git.checkout().setName(KEY_MASTER).call();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
   }
 
   public void updateVersionId() {
@@ -232,16 +237,20 @@ public class Simulator extends ProjectData implements DataDirectory {
     }
   }
 
-  public String getVersionId() {
+  public synchronized String getVersionId() {
     if (versionId == null) {
       try{
+        if (! Files.exists(getDirectoryPath().resolve(".git"))) {
+          initializeGit();
+        }
+
         Git git = Git.open(getDirectoryPath().toFile());
         git.checkout().setName(KEY_REMOTE).call();
         RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
         versionId = commit.getId().getName();
         git.checkout().setName(KEY_MASTER).call();
       } catch (Exception e) {
-        return "0";
+        return UUID.randomUUID().toString();
       }
     }
     return versionId;

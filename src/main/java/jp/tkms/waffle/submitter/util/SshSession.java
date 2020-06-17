@@ -172,7 +172,7 @@ public class SshSession {
     return result;
   }
 
-  public boolean scp(String remote, File local, String workDir) throws JSchException {
+  public synchronized boolean scp(String remote, File local, String workDir) throws JSchException {
     ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
     boolean result = false;
     do {
@@ -215,7 +215,7 @@ public class SshSession {
     return result;
   }
 
-  public boolean scp(File local, String dest, String workDir) throws JSchException {
+  public synchronized boolean scp(File local, String dest, String workDir) throws JSchException {
     ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
     boolean result = false;
     do {
@@ -283,6 +283,7 @@ public class SshSession {
   }
 
   private static void transferFiles(File localFile, String destPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
+    System.out.println(localFile + "   --->>>  " + destPath);
     if(localFile.isDirectory()){
       try {
         clientChannel.mkdir(localFile.getName());
