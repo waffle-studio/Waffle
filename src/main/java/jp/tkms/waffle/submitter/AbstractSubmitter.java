@@ -105,7 +105,7 @@ abstract public class AbstractSubmitter {
       "chmod a+x '" + run.getSimulator().getSimulationCommand() + "' >/dev/null 2>&1\n" +
       "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
       "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
-      "export WAFFLE_LOCAL_SHARED=\"" + run.getHost().getWorkBaseDirectory() + "/local_shared/" + run.getProject().getId() + "\"\n" +
+      "export WAFFLE_LOCAL_SHARED=\"" + run.getHost().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getId() + "\"\n" +
       "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
       "cd \"${WAFFLE_WORKING_DIR}\"\n";
 
