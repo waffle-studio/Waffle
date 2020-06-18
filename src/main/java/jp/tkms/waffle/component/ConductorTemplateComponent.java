@@ -39,9 +39,6 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
     Spark.post(getUrl(null, "update-main-script"), new ConductorTemplateComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, "update-listener-script"), new ConductorTemplateComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, "new-listener"), new ConductorTemplateComponent(Mode.NewListener));
-
-    SimulatorsComponent.register();
-    TrialsComponent.register();
   }
 
   public static String getUrl(ConductorTemplate module) {

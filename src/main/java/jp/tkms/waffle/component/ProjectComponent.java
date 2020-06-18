@@ -41,6 +41,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     SimulatorComponent.register();
     TrialsComponent.register();
     ConductorComponent.register();
+    RunsComponent.register();
     RunComponent.register();
   }
 

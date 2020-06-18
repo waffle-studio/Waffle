@@ -43,9 +43,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, "update-listener-script"), new ConductorComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, "new-listener"), new ConductorComponent(Mode.NewListener));
-
-    SimulatorsComponent.register();
-    TrialsComponent.register();
   }
 
   public static String getUrl(Conductor conductor) {

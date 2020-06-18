@@ -107,7 +107,7 @@ public class Simulator extends ProjectData implements DataDirectory {
       }
     });
 
-    if (simulator[0] == null && Files.exists(project.getSimulatorDirectoryPath().resolve(name))) {
+    if (simulator[0] == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
       simulator[0] = create(project, name);
     }
 
@@ -125,7 +125,7 @@ public class Simulator extends ProjectData implements DataDirectory {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
 
     try {
-      Files.list(project.getSimulatorDirectoryPath()).forEach(path -> {
+      Files.list(getBaseDirectoryPath(project)).forEach(path -> {
         if (Files.isDirectory(path)) {
           simulatorList.add(getInstanceByName(project, path.getFileName().toString()));
         }
@@ -270,7 +270,7 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   @Override
   public Path getDirectoryPath() {
-    return getProject().getSimulatorDirectoryPath().resolve(name);
+    return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
   public Path getBinDirectory() {
