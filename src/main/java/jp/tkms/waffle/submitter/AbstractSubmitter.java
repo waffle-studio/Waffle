@@ -56,6 +56,17 @@ abstract public class AbstractSubmitter {
   }
 
   public void submit(Job job) {
+    prepareJob(job);
+    processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+  }
+
+  public State update(Job job) {
+    SimulatorRun run = job.getRun();
+    processXstat(job, exec(xstatCommand(job)));
+    return run.getState();
+  }
+
+  protected void prepareJob(Job job) {
     SimulatorRun run = job.getRun();
 
     run.getSimulator().updateVersionId();
@@ -81,14 +92,6 @@ abstract public class AbstractSubmitter {
     }
 
     prepareSubmission(run);
-
-    processXsubSubmit(job, exec(xsubSubmitCommand(job)));
-  }
-
-  public State update(Job job) {
-    SimulatorRun run = job.getRun();
-    processXstat(job, exec(xstatCommand(job)));
-    return run.getState();
   }
 
   String makeBatchFileText(SimulatorRun run) {

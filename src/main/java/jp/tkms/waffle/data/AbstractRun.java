@@ -181,7 +181,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
         @Override
         public Object put(Object key, Object value) {
-          //putArgument(key.toString(), value);
+          putVariable(key.toString(), value);
           return value;
         }
       };

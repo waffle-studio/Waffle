@@ -2,6 +2,8 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
@@ -39,6 +41,8 @@ public class Simulator extends ProjectData implements DataDirectory {
   private String simulationCommand = null;
   private String defaultParameters = null;
   private String versionId = null;
+
+  private static final Object gitObjectLocker = new Object();
 
   public Simulator(Project project, UUID id, String name) {
     super(project, id, name);
@@ -196,61 +200,69 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   private void initializeGit() {
       try {
-        Git git = Git.init().setDirectory(getDirectoryPath().toFile()).call();
-        git.add().addFilepattern(".").call();
-        git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
-        git.branchCreate().setName(KEY_REMOTE).call();
-        git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
-        git.checkout().setName(KEY_MASTER).call();
+        synchronized (gitObjectLocker) {
+          Git git = Git.init().setDirectory(getDirectoryPath().toFile()).call();
+          git.add().addFilepattern(".").call();
+          git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
+          git.branchCreate().setName(KEY_REMOTE).call();
+          git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
+          git.checkout().setName(KEY_MASTER).call();
+        }
       } catch (Exception e) {
         e.printStackTrace();
       }
   }
 
-  public void updateVersionId() {
+  public synchronized void updateVersionId() {
     try{
-      Git git = Git.open(getDirectoryPath().toFile());
-      git.add().addFilepattern(".").call();
+      synchronized (gitObjectLocker) {
+        Git git = Git.open(getDirectoryPath().toFile());
+        git.add().addFilepattern(".").call();
 
-      for (String missing : git.status().call().getMissing()) {
-        git.rm().addFilepattern(missing).call();
-      }
-
-      if (!git.status().call().isClean()) {
-        Set<String> changed = new HashSet<>();
-        changed.addAll(git.status().addPath(KEY_REMOTE).call().getAdded());
-        changed.addAll(git.status().addPath(KEY_REMOTE).call().getModified());
-        changed.addAll(git.status().addPath(KEY_REMOTE).call().getRemoved());
-        changed.addAll(git.status().addPath(KEY_REMOTE).call().getChanged());
-
-        git.commit().setMessage((changed.isEmpty()?"":"R ") + LocalDateTime.now()).setAuthor("waffle","waffle@tkms.jp").call();
-
-        if (!changed.isEmpty()) {
-          git.checkout().setName(KEY_REMOTE).call();
-          git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
-          git.checkout().setName(KEY_MASTER).call();
+        for (String missing : git.status().call().getMissing()) {
+          git.rm().addFilepattern(missing).call();
         }
+
+        if (!git.status().call().isClean()) {
+          Set<String> changed = new HashSet<>();
+          changed.addAll(git.status().addPath(KEY_REMOTE).call().getAdded());
+          changed.addAll(git.status().addPath(KEY_REMOTE).call().getModified());
+          changed.addAll(git.status().addPath(KEY_REMOTE).call().getRemoved());
+          changed.addAll(git.status().addPath(KEY_REMOTE).call().getChanged());
+
+          git.commit().setMessage((changed.isEmpty() ? "" : "R ") + LocalDateTime.now()).setAuthor("waffle", "waffle@tkms.jp").call();
+
+          if (!changed.isEmpty()) {
+            git.checkout().setName(KEY_REMOTE).call();
+            git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
+            git.checkout().setName(KEY_MASTER).call();
+          }
+        }
+        git.log().setMaxCount(1).call().forEach(c -> c.getId());
       }
-      git.log().setMaxCount(1).call().forEach(c -> c.getId());
     } catch (GitAPIException | IOException e) {
       e.printStackTrace();
     }
+
+    getVersionId();
   }
 
-  public synchronized String getVersionId() {
+  public String getVersionId() {
     if (versionId == null) {
       try{
-        if (! Files.exists(getDirectoryPath().resolve(".git"))) {
-          initializeGit();
-        }
+        synchronized (gitObjectLocker) {
+          if (!Files.exists(getDirectoryPath().resolve(".git"))) {
+            initializeGit();
+          }
 
-        Git git = Git.open(getDirectoryPath().toFile());
-        git.checkout().setName(KEY_REMOTE).call();
-        RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
-        versionId = commit.getId().getName();
-        git.checkout().setName(KEY_MASTER).call();
+          Git git = Git.open(getDirectoryPath().toFile());
+          git.checkout().setName(KEY_REMOTE).call();
+          RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
+          versionId = commit.getId().getName();
+          git.checkout().setName(KEY_MASTER).call();
+        }
       } catch (Exception e) {
-        return UUID.randomUUID().toString();
+        ErrorLogMessage.issue(e);
       }
     }
     return versionId;
