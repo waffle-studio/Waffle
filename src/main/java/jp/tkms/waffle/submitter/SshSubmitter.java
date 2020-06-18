@@ -90,7 +90,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getRunDirectory(SimulatorRun run) {
+  public String getRunDirectory(SimulatorRun run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + '/' + RUN_DIR + '/' + run.getId();
 
@@ -104,7 +104,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getWorkDirectory(SimulatorRun run) {
+  public String getWorkDirectory(SimulatorRun run) {
     return getRunDirectory(run) + "/" + SimulatorRun.WORKING_DIR; // do refactor
   }
 
@@ -209,7 +209,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void transferFile(Path localPath, String remotePath) {
+  public void transferFile(Path localPath, String remotePath) {
     try {
       session.scp(localPath.toFile(), remotePath, "/tmp");
     } catch (JSchException e) {
@@ -218,7 +218,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void transferFile(String remotePath, Path localPath) {
+  public void transferFile(String remotePath, Path localPath) {
     try {
       session.scp(remotePath, localPath.toFile(), "/tmp");
     } catch (JSchException e) {

@@ -181,7 +181,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   public void addResultCollector() {
     String name = request.queryParams("name");
     String script = request.queryParams("collect_script");
-    simulator.createExtractor(name);
+    simulator.createCollector(name);
     simulator.updateCollectorScript(name, script);
     response.redirect(getUrl(simulator, name));
   }

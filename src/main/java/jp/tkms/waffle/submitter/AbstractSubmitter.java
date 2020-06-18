@@ -24,8 +24,8 @@ abstract public class AbstractSubmitter {
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract public AbstractSubmitter connect(boolean retry);
-  abstract String getRunDirectory(SimulatorRun run);
-  abstract String getWorkDirectory(SimulatorRun run);
+  abstract public String getRunDirectory(SimulatorRun run);
+  abstract public String getWorkDirectory(SimulatorRun run);
   abstract String getSimulatorBinDirectory(SimulatorRun run);
   abstract void prepareSubmission(SimulatorRun run);
   abstract String exec(String command);
@@ -36,8 +36,8 @@ abstract public class AbstractSubmitter {
   abstract public void putText(SimulatorRun run, String path, String text);
   abstract public String getFileContents(SimulatorRun run, String path);
   abstract public JSONObject defaultParameters(Host host);
-  abstract void transferFile(Path localPath, String remotePath);
-  abstract void transferFile(String remotePath, Path localPath);
+  abstract public void transferFile(Path localPath, String remotePath);
+  abstract public void transferFile(String remotePath, Path localPath);
 
   public AbstractSubmitter connect() {
     return connect(true);

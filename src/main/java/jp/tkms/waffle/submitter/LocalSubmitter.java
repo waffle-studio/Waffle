@@ -22,7 +22,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getRunDirectory(SimulatorRun run) {
+  public String getRunDirectory(SimulatorRun run) {
     Host host = run.getHost();
     String pathString = host.getWorkBaseDirectory() + File.separator
       + RUN_DIR + File.separator + run.getId();
@@ -37,7 +37,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getWorkDirectory(SimulatorRun run) {
+  public String getWorkDirectory(SimulatorRun run) {
     return run.getWorkPath().toString();
   }
 
@@ -153,7 +153,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void transferFile(Path localPath, String remotePath) {
+  public void transferFile(Path localPath, String remotePath) {
     try {
       Path remote = Paths.get(remotePath);
       Files.createDirectories(remote.getParent());
@@ -168,7 +168,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void transferFile(String remotePath, Path localPath) {
+  public void transferFile(String remotePath, Path localPath) {
     try {
       Path remote = Paths.get(remotePath);
       Files.createDirectories(localPath.getParent());
