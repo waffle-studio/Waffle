@@ -10,6 +10,7 @@ import spark.Spark;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.UUID;
 
 import static jp.tkms.waffle.component.template.Html.value;
 
@@ -76,7 +77,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       }
     } else if (mode == Mode.Run) {
       parent = ConductorRun.getInstance(project, request.params("parent"));
-      ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor);
+      ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor, parent.getRunNode().createInclusiveRunNode(UUID.randomUUID().toString()));
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
         conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
@@ -150,7 +151,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
 
         if (lastConductorRun != null && ! lastConductorRun.getErrorNote().equals("")) {
-          content += Lte.card(Html.faIcon("exclamation-triangle") + "Error of last run",
+          content += Lte.card(Html.fasIcon("exclamation-triangle") + "Error of last run",
             Lte.cardToggleButton(false),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
@@ -168,10 +169,10 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             "} else {" +
             "document.getElementById('conductor-jobnum-' + c).style.display = 'none';" +
             "}" +
-            "};updateJobNum(" + Job.getNum() + ");"
+            "};"
         );
 
-        content += Lte.card(Html.faIcon("terminal") + "Properties",
+        content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
             Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
             Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
@@ -190,7 +191,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Default Variables",
+            Lte.card(Html.fasIcon("terminal") + "Default Variables",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -204,7 +205,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String mainScriptSyntaxError = RubyConductor.checkSyntax(conductor.getScriptPath());
         content +=
           Html.form(getUrl(conductor, "update-main-script"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Main Script",
+            Lte.card(Html.fasIcon("terminal") + "Main Script",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -219,7 +220,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "new-listener"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "New Listener",
+            Lte.card(Html.fasIcon("terminal") + "New Listener",
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -235,7 +236,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           String scriptSyntaxError = RubyConductor.checkSyntax(path);
           content +=
             Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
-              Lte.card(Html.faIcon("terminal") + listenerName + " (Event Listener)",
+              Lte.card(Html.fasIcon("terminal") + listenerName + " (Event Listener)",
                 Lte.cardToggleButton(false),
                 Lte.divRow(
                   Lte.divCol(Lte.DivSize.F12,
@@ -300,7 +301,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Default variables",
+            Lte.card(Html.fasIcon("terminal") + "Default variables",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,

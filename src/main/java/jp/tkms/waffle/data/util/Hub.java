@@ -9,6 +9,7 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 
 public class Hub {
 
@@ -20,6 +21,8 @@ public class Hub {
   ArrayList<AbstractRun> createdRunList;
 
   String parameterStoreName;
+
+  RunNode runNode = null;
 
   //TODO: do refactor
   ConductorTemplate parentConductorTemplate = null;
@@ -74,7 +77,13 @@ public class Hub {
     if (conductor == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
-    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor);
+
+    if (runNode == null) {
+      runNode = nextParentConductorRun.getRunNode().createInclusiveRunNode(UUID.randomUUID().toString());
+      nextParentConductorRun.updateRunNode(runNode);
+    }
+
+    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor, runNode);
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -92,7 +101,13 @@ public class Hub {
     if (! host.getState().equals(HostState.Viable)) {
       throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }
-    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host);
+
+    if (runNode == null) {
+      runNode = nextParentConductorRun.getRunNode().createInclusiveRunNode(UUID.randomUUID().toString());
+      nextParentConductorRun.updateRunNode(runNode);
+    }
+
+    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host, runNode);
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -159,6 +174,10 @@ public class Hub {
         BrowserMessage.addMessage("toastr.error('invokeListenerTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
       }
       container.terminate();
+    }
+
+    if (createdRunList.size() > 1) {
+      runNode.switchToParallel();
     }
 
     for (AbstractRun createdRun : createdRunList) {

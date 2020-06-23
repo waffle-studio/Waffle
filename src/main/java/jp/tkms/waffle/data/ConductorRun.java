@@ -18,8 +18,8 @@ public class ConductorRun extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   public static final String ROOT_NAME = "trial";
 
-  public ConductorRun(Project project, UUID id, String name) {
-    super(project, id, name);
+  public ConductorRun(Project project, UUID id, String name, RunNode runNode) {
+    super(project, id, name, runNode);
   }
 
   protected ConductorRun(Project project) {
@@ -37,14 +37,13 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
           conductorRun[0] = new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString(KEY_NAME)
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           );
         }
       }
@@ -59,14 +58,13 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
-        statement.setString(1, name);
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE).where(Sql.Value.equal(KEY_NAME, name)).executeQuery();
         while (resultSet.next()) {
           conductorRun[0] = new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString(KEY_NAME)
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           );
         }
       }
@@ -76,24 +74,24 @@ public class ConductorRun extends AbstractRun {
   }
 
   public static ConductorRun getRootInstance(Project project) {
-    final ConductorRun[] conductorRuns = {null};
+    final ConductorRun[] conductorRun = {null};
 
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet
-          = db.executeQuery("select id,name from " + TABLE_NAME + " where name='" + ROOT_NAME + "' and parent='';");
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE).where(Sql.Value.and(Sql.Value.equal(KEY_NAME, ROOT_NAME), Sql.Value.equal(KEY_PARENT, ""))).executeQuery();
         while (resultSet.next()) {
-          conductorRuns[0] = new ConductorRun(
+          conductorRun[0] = new ConductorRun(
             project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME),
+            RunNode.getRootInstance(project)
           );
         }
       }
     });
 
-    return conductorRuns[0];
+    return conductorRun[0];
   }
 
   public static ConductorRun find(Project project, String key) {
@@ -109,14 +107,15 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME)
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE)
           .where(Sql.Value.equal(KEY_PARENT, parent.getId()))
           .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
           ConductorRun conductorRun = new ConductorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME)
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           );
           list.add(conductorRun);
         }
@@ -132,14 +131,15 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME)
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE)
           .where(Sql.Value.equal(KEY_CONDUCTOR, conductor.getId()))
           .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
           ConductorRun conductorRun = new ConductorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME)
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           );
           list.add(conductorRun);
         }
@@ -155,14 +155,15 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where conductor=? order by " + KEY_TIMESTAMP_CREATE + " desc, " + KEY_ROWID + " desc limit 1;");
+        PreparedStatement statement = db.preparedStatement("select id,name," + KEY_RUNNODE + " from " + TABLE_NAME + " where conductor=? order by " + KEY_TIMESTAMP_CREATE + " desc, " + KEY_ROWID + " desc limit 1;");
         statement.setString(1, conductor.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           conductorRun[0] = new ConductorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME)
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           );
         }
       }
@@ -181,7 +182,7 @@ public class ConductorRun extends AbstractRun {
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME +
+        ResultSet resultSet = db.executeQuery("select id,name," + KEY_RUNNODE + " from " + TABLE_NAME +
           " where "
           + KEY_STATE + "!=" + State.Finished.ordinal() + " and "
           + KEY_STATE + "!=" + State.Excepted.ordinal() + " and "
@@ -191,7 +192,8 @@ public class ConductorRun extends AbstractRun {
           list.add(new ConductorRun(
             project,
             UUID.fromString(resultSet.getString("id")),
-            resultSet.getString(KEY_NAME)
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           ));
         }
       }
@@ -200,11 +202,11 @@ public class ConductorRun extends AbstractRun {
     return list;
   }
 
-  public static ConductorRun create(Project project, ConductorRun parent, Conductor conductor) {
+  public static ConductorRun create(Project project, ConductorRun parent, Conductor conductor, RunNode runNode) {
     String conductorId = (conductor == null ? "" : conductor.getId());
     String conductorName = (conductor == null ? "NON_CONDUCTOR" : conductor.getName());
     String name = conductorName + " : " + LocalDateTime.now().toString();
-    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), name);
+    ConductorRun conductorRun = new ConductorRun(project, UUID.randomUUID(), name, runNode);
 
     handleDatabase(new ConductorRun(project), new Handler() {
       @Override
@@ -215,7 +217,8 @@ public class ConductorRun extends AbstractRun {
           Sql.Value.equal( KEY_PARENT, parent.getId() ),
           Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
           Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
-          Sql.Value.equal( KEY_STATE, State.Created.ordinal() )
+          Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
+          Sql.Value.equal( KEY_RUNNODE, runNode.getName() )
         ).execute();
       }
     });
@@ -223,8 +226,8 @@ public class ConductorRun extends AbstractRun {
     return conductorRun;
   }
 
-  public static ConductorRun create(ConductorRun parent, Conductor conductor) {
-    return create(parent.getProject(), parent, conductor);
+  public static ConductorRun create(ConductorRun parent, Conductor conductor, RunNode runNode) {
+    return create(parent.getProject(), parent, conductor, runNode);
   }
 
   public void finish() {
@@ -337,6 +340,7 @@ public class ConductorRun extends AbstractRun {
                 + KEY_VARIABLES + " default '{}',"
                 + KEY_FINALIZER + " default '[]',"
                 + KEY_STATE + ","
+                + KEY_RUNNODE + ","
                 + KEY_ERROR_NOTE + " default '',"
                 + KEY_TIMESTAMP_CREATE + " timestamp default (DATETIME('now','localtime'))" +
                 ");");
@@ -345,14 +349,12 @@ public class ConductorRun extends AbstractRun {
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {
-              PreparedStatement statement = db.preparedStatement("insert into " + TABLE_NAME + "(" +
-                "id,name," +
-                KEY_PARENT +
-                ") values(?,?,?);");
-              statement.setString(1, UUID.randomUUID().toString());
-              statement.setString(2, ROOT_NAME);
-              statement.setString(3, "");
-              statement.execute();
+              new Sql.Insert(db, TABLE_NAME,
+                Sql.Value.equal(KEY_ID, UUID.randomUUID().toString()),
+                Sql.Value.equal(KEY_NAME, ROOT_NAME),
+                Sql.Value.equal(KEY_PARENT, ""),
+                Sql.Value.equal(KEY_RUNNODE, RunNode.getRootInstance(getProject()).getName())
+                ).execute();
             }
           }
         ));

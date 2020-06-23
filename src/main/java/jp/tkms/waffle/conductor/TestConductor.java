@@ -7,7 +7,7 @@ public class TestConductor extends AbstractConductor {
   protected void mainProcess(ConductorRun entity) {
     Conductor conductor = entity.getConductor();
     for ( Simulator simulator : Simulator.getList(conductor.getProject()) ) {
-      SimulatorRun.create(entity, simulator, Host.getInstance(entity.getVariable("host").toString())).start();
+      SimulatorRun.create(entity, simulator, Host.getInstance(entity.getVariable("host").toString()), null).start();
     }
   }
 

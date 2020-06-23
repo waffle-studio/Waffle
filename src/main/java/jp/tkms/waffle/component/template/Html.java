@@ -101,11 +101,15 @@ public class Html {
     return a(href, null, null, value);
   }
 
-  public static String faIcon(String fa) {
+  public static String farIcon(String fa) {
+    return elementWithClass("i", "far fa-" + fa, "");
+  }
+
+  public static String fasIcon(String fa) {
     return elementWithClass("i", "fas fa-" + fa, "");
   }
 
-  public static String faIcon(String fa, String additionalClass) {
+  public static String fasIcon(String fa, String additionalClass) {
     return elementWithClass("i", listBySpace("fas fa-" + fa, additionalClass), "");
   }
 

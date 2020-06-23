@@ -9,7 +9,6 @@ import jp.tkms.waffle.data.Job;
 
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.TreeMap;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -60,25 +59,35 @@ abstract public class MainTemplate extends AbstractTemplate {
                     ),
                     elementWithClass("li", "nav-item",
                       a(ProjectsComponent.getUrl(), "nav-link", null,
-                        faIcon("folder-open", "nav-icon"),
+                        fasIcon("folder-open", "nav-icon"),
                         p("Projects")
+                      )
+                    ),
+                    element("li",
+                      new Attributes(
+                        value("class", "nav-item"),
+                        value("style", "padding-left:1rem;"),
+                        value("id", "recently-accessed-project")
+                      ),
+                      a("", "nav-link", null,
+                        p("null")
                       )
                     ),
                     elementWithClass("li", "nav-item",
                       a(TemplatesComponent.getUrl(), "nav-link", null,
-                        faIcon("layer-group", "nav-icon"),
+                        fasIcon("layer-group", "nav-icon"),
                         p("Templates")
                       )
                     ),
                     elementWithClass("li", "nav-item",
                       a(JobsComponent.getUrl(), "nav-link", null,
-                        faIcon("running", "nav-icon"),
+                        fasIcon("running", "nav-icon"),
                         p("Jobs", span("right badge badge-warning", new Attributes(value("id", "jobnum"))))
                       )
                     ),
                     elementWithClass("li", "nav-item",
                       a(HostsComponent.getUrl(), "nav-link", null,
-                        faIcon("server", "nav-icon"),
+                        fasIcon("server", "nav-icon"),
                         p("Hosts")
                       )
                     ),
@@ -96,7 +105,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                     ,
                     elementWithClass("li", "nav-item",
                       a(SystemComponent.getUrl("hibernate"), "nav-link", new Attributes(value("title", String.valueOf(Main.PID))),
-                        faIcon("power-off", "nav-icon"),
+                        fasIcon("power-off", "nav-icon"),
                         p("Hibernate")
                       )
                     )
@@ -165,7 +174,10 @@ abstract public class MainTemplate extends AbstractTemplate {
               "} else {" +
               "document.getElementById('jobnum').style.display = 'none';" +
               "}" +
-              "};updateJobNum(" + Job.getNum() + ");"
+              "};updateJobNum(" + Job.getNum() + ");" +
+              "if (sessionStorage.getItem('latest-project-id') != null) {" +
+              "document.getElementById('recently-accessed-project').innerHTML=\"<a class='nav-link' title='recently accessed' href='/project/\"+sessionStorage.getItem('latest-project-id')+\"'><i class='nav-icon fas fa-angle-right' style='margin-lefti:1rem;'></i><p>\"+sessionStorage.getItem('latest-project-name')+\"</p></a>\";" +
+              "} else {document.getElementById('recently-accessed-project').style.display='none';}"
           ),
           element("script", new Html.Attributes( Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
           element("script", new Html.Attributes( Html.value("src", "/ace/ext-language_tools.js"), Html.value("type", "text/javascript")), ""),
@@ -246,7 +258,7 @@ abstract public class MainTemplate extends AbstractTemplate {
   String randerPageNavigation() {
     String innerContent = elementWithClass("li", "nav-item",
         a("#", "nav-link", new Attributes(value("data-widget", "pushmenu")),
-          faIcon("bars")
+          fasIcon("bars")
         )
     );
 
@@ -263,14 +275,14 @@ abstract public class MainTemplate extends AbstractTemplate {
 
   String randerPageBreadcrumb() {
     String innerContent = elementWithClass("li", "breadcrumb-item",
-      a(Constants.ROOT_PAGE, null, null, faIcon("home"))
+      a(Constants.ROOT_PAGE, null, null, fasIcon("home"))
     );
 
-    int size = pageBreadcrumb().size();
-    for (int i = 0; i < size; i++) {
-      String crumb = pageBreadcrumb().get(i);
+    ArrayList<String> breadcrumb = pageBreadcrumb();
+    for (int i = 0; i < breadcrumb.size(); i++) {
+      String crumb = breadcrumb.get(i);
       innerContent += elementWithClass("li",
-        "breadcrumb-item" + (i == (size - 1) ? " active" : ""), crumb);
+        "breadcrumb-item" + (i == (breadcrumb.size() - 1) ? " active" : ""), crumb);
     }
 
     return elementWithClass("ol", "breadcrumb float-sm-right", innerContent);

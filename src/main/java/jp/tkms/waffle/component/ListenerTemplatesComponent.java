@@ -3,14 +3,12 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.ConductorTemplate;
 import jp.tkms.waffle.data.ListenerTemplate;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class ListenerTemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ListenerTemplates";
@@ -129,7 +127,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
         if (moduleList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
-              Html.faIcon("plus-square") + "Add ListenerTemplate"
+              Html.fasIcon("plus-square") + "Add ListenerTemplate"
             ),
             null
           );
@@ -137,7 +135,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
 
         return Lte.card(null,
           Html.a(getUrl("add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override

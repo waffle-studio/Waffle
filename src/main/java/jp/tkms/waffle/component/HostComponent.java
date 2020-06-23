@@ -11,7 +11,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_WORKBASE = "work_base_dir";
@@ -84,7 +83,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += Html.form(getUrl(host, "update"), Html.Method.Post,
-          Lte.card(Html.faIcon("terminal") + "Properties",
+          Lte.card(Html.fasIcon("terminal") + "Properties",
             host.getState().getStatusBadge(),
             Html.div(null,
               Lte.formInputGroup("text", KEY_XSUB,

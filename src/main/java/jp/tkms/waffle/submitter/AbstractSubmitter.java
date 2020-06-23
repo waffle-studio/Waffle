@@ -117,8 +117,7 @@ abstract public class AbstractSubmitter {
       text += makeLocalSharingPreCommandText(a.getString(0), a.getString(1));
     }
 
-    text += "\n" + "cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
-      run.getSimulator().getSimulationCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + "\n" +
+    text += "\n" + run.getSimulator().getSimulationCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
       "EXIT_STATUS=$?\n";
 
     for (int i = 0; i < localSharedList.length(); i++) {

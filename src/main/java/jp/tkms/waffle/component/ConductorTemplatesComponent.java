@@ -9,7 +9,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class ConductorTemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ConductorTemplates";
@@ -128,7 +127,7 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
         if (moduleList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
-              Html.faIcon("plus-square") + "Add ConductorTemplate"
+              Html.fasIcon("plus-square") + "Add ConductorTemplate"
             ),
             null
           );
@@ -136,7 +135,7 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
 
         return Lte.card(null,
           Html.a(getUrl("add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override

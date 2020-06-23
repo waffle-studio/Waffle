@@ -62,12 +62,12 @@ public class Lte {
   public static String cardToggleButton(boolean flag) {
     return Html.element("button", new Attributes(value("class", "btn btn-tool"),
       value("type", "button"), value("data-card-widget","collapse"),
-      value("data-toggle", "tooltip")), (flag?Html.faIcon("plus"):Html.faIcon("minus")));
+      value("data-toggle", "tooltip")), (flag?Html.fasIcon("plus"):Html.fasIcon("minus")));
   }
 
   public static String infoBox(DivSize divSize, String icon, String iconBgCLass, String text, String number) {
     return divCol(divSize, div("info-box",
-      span(listBySpace("info-box-icon", iconBgCLass), null, faIcon(icon)),
+      span(listBySpace("info-box-icon", iconBgCLass), null, fasIcon(icon)),
       div("info-box-content",
         span("info-box-text", null, text),
         span("info-box-number", null, number)

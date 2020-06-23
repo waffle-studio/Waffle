@@ -3,13 +3,14 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.ConductorRun;
+import jp.tkms.waffle.data.ParallelRunNode;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class RunsComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Runs";
@@ -51,7 +52,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
     if (requestedId.equals(ROOT_NAME)){
       runNode = RunNode.getRootInstance(project);
     } else {
-      //node = RunNode.getInstance(project, requestedId);
+      runNode = RunNode.getInstance(project, requestedId);
     }
 
     renderTrialsList();
@@ -74,26 +75,22 @@ public class RunsComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName())
         ));
-        ArrayList<String> conductorRunList = new ArrayList<>();
-        /*
-        ConductorRun parent = conductorRun.getParent();
+        ArrayList<String> runNodeList = new ArrayList<>();
+        RunNode parent = runNode.getParent();
         if (parent == null) {
           breadcrumb.add("Runs");
         } else {
           breadcrumb.add(Html.a(RunsComponent.getUrl(project), "Runs"));
           while (parent != null) {
-            conductorRunList.add(Html.a(RunsComponent.getUrl(project, parent), parent.getShortId()));
+            runNodeList.add(Html.a(RunsComponent.getUrl(project, parent), parent.getSimpleName()));
             parent = parent.getParent();
           }
-          conductorRunList.remove(conductorRunList.size() - 1);
-          Collections.reverse(conductorRunList);
-          breadcrumb.addAll(conductorRunList);
-          if (! conductorRunList.isEmpty()) {
-            breadcrumb.add(conductorRun.getId());
-          }
+          runNodeList.remove(runNodeList.size() - 1);
+          Collections.reverse(runNodeList);
+          breadcrumb.addAll(runNodeList);
+          breadcrumb.add(runNode.getSimpleName());
         }
 
-         */
         return breadcrumb;
       }
 
@@ -135,7 +132,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:6.5em;", "ID"));
+              list.add(new Lte.TableValue("width:0em;", ""));
               list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("width:2em;", ""));
               return list;
@@ -146,8 +143,8 @@ public class RunsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (RunNode child : runNode.getList()) {
                 list.add(new Lte.TableRow(
-                  Html.a(getUrl(project, child), null, null, child.getShortId()),
-                  child.getName(),
+                  (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle")),
+                  Html.a(getUrl(project, child), null, null, child.getSimpleName()),
                   ""//Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
                   )
                 );

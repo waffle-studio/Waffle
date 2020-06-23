@@ -87,7 +87,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("terminal") + "Properties",
+        content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Lte.cardToggleButton(true),
           Html.div(null,
             Lte.readonlyTextInput(TITLE + " Directory", module.getDirectoryPath().toAbsolutePath().toString()),
@@ -118,7 +118,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
 
         content +=
           Html.form(getUrl(module, "update-main-script"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Main Script",
+            Lte.card(Html.fasIcon("terminal") + "Main Script",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,

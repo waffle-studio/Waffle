@@ -102,7 +102,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(simulator, "update"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Properties",
+            Lte.card(Html.fasIcon("terminal") + "Properties",
               Html.a(getUrl(simulator, KEY_RUN),
                 Html.span("right badge badge-secondary", null, "test run")
               ),
@@ -156,7 +156,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(simulator, KEY_UPDATE_PARAMETERS), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Default Parameters",
+            Lte.card(Html.fasIcon("terminal") + "Default Parameters",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -167,8 +167,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop", null)
           );
 
-        content += Lte.card(Html.faIcon("file-import") + "Parameter Extractors",
-          Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus-square")),
+        content += Lte.card(Html.fasIcon("file-import") + "Parameter Extractors",
+          Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.fasIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -191,8 +191,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("dolly-flatbed") + "Result Collectors",
-          Html.a(ResultCollectorComponent.getStaticUrl(simulator, "add"), Html.faIcon("plus-square")),
+        content += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
+          Html.a(ResultCollectorComponent.getStaticUrl(simulator, "add"), Html.fasIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -215,7 +215,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("file") + "Files in REMOTE",
+        content += Lte.card(Html.fasIcon("file") + "Files in REMOTE",
           Lte.cardToggleButton(false),
           Lte.table("table-sm", new Lte.Table() {
             @Override
@@ -274,7 +274,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         if (latestRun != null) {
 
-          content += Lte.card(Html.faIcon("poll-h") + "Latest Run", null,
+          content += Lte.card(Html.fasIcon("poll-h") + "Latest Run", null,
             Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
@@ -301,7 +301,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(simulator, "run"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "TestRun",
+            Lte.card(Html.fasIcon("terminal") + "TestRun",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,

@@ -460,10 +460,10 @@ public class Simulator extends ProjectData implements DataDirectory {
     String baseRunName = "TESTRUN-" + name;
     ConductorRun baseRun = ConductorRun.getInstanceByName(getProject(), baseRunName);
     if (baseRun == null) {
-      baseRun = ConductorRun.create(getProject(), ConductorRun.getRootInstance(getProject()), null);
+      baseRun = ConductorRun.create(getProject(), ConductorRun.getRootInstance(getProject()), null, null);
       baseRun.setName(baseRunName);
     }
-    SimulatorRun run = SimulatorRun.create(baseRun, this, host);
+    SimulatorRun run = SimulatorRun.create(baseRun, this, host, null);
     setToDB(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();

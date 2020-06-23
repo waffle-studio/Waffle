@@ -92,7 +92,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
         content += Html.javascript("var run_id = '" + run.getId() + "';");
 
-        content += Lte.card(Html.faIcon("info-circle") + "Status", null,
+        content += Lte.card(Html.fasIcon("info-circle") + "Status", null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
@@ -122,7 +122,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
             })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("list-alt") + "Variables",
+        content += Lte.card(Html.fasIcon("list-alt") + "Variables",
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
@@ -131,7 +131,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           )
           , null, "collapsed-card", null);
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameters & Results",
+        content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
           Lte.cardToggleButton(false),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
@@ -144,7 +144,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           , null);
 
         if (Files.exists(run.getDirectoryPath().resolve(Constants.STDOUT_FILE))) {
-          content += Lte.card(Html.faIcon("file") + "Standard Output",
+          content += Lte.card(Html.fasIcon("file") + "Standard Output",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
@@ -155,7 +155,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
         }
 
         if (Files.exists(run.getDirectoryPath().resolve(Constants.STDERR_FILE))) {
-          content += Lte.card(Html.faIcon("file") + "Standard Error",
+          content += Lte.card(Html.fasIcon("file") + "Standard Error",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,

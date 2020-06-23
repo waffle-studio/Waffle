@@ -9,7 +9,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class ProjectsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -128,7 +127,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
         if (projectList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
-              Html.faIcon("plus-square") + "Add new project"
+              Html.fasIcon("plus-square") + "Add new project"
             ),
             null
           );
@@ -136,7 +135,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
         return Lte.card(null,
           Html.a(getUrl("add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override

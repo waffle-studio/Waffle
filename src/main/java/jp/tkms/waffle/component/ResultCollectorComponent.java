@@ -105,7 +105,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += Html.form(getUrl(simulator, collectorName, "update"), Html.Method.Post,
-          Lte.card(Html.faIcon("tasks") + "Properties", null,
+          Lte.card(Html.fasIcon("tasks") + "Properties", null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", collectorName, errors),
               Lte.formDataEditorGroup("collect_script", "Script", "ruby", simulator.getCollectorScript(collectorName), errors)
@@ -115,7 +115,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
         );
 
         content += Html.form(getUrl(simulator, collectorName, KEY_REMOVE), Html.Method.Get,
-          Lte.card(Html.faIcon("trash-alt") + "Remove",
+          Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Html.div(null,
               Lte.formSubmitButton("danger", "Remove")
@@ -162,7 +162,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += Html.form(getStaticUrl(simulator,  "add"), Html.Method.Post,
-          Lte.card(Html.faIcon("tasks") + "Properties",
+          Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", "", errors),

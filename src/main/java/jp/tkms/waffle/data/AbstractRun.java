@@ -20,6 +20,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   protected static final String KEY_STATE = "state";
   protected static final String KEY_ERROR_NOTE = "error_note";
   protected static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
+  public static final String KEY_RUNNODE = "runnode";
 
   abstract public void start();
   abstract public boolean isRunning();
@@ -29,13 +30,15 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   private JSONArray finalizers = null;
   private JSONObject parameters = null;
   protected boolean isStarted = false;
+  private RunNode runNode = null;
 
   public AbstractRun(Project project) {
     super(project);
   }
 
-  public AbstractRun(Project project, UUID id, String name) {
+  public AbstractRun(Project project, UUID id, String name, RunNode runNode) {
     super(project, id, name);
+    this.runNode = runNode;
   }
 
   public boolean isStarted() {
@@ -61,6 +64,9 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     return getParent().getDirectoryPath().resolve(getId());
   }
 
+  public RunNode getRunNode() {
+    return runNode;
+  }
 
   public Conductor getConductor() {
     if (conductor == null) {
@@ -190,4 +196,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     return variablesWrapper;
   }
   public HashMap v() { return variables(); }
+
+  public void updateRunNode(RunNode runNode) {
+    setToDB(KEY_RUNNODE, runNode.getName());
+  }
 }

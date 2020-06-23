@@ -12,6 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,13 +52,13 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray locaSharedList;
 
-  private SimulatorRun(ConductorRun parent, Simulator simulator, Host host) {
+  private SimulatorRun(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
     this(parent.getProject(), UUID.randomUUID(),"",
-      simulator.getId(), host.getId(), State.Created);
+      simulator.getId(), host.getId(), State.Created, runNode);
   }
 
-  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state) {
-    super(project, id, name);
+  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state, RunNode runNode) {
+    super(project, id, name, runNode);
     this.simulator = simulator;
     this.host = host;
     this.state = state;
@@ -76,7 +77,8 @@ public class SimulatorRun extends AbstractRun {
           KEY_PARENT,
           KEY_SIMULATOR,
           KEY_HOST,
-          KEY_STATE
+          KEY_STATE,
+          KEY_RUNNODE
         ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
           run[0] = new SimulatorRun(
@@ -85,7 +87,8 @@ public class SimulatorRun extends AbstractRun {
             resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
-            State.valueOf(resultSet.getInt(KEY_STATE))
+            State.valueOf(resultSet.getInt(KEY_STATE)),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           );
         }
       }
@@ -118,7 +121,8 @@ public class SimulatorRun extends AbstractRun {
           KEY_PARENT,
           KEY_SIMULATOR,
           KEY_HOST,
-          KEY_STATE
+          KEY_STATE,
+          KEY_RUNNODE
         ).where(Sql.Value.equal(KEY_PARENT, parent.getId()))
           .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
@@ -128,7 +132,8 @@ public class SimulatorRun extends AbstractRun {
             resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
-            State.valueOf(resultSet.getInt(KEY_STATE))
+            State.valueOf(resultSet.getInt(KEY_STATE)),
+            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
           ));
         }
       }
@@ -137,12 +142,8 @@ public class SimulatorRun extends AbstractRun {
     return list;
   }
 
-  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host) {
-    return create(parent, simulator, host, true);
-  }
-
-  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host, boolean copyParameters) {
-    SimulatorRun run = new SimulatorRun(parent, simulator, host);
+  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
+    SimulatorRun run = new SimulatorRun(parent, simulator, host, runNode);
     Conductor conductor = parent.getConductor();
     String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
@@ -167,7 +168,8 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_SIMULATOR, simulatorId),
           Sql.Value.equal(KEY_HOST, hostId),
           Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
-          Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString())
+          Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString()),
+          Sql.Value.equal(KEY_RUNNODE, runNode.getName())
         ).execute();
       }
     });
@@ -586,6 +588,7 @@ public class SimulatorRun extends AbstractRun {
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +
+                KEY_RUNNODE + "," +
                 KEY_VARIABLES + " default '{}'," +
                 KEY_FINALIZER + " default '[]'," +
                 KEY_ARGUMENTS + " default '[]'," +
