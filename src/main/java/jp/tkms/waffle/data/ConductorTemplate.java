@@ -22,7 +22,7 @@ public class ConductorTemplate extends DirectoryBaseData {
   private String arguments = null;
 
   public ConductorTemplate(String name) {
-    super(name);
+    super(getBaseDirectoryPath().resolve(name));
   }
 
   public static ConductorTemplate getInstance(String name) {

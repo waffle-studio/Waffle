@@ -38,6 +38,12 @@ public class Hub {
     this.createdRunList = new ArrayList<>();
     switchParameterStore(null);
     parentConductorTemplate = conductorTemplate;
+
+    if (conductorRun.getId().equals(run.getId()) || run instanceof SimulatorRun) {
+      runNode = run.getRunNode();
+    } else {
+      runNode = run.getRunNode().getParent();
+    }
   }
 
   public Hub(ConductorRun conductorRun, AbstractRun run) {
@@ -78,12 +84,11 @@ public class Hub {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
 
-    if (runNode == null) {
-      runNode = nextParentConductorRun.getRunNode().createInclusiveRunNode(UUID.randomUUID().toString());
-      nextParentConductorRun.updateRunNode(runNode);
+    if (runNode instanceof SimulatorRunNode) {
+      runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor, runNode);
+    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor, runNode.createInclusiveRunNode(""));
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -102,12 +107,11 @@ public class Hub {
       throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }
 
-    if (runNode == null) {
-      runNode = nextParentConductorRun.getRunNode().createInclusiveRunNode(UUID.randomUUID().toString());
-      nextParentConductorRun.updateRunNode(runNode);
+    if (runNode instanceof SimulatorRunNode) {
+      runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host, runNode);
+    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host, runNode.createSimulatorRunNode(""));
     createdRunList.add(createdRun);
     return createdRun;
   }

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -12,7 +13,6 @@ import java.util.HashMap;
 import java.util.UUID;
 
 abstract public class AbstractRun extends ProjectData implements DataDirectory {
-  protected static final String KEY_TRIAL = "trial";
   protected static final String KEY_PARENT = "parent";
   protected static final String KEY_CONDUCTOR = "conductor";
   protected static final String KEY_FINALIZER = "finalizer";
@@ -24,6 +24,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
   abstract public void start();
   abstract public boolean isRunning();
+  abstract public State getState();
+  abstract public void setState(State state);
 
   private Conductor conductor = null;
   private ConductorRun parentConductorRun = null;
@@ -37,7 +39,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   public AbstractRun(Project project, UUID id, String name, RunNode runNode) {
-    super(project, id, name);
+    super(project, id, runNode.getSimpleName());
     this.runNode = runNode;
   }
 
@@ -52,16 +54,18 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     return parentConductorRun;
   }
 
+  @Override
+  public void setName(String name) {
+    super.setName(runNode.rename(name));
+  }
+
   public boolean isRoot() {
     return getParent() == null;
   }
 
   @Override
   public Path getDirectoryPath() {
-    if (isRoot()) {
-      return getProject().getDirectoryPath().resolve(KEY_TRIAL);
-    }
-    return getParent().getDirectoryPath().resolve(getId());
+    return runNode.getDirectoryPath();
   }
 
   public RunNode getRunNode() {

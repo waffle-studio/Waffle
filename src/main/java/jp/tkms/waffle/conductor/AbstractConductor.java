@@ -3,6 +3,7 @@ package jp.tkms.waffle.conductor;
 import jp.tkms.waffle.data.AbstractRun;
 import jp.tkms.waffle.data.Conductor;
 import jp.tkms.waffle.data.ConductorRun;
+import jp.tkms.waffle.data.util.State;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -47,7 +48,11 @@ abstract public class AbstractConductor {
   public void eventHandle(ConductorRun conductorRun, AbstractRun run) {
     eventHandler(conductorRun, run);
     if (! conductorRun.isRunning()) {
-      finalizeProcess(conductorRun);
+      if (run.getState().equals(State.Finished)) {
+        finalizeProcess(conductorRun);
+      } else {
+        conductorRun.setState(State.Failed);
+      }
       conductorRun.finish();
     }
   }

@@ -6,6 +6,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
@@ -71,18 +72,18 @@ public class RunComponent extends AbstractAccessControlledComponent {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(TrialsComponent.getUrl(project), "Runs")
+          Html.a(RunsComponent.getUrl(project), "Runs")
         ));
-        ArrayList<String> conductorRunList = new ArrayList<>();
-        ConductorRun parent = run.getParent();
+        ArrayList<String> runNodeList = new ArrayList<>();
+        RunNode parent = run.getRunNode().getParent();
         while (parent != null) {
-          conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
+          runNodeList.add(Html.a(RunsComponent.getUrl(project, parent), parent.getSimpleName()));
           parent = parent.getParent();
         }
-        conductorRunList.remove(conductorRunList.size() -1);
-        Collections.reverse(conductorRunList);
-        breadcrumb.addAll(conductorRunList);
-        breadcrumb.add(run.getId());
+        runNodeList.remove(runNodeList.size() -1);
+        Collections.reverse(runNodeList);
+        breadcrumb.addAll(runNodeList);
+        breadcrumb.add(run.getName());
         return breadcrumb;
       }
 

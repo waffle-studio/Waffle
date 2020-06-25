@@ -94,28 +94,6 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  int getExitStatus(SimulatorRun run) {
-    int status = -1;
-
-    try {
-      FileReader file
-        = new FileReader(getRunDirectory(run) + File.separator + EXIT_STATUS_FILE);
-      BufferedReader r  = new BufferedReader(file);
-      String line;
-      while ((line = r.readLine()) != null) {
-        status = Integer.valueOf(line);
-        break;
-      }
-
-      r.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    return status;
-  }
-
-  @Override
   void postProcess(SimulatorRun run) {
     try {
       //deleteDirectory(getRunDirectory(run));

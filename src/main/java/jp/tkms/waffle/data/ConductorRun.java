@@ -43,7 +43,7 @@ public class ConductorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           );
         }
       }
@@ -64,7 +64,7 @@ public class ConductorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           );
         }
       }
@@ -115,7 +115,7 @@ public class ConductorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           );
           list.add(conductorRun);
         }
@@ -139,7 +139,7 @@ public class ConductorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           );
           list.add(conductorRun);
         }
@@ -163,7 +163,7 @@ public class ConductorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           );
         }
       }
@@ -193,7 +193,7 @@ public class ConductorRun extends AbstractRun {
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString(KEY_NAME),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           ));
         }
       }
@@ -218,7 +218,7 @@ public class ConductorRun extends AbstractRun {
           Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
           Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
           Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
-          Sql.Value.equal( KEY_RUNNODE, runNode.getName() )
+          Sql.Value.equal( KEY_RUNNODE, runNode.getId())
         ).execute();
       }
     });
@@ -231,7 +231,7 @@ public class ConductorRun extends AbstractRun {
   }
 
   public void finish() {
-    if (! getState().equals(State.Failed) || getState().equals(State.Excepted) || getState().equals(State.Canceled)) {
+    if (!(getState().equals(State.Failed) || getState().equals(State.Excepted) || getState().equals(State.Canceled))) {
       setState(State.Finished);
     }
     if (!isRoot()) {
@@ -258,7 +258,7 @@ public class ConductorRun extends AbstractRun {
     return State.valueOf(getIntFromDB(KEY_STATE));
   }
 
-  private void setState(State state) {
+  public void setState(State state) {
     setToDB(KEY_STATE, state.ordinal());
   }
 
@@ -353,7 +353,7 @@ public class ConductorRun extends AbstractRun {
                 Sql.Value.equal(KEY_ID, UUID.randomUUID().toString()),
                 Sql.Value.equal(KEY_NAME, ROOT_NAME),
                 Sql.Value.equal(KEY_PARENT, ""),
-                Sql.Value.equal(KEY_RUNNODE, RunNode.getRootInstance(getProject()).getName())
+                Sql.Value.equal(KEY_RUNNODE, RunNode.getRootInstance(getProject()).getId())
                 ).execute();
             }
           }

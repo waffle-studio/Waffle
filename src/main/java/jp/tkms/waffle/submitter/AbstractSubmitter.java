@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.LogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
@@ -30,7 +31,6 @@ abstract public class AbstractSubmitter {
   abstract void prepareSubmission(SimulatorRun run);
   abstract String exec(String command);
   abstract boolean exists(String path);
-  abstract int getExitStatus(SimulatorRun run) throws Exception;
   abstract void postProcess(SimulatorRun run);
   abstract public void close();
   abstract public void putText(SimulatorRun run, String path, String text);
@@ -205,42 +205,42 @@ abstract public class AbstractSubmitter {
         case "finished" :
           int exitStatus = -1;
           try {
-            exitStatus = getExitStatus(job.getRun());
+            exitStatus = Integer.valueOf(getFileContents(job.getRun(), "../" + EXIT_STATUS_FILE).trim());
           } catch (Exception e) {
-            /*
-            if (job.getErrorCount() >= 5) {
-              System.err.println(getRunDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
-            } else {
-              job.incrementErrorCount();
-              break;
-            }
-            */
-            System.err.println(getRunDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
+            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+            WarnLogMessage.issue(e);
           }
 
           try {
             transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
-          } catch (Exception e) {
+          } catch (Exception | Error e) {
+            //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
           try {
             transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
-          } catch (Exception e) {
+          } catch (Exception | Error e) {
+            //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
 
-      if (exitStatus == 0) {
+          if (exitStatus == 0) {
             InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") results will be collected");
 
-            try {
-              for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+            boolean isNoException = true;
+            for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+              try {
                 new RubyResultCollector().collect(this, job.getRun(), collectorName);
+              } catch (Exception | Error e) {
+                isNoException = false;
+                job.getRun().setState(State.Excepted);
+                job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+                WarnLogMessage.issue(e);
               }
+            }
 
+            if (isNoException) {
               job.getRun().setState(State.Finished);
-            } catch (Exception e) {
-              job.getRun().setState(State.Excepted);
-              WarnLogMessage.issue(e);
             }
           } else {
             job.getRun().setState(State.Failed);
@@ -253,6 +253,7 @@ abstract public class AbstractSubmitter {
           break;
       }
     } catch (Exception e) {
+      job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
       e.printStackTrace();
     }
   }

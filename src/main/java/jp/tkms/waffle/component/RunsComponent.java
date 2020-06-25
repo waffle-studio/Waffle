@@ -3,9 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.ParallelRunNode;
-import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.RunNode;
+import jp.tkms.waffle.data.*;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -142,12 +140,21 @@ public class RunsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (RunNode child : runNode.getList()) {
-                list.add(new Lte.TableRow(
-                  (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle")),
-                  Html.a(getUrl(project, child), null, null, child.getSimpleName()),
-                  ""//Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
-                  )
-                );
+                if (child instanceof SimulatorRunNode) {
+                  list.add(new Lte.TableRow(
+                      Html.fasIcon("circle"),
+                      Html.a(RunComponent.getUrl(project, SimulatorRun.getInstance(project, child.getId())), null, null, child.getSimpleName()),
+                      ""//Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
+                    )
+                  );
+                } else {
+                  list.add(new Lte.TableRow(
+                      (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle")),
+                      Html.a(getUrl(project, child), null, null, child.getSimpleName()),
+                      ""//Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
+                    )
+                  );
+                }
               }
               return list;
             }

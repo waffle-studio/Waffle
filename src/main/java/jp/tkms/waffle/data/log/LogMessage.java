@@ -21,7 +21,7 @@ public class LogMessage extends Throwable {
     Log.create(this);
   }
 
-  static String getStackTrace(Exception e) {
+  public static String getStackTrace(Throwable e) {
     StringWriter stringWriter = new StringWriter();
     PrintWriter printWriter = new PrintWriter(stringWriter);
     e.printStackTrace(printWriter);

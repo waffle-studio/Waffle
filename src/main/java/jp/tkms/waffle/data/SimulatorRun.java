@@ -53,7 +53,7 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray locaSharedList;
 
   private SimulatorRun(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
-    this(parent.getProject(), UUID.randomUUID(),"",
+    this(parent.getProject(), runNode.getUuid(),"",
       simulator.getId(), host.getId(), State.Created, runNode);
   }
 
@@ -88,7 +88,7 @@ public class SimulatorRun extends AbstractRun {
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE)),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           );
         }
       }
@@ -133,7 +133,7 @@ public class SimulatorRun extends AbstractRun {
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
             State.valueOf(resultSet.getInt(KEY_STATE)),
-            RunNode.getInstanceByName(project, Paths.get(resultSet.getString(KEY_RUNNODE)))
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
           ));
         }
       }
@@ -169,7 +169,7 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_HOST, hostId),
           Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
           Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString()),
-          Sql.Value.equal(KEY_RUNNODE, runNode.getName())
+          Sql.Value.equal(KEY_RUNNODE, runNode.getId())
         ).execute();
       }
     });

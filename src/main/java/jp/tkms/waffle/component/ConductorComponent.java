@@ -5,9 +5,13 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.util.DateTime;
+import jp.tkms.waffle.data.util.FileName;
 import spark.Spark;
 
+import javax.xml.crypto.dsig.keyinfo.KeyName;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
@@ -77,7 +81,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       }
     } else if (mode == Mode.Run) {
       parent = ConductorRun.getInstance(project, request.params("parent"));
-      ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor, parent.getRunNode().createInclusiveRunNode(UUID.randomUUID().toString()));
+      String newRunNodeName = "" + request.queryParams(KEY_NAME);
+      ConductorRun conductorRun = ConductorRun.create(conductor.getProject(), parent, conductor, parent.getRunNode().createInclusiveRunNode(newRunNodeName));
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
         conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
@@ -301,11 +306,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "Default variables",
+            Lte.card(Html.fasIcon("terminal") + "Properties",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, null, 10, conductor.getDefaultVariables().toString(2), null)
+                  Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(conductor.getName() + '_' + LocalDateTime.now().toString()), null)
+                ),
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, "Default variables", 10, conductor.getDefaultVariables().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")

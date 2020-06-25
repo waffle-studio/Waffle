@@ -1,8 +1,11 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.Sql;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
@@ -18,8 +21,30 @@ public abstract class DirectoryBaseData extends Data implements DataDirectory {
 
   public DirectoryBaseData() {}
 
-  public DirectoryBaseData(String name) {
-    this.name = name;
+  public DirectoryBaseData(Path path) {
+    this.name = path.getFileName().toString();
+
+    final UUID[] id = {null};
+    String className = this.getClass().getCanonicalName();
+    Path localPath = Constants.WORK_DIR.relativize(path.toAbsolutePath());
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, KEY_UUID, KEY_ID).where(Sql.Value.equal(KEY_DIRECTORY, localPath.toString())).executeQuery();
+        while (resultSet.next()) {
+          id[0] = UUID.fromString(resultSet.getString(KEY_ID));
+        }
+        if (id[0] == null) {
+          id[0] = UUID.randomUUID();
+          new Sql.Insert(db, KEY_UUID,
+            Sql.Value.equal(KEY_ID, id[0].toString()),
+            Sql.Value.equal(KEY_NAME, name),
+            Sql.Value.equal(KEY_CLASS, className),
+            Sql.Value.equal(KEY_DIRECTORY, localPath.toString())).execute();
+        }
+      }
+    });
+    this.id = id[0];
   }
 
   @Override
@@ -32,32 +57,32 @@ public abstract class DirectoryBaseData extends Data implements DataDirectory {
     return null;
   }
 
-  @Override
-  public UUID getUuid() {
-    if (id == null) {
-      final UUID[] id = {null};
-      final String className = this.getClass().getCanonicalName();
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          Path localPath = Constants.WORK_DIR.relativize(getDirectoryPath().toAbsolutePath());
-          ResultSet resultSet = new Sql.Select(db, KEY_UUID, KEY_ID).where(Sql.Value.equal(KEY_DIRECTORY, localPath.toString())).executeQuery();
-          while (resultSet.next()) {
-            id[0] = UUID.fromString(resultSet.getString(KEY_ID));
-          }
-          if (id[0] == null) {
-            id[0] = UUID.randomUUID();
-            new Sql.Insert(db, KEY_UUID,
-              Sql.Value.equal(KEY_ID, id[0].toString()),
-              Sql.Value.equal(KEY_NAME, name),
-              Sql.Value.equal(KEY_CLASS, className),
-              Sql.Value.equal(KEY_DIRECTORY, localPath.toString())).execute();
-          }
-        }
-      });
-      this.id = id[0];
+  public void replace(Path path) {
+    int count = 0;
+    while (Files.exists(path)) {
+      path = path.getParent().resolve(path.getFileName().toString() + '_' + count++);
+      //name = (name.length() > 0 ? "_" : "") + UUID.randomUUID().toString().replaceFirst("-.*$", "");
     }
-    return this.id;
+    Path localPath = Constants.WORK_DIR.relativize(path.toAbsolutePath());
+    String id = getId();
+
+    if (Files.exists(getDirectoryPath())) {
+      try {
+        Files.move(getDirectoryPath(), path);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    handleDatabase(this, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        new Sql.Delete(db, KEY_UUID).where(Sql.Value.equal(KEY_DIRECTORY, localPath.toString())).execute();
+        new Sql.Update(db, KEY_UUID,
+          Sql.Value.equal(KEY_DIRECTORY, localPath.toString())
+          ).where(Sql.Value.equal(KEY_ID, id)).execute();
+      }
+    });
   }
 
   static public void resetUuid(Path path) {
@@ -86,7 +111,7 @@ public abstract class DirectoryBaseData extends Data implements DataDirectory {
     return name[0];
   }
 
-  static Path getDirectory(String id) {
+  static Path getDirectoryPath(String id) {
     final Path[] path = {null};
 
     handleDatabase(null, new Handler() {

@@ -9,7 +9,7 @@ public class WarnLogMessage extends LogMessage {
     new WarnLogMessage(message).printMessage();
   }
 
-  public static void issue(Exception e) {
+  public static void issue(Throwable e) {
     new WarnLogMessage(getStackTrace(e)).printMessage();
   }
 }

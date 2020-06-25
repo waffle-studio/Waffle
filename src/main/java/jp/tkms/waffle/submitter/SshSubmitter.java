@@ -156,15 +156,6 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  int getExitStatus(SimulatorRun run) throws Exception {
-    int status = -1;
-
-    status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getRunDirectory(run)).replaceAll("\\r|\\n", ""));
-
-    return status;
-  }
-
-  @Override
   void postProcess(SimulatorRun run) {
     try {
       //session.rmdir(getRunDirectory(run), "/tmp");
