@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
@@ -189,7 +190,8 @@ public class SshSubmitter extends AbstractSubmitter {
     return null;
   }
 
-  public JSONObject defaultParameters(Host host) {
+  @Override
+  public JSONObject getDefaultParameters(Host host) {
     JSONObject jsonObject = new JSONObject();
     jsonObject.put("host", host.getName());
     jsonObject.put("user", System.getProperty("user.name"));
@@ -204,7 +206,7 @@ public class SshSubmitter extends AbstractSubmitter {
     try {
       session.scp(localPath.toFile(), remotePath, "/tmp");
     } catch (JSchException e) {
-      e.printStackTrace();
+      WarnLogMessage.issue(e);
     }
   }
 
@@ -213,7 +215,7 @@ public class SshSubmitter extends AbstractSubmitter {
     try {
       session.scp(remotePath, localPath.toFile(), "/tmp");
     } catch (JSchException e) {
-      e.printStackTrace();
+      WarnLogMessage.issue(e);
     }
   }
 

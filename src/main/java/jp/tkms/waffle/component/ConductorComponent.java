@@ -183,14 +183,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             Html.a(getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
               Html.span("right badge badge-secondary", null, "run")
             ),
-            Lte.cardToggleButton(true),
+            Lte.cardToggleButton(false),
             Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
           ),
           Html.div(null,
-            Lte.readonlyTextInput("Conductor Directory", conductor.getDirectoryPath().toAbsolutePath().toString()),
-            Lte.readonlyTextInput("Base Script", conductor.getScriptFileName())
+            Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getDirectoryPath().toAbsolutePath().toString())
           )
-          , null, "collapsed-card", null);
+          , null, "collapsed-card.stop", null);
 
         String defaultVariablesText = conductor.getDefaultVariables().toString(2);
 

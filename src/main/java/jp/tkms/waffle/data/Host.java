@@ -7,12 +7,9 @@ import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -254,6 +251,12 @@ public class Host extends DirectoryBaseData {
         updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, json);
       }
       parameters = getXsubParametersTemplate();
+      try {
+        JSONObject jsonObject = AbstractSubmitter.getInstance(this).getDefaultParameters(this);
+        for (String key : jsonObject.toMap().keySet()) {
+          parameters.put(key, jsonObject.getJSONObject(key));
+        }
+      } catch (Exception e) {}
       JSONObject jsonObject = new JSONObject(json);
       for (String key : jsonObject.keySet()) {
         parameters.put(key, jsonObject.get(key));
@@ -296,19 +299,6 @@ public class Host extends DirectoryBaseData {
   public void setXsubTemplate(JSONObject jsonObject) {
     setToDB(KEY_XSUB_TEMPLATE, jsonObject.toString());
     this.xsubTemplate = jsonObject;
-  }
-
-  public JSONObject getDefaultParametersWithXsubParametersTemplate() {
-    JSONObject jsonObject = AbstractSubmitter.getInstance(this).defaultParameters(this);
-
-    try {
-      JSONObject object = getXsubParametersTemplate();
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key));
-      }
-    } catch (Exception e) {}
-
-    return jsonObject;
   }
 
   public JSONObject getXsubParametersTemplate() {

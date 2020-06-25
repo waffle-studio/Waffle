@@ -126,7 +126,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject defaultParameters(Host host) {
+  public JSONObject getDefaultParameters(Host host) {
     return new JSONObject();
   }
 

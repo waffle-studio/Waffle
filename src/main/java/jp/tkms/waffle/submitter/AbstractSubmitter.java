@@ -35,7 +35,7 @@ abstract public class AbstractSubmitter {
   abstract public void close();
   abstract public void putText(SimulatorRun run, String path, String text);
   abstract public String getFileContents(SimulatorRun run, String path);
-  abstract public JSONObject defaultParameters(Host host);
+  abstract public JSONObject getDefaultParameters(Host host);
   abstract public void transferFile(Path localPath, String remotePath);
   abstract public void transferFile(String remotePath, Path localPath);
 
@@ -64,6 +64,12 @@ abstract public class AbstractSubmitter {
     SimulatorRun run = job.getRun();
     processXstat(job, exec(xstatCommand(job)));
     return run.getState();
+  }
+
+  public void cancel(Job job) {
+    if (! job.getJobId().equals("-1")) {
+      processXdel(job, exec(xdelCommand(job)));
+    }
   }
 
   protected void prepareJob(Job job) {
@@ -205,7 +211,7 @@ abstract public class AbstractSubmitter {
         case "finished" :
           int exitStatus = -1;
           try {
-            exitStatus = Integer.valueOf(getFileContents(job.getRun(), "../" + EXIT_STATUS_FILE).trim());
+            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()) + (job.getRun().getHost().isLocal() ? File.separator : "/") + EXIT_STATUS_FILE).trim());
           } catch (Exception e) {
             job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
@@ -259,10 +265,15 @@ abstract public class AbstractSubmitter {
   }
 
   void processXdel(Job job, String json) {
+    job.getRun().setState(State.Canceled);
+    job.remove();
   }
 
   String getContentsPath(SimulatorRun run, String path) {
     String separator = (run.getHost().isLocal() ? File.separator : "/");
+    if (path.indexOf(separator) == 0) {
+      return path;
+    }
     return getWorkDirectory(run) + separator + path;
   }
 
@@ -289,7 +300,7 @@ abstract public class AbstractSubmitter {
 
   public static JSONObject getParameters(Host host) {
     AbstractSubmitter submitter = getInstance(host);
-    JSONObject jsonObject = submitter.defaultParameters(host);
+    JSONObject jsonObject = submitter.getDefaultParameters(host);
     return jsonObject;
   }
 
@@ -324,6 +335,9 @@ abstract public class AbstractSubmitter {
         case Excepted:
         case Canceled:
           job.remove();
+          break;
+        case Cancel:
+          cancel(job);
       }
     }
 

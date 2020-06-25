@@ -210,6 +210,8 @@ public class AbciSubmitter extends SshSubmitter {
           break;
         case Finished:
         case Failed:
+        case Excepted:
+        case Canceled:
           job.remove();
       }
 

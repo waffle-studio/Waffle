@@ -478,10 +478,10 @@ public class SimulatorRun extends AbstractRun {
 
   @Override
   public boolean isRunning() {
-    return !(state.equals(State.Finished)
-      || state.equals(State.Excepted)
-      || state.equals(State.Canceled)
-      || state.equals(State.Failed)
+    return (state.equals(State.Created)
+      || state.equals(State.Queued)
+      || state.equals(State.Submitted)
+      || state.equals(State.Running)
     );
   }
 

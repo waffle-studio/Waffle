@@ -19,7 +19,7 @@ public class Remote {
     String content = "";
     try {
       content =  submitter.getFileContents(run, path);
-    } catch (Exception e) {}
+    } catch (Exception | Error e) {}
     return content;
   }
 
@@ -27,6 +27,6 @@ public class Remote {
     try {
       Path local = run.getWorkPath().resolve(path);
       submitter.transferFile(Paths.get(submitter.getWorkDirectory(run)).resolve(path).toString(), local);
-    } catch (Exception e) {}
+    } catch (Exception | Error e) {}
   }
 }

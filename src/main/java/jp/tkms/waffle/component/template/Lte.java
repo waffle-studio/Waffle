@@ -3,6 +3,7 @@ package jp.tkms.waffle.component.template;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -204,6 +205,28 @@ public class Lte {
         value("value", value),
         value("class", "form-control"),
         value("readonly", null)
+      )
+    );
+  }
+
+  public static String readonlyTextInputWithCopyButton(String label, String value) {
+    UUID uuid = UUID.randomUUID();
+    return div("form-group",
+      (label != null ? element("label", null, label) : null),
+      div("input-group",
+        attribute("input",
+          value("type", "text"),
+          value("value", value),
+          value("id", uuid.toString()),
+          value("class", "form-control"),
+          value("readonly", null)
+        ),
+        span("input-group-append", null,
+          element("button", new Attributes(value("class", "btn btn-falt btn-secondary"),
+            value("type", "button"),
+            value("id", uuid.toString().concat("_")),
+            value("onclick", "document.getElementById('" + uuid.toString() + "').select();document.execCommand('copy');toastr.info('Copied');")), fasIcon("clipboard"))
+        )
       )
     );
   }

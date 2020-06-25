@@ -58,7 +58,7 @@ public abstract class DirectoryBaseData extends Data implements DataDirectory {
   }
 
   public void replace(Path path) {
-    int count = 0;
+    int count = 1;
     while (Files.exists(path)) {
       path = path.getParent().resolve(path.getFileName().toString() + '_' + count++);
       //name = (name.length() > 0 ? "_" : "") + UUID.randomUUID().toString().replaceFirst("-.*$", "");

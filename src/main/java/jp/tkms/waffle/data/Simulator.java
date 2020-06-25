@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -458,12 +459,15 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   public SimulatorRun runTest(Host host, String parametersJsonText) {
     String baseRunName = "TESTRUN-" + name;
+    RunNode runNode = RunNode.getInstanceByName(getProject(), Paths.get(baseRunName));
+    if (runNode == null) {
+      runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
+    }
     ConductorRun baseRun = ConductorRun.getInstanceByName(getProject(), baseRunName);
     if (baseRun == null) {
-      baseRun = ConductorRun.create(getProject(), ConductorRun.getRootInstance(getProject()), null, null);
-      baseRun.setName(baseRunName);
+      baseRun = ConductorRun.create(getProject(), ConductorRun.getRootInstance(getProject()), null, runNode);
     }
-    SimulatorRun run = SimulatorRun.create(baseRun, this, host, null);
+    SimulatorRun run = SimulatorRun.create(baseRun, this, host, runNode.createSimulatorRunNode(LocalDateTime.now().toString()));
     setToDB(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();

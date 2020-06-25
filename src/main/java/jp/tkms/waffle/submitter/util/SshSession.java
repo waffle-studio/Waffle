@@ -1,6 +1,7 @@
 package jp.tkms.waffle.submitter.util;
 
 import com.jcraft.jsch.*;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -190,13 +191,13 @@ public class SshSession {
             Files.createDirectories(local.toPath().getParent());
             transferFile(remote, local.toPath(), channelSftp);
           }
-          result = true;
         } catch (Exception e) {
-          e.printStackTrace();
+          WarnLogMessage.issue(e);
         } finally {
           channelSftp.disconnect();
           channelSemaphore.release();
         }
+        result = true;
       } catch (JSchException e) {
         if (e.getMessage().equals("channel is not opened.")) {
           channelSemaphore.release();
@@ -235,13 +236,13 @@ public class SshSession {
           } else {
             transferFile(local, dest, channelSftp);
           }
-          result = true;
         } catch (Exception e) {
-          e.printStackTrace();
+          WarnLogMessage.issue(e);
         } finally {
           channelSftp.disconnect();
           channelSemaphore.release();
         }
+        result = true;
       } catch (JSchException e) {
         if (e.getMessage().equals("channel is not opened.")) {
           channelSemaphore.release();

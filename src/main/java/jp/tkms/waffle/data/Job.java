@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.State;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -135,14 +136,18 @@ public class Job extends Data {
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
+  public void cancel() {
+    if (getRun().isRunning()) {
+      getRun().setState(State.Cancel);
+    }
+  }
+
   public void remove() {
+
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-        statement.setString(1, getId());
-        statement.execute();
+        new Sql.Delete(db, getTableName()).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");

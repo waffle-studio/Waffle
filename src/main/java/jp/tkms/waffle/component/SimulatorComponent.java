@@ -107,7 +107,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
                 Html.span("right badge badge-secondary", null, "test run")
               ),
               Html.div(null,
-                Lte.readonlyTextInput("Simulator Bin Directory", simulator.getBinDirectory().toString()),
+                Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", simulator.getBinDirectory().toString()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", simulator.getSimulationCommand(), errors)
               ),
               Lte.formSubmitButton("success", "Update")
