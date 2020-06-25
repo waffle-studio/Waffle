@@ -10,7 +10,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class HostsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -127,7 +126,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         return Lte.card(null,
           Html.a(getUrl("add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override

@@ -15,9 +15,7 @@ public interface DataDirectory {
     }
     try {
       Files.createDirectories(getDirectoryPath());
-      FileWriter filewriter = new FileWriter(path.toFile());
-      filewriter.write("");
-      filewriter.close();
+      path.toFile().createNewFile();
     } catch (IOException e) {
       e.printStackTrace();
     }

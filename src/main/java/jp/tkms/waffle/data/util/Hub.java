@@ -9,6 +9,7 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 
 public class Hub {
 
@@ -20,6 +21,8 @@ public class Hub {
   ArrayList<AbstractRun> createdRunList;
 
   String parameterStoreName;
+
+  RunNode runNode = null;
 
   //TODO: do refactor
   ConductorTemplate parentConductorTemplate = null;
@@ -35,6 +38,12 @@ public class Hub {
     this.createdRunList = new ArrayList<>();
     switchParameterStore(null);
     parentConductorTemplate = conductorTemplate;
+
+    if (conductorRun.getId().equals(run.getId()) || run instanceof SimulatorRun) {
+      runNode = run.getRunNode();
+    } else {
+      runNode = run.getRunNode().getParent();
+    }
   }
 
   public Hub(ConductorRun conductorRun, AbstractRun run) {
@@ -74,7 +83,12 @@ public class Hub {
     if (conductor == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
-    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor);
+
+    if (runNode instanceof SimulatorRunNode) {
+      runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
+    }
+
+    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor, runNode.createInclusiveRunNode(""));
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -92,7 +106,12 @@ public class Hub {
     if (! host.getState().equals(HostState.Viable)) {
       throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }
-    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host);
+
+    if (runNode instanceof SimulatorRunNode) {
+      runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
+    }
+
+    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host, runNode.createSimulatorRunNode(""));
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -159,6 +178,10 @@ public class Hub {
         BrowserMessage.addMessage("toastr.error('invokeListenerTemplate: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
       }
       container.terminate();
+    }
+
+    if (createdRunList.size() > 1) {
+      runNode.switchToParallel();
     }
 
     for (AbstractRun createdRun : createdRunList) {

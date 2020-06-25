@@ -2,7 +2,6 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
@@ -132,14 +131,14 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
         if (simulatorList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl(project, "add"), null, null,
-              Html.faIcon("plus-square") + "Add simulator"
+              Html.fasIcon("plus-square") + "Add simulator"
             ),
             null
           );
         }
         return Lte.card(null,
           Html.a(getUrl(project, "add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override

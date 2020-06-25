@@ -6,7 +6,6 @@ import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.*;
 import spark.Spark;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -39,9 +38,6 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
     Spark.post(getUrl(null, "update-main-script"), new ConductorTemplateComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, "update-listener-script"), new ConductorTemplateComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, "new-listener"), new ConductorTemplateComponent(Mode.NewListener));
-
-    SimulatorsComponent.register();
-    TrialsComponent.register();
   }
 
   public static String getUrl(ConductorTemplate module) {
@@ -118,7 +114,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
 
          */
 
-        content += Lte.card(Html.faIcon("terminal") + "Properties",
+        content += Lte.card(Html.fasIcon("terminal") + "Properties",
             Lte.cardToggleButton(true) ,
           Html.div(null,
             Lte.readonlyTextInput("Conductor Directory", module.getDirectoryPath().toAbsolutePath().toString()),
@@ -144,7 +140,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
 
         content +=
           Html.form(getUrl(module, "update-main-script"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "Main Script",
+            Lte.card(Html.fasIcon("terminal") + "Main Script",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -157,7 +153,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
 
         content +=
           Html.form(getUrl(module, "new-listener"), Html.Method.Post,
-            Lte.card(Html.faIcon("terminal") + "New Listener",
+            Lte.card(Html.fasIcon("terminal") + "New Listener",
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -171,7 +167,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
         for (String listenerName : module.getListenerNameList()) {
           content +=
             Html.form(getUrl(module, "update-listener-script"), Html.Method.Post,
-              Lte.card(Html.faIcon("terminal") + listenerName + " (Event Listener)",
+              Lte.card(Html.fasIcon("terminal") + listenerName + " (Event Listener)",
                 Lte.cardToggleButton(false),
                 Lte.divRow(
                   Lte.divCol(Lte.DivSize.F12,

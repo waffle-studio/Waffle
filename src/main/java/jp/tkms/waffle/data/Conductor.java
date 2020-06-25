@@ -107,7 +107,7 @@ public class Conductor extends ProjectData implements DataDirectory {
       }
     });
 
-    if (conductor[0] == null && Files.exists(project.getConductorDirectoryPath().resolve(name))) {
+    if (conductor[0] == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
       conductor[0] = create(project, name);
     }
 
@@ -125,7 +125,7 @@ public class Conductor extends ProjectData implements DataDirectory {
     ArrayList<Conductor> simulatorList = new ArrayList<>();
 
     try {
-      Files.list(project.getConductorDirectoryPath()).forEach(path -> {
+      Files.list(getBaseDirectoryPath(project)).forEach(path -> {
         if (Files.isDirectory(path)) {
           simulatorList.add(getInstanceByName(project, path.getFileName().toString()));
         }
@@ -203,7 +203,7 @@ public class Conductor extends ProjectData implements DataDirectory {
 
   @Override
   public Path getDirectoryPath() {
-    return getProject().getConductorDirectoryPath().resolve(name);
+    return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
   public String getScriptFileName() {

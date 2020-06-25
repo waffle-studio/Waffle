@@ -27,7 +27,7 @@ public class ListenerTemplate extends DirectoryBaseData {
   private String arguments = null;
 
   public ListenerTemplate(String name) {
-    super(name);
+    super(getBaseDirectoryPath().resolve(name));
   }
 
   public static ListenerTemplate getInstance(String name) {

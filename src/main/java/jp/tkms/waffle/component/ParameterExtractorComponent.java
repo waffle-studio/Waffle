@@ -106,7 +106,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += Html.form(getUrl(simulator, extractorName, "update"), Html.Method.Post,
-          Lte.card(Html.faIcon("tasks") + "Properties", null,
+          Lte.card(Html.fasIcon("tasks") + "Properties", null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", extractorName, errors),
               Lte.formDataEditorGroup("extract_script", "Script", "ruby", simulator.getExtractorScript(extractorName), errors)
@@ -116,7 +116,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
         );
 
         content += Html.form(getUrl(simulator, extractorName, KEY_REMOVE), Html.Method.Get,
-          Lte.card(Html.faIcon("trash-alt") + "Remove",
+          Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Html.div(null,
               Lte.formSubmitButton("danger", "Remove")
@@ -162,7 +162,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += Html.form(getStaticUrl(simulator,"add"), Html.Method.Post,
-          Lte.card(Html.faIcon("tasks") + "Properties",
+          Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", "", errors),

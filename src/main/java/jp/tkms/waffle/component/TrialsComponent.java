@@ -2,7 +2,6 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
@@ -11,7 +10,6 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 public class TrialsComponent extends AbstractAccessControlledComponent {
@@ -106,7 +104,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
 
         String errorNote = conductorRun.getErrorNote();
         if (! "".equals(errorNote)) {
-          contents += Lte.card(Html.faIcon("exclamation-triangle") + "Error",
+          contents += Lte.card(Html.fasIcon("exclamation-triangle") + "Error",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
@@ -117,7 +115,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
         }
 
         if (! conductorRun.getVariables().isEmpty()) {
-          contents += Lte.card(Html.faIcon("poll") + "Variables",
+          contents += Lte.card(Html.fasIcon("poll") + "Variables",
             Lte.cardToggleButton(false),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,

@@ -10,7 +10,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class TemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Templates";
@@ -109,14 +108,14 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
         if (conductorTemplateList.size() <= 0) {
           contents += Lte.card(null, null,
             Html.a(getUrl(KEY_ADD_CONDUCTOR), null, null,
-              Html.faIcon("plus-square") + "Add ConductorTemplate"
+              Html.fasIcon("plus-square") + "Add ConductorTemplate"
             ),
             null
           );
         } else {
           contents += Lte.card("ConductorTemplate",
             Html.a(getUrl(KEY_ADD_CONDUCTOR),
-              null, null, Html.faIcon("plus-square")
+              null, null, Html.fasIcon("plus-square")
             ),
             Lte.table("table-condensed", new Lte.Table() {
               @Override
@@ -145,14 +144,14 @@ public class TemplatesComponent extends AbstractAccessControlledComponent {
         if (listenerTemplateList.size() <= 0) {
           contents += Lte.card(null, null,
             Html.a(getUrl(KEY_ADD_LISTENER), null, null,
-              Html.faIcon("plus-square") + "Add ListenerTemplate"
+              Html.fasIcon("plus-square") + "Add ListenerTemplate"
             ),
             null
           );
         } else {
           contents += Lte.card("ListenerTemplate",
             Html.a(getUrl(KEY_ADD_LISTENER),
-              null, null, Html.faIcon("plus-square")
+              null, null, Html.fasIcon("plus-square")
             ),
             Lte.table("table-condensed", new Lte.Table() {
               @Override

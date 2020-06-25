@@ -42,7 +42,7 @@ public class Host extends DirectoryBaseData {
   private JSONObject xsubTemplate = null;
 
   public Host(String name) {
-    super(name);
+    super(getBaseDirectoryPath().resolve(name));
   }
 
   @Override

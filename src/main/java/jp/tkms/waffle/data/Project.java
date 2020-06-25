@@ -158,14 +158,6 @@ public class Project extends Data implements DataDirectory {
     return getBaseDirectoryPath().resolve(name);
   }
 
-  public Path getSimulatorDirectoryPath() {
-    return getDirectoryPath().resolve(Simulator.KEY_SIMULATOR);
-  }
-
-  public Path getConductorDirectoryPath() {
-    return getDirectoryPath().resolve(Conductor.KEY_CONDUCTOR);
-  }
-
   @Override
   protected Updater getDatabaseUpdater() {
     return new Updater() {
@@ -245,6 +237,14 @@ public class Project extends Data implements DataDirectory {
     if (! Files.exists(Simulator.getBaseDirectoryPath(this))) {
       try {
         Files.createDirectories(Simulator.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (! Files.exists(RunNode.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(RunNode.getBaseDirectoryPath(this));
       } catch (IOException e) {
         e.printStackTrace();
       }

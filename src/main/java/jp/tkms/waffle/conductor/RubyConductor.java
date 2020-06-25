@@ -2,6 +2,7 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.util.State;
 import org.jruby.Ruby;
 import org.jruby.embed.*;
 import org.jruby.exceptions.SyntaxError;
@@ -34,20 +35,22 @@ public class RubyConductor extends CycleConductor {
   @Override
   protected void eventHandler(ConductorRun conductorRun, AbstractRun run) {
     if (run instanceof SimulatorRun) {
-      SimulatorRun simulatorRun = (SimulatorRun)run;
-      for (String script : simulatorRun.getFinalizers()) {
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-        try {
-          container.runScriptlet(getInitScript());
-          container.runScriptlet(getListenerTemplateScript());
-          container.runScriptlet(script);
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, simulatorRun);
-        } catch (Exception e) {
-          System.err.println(e.getMessage());
-          conductorRun.appendErrorNote(e.getMessage());
-          BrowserMessage.addMessage("toastr.error('simulator_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+      if (((SimulatorRun) run).getState().equals(State.Finished)) {
+        SimulatorRun simulatorRun = (SimulatorRun) run;
+        for (String script : simulatorRun.getFinalizers()) {
+          ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+          try {
+            container.runScriptlet(getInitScript());
+            container.runScriptlet(getListenerTemplateScript());
+            container.runScriptlet(script);
+            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, simulatorRun);
+          } catch (Exception e) {
+            System.err.println(e.getMessage());
+            conductorRun.appendErrorNote(e.getMessage());
+            BrowserMessage.addMessage("toastr.error('simulator_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+          }
+          container.terminate();
         }
-        container.terminate();
       }
     }
   }

@@ -2,11 +2,8 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.data.util.KeyValue;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -41,6 +38,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     SimulatorComponent.register();
     TrialsComponent.register();
     ConductorComponent.register();
+    RunsComponent.register();
     RunComponent.register();
   }
 
@@ -102,7 +100,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         ArrayList<Project> projectList = Project.getList();
         return Lte.card(null, null,
-          Html.h1("text-center", Html.faIcon("question")),
+          Html.h1("text-center", Html.fasIcon("question")),
           null
         );
       }
@@ -163,7 +161,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        String content = Lte.divRow(
+        String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getId() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
+        content += Lte.divRow(
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
             Html.a(TrialsComponent.getUrl(project), "Runs"), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
@@ -172,10 +171,10 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
         ArrayList<Conductor> conductorList = Conductor.getList(project);
         if (conductorList.size() <= 0) {
-          content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
             Html.a(getUrl(project, "add_conductor"), null, null,
-              Html.faIcon("plus-square") + "Add new conductor"
+              Html.fasIcon("plus-square") + "Add new conductor"
             ),
             null
           );
@@ -197,12 +196,12 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               "} else {" +
               "document.getElementById('conductor-jobnum-' + c).style.display = 'none';" +
               "}" +
-              "};updateJobNum(" + Job.getNum() + ");"
+              "};"
           );
 
-          content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             Html.a(getUrl(project, "add_conductor"),
-              null, null, Html.faIcon("plus-square")
+              null, null, Html.fasIcon("plus-square")
             ),
             Lte.table(null, new Lte.Table() {
               @Override

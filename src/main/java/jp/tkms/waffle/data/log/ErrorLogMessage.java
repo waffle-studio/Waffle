@@ -9,7 +9,7 @@ public class ErrorLogMessage extends LogMessage {
     new ErrorLogMessage(message).printMessage();
   }
 
-  public static void issue(Exception e) {
+  public static void issue(Throwable e) {
     new ErrorLogMessage(getStackTrace(e)).printMessage();
   }
 }

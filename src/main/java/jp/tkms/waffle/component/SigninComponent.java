@@ -90,7 +90,7 @@ public class SigninComponent extends AbstractComponent {
   private void getAccess(String pass) {
     if (pass.equals("aisT305")) {
       UserSession session = UserSession.create();
-      response.cookie(UserSession.KEY_SESSION_ID, session.getSessionId());
+      response.cookie("/", UserSession.KEY_SESSION_ID, session.getSessionId(), -1, false);
     }
     response.redirect(ProjectsComponent.getUrl());
   }
