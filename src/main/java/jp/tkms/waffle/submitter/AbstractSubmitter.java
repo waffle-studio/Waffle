@@ -74,6 +74,7 @@ abstract public class AbstractSubmitter {
 
   protected void prepareJob(Job job) {
     SimulatorRun run = job.getRun();
+    run.setRemoteWorkingDirectoryLog(getRunDirectory(run));
 
     run.getSimulator().updateVersionId();
 

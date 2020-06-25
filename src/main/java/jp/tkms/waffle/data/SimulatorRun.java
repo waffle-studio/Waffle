@@ -36,6 +36,7 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_ENTRY = "entry";
   private static final String KEY_LOCAL_SHARED = "local_shared";
   public static final String WORKING_DIR = "WORK";
+  public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
 
   protected SimulatorRun(Project project) {
     super(project);
@@ -244,6 +245,14 @@ public class SimulatorRun extends AbstractRun {
         }
       }
     }
+  }
+
+  public void setRemoteWorkingDirectoryLog(String path) {
+    setToProperty(KEY_REMOTE_WORKING_DIR, path);
+  }
+
+  public String getRemoteWorkingDirectoryLog() {
+    return getStringFromProperty(KEY_REMOTE_WORKING_DIR);
   }
 
   public int getRestartCount() {

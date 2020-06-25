@@ -210,10 +210,14 @@ public class Lte {
   }
 
   public static String readonlyTextInputWithCopyButton(String label, String value) {
+    return readonlyTextInputWithCopyButton(label, value, false);
+  }
+
+  public static String readonlyTextInputWithCopyButton(String label, String value, boolean isSmall) {
     UUID uuid = UUID.randomUUID();
     return div("form-group",
       (label != null ? element("label", null, label) : null),
-      div("input-group",
+      div("input-group" + (isSmall?" input-group-sm":""),
         attribute("input",
           value("type", "text"),
           value("value", value),

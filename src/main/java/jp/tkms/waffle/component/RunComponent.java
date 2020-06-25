@@ -8,6 +8,7 @@ import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.submitter.AbstractSubmitter;
 import spark.Spark;
 
 import java.nio.file.Files;
@@ -118,6 +119,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 list.add(new Lte.TableRow("Created at", run.getCreatedDateTime().toString()));
                 list.add(new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString()));
                 list.add(new Lte.TableRow("Finished at", run.getFinishedDateTime().toString()));
+                list.add(new Lte.TableRow("Remote Directory", Lte.readonlyTextInputWithCopyButton(null, run.getRemoteWorkingDirectoryLog(), true)));
                 return list;
               }
             })
