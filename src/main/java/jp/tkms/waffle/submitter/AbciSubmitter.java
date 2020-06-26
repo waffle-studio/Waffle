@@ -213,6 +213,9 @@ public class AbciSubmitter extends SshSubmitter {
         case Excepted:
         case Canceled:
           job.remove();
+          break;
+        case Cancel:
+          cancel(job);
       }
 
       if (Main.hibernateFlag) {

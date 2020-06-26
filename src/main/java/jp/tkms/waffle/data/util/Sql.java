@@ -165,6 +165,7 @@ public class Sql {
     String selectSql = "";
     String whereSql = "";
     String orderSql = "";
+    String limitSql = "";
 
     public Select(Database database, String table, String... keys) {
       super(database);
@@ -191,9 +192,14 @@ public class Sql {
       return orderBy(key, false);
     }
 
+    public Select limit(int limit) {
+      limitSql = " limit " + limit;
+      return this;
+    }
+
     @Override
     public String toString() {
-      return selectSql + whereSql + orderSql + ";";
+      return selectSql + whereSql + orderSql + limitSql + ";";
     }
   }
 

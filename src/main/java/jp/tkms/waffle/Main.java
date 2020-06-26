@@ -74,6 +74,7 @@ public class Main {
     HostsComponent.register();
     ConductorTemplatesComponent.register();
     ListenerTemplatesComponent.register();
+    LogsComponent.register();
 
     SystemComponent.register();
     SigninComponent.register();
