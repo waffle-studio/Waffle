@@ -3,18 +3,23 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.State;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class RunNode extends DirectoryBaseData {
   public static final String KEY_TYPE = "type";
   public static final String KEY_EXPECTED_NAME = "expected_name";
   public static final String KEY_PROPERTY = "property";
   public static final String KEY_RUN = "run";
+  public static final String KEY_STATE = "state";
   Project project;
 
   public RunNode() {
@@ -56,7 +61,7 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public static RunNode getRootInstance(Project project) {
-    return new RunNode(project, getBaseDirectoryPath(project));
+    return new InclusiveRunNode(project, getBaseDirectoryPath(project));
   }
 
   public static RunNode getInstance(Project project, String id) {
@@ -67,7 +72,13 @@ public class RunNode extends DirectoryBaseData {
     ArrayList<RunNode> list = new ArrayList<>();
 
     try {
-      Files.list(getDirectoryPath()).forEach(path -> {
+      Files.list(getDirectoryPath()).sorted(Comparator.comparingLong(path -> {
+        try {
+          return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+        } catch (IOException e) {
+          return 0;
+        }
+      })).forEach(path -> {
         if (Files.isDirectory(path)) {
           list.add(getInstanceByName(project, path.toAbsolutePath()));
         }
@@ -173,5 +184,34 @@ public class RunNode extends DirectoryBaseData {
       name = getSimpleName();
     }
     return name;
+  }
+
+  protected void propagateState(State prev, State next) {
+    if (! (this instanceof SimulatorRunNode)) {
+      if (prev != null) {
+        int num = getIntFromProperty(prev.name(), 0);
+        if (num > 0) {
+          num -= 1;
+        }
+        ;
+        setToProperty(prev.name(), num);
+      }
+
+      if (next != null) {
+        setToProperty(next.name(),
+          getIntFromProperty(next.name(), 0)
+            + 1);
+      }
+    }
+
+    if (! isRoot()) {
+      getParent().propagateState(prev, next);
+    }
+
+    setToProperty(KEY_STATE, next.ordinal());
+  }
+
+  public State getState() {
+    return State.valueOf(getIntFromProperty(KEY_STATE, State.None.ordinal()));
   }
 }

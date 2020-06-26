@@ -12,7 +12,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,7 +50,7 @@ public class SimulatorRun extends AbstractRun {
   private JSONObject results = null;
   private JSONObject environments;
   private JSONArray arguments;
-  private JSONArray locaSharedList;
+  private JSONArray localSharedList;
 
   private SimulatorRun(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
     this(parent.getProject(), runNode.getUuid(),"",
@@ -150,6 +149,8 @@ public class SimulatorRun extends AbstractRun {
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
 
+    ((SimulatorRunNode) runNode).updateState(null, State.Created);
+
     /*
     JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
     if (copyParameters) {
@@ -219,6 +220,8 @@ public class SimulatorRun extends AbstractRun {
 
   public void setState(State state) {
     if (!this.state.equals(state)) {
+      ((SimulatorRunNode) getRunNode()).updateState(this.state, state);
+
       if (
         handleDatabase(this, new Handler() {
           @Override
@@ -513,25 +516,25 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public JSONArray getLocalSharedList() {
-    if (locaSharedList == null) {
+    if (localSharedList == null) {
       try {
-        locaSharedList = getArrayFromProperty(KEY_LOCAL_SHARED);
+        localSharedList = getArrayFromProperty(KEY_LOCAL_SHARED);
       } catch (Exception e) {}
-      if (locaSharedList == null) {
+      if (localSharedList == null) {
         putNewArrayToProperty(KEY_LOCAL_SHARED);
-        locaSharedList = new JSONArray();
+        localSharedList = new JSONArray();
       }
     }
-    return locaSharedList;
+    return localSharedList;
   }
 
   public void makeLocalShared(String key, String remote) {
-    locaSharedList = getLocalSharedList();
+    localSharedList = getLocalSharedList();
     JSONArray entry = new JSONArray();
     entry.put(key);
     entry.put(remote);
-    locaSharedList.put(entry);
-    setToProperty(KEY_LOCAL_SHARED, this.locaSharedList);
+    localSharedList.put(entry);
+    setToProperty(KEY_LOCAL_SHARED, this.localSharedList);
   }
 
   /*

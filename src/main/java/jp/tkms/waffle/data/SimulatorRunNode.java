@@ -1,10 +1,15 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.State;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 
 public class SimulatorRunNode extends RunNode {
   protected static final String KEY_TMP = ".tmp";
@@ -31,7 +36,23 @@ public class SimulatorRunNode extends RunNode {
     }
     rename(KEY_TMP);
     InclusiveRunNode node = parent.createInclusiveRunNode(virtualNodeName);
+
+    try {
+      BasicFileAttributeView nodeAttributes = Files.getFileAttributeView(node.getDirectoryPath(), BasicFileAttributeView.class);
+      FileTime time = Files.readAttributes(getDirectoryPath(), BasicFileAttributes.class).creationTime();
+      nodeAttributes.setTimes(time, time, time);
+    } catch (IOException e) { }
+
     replace(node.getDirectoryPath().resolve(name));
     return node;
+  }
+
+  public void updateState(State prev, State next) {
+    propagateState(prev, next);
+  }
+
+  @Override
+  public State getState() {
+    return SimulatorRun.getInstance(project, getId()).getState();
   }
 }

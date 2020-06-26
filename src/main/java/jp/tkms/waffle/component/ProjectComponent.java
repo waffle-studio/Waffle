@@ -164,7 +164,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getId() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
         content += Lte.divRow(
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
-            Html.a(TrialsComponent.getUrl(project), "Runs"), ""),
+            Html.a(RunsComponent.getUrl(project), "Runs"), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
             Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );

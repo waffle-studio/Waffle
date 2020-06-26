@@ -144,14 +144,14 @@ public class RunsComponent extends AbstractAccessControlledComponent {
                   list.add(new Lte.TableRow(
                       Html.fasIcon("circle"),
                       Html.a(RunComponent.getUrl(project, SimulatorRun.getInstance(project, child.getId())), null, null, child.getSimpleName()),
-                      ""//Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
+                      Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge())
                     )
                   );
                 } else {
                   list.add(new Lte.TableRow(
                       (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle")),
                       Html.a(getUrl(project, child), null, null, child.getSimpleName()),
-                      ""//Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
+                      Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge())
                     )
                   );
                 }

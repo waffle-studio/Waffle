@@ -227,6 +227,15 @@ abstract public class Data {
     return null;
   }
 
+  protected Integer getIntFromProperty(String key, int defaultValue) {
+    Integer value = getIntFromProperty(key);
+    if (value == null) {
+      value = defaultValue;
+      setToProperty(key, defaultValue);
+    }
+    return value;
+  }
+
   protected Long getLongFromProperty(String key) {
     try {
       return getPropertyStore().getLong(key);
