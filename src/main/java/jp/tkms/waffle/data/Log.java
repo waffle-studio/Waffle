@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.component.updater.LogUpdater;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.LogMessage;
@@ -23,6 +24,7 @@ public class Log extends Data {
   private static final String KEY_LEVEL = "level";
   private static final String KEY_MESSAGE = "message";
 
+  private int rowid = -1;
   private Level level = null;
   private String message = null;
 
@@ -31,10 +33,15 @@ public class Log extends Data {
     super();
   }
 
-  public Log(UUID id, String name, Level level, String mmessage) {
+  public Log(UUID id, String name, Level level, String message) {
     super(id, name);
     this.level = level;
-    this.message = mmessage;
+    this.message = message;
+  }
+
+  public Log(UUID id, String name, Level level, String message, int rowid) {
+    this(id, name, level, message);
+    this.rowid = rowid;
   }
 
   @Override
@@ -48,13 +55,14 @@ public class Log extends Data {
     handleDatabase(new Log(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_LEVEL, KEY_MESSAGE).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_LEVEL, KEY_MESSAGE, KEY_ROWID).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
           log[0] = new Log(
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
             Level.valueOf(resultSet.getInt(KEY_LEVEL)),
-            resultSet.getString(KEY_MESSAGE)
+            resultSet.getString(KEY_MESSAGE),
+            resultSet.getInt(KEY_ROWID)
           );
         }
       }
@@ -69,10 +77,11 @@ public class Log extends Data {
     handleDatabase(new Log(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        Sql.Select select = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_LEVEL, KEY_MESSAGE);
+        Sql.Select select = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_LEVEL, KEY_MESSAGE, KEY_ROWID);
         if (from >= 0) {
-          select.where(Sql.Value.greeterThan(KEY_ROWID, from));
+          select.where(Sql.Value.lessThan(KEY_ROWID, from));
         }
+        select.orderBy(KEY_ROWID, true);
         select.limit(limit);
         ResultSet resultSet = select.executeQuery();
         while (resultSet.next()) {
@@ -80,7 +89,8 @@ public class Log extends Data {
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
             Level.valueOf(resultSet.getInt(KEY_LEVEL)),
-            resultSet.getString(KEY_MESSAGE)
+            resultSet.getString(KEY_MESSAGE),
+            resultSet.getInt(KEY_ROWID)
           ));
         }
       }
@@ -93,7 +103,6 @@ public class Log extends Data {
     System.err.println('[' + level.name() + "] " + message);
 
     Log log = new Log(UUID.randomUUID(), "", level, message);
-    BrowserMessage.addMessage("error('" + message + "');");
 
     handleDatabase(new Log(), new Handler() {
         @Override
@@ -105,6 +114,8 @@ public class Log extends Data {
           ).execute();
         }
       });
+
+    new LogUpdater(log);
 
     return log;
   }
@@ -167,6 +178,10 @@ public class Log extends Data {
 
   public String getTimestamp() {
     return getStringFromDB(KEY_TIMESTAMP_CREATE);
+  }
+
+  public int getRowid() {
+    return rowid;
   }
 
   public enum Level {

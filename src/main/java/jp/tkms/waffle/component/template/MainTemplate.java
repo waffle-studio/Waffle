@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
+import jp.tkms.waffle.component.updater.LogUpdater;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Job;
 
@@ -99,14 +100,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                     ),
                     elementWithClass("li", "nav-header", "Status"),
                     elementWithClass("li", "nav-item",
-                      Lte.disabledTextInput("info", null, "Screen reloaded"),
-                      Html.javascript("var info_queue = [];" +
-                        "var info = warn = error = function(m) { info_queue.push(m); };" +
-                        "setInterval(function(){" +
-                        "if (info_queue.length > 0) {" +
-                        "document.getElementById('inputinfo').value = info_queue.shift();" +
-                        "}" +
-                        "}, 250);")
+                      Lte.disabledTextInput("info", null, "Screen reloaded")
                     )
                     ,
                     elementWithClass("li", "nav-item",

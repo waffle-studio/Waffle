@@ -254,7 +254,7 @@ public class Lte {
     return elementWithClass("table", listBySpace("table", classValue),
       (table.tableHeaders() != null ?
         element("thead", null, element("tr", null, headerValue)) : null),
-      element("tbody", null, contentsValue)
+      element("tbody", new Attributes(value("id", table.id.toString())), contentsValue)
     );
   }
 
@@ -271,6 +271,11 @@ public class Lte {
     public TableValue(String style, String value) {
       this.style = style;
       this.value = value;
+    }
+
+    @Override
+    public String toString() {
+      return value;
     }
   }
 
@@ -294,6 +299,7 @@ public class Lte {
   }
 
   public abstract static class Table {
+    public UUID id = UUID.randomUUID();
     public abstract ArrayList<TableValue> tableHeaders();
     public abstract ArrayList<TableRow> tableRows();
   }

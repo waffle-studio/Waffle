@@ -312,7 +312,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                   Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(conductor.getName() + '_' + LocalDateTime.now().toString()), null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, "Default variables", 10, conductor.getDefaultVariables().toString(2), null)
+                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, "Variables", 10, conductor.getDefaultVariables().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")

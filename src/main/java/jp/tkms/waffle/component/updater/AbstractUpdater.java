@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public abstract class AbstractUpdater {
-  private static ArrayList<AbstractUpdater> updaterList = new ArrayList<>(Arrays.asList(
-    new RunStatusUpdater(), new SystemUpdater()
+  private static ArrayList<AbstractUpdater> updaterList = new ArrayList<AbstractUpdater>(Arrays.asList(
+    new RunStatusUpdater(), new SystemUpdater(), new LogUpdater()
   ));
 
   abstract public String templateBody();
