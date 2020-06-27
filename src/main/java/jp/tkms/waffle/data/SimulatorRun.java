@@ -318,7 +318,7 @@ public class SimulatorRun extends AbstractRun {
 
   public JSONObject getEnvironments() {
     if (environments == null) {
-      environments = (new JSONObject(getStringFromDB(KEY_ENVIRONMENTS)));
+      environments = getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
     }
     return environments;
   }
@@ -327,16 +327,11 @@ public class SimulatorRun extends AbstractRun {
     return getEnvironments().get(key);
   }
 
-  public Object setEnvironment(String key, Object value) {
-    getEnvironments();
+  public Object putEnvironment(String key, Object value) {
+    environments = getEnvironments();
     environments.put(key, value);
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        new Sql.Update(db, getTableName(), Sql.Value.equal(KEY_ENVIRONMENTS, environments.toString())).where(Sql.Value.equal(KEY_ID, getId())).execute();
-      }
-    });
-    return value;
+    setToProperty(KEY_ENVIRONMENTS, environments);
+    return environments;
   }
 
   protected void updateParametersStore() {
@@ -617,19 +612,26 @@ public class SimulatorRun extends AbstractRun {
     };
   }
 
-  public HashMap<String, Object> environmentsWrapper = null;
-  public HashMap<String, Object> environments() {
+  public HashMap<Object, Object> environmentsWrapper = null;
+  public HashMap environments() {
     if (environmentsWrapper == null) {
       environmentsWrapper = new HashMap<>(getEnvironments().toMap()) {
         @Override
-        public Object put(String s, Object o) {
-          return setEnvironment(s, o);
+        public Object get(Object key) {
+          return getEnvironment(key.toString());
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+          super.put(key, value);
+          putEnvironment(key.toString(), value);
+          return value;
         }
       };
     }
     return environmentsWrapper;
   }
-  public HashMap<String, Object> e() { return environments(); }
+  public HashMap e() { return environments(); }
 
   private ArrayList<Object> argumentsWrapper = null;
   public ArrayList<Object> arguments() {

@@ -233,4 +233,10 @@ public class Hub {
   public String toString() {
     return super.toString();
   }
+
+  public void moveToParentNode() {
+    if (! runNode.isRoot()) {
+      runNode = runNode.getParent();
+    }
+  }
 }

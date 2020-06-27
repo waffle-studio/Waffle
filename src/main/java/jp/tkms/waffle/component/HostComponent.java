@@ -18,6 +18,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_ENVIRONMENTS = "environments";
   private Mode mode;
 
   ;
@@ -95,7 +96,8 @@ public class HostComponent extends AbstractAccessControlledComponent {
                 "Maximum number of jobs", "", host.getMaximumNumberOfJobs().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
-              Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", 10, host.getParameters().toString(2), null)
+              Lte.formDataEditorGroup(KEY_ENVIRONMENTS, "Environments", "json", host.getEnvironments().toString(2), null),
+              Lte.formDataEditorGroup(KEY_PARAMETERS, "Parameters", "json", host.getParameters().toString(2), null)
             )
             , Lte.formSubmitButton("success", "Update")
           )
@@ -133,6 +135,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
     host.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
     host.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_MAX_JOBS)));
     host.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
+    host.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
     host.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));
     host.update();
     response.redirect(getUrl(host));

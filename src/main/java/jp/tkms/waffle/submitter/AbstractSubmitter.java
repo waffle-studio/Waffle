@@ -124,6 +124,8 @@ abstract public class AbstractSubmitter {
       text += makeLocalSharingPreCommandText(a.getString(0), a.getString(1));
     }
 
+    text += makeEnvironmentCommandText(run);
+
     text += "\n" + run.getSimulator().getSimulationCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
       "EXIT_STATUS=$?\n";
 
@@ -157,8 +159,11 @@ abstract public class AbstractSubmitter {
 
   String makeEnvironmentCommandText(SimulatorRun run) {
     String text = "";
+    for (Map.Entry<String, Object> entry : run.getHost().getEnvironments().toMap().entrySet()) {
+      text += "export " + entry.getKey().replace(' ', '_') + "='" + entry.getValue().toString() + "'\n";
+    }
     for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
-      text += "export " + entry.getKey() + "='" + entry.getValue().toString() + "'\n";
+      text += "export " + entry.getKey().replace(' ', '_') + "='" + entry.getValue().toString() + "'\n";
     }
     return text;
   }

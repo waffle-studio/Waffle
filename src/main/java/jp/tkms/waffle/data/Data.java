@@ -243,6 +243,22 @@ abstract public class Data {
     return null;
   }
 
+  protected JSONObject getJSONObjectFromProperty(String key) {
+    try {
+      return getPropertyStore().getJSONObject(key);
+    } catch (Exception e) {}
+    return null;
+  }
+
+  protected JSONObject getJSONObjectFromProperty(String key, JSONObject defaultValue) {
+    JSONObject value = getJSONObjectFromProperty(key);
+    if (value == null) {
+      value = defaultValue;
+      setToProperty(key, defaultValue);
+    }
+    return value;
+  }
+
   protected JSONArray getArrayFromProperty(String key) {
     return getPropertyStore().getJSONArray(key);
   }
@@ -258,6 +274,11 @@ abstract public class Data {
   }
 
   protected void setToProperty(String key, long value) {
+    getPropertyStore().put(key, value);
+    updatePropertyStore();
+  }
+
+  protected void setToProperty(String key, JSONObject value) {
     getPropertyStore().put(key, value);
     updatePropertyStore();
   }

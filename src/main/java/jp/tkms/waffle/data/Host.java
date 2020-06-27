@@ -28,6 +28,7 @@ public class Host extends DirectoryBaseData {
   private static final String KEY_OS = "os";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_STATE = "state";
+  private static final String KEY_ENVIRONMENTS = "environments";
 
   private String hostName = null;
   private String workBaseDirectory = null;
@@ -287,6 +288,14 @@ public class Host extends DirectoryBaseData {
     parameters.put(key, value);
     setParameters(parameters);
     return value;
+  }
+
+  public JSONObject getEnvironments() {
+    return getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
+  }
+
+  public void setEnvironments(JSONObject jsonObject) {
+    setToProperty(KEY_ENVIRONMENTS, jsonObject);
   }
 
   public JSONObject getXsubTemplate() {
