@@ -160,10 +160,10 @@ abstract public class AbstractSubmitter {
   String makeEnvironmentCommandText(SimulatorRun run) {
     String text = "";
     for (Map.Entry<String, Object> entry : run.getHost().getEnvironments().toMap().entrySet()) {
-      text += "export " + entry.getKey().replace(' ', '_') + "='" + entry.getValue().toString() + "'\n";
+      text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
     }
     for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
-      text += "export " + entry.getKey().replace(' ', '_') + "='" + entry.getValue().toString() + "'\n";
+      text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
     }
     return text;
   }

@@ -160,7 +160,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_DEFAULT_PARAMETERS, null, defaultParametersText.split("\\n").length, defaultParametersText, null)
+                  Lte.formDataEditorGroup(KEY_DEFAULT_PARAMETERS, null, "json", simulator.getDefaultParameters().toString(2), null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
@@ -267,9 +267,6 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
-        String parametersText = simulator.getDefaultParameters().toString(2);
-        int parameterLines = parametersText.split("\n").length;
-
         SimulatorRun latestRun = simulator.getLatestTestRun();
 
         if (latestRun != null) {
@@ -306,7 +303,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formSelectGroup(KEY_HOST, "Host", Host.getViableList().stream().map(host -> host.getName()).collect(Collectors.toList()), null),
-                  Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", parameterLines < 5 ? 5 : parameterLines, simulator.getDefaultParameters().toString(2), null)
+                  Lte.formDataEditorGroup(KEY_PARAMETERS, "Parameters", "json", simulator.getDefaultParameters().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")

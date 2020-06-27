@@ -191,15 +191,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           )
           , null, "collapsed-card.stop", null);
 
-        String defaultVariablesText = conductor.getDefaultVariables().toString(2);
-
         content +=
           Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Default Variables",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, null, defaultVariablesText.split("\\n").length, defaultVariablesText, null)
+                  Lte.formDataEditorGroup(KEY_DEFAULT_VARIABLES, null, "json", conductor.getDefaultVariables().toString(2), null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
@@ -312,7 +310,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                   Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(conductor.getName() + '_' + LocalDateTime.now().toString()), null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formTextAreaGroup(KEY_DEFAULT_VARIABLES, "Variables", 10, conductor.getDefaultVariables().toString(2), null)
+                  Lte.formDataEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "json", conductor.getDefaultVariables().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")
