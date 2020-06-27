@@ -14,3 +14,8 @@ label {
     padding-left: 1.25rem;
 }
 
+.hide-overflow {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}

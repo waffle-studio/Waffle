@@ -125,14 +125,27 @@ public class RunsComponent extends AbstractAccessControlledComponent {
         }
          */
 
+        String note = runNode.getNote();
+        if (! "".equals(note)) {
+          contents += Lte.card(Html.fasIcon("sticky-note") + "Note",
+            Lte.cardToggleButton(false),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.readonlyTextAreaGroup("", null, note)
+              )
+            )
+            , null);
+        }
+
         contents += Lte.card(null, null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:0em;", ""));
+              list.add(new Lte.TableValue("width:0;", ""));
               list.add(new Lte.TableValue("", "Name"));
-              list.add(new Lte.TableValue("width:2em;", ""));
+              list.add(new Lte.TableValue("width:50%;", "Note"));
+              list.add(new Lte.TableValue("width:0;", ""));
               return list;
             }
 
@@ -142,16 +155,18 @@ public class RunsComponent extends AbstractAccessControlledComponent {
               for (RunNode child : runNode.getList()) {
                 if (child instanceof SimulatorRunNode) {
                   list.add(new Lte.TableRow(
-                      Html.fasIcon("circle"),
-                      Html.a(RunComponent.getUrl(project, SimulatorRun.getInstance(project, child.getId())), null, null, child.getSimpleName()),
-                      Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge())
+                      new Lte.TableValue(null, Html.fasIcon("circle")),
+                      new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, SimulatorRun.getInstance(project, child.getId())), null, null, child.getSimpleName())),
+                      new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
+                      new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
                     )
                   );
                 } else {
                   list.add(new Lte.TableRow(
-                      (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle")),
-                      Html.a(getUrl(project, child), null, null, child.getSimpleName()),
-                      Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge())
+                    new Lte.TableValue(null,  (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
+                    new Lte.TableValue(null, Html.a(getUrl(project, child), null, null, child.getSimpleName())),
+                    new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
+                    new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
                     )
                   );
                 }

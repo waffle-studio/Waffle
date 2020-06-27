@@ -20,6 +20,7 @@ public class RunNode extends DirectoryBaseData {
   public static final String KEY_PROPERTY = "property";
   public static final String KEY_RUN = "run";
   public static final String KEY_STATE = "state";
+  public static final String KEY_NOTE_TXT = "note.txt";
   Project project;
 
   public RunNode() {
@@ -184,6 +185,15 @@ public class RunNode extends DirectoryBaseData {
       name = getSimpleName();
     }
     return name;
+  }
+
+  public void setNote(String text) {
+    createNewFile(KEY_NOTE_TXT);
+    updateFileContents(KEY_NOTE_TXT, text);
+  }
+
+  public String getNote() {
+    return getFileContents(KEY_NOTE_TXT);
   }
 
   protected void propagateState(State prev, State next) {

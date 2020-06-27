@@ -13,11 +13,13 @@ public interface DataDirectory {
     if (! path.isAbsolute()) {
       path = getDirectoryPath().resolve(path);
     }
-    try {
-      Files.createDirectories(getDirectoryPath());
-      path.toFile().createNewFile();
-    } catch (IOException e) {
-      e.printStackTrace();
+    if (! Files.exists(path)) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+        path.toFile().createNewFile();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 
