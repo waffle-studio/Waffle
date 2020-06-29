@@ -1,6 +1,8 @@
 package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
 import java.nio.file.Path;
@@ -19,7 +21,9 @@ public class Remote {
     String content = "";
     try {
       content =  submitter.getFileContents(run, path);
-    } catch (Exception | Error e) {}
+    } catch (Exception | Error e) {
+      WarnLogMessage.issue(run, e);
+    }
     return content;
   }
 
@@ -27,6 +31,8 @@ public class Remote {
     try {
       Path local = run.getWorkPath().resolve(path);
       submitter.transferFile(Paths.get(submitter.getWorkDirectory(run)).resolve(path).toString(), local);
-    } catch (Exception | Error e) {}
+    } catch (FailedToTransferFileException e) {
+      WarnLogMessage.issue(run, e);
+    }
   }
 }

@@ -1,8 +1,10 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.LogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -27,17 +29,17 @@ abstract public class AbstractSubmitter {
   abstract public AbstractSubmitter connect(boolean retry);
   abstract public String getRunDirectory(SimulatorRun run);
   abstract public String getWorkDirectory(SimulatorRun run);
-  abstract String getSimulatorBinDirectory(SimulatorRun run);
-  abstract void prepareSubmission(SimulatorRun run);
+  abstract String getSimulatorBinDirectory(Job job);
+  abstract void prepareSubmission(Job job);
   abstract String exec(String command);
   abstract boolean exists(String path);
-  abstract void postProcess(SimulatorRun run);
+  abstract void postProcess(Job job);
   abstract public void close();
-  abstract public void putText(SimulatorRun run, String path, String text);
+  abstract public void putText(Job job, String path, String text);
   abstract public String getFileContents(SimulatorRun run, String path);
   abstract public JSONObject getDefaultParameters(Host host);
-  abstract public void transferFile(Path localPath, String remotePath);
-  abstract public void transferFile(String remotePath, Path localPath);
+  abstract public void transferFile(Path localPath, String remotePath) throws FailedToTransferFileException;
+  abstract public void transferFile(String remotePath, Path localPath) throws FailedToTransferFileException;
 
   public AbstractSubmitter connect() {
     return connect(true);
@@ -78,8 +80,8 @@ abstract public class AbstractSubmitter {
 
     run.getSimulator().updateVersionId();
 
-    putText(run, BATCH_FILE, makeBatchFileText(run));
-    putText(run, EXIT_STATUS_FILE, "-2");
+    putText(job, BATCH_FILE, makeBatchFileText(job));
+    putText(job, EXIT_STATUS_FILE, "-2");
 
     try {
       for (String extractorName : run.getSimulator().getExtractorNameList()) {
@@ -87,35 +89,40 @@ abstract public class AbstractSubmitter {
       }
     } catch (Exception e) {
       WarnLogMessage.issue(e);
-      job.getRun().setState(State.Excepted);
+      job.setState(State.Excepted);
       return;
     }
-    putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
+    putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    if (! exists(Paths.get(getSimulatorBinDirectory(run)).toAbsolutePath().toString())) {
+    if (! exists(Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString())) {
       Path binPath = run.getSimulator().getBinDirectory().toAbsolutePath();
-      transferFile(binPath, Paths.get(getSimulatorBinDirectory(run)).toAbsolutePath().toString());
+      try {
+        transferFile(binPath, Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString());
+      } catch (FailedToTransferFileException e) {
+        WarnLogMessage.issue(e);
+      }
     }
 
-    prepareSubmission(run);
+    prepareSubmission(job);
   }
 
-  String makeBatchFileText(SimulatorRun run) {
+  String makeBatchFileText(Job job) {
+    SimulatorRun run = job.getRun();
     JSONArray localSharedList = run.getLocalSharedList();
 
     String text = "#!/bin/sh\n" +
       "\n" +
-      "export WAFFLE_REMOTE='" + getSimulatorBinDirectory(run) + "'\n" +
+      "export WAFFLE_REMOTE='" + getSimulatorBinDirectory(job) + "'\n" +
       "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
       "mkdir -p " + getWorkDirectory(run) +"\n" +
       "cd " + getWorkDirectory(run) + "\n" +
       "export WAFFLE_WORKING_DIR=`pwd`\n" +
-      "cd '" + getSimulatorBinDirectory(run) + "'\n" +
+      "cd '" + getSimulatorBinDirectory(job) + "'\n" +
       "chmod a+x '" + run.getSimulator().getSimulationCommand() + "' >/dev/null 2>&1\n" +
       "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
       "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
-      "export WAFFLE_LOCAL_SHARED=\"" + run.getHost().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getId() + "\"\n" +
+      "export WAFFLE_LOCAL_SHARED=\"" + job.getHost().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getId() + "\"\n" +
       "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
       "cd \"${WAFFLE_WORKING_DIR}\"\n";
 
@@ -124,7 +131,7 @@ abstract public class AbstractSubmitter {
       text += makeLocalSharingPreCommandText(a.getString(0), a.getString(1));
     }
 
-    text += makeEnvironmentCommandText(run);
+    text += makeEnvironmentCommandText(job);
 
     text += "\n" + run.getSimulator().getSimulationCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
       "EXIT_STATUS=$?\n";
@@ -149,20 +156,20 @@ abstract public class AbstractSubmitter {
     return "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi\n";
   }
 
-  String makeArgumentFileText(SimulatorRun run) {
+  String makeArgumentFileText(Job job) {
     String text = "";
-    for (Object o : run.getArguments()) {
+    for (Object o : job.getRun().getArguments()) {
       text += o.toString() + "\n";
     }
     return text;
   }
 
-  String makeEnvironmentCommandText(SimulatorRun run) {
+  String makeEnvironmentCommandText(Job job) {
     String text = "";
-    for (Map.Entry<String, Object> entry : run.getHost().getEnvironments().toMap().entrySet()) {
+    for (Map.Entry<String, Object> entry : job.getHost().getEnvironments().toMap().entrySet()) {
       text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
     }
-    for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
+    for (Map.Entry<String, Object> entry : job.getRun().getEnvironments().toMap().entrySet()) {
       text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
     }
     return text;
@@ -197,8 +204,8 @@ abstract public class AbstractSubmitter {
       JSONObject object = new JSONObject(json);
       String jobId = object.getString("job_id");
       job.setJobId(jobId);
-      job.getRun().setState(State.Submitted);
-      InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") was submitted");
+      job.setState(State.Submitted);
+      InfoLogMessage.issue(job.getRun(), "was submitted");
     } catch (Exception e) {
       e.printStackTrace();
       System.out.println(json);
@@ -206,18 +213,18 @@ abstract public class AbstractSubmitter {
   }
 
   void processXstat(Job job, String json) {
-    InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") will be checked");
+    InfoLogMessage.issue(job.getRun(), "will be checked");
     JSONObject object = new JSONObject(json);
     try {
       String status = object.getString("status");
       switch (status) {
         case "running" :
-          job.getRun().setState(State.Running);
+          job.setState(State.Running);
           break;
         case "finished" :
           int exitStatus = -1;
           try {
-            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()) + (job.getRun().getHost().isLocal() ? File.separator : "/") + EXIT_STATUS_FILE).trim());
+            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()) + (job.getHost().isLocal() ? File.separator : "/") + EXIT_STATUS_FILE).trim());
           } catch (Exception e) {
             job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
@@ -229,6 +236,7 @@ abstract public class AbstractSubmitter {
             //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
+
           try {
             transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
           } catch (Exception | Error e) {
@@ -237,7 +245,7 @@ abstract public class AbstractSubmitter {
           }
 
           if (exitStatus == 0) {
-            InfoLogMessage.issue("Run(" + job.getRun().getShortId() + ") results will be collected");
+            InfoLogMessage.issue(job.getRun(), "results will be collected");
 
             boolean isNoException = true;
             for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
@@ -245,23 +253,23 @@ abstract public class AbstractSubmitter {
                 new RubyResultCollector().collect(this, job.getRun(), collectorName);
               } catch (Exception | Error e) {
                 isNoException = false;
-                job.getRun().setState(State.Excepted);
+                job.setState(State.Excepted);
                 job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
                 WarnLogMessage.issue(e);
               }
             }
 
             if (isNoException) {
-              job.getRun().setState(State.Finished);
+              job.setState(State.Finished);
             }
           } else {
-            job.getRun().setState(State.Failed);
+            job.setState(State.Failed);
           }
 
           job.getRun().setExitStatus(exitStatus);
           job.remove();
 
-          postProcess(job.getRun());
+          postProcess(job);
           break;
       }
     } catch (Exception e) {
@@ -271,12 +279,12 @@ abstract public class AbstractSubmitter {
   }
 
   void processXdel(Job job, String json) {
-    job.getRun().setState(State.Canceled);
+    job.setState(State.Canceled);
     job.remove();
   }
 
   String getContentsPath(SimulatorRun run, String path) {
-    String separator = (run.getHost().isLocal() ? File.separator : "/");
+    String separator = (run.getActualHost().isLocal() ? File.separator : "/");
     if (path.indexOf(separator) == 0) {
       return path;
     }
@@ -320,30 +328,42 @@ abstract public class AbstractSubmitter {
 
     for (Job job : jobList) {
       SimulatorRun run = job.getRun();
-      switch (run.getState()) {
-        case Created:
-          if (queuedJobList.size() < maximumNumberOfJobs) {
-            queuedJobList.add(job);
-          }
-          break;
-        case Submitted:
-        case Running:
-          State state = update(job);
-          if (!(State.Finished.equals(state)
-            || State.Failed.equals(state)
-            || State.Excepted.equals(state)
-            || State.Canceled.equals(state))) {
-            submittedCount++;
-          }
-          break;
-        case Finished:
-        case Failed:
-        case Excepted:
-        case Canceled:
-          job.remove();
-          break;
-        case Cancel:
-          cancel(job);
+
+      if (run != null) {
+        switch (run.getState()) {
+          case Created:
+            if (queuedJobList.size() < maximumNumberOfJobs) {
+              queuedJobList.add(job);
+            }
+            break;
+          case Submitted:
+          case Running:
+            State state = update(job);
+            if (!(State.Finished.equals(state)
+              || State.Failed.equals(state)
+              || State.Excepted.equals(state)
+              || State.Canceled.equals(state))) {
+              submittedCount++;
+            }
+            break;
+          case Cancel:
+            cancel(job);
+            break;
+          case Finished:
+          case Failed:
+          case Excepted:
+          case Canceled:
+            job.remove();
+        }
+      } else {
+        cancel(job);
+        job.remove();
+        WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
+      }
+
+      //TODO: do refactoring
+      if (Main.hibernateFlag) {
+        break;
       }
     }
 

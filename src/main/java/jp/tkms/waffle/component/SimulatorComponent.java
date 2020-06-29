@@ -286,7 +286,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
                 list.add(new Lte.TableRow(
-                  Html.a(RunComponent.getUrl(project, latestRun), latestRun.getShortId()),
+                  Html.a(RunComponent.getUrl(project, latestRun.getUuid()), latestRun.getShortId()),
                   (latestRun.getHost() == null ? "NotFound" : latestRun.getHost().getName()),
                   Html.spanWithId(latestRun.getId() + "-badge", latestRun.getState().getStatusBadge())
                 ));
@@ -317,7 +317,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   void runSimulator() {
     SimulatorRun run = simulator.runTest(Host.find(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
-    response.redirect(RunComponent.getUrl(project, run));
+    response.redirect(RunComponent.getUrl(project, run.getUuid()));
   }
 
   void updateSimulator() {

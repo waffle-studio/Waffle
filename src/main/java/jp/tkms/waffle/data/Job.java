@@ -18,12 +18,14 @@ public class Job extends Data {
   private static final String KEY_PROJECT = "project";
   private static final String KEY_HOST = "host";
   private static final String KEY_JOB_ID = "job_id";
+  private static final String KEY_STATE = "state";
   private static final String KEY_ERROR_COUNT = "error_count";
 
   private Project project = null;
   private Host host = null;
   private SimulatorRun run = null;
   private String jobId = null;
+  private State state = null;
   private Integer errorCount = null;
 
   public Job(UUID id) {
@@ -128,7 +130,8 @@ public class Job extends Data {
           new Sql.Insert(db, TABLE_NAME,
             Sql.Value.equal(KEY_ID, run.getId()),
             Sql.Value.equal(KEY_PROJECT, run.getProject().getId()),
-            Sql.Value.equal(KEY_HOST, hostId)
+            Sql.Value.equal(KEY_HOST, hostId),
+            Sql.Value.equal(KEY_STATE, run.getState().ordinal())
             ).execute();
         }
       }
@@ -138,7 +141,7 @@ public class Job extends Data {
 
   public void cancel() {
     if (getRun().isRunning()) {
-      getRun().setState(State.Cancel);
+      setState(State.Cancel);
     }
   }
 
@@ -154,19 +157,16 @@ public class Job extends Data {
   }
 
   public void setJobId(String jobId) {
-    if (
-      handleDatabase(new Job(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_JOB_ID + "=?" + " where id=?;");
-          statement.setString(1, jobId);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      })
-    ) {
-      this.jobId = jobId;
+    setToDB(KEY_JOB_ID, jobId);
+    this.jobId = jobId;
+    getRun().setJobId(jobId);
+  }
+
+  public void setState(State state) {
+    setToDB(KEY_STATE, state.ordinal());
+    this.state = state;
+    if (getRun() != null) {
+      getRun().setState(state);
     }
   }
 
@@ -219,6 +219,13 @@ public class Job extends Data {
     return jobId;
   }
 
+  public State getState() {
+    if (state == null) {
+      state = State.valueOf(getIntFromDB(KEY_STATE));
+    }
+    return state;
+  }
+
   public int getErrorCount() {
     if (errorCount == null) {
       errorCount = Integer.valueOf(getStringFromDB(KEY_ERROR_COUNT));
@@ -243,10 +250,16 @@ public class Job extends Data {
               db.execute("create table " + TABLE_NAME + "(id," +
                 KEY_PROJECT + "," +
                 KEY_HOST + "," +
-                KEY_JOB_ID + " default 0," +
+                KEY_JOB_ID + " default ''," +
                 KEY_ERROR_COUNT + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
+            }
+          },
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              new Sql.AlterTable(db, TABLE_NAME, Sql.AlterTable.withDefault(KEY_STATE, String.valueOf(State.Created.ordinal()))).execute();
             }
           }
         ));

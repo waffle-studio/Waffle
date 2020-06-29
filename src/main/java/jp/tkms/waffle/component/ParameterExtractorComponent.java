@@ -165,8 +165,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
           Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,
-              Lte.formInputGroup("text", "name", "Name", "Name", "", errors),
-              Lte.formDataEditorGroup("extract_script", "Script", "ruby", ResourceFile.getContents("/default_parameter_extractor.rb"), errors)
+              Lte.formInputGroup("text", "name", "Name", "Name", "", errors)
             )
             , Lte.formSubmitButton("success", "Add")
           )
@@ -180,9 +179,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
   public void addParameterExtractor() {
     String name = request.queryParams("name");
-    String script = request.queryParams("extract_script");
     simulator.createExtractor(name);
-    simulator.updateExtractorScript(name, script);
     response.redirect(getUrl(simulator, name));
   }
 

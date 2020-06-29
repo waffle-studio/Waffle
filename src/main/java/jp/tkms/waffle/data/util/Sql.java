@@ -298,6 +298,28 @@ public class Sql {
     }
   }
 
+  public static class AlterTable extends Sql {
+    String sql = "";
+
+    public AlterTable(Database database, String table, String key) {
+      super(database);
+      sql = "alter table " + table + " add column "  + key + "";
+    }
+
+    @Override
+    public String toString() {
+      return sql + ";";
+    }
+
+    public static String withDefault(String key, String defaultValue) {
+      return key + " default " + defaultValue;
+    }
+
+    public static String timestamp(String key) {
+      return key + " timestamp default (DATETIME('now','localtime'))";
+    }
+  }
+
   private static String listByComma(String... values) {
     String result = "";
     for (int i = 0; i < values.length; i++) {

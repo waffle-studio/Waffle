@@ -170,7 +170,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (SimulatorRun run : SimulatorRun.getList(project, conductorRun)) {
                 list.add(new Lte.TableRow(
-                  Html.a(RunComponent.getUrl(project, run), run.getShortId()),
+                  Html.a(RunComponent.getUrl(project, run.getUuid()), run.getShortId()),
                   run.getName(),
                   run.getSimulator().getName(),
                   (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())),

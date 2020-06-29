@@ -165,8 +165,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
           Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,
-              Lte.formInputGroup("text", "name", "Name", "Name", "", errors),
-              Lte.formDataEditorGroup("collect_script", "Script", "ruby", ResourceFile.getContents("/default_result_collector.rb"), errors)
+              Lte.formInputGroup("text", "name", "Name", "Name", "", errors)
             )
             , Lte.formSubmitButton("success", "Add")
           )
@@ -180,9 +179,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
   public void addResultCollector() {
     String name = request.queryParams("name");
-    String script = request.queryParams("collect_script");
     simulator.createCollector(name);
-    simulator.updateCollectorScript(name, script);
     response.redirect(getUrl(simulator, name));
   }
 

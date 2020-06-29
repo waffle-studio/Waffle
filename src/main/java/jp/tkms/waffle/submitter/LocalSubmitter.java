@@ -1,16 +1,14 @@
 package jp.tkms.waffle.submitter;
 
-import com.jcraft.jsch.JSchException;
-import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,7 +21,7 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   @Override
   public String getRunDirectory(SimulatorRun run) {
-    Host host = run.getHost();
+    Host host = run.getActualHost();
     String pathString = host.getWorkBaseDirectory() + File.separator
       + RUN_DIR + File.separator + run.getId();
 
@@ -42,15 +40,15 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getSimulatorBinDirectory(SimulatorRun run) {
+  String getSimulatorBinDirectory(Job job) {
     //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = run.getHost().getWorkBaseDirectory() + File.separator + SIMULATOR_DIR + File.separator + run.getSimulator().getVersionId();
+    String pathString = job.getHost().getWorkBaseDirectory() + File.separator + SIMULATOR_DIR + File.separator + job.getRun().getSimulator().getVersionId();
 
     return toAbsoluteHomePath(pathString);
   }
 
   @Override
-  void prepareSubmission(SimulatorRun run) {
+  void prepareSubmission(Job job) {
     /*
      * preparing a host's simulator working directory is not needed
      *
@@ -61,7 +59,7 @@ public class LocalSubmitter extends AbstractSubmitter {
       e.printStackTrace();
     }
      */
-    InfoLogMessage.issue("Run(" + run.getShortId() + ") was prepared");
+    InfoLogMessage.issue(job.getRun(), "was prepared");
   }
 
   @Override
@@ -94,7 +92,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void postProcess(SimulatorRun run) {
+  void postProcess(Job job) {
     try {
       //deleteDirectory(getRunDirectory(run));
     } catch (Exception e) {
@@ -108,10 +106,10 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(SimulatorRun run, String path, String text) {
+  public void putText(Job job, String path, String text) {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getRunDirectory(run) + File.separator + path)
+        new FileWriter(getRunDirectory(job.getRun()) + File.separator + path)
       ));
       pw.println(text);
       pw.close();
@@ -131,7 +129,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void transferFile(Path localPath, String remotePath) {
+  public void transferFile(Path localPath, String remotePath) throws FailedToTransferFileException {
     try {
       Path remote = Paths.get(remotePath);
       Files.createDirectories(remote.getParent());
@@ -141,12 +139,12 @@ public class LocalSubmitter extends AbstractSubmitter {
         Files.copy(localPath, remote);
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new FailedToTransferFileException(e);
     }
   }
 
   @Override
-  public void transferFile(String remotePath, Path localPath) {
+  public void transferFile(String remotePath, Path localPath) throws FailedToTransferFileException {
     try {
       Path remote = Paths.get(remotePath);
       Files.createDirectories(localPath.getParent());
@@ -156,26 +154,24 @@ public class LocalSubmitter extends AbstractSubmitter {
         Files.copy(remote, localPath);
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new FailedToTransferFileException(e);
     }
   }
 
-  void transferDirectory(File src, File dest) {
-    try {
-      if (src.isDirectory()) {
-        if (!dest.exists()) {
-          dest.mkdir();
-        }
-        String files[]= src.list();
-        for (String file : files) {
-          File srcFile = new File(src, file);
-          File destFile = new File(dest, file);
-          transferDirectory(srcFile, destFile);
-        }
-      }else{
-        Files.copy(src.toPath(), dest.toPath());
+  void transferDirectory(File src, File dest) throws IOException {
+    if (src.isDirectory()) {
+      if (!dest.exists()) {
+        dest.mkdir();
       }
-    } catch (Exception e) {}
+      String files[] = src.list();
+      for (String file : files) {
+        File srcFile = new File(src, file);
+        File destFile = new File(dest, file);
+        transferDirectory(srcFile, destFile);
+      }
+    }else{
+      Files.copy(src.toPath(), dest.toPath());
+    }
   }
 
   public static void deleteDirectory(final String dirPath) throws Exception {

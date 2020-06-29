@@ -41,6 +41,10 @@ public class RunNode extends DirectoryBaseData {
     return getDirectoryPath(getId()).toAbsolutePath();
   }
 
+  public Project getProject() {
+    return project;
+  }
+
   public String getSimpleName() {
     return getDirectoryPath().getFileName().toString();
   }
@@ -66,7 +70,11 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public static RunNode getInstance(Project project, String id) {
-    return getInstanceByName(project, getDirectoryPath(id).toAbsolutePath());
+    Path path = getDirectoryPath(id);
+    if (path == null) {
+      return null;
+    }
+    return getInstanceByName(project, path.toAbsolutePath());
   }
 
   public ArrayList<RunNode> getList() {

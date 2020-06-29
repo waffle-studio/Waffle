@@ -56,22 +56,23 @@ public class SshSession {
 
   public void connect(boolean retry) throws JSchException {
     boolean connected = false;
+    int waitTime = 10;
     do {
       try {
         session.connect();
         connected = true;
       } catch (JSchException e) {
-        System.err.println(e.getMessage());
         if (!retry) {
+          WarnLogMessage.issue(e.getMessage());
           throw e;
         } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
-          int waitTime = 10 + (int) (Math.random() * 10);
-          System.err.println("Retry connection after " + waitTime + " sec.");
+          WarnLogMessage.issue(e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
           try {
             Thread.sleep(waitTime * 1000);
           } catch (InterruptedException ex) {
             ex.printStackTrace();
           }
+          waitTime += 10;
         }
       }
     } while (!connected);
@@ -105,7 +106,7 @@ public class SshSession {
         if (e.getMessage().equals("channel is not opened.")) {
           failed = true;
           channelSemaphore.release();
-          System.err.println("Retry to open channel after 1 sec.");
+          WarnLogMessage.issue("Retry to open channel after 1 sec.");
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
@@ -158,7 +159,7 @@ public class SshSession {
       } catch (JSchException e) {
         if (e.getMessage().equals("channel is not opened.")) {
           channelSemaphore.release();
-          System.err.println("Retry to open channel after 1 sec.");
+          WarnLogMessage.issue("Retry to open channel after 1 sec.");
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
@@ -201,7 +202,7 @@ public class SshSession {
       } catch (JSchException e) {
         if (e.getMessage().equals("channel is not opened.")) {
           channelSemaphore.release();
-          System.err.println("Retry to open channel after 1 sec.");
+          WarnLogMessage.issue("Retry to open channel after 1 sec.");
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
@@ -246,7 +247,7 @@ public class SshSession {
       } catch (JSchException e) {
         if (e.getMessage().equals("channel is not opened.")) {
           channelSemaphore.release();
-          System.err.println("Retry to open channel after 1 sec.");
+          WarnLogMessage.issue("Retry to open channel after 1 sec.");
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {

@@ -220,6 +220,17 @@ abstract public class Data {
     return null;
   }
 
+  protected String getStringFromProperty(String key, String defaultValue) {
+    String value = getStringFromProperty(key);
+    if (value == null) {
+      value = defaultValue;
+      if (value != null) {
+        setToProperty(key, defaultValue);
+      }
+    }
+    return value;
+  }
+
   protected Integer getIntFromProperty(String key) {
     try {
       return getPropertyStore().getInt(key);
@@ -227,11 +238,13 @@ abstract public class Data {
     return null;
   }
 
-  protected Integer getIntFromProperty(String key, int defaultValue) {
+  protected Integer getIntFromProperty(String key, Integer defaultValue) {
     Integer value = getIntFromProperty(key);
     if (value == null) {
       value = defaultValue;
-      setToProperty(key, defaultValue);
+      if (value != null) {
+        setToProperty(key, defaultValue);
+      }
     }
     return value;
   }
@@ -254,7 +267,9 @@ abstract public class Data {
     JSONObject value = getJSONObjectFromProperty(key);
     if (value == null) {
       value = defaultValue;
-      setToProperty(key, defaultValue);
+      if (value != null) {
+        setToProperty(key, defaultValue);
+      }
     }
     return value;
   }

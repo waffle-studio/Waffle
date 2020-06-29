@@ -17,7 +17,6 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;
-  private String requestedId;
   public JobsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -95,16 +94,16 @@ public class JobsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (Job job : Job.getList()) {
                 list.add(new Lte.TableRow(
-                  Html.a(RunComponent.getUrl(job.getProject(), job.getRun()), job.getShortId()),
+                  Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
                   Html.a(
                     ProjectComponent.getUrl(job.getProject()),
                     job.getProject().getName()
                   ),
                   job.getHost().getName(),
                   job.getJobId(),
-                  Html.spanWithId(job.getRun().getId() + "-badge", job.getRun().getState().getStatusBadge()),
+                  Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
                   Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
-                  ).setAttributes(new Html.Attributes(Html.value("id", job.getRun().getId() + "-jobrow")))
+                  ).setAttributes(new Html.Attributes(Html.value("id", job.getId() + "-jobrow")))
                 );
               }
               return list;

@@ -328,14 +328,16 @@ public class Simulator extends ProjectData implements DataDirectory {
       }
     }
 
-    try {
-      FileWriter filewriter = new FileWriter(path.toFile());
-      filewriter.write(new RubyParameterExtractor().contentsTemplate());
-      filewriter.close();
+    if (! Files.exists(path)) {
+      try {
+        FileWriter filewriter = new FileWriter(path.toFile());
+        filewriter.write(new RubyParameterExtractor().contentsTemplate());
+        filewriter.close();
 
-      putToArrayOfProperty(KEY_EXTRACTOR, name);
-    } catch (IOException e) {
-      e.printStackTrace();
+        putToArrayOfProperty(KEY_EXTRACTOR, name);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 
@@ -415,14 +417,16 @@ public class Simulator extends ProjectData implements DataDirectory {
       }
     }
 
-    try {
-      FileWriter filewriter = new FileWriter(path.toFile());
-      filewriter.write(new RubyResultCollector().contentsTemplate());
-      filewriter.close();
+    if (! Files.exists(path)) {
+      try {
+        FileWriter filewriter = new FileWriter(path.toFile());
+        filewriter.write(new RubyResultCollector().contentsTemplate());
+        filewriter.close();
 
-      putToArrayOfProperty(KEY_COLLECTOR, name);
-    } catch (IOException e) {
-      e.printStackTrace();
+        putToArrayOfProperty(KEY_COLLECTOR, name);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 

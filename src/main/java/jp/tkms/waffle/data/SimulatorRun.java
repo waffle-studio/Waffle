@@ -33,9 +33,11 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_FINISHED_AT = "finished_at";
   private static final String KEY_RUN = "run";
   private static final String KEY_ENTRY = "entry";
+  private static final String KEY_JOB_ID = "job_id";
   private static final String KEY_LOCAL_SHARED = "local_shared";
   public static final String WORKING_DIR = "WORK";
   public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
+  private static final String KEY_ACTUAL_HOST = "actual_host";
 
   protected SimulatorRun(Project project) {
     super(project);
@@ -81,15 +83,20 @@ public class SimulatorRun extends AbstractRun {
           KEY_RUNNODE
         ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
         while (resultSet.next()) {
-          run[0] = new SimulatorRun(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            resultSet.getString(KEY_SIMULATOR),
-            resultSet.getString(KEY_HOST),
-            State.valueOf(resultSet.getInt(KEY_STATE)),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
-          );
+          RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
+          if (runNode == null) {
+            new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
+          } else {
+            run[0] = new SimulatorRun(
+              project,
+              UUID.fromString(resultSet.getString(KEY_ID)),
+              resultSet.getString(KEY_NAME),
+              resultSet.getString(KEY_SIMULATOR),
+              resultSet.getString(KEY_HOST),
+              State.valueOf(resultSet.getInt(KEY_STATE)),
+              runNode
+            );
+          }
         }
       }
     });
@@ -99,6 +106,10 @@ public class SimulatorRun extends AbstractRun {
 
   public Host getHost() {
     return Host.getInstance(host);
+  }
+
+  public Host getActualHost() {
+    return Host.getInstanceByName(getStringFromProperty(KEY_ACTUAL_HOST, getHost().getName()));
   }
 
   public Simulator getSimulator() {
@@ -140,6 +151,26 @@ public class SimulatorRun extends AbstractRun {
     });
 
     return list;
+  }
+
+  public static int getNumberOfRunning(Project project, ConductorRun parent) {
+    final int[] count = new int[1];
+
+    handleDatabase(new SimulatorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, "count(*) as count")
+          .where(
+            Sql.Value.and(
+              Sql.Value.equal(KEY_PARENT, parent.getId()), Sql.Value.lessThan(KEY_STATE, State.Finished.ordinal())
+            )).executeQuery();
+        while (resultSet.next()) {
+          count[0] = resultSet.getInt("count");
+        }
+      }
+    });
+
+    return count[0];
   }
 
   public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
@@ -270,12 +301,19 @@ public class SimulatorRun extends AbstractRun {
     this.exitStatus = exitStatus;
   }
 
-
   public int getExitStatus() {
     if (exitStatus == null) {
       exitStatus = getIntFromProperty(KEY_EXIT_STATUS);
     }
     return exitStatus;
+  }
+
+  public void setJobId(String jobId) {
+    setToProperty(KEY_JOB_ID, jobId);
+  }
+
+  public String getJobId() {
+    return getStringFromProperty(KEY_JOB_ID, "");
   }
 
   public ArrayList<Object> getArguments() {

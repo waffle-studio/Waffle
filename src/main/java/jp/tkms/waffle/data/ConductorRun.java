@@ -60,12 +60,17 @@ public class ConductorRun extends AbstractRun {
       void handling(Database db) throws SQLException {
         ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE).where(Sql.Value.equal(KEY_NAME, name)).executeQuery();
         while (resultSet.next()) {
-          conductorRun[0] = new ConductorRun(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
-          );
+          RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
+          if (runNode == null) {
+            new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
+          } else {
+            conductorRun[0] = new ConductorRun(
+              project,
+              UUID.fromString(resultSet.getString(KEY_ID)),
+              resultSet.getString(KEY_NAME),
+              runNode
+            );
+          }
         }
       }
     });
@@ -243,8 +248,8 @@ public class ConductorRun extends AbstractRun {
     return getList(getProject(), this);
   }
 
-  public ArrayList<SimulatorRun> getChildSimulationRunList() {
-    return SimulatorRun.getList(getProject(), this);
+  public boolean hasRunningChildSimulationRun() {
+    return SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
   }
 
   public Path getLocation() {
@@ -264,10 +269,8 @@ public class ConductorRun extends AbstractRun {
 
   @Override
   public boolean isRunning() {
-    for (SimulatorRun run : getChildSimulationRunList()) {
-      if (run.isRunning()) {
-        return true;
-      }
+    if (hasRunningChildSimulationRun()) {
+      return true;
     }
 
     for (ConductorRun conductorRun : getChildConductorRunList()) {

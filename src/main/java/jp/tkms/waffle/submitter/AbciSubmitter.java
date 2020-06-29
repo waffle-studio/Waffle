@@ -3,13 +3,8 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
@@ -122,7 +117,7 @@ public class AbciSubmitter extends SshSubmitter {
       packWaitThread.resetWaitTime();
     }
 
-    job.getRun().setState(State.Queued);
+    job.setState(State.Queued);
     prepareJob(job);
 
     synchronized (objectLocker) {

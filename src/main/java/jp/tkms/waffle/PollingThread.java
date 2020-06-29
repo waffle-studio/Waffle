@@ -20,7 +20,7 @@ public class PollingThread extends Thread {
 
   @Override
   public void run() {
-    InfoLogMessage.issue("Submitter started");
+    InfoLogMessage.issue(host, "submitter started");
 
     do {
       try { sleep(host.getPollingInterval() * 1000); } catch (InterruptedException e) { e.printStackTrace(); }
@@ -31,7 +31,7 @@ public class PollingThread extends Thread {
       }
       submitter.pollingTask(host);
       submitter.close();
-      InfoLogMessage.issue("Host(" + host.getName() + ") was scanned");
+      InfoLogMessage.issue(host, "was scanned");
       host = Host.getInstance(host.getId());
       System.gc();
       if (Main.hibernateFlag) {
@@ -42,7 +42,7 @@ public class PollingThread extends Thread {
 
     threadMap.remove(host.getId());
 
-    InfoLogMessage.issue("Submitter closed");
+    InfoLogMessage.issue(host, "submitter closed");
   }
 
   synchronized public static void startup() {

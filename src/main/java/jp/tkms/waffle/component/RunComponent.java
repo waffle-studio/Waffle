@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 public class RunComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -36,8 +37,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, null, "recheck"), new RunComponent(Mode.ReCheck));
   }
 
-  public static String getUrl(Project project, SimulatorRun run) {
-    return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + run.getId());
+  public static String getUrl(Project project, UUID runId) {
+    return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + runId.toString());
   }
 
   public static String getUrl(Project project, SimulatorRun run, String mode) {
@@ -54,7 +55,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     switch (mode) {
       case ReCheck:
         run.recheck();
-        response.redirect(RunComponent.getUrl(project, run));
+        response.redirect(RunComponent.getUrl(project, run.getUuid()));
         return;
     }
 

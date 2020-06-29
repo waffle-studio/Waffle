@@ -1,10 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
-import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.SimulatorRun;
-import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.util.SshChannel;
@@ -92,7 +89,7 @@ public class SshSubmitter extends AbstractSubmitter {
 
   @Override
   public String getRunDirectory(SimulatorRun run) {
-    Host host = run.getHost();
+    Host host = run.getActualHost();
     String pathString = host.getWorkBaseDirectory() + '/' + RUN_DIR + '/' + run.getId();
 
     try {
@@ -110,17 +107,18 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getSimulatorBinDirectory(SimulatorRun run) {
+  String getSimulatorBinDirectory(Job job) {
     //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = run.getHost().getWorkBaseDirectory() + '/' + SIMULATOR_DIR + '/' + run.getSimulator().getVersionId();
+    String pathString = job.getHost().getWorkBaseDirectory() + '/' + SIMULATOR_DIR + '/' + job.getRun().getSimulator().getVersionId();
 
     return toAbsoluteHomePath(pathString);
   }
 
   @Override
-  void prepareSubmission(SimulatorRun run) {
+  void prepareSubmission(Job job) {
+    SimulatorRun run = job.getRun();
     try {
-      session.mkdir(getSimulatorBinDirectory(run), "/tmp");
+      session.mkdir(getSimulatorBinDirectory(job), "/tmp");
       if (true) {  // TODO: Check if the simulator has been updated
         Path work = run.getWorkPath();
         session.scp(work.toFile(), Paths.get(getRunDirectory(run)).resolve(work.getFileName()).toString(), "/tmp");
@@ -128,7 +126,7 @@ public class SshSubmitter extends AbstractSubmitter {
     } catch (JSchException e) {
       e.printStackTrace();
     }
-    InfoLogMessage.issue("Run(" + run.getShortId() + ") was prepared");
+    InfoLogMessage.issue(run, "was prepared");
   }
 
   @Override
@@ -157,7 +155,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  void postProcess(SimulatorRun run) {
+  void postProcess(Job job) {
     try {
       //session.rmdir(getRunDirectory(run), "/tmp");
     } catch (Exception e) {
@@ -172,9 +170,9 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(SimulatorRun run, String path, String text) {
+  public void putText(Job job, String path, String text) {
     try {
-      session.putText(text, path, getRunDirectory(run));
+      session.putText(text, path, getRunDirectory(job.getRun()));
     } catch (JSchException e) {
       e.printStackTrace();
     }

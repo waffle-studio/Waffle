@@ -33,6 +33,6 @@ public class LogUpdater extends AbstractUpdater {
   }
 
   public LogUpdater(Log log) {
-    super("'" + log.getLevel().name() + "'", "'" + log.getTimestamp() + "'", "'" + log.getMessage().replaceAll("'", "\\'") + "'");
+    super("'" + log.getLevel().name() + "'", "'" + log.getTimestamp() + "'", "'" + log.getMessage().replace("'", "\\'") + "'");
   }
 }

@@ -93,6 +93,11 @@ public class Lte {
     );
   }
 
+  public static String formTextAreaGroup(String name, String label, String contents, ArrayList<FormError> errors) {
+    return formTextAreaGroup(name, label, contents.split("\\n").length, contents, errors);
+  }
+
+
   public static String formDataEditorGroup(String name, String label, String type,
                                          String contents, ArrayList<FormError> errors) {
     String id = "input" + name;

@@ -13,6 +13,7 @@ import java.util.Collections;
 public class RunsComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Runs";
   private static final String ROOT_NAME = "run";
+  private static final String KEY_NOTE = "Note";
   private Mode mode;
 
   private Project project;
@@ -28,6 +29,8 @@ public class RunsComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new RunsComponent());
+    Spark.get(getUrl(null, null), new RunsComponent());
+    Spark.post(getUrl(null, null, Mode.UpdateNote), new RunsComponent(Mode.UpdateNote));
   }
 
   public static String getUrl(Project project) {
@@ -38,8 +41,8 @@ public class RunsComponent extends AbstractAccessControlledComponent {
     return "/runs/" + (project == null ? ":project/:id" : project.getId() + "/" + node.getId());
   }
 
-  public static String getUrl(Project project, RunNode node, String mode) {
-    return getUrl(project, node) + "/" + mode;
+  public static String getUrl(Project project, RunNode node, Mode mode) {
+    return getUrl(project, node) + "/" + mode.name();
   }
 
   @Override
@@ -53,14 +56,18 @@ public class RunsComponent extends AbstractAccessControlledComponent {
       runNode = RunNode.getInstance(project, requestedId);
     }
 
-    renderTrialsList();
+    if (mode.equals(Mode.UpdateNote)) {
+      updateNote();
+    } else {
+      renderRunsList();
+    }
   }
 
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
   }
 
-  private void renderTrialsList() {
+  private void renderRunsList() {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -126,16 +133,18 @@ public class RunsComponent extends AbstractAccessControlledComponent {
          */
 
         String note = runNode.getNote();
-        if (! "".equals(note)) {
-          contents += Lte.card(Html.fasIcon("sticky-note") + "Note",
-            Lte.cardToggleButton(false),
-            Lte.divRow(
-              Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, note)
+        contents +=
+          Html.form(getUrl( project, runNode, Mode.UpdateNote), Html.Method.Post,
+            Lte.card(Html.fasIcon("sticky-note") + "Note",
+              Lte.cardToggleButton("".equals(note)),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_NOTE, null, note, null)
+                )
               )
-            )
-            , null);
-        }
+              ,Lte.formSubmitButton("success", "Update")
+              , ("".equals(note) ? "collapsed-card" : null), null)
+          );
 
         contents += Lte.card(null, null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
@@ -156,7 +165,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
                 if (child instanceof SimulatorRunNode) {
                   list.add(new Lte.TableRow(
                       new Lte.TableValue(null, Html.fasIcon("circle")),
-                      new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, SimulatorRun.getInstance(project, child.getId())), null, null, child.getSimpleName())),
+                      new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, child.getUuid()), null, null, child.getSimpleName())),
                       new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
                       new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
                     )
@@ -213,5 +222,10 @@ public class RunsComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  public enum Mode {Default}
+  void updateNote() {
+    runNode.setNote(request.queryParamOrDefault(KEY_NOTE, ""));
+    response.redirect(getUrl(project, runNode));
+  }
+
+  public enum Mode {Default, UpdateNote}
 }

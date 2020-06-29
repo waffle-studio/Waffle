@@ -6,7 +6,6 @@ import jp.tkms.waffle.data.util.State;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
@@ -53,6 +52,10 @@ public class SimulatorRunNode extends RunNode {
 
   @Override
   public State getState() {
-    return SimulatorRun.getInstance(project, getId()).getState();
+    SimulatorRun run = SimulatorRun.getInstance(project, getId());
+    if (run == null) {
+      return State.None;
+    }
+    return run.getState();
   }
 }

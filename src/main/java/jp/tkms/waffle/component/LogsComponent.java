@@ -12,6 +12,11 @@ public class LogsComponent extends AbstractAccessControlledComponent {
   private final int logBundleSize = 50;
   private Mode mode;
 
+  private final String[][] quickLinkRegExps = {
+    {"^Host\\((.*)\\)", "<a href=\"/host/$1\">Host($1)</a>"},
+    {"^Run\\((.*)/(.*)\\)", "<a href=\"/run/$1/$2\">Run($2)</a>"}
+  };
+
   public LogsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -53,7 +58,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
       body += Html.element("tr", null,
         Html.element("td", null, log.getLevel().name() ),
         Html.element("td", null, log.getTimestamp() ),
-        Html.element("td", null, log.getMessage() )
+        Html.element("td", null, convertMessage(log.getMessage()) )
       );
     }
 
@@ -101,7 +106,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
                 list.add(new Lte.TableRow(
                   log.getLevel().name(),
                   log.getTimestamp(),
-                  log.getMessage()
+                  convertMessage(log.getMessage())
                   )
                 );
                 lastRowId[0] = log.getRowid();
@@ -113,22 +118,38 @@ public class LogsComponent extends AbstractAccessControlledComponent {
               Html.element("tr", null,
                 Html.element("td", null, "' + l + '"),
                 Html.element("td", null, "' + t + '"),
-                Html.element("td", null, "' + m + '")
+                Html.element("td", null, "' + m" + convertMessageJavascript() + " + '")
                 ).replaceAll("\n", "")
               + "'); };"
           )
           , null, null, "p-0")
-            + Html.javascript("var last = " + lastRowId[0] + ";"
-              + "var loadOldLog = function(){simpleget('" + getUrl(Mode.GetOld)
-              + "?from=' + last,function(res){document.getElementById('"
-              + table.id.toString() + "').insertAdjacentHTML('beforeend',res);});last-=" + logBundleSize
-              + ";if(last <= 0){document.getElementById('oldLogButton').style.display='none';}};"
+            + Html.javascript("var last_row_id = " + lastRowId[0] + ";var loading_old_log_flag=false;"
+            + "var loadOldLog = function(){if(loading_old_log_flag || last_row_id <= 0){return;}loading_old_log_flag=true;simpleget('" + getUrl(Mode.GetOld)
+            + "?from=' + last_row_id,function(res,xhr){if(xhr.status===200){document.getElementById('"
+            + table.id.toString() + "').insertAdjacentHTML('beforeend',res);last_row_id-=" + logBundleSize
+            + ";}if(last_row_id <= 0){document.getElementById('oldLogButton').style.display='none';}loading_old_log_flag=false;});};"
+            + "$(window).on(\"scroll\", function() {if($(window).scrollTop() + window.innerHeight > $(\"#oldLogButton\").offset().top){ loadOldLog(); }});"
           )
             + Html.div("text-center",
             Html.a("javascript:loadOldLog()", null, new Html.Attributes(Html.value("id", "oldLogButton")),
               Html.fasIcon("plus-circle")));
       }
     }.render(this);
+  }
+
+  private String convertMessage(String message) {
+    for (String[] regExp : quickLinkRegExps) {
+      message = message.replaceFirst(regExp[0], regExp[1]);
+    }
+    return message;
+  }
+
+  private String convertMessageJavascript() {
+    String javascript = "";
+    for (String[] regExp : quickLinkRegExps) {
+      javascript += ".replace(/" + regExp[0].replace("/", "\\/") + "/, \"" + regExp[1].replace("\"", "\\\"") + "\")";
+    }
+    return javascript;
   }
 
   public enum Mode {Default, GetOld}

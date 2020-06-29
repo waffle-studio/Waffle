@@ -106,6 +106,10 @@ public class Main {
   }
 
   public static void hibernate() {
+    if (hibernateFlag) {
+      return;
+    }
+
     new Thread(){
       @Override
       public void run() {
