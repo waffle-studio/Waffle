@@ -136,7 +136,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors),
-                Lte.formSelectGroup("type", "type", Conductor.getConductorNameList(), errors)
+                Lte.formSelectGroup("type", "type", ActorGroup.getConductorNameList(), errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -169,7 +169,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );
 
-        ArrayList<Conductor> conductorList = Conductor.getList(project);
+        ArrayList<ActorGroup> conductorList = ActorGroup.getList(project);
         if (conductorList.size() <= 0) {
           content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
@@ -179,8 +179,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             null
           );
         } else {
-          ArrayList<ConductorRun> notFinishedList = new ArrayList<>();
-          for (ConductorRun notFinished : ConductorRun.getNotFinishedList(project)) {
+          ArrayList<Actor> notFinishedList = new ArrayList<>();
+          for (Actor notFinished : Actor.getNotFinishedList(project)) {
             if (!notFinished.isRoot()) {
               if (notFinished.getParent() != null && notFinished.getParent().isRoot()) {
                 notFinishedList.add(notFinished);
@@ -215,9 +215,9 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
-                for (Conductor conductor : Conductor.getList(project)) {
+                for (ActorGroup conductor : ActorGroup.getList(project)) {
                   int runningCount = 0;
-                  for (ConductorRun notFinished : notFinishedList) {
+                  for (Actor notFinished : notFinishedList) {
                     if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(conductor.getId())) {
                       runningCount += 1;
                     }
@@ -231,7 +231,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                     new Lte.TableValue("text-align:right;",
                       Html.span(null, null,
                         Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
-                        Html.a(ConductorComponent.getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
+                        Html.a(ConductorComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
                           Html.span("right badge badge-secondary", null, "run")
                         ),
                         Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
@@ -258,7 +258,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     String name = request.queryParams("name");
     String type = request.queryParams("type");
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    Conductor conductor = Conductor.create(project, name);
+    ActorGroup conductor = ActorGroup.create(project, name);
     response.redirect(ConductorComponent.getUrl(conductor));
   }
 }

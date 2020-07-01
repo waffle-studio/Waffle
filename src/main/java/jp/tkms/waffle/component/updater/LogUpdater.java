@@ -26,7 +26,10 @@ public class LogUpdater extends AbstractUpdater {
 
   @Override
   public String scriptBody() {
-    return "try { insert_new_log(level,timestamp,message); } catch(e) {}" + "info_queue.push(message);";
+    return
+      "try { insert_new_log(level,timestamp,message); } catch(e) {}"
+        + "try { if (level === 'Warn' || level === 'Error') { toastr.error('[' + level + '] ' + message);} } catch(e) {}"
+        + "info_queue.push(message);";
   }
 
   public LogUpdater() {

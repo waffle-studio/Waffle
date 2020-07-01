@@ -1,20 +1,16 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.conductor.TestConductor;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,32 +19,31 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-public class Conductor extends ProjectData implements DataDirectory {
+public class ActorGroup extends ProjectData implements DataDirectory {
   protected static final String TABLE_NAME = "conductor";
   protected static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
   private static final String KEY_SCRIPT = "script_file";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
-  private static final String KEY_LISTENER = "listener";
-  private static final String KEY_EXT_JSON = ".json";
-  private static final String KEY_EXT_RUBY = ".rb";
+  private static final String KEY_ACTOR = "actor";
+  public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
+  private static final String RUBY_ACTOR_TEMPLATE_RB = "/ruby_actor_template.rb";
+  public static final String KEY_REPRESENTATIVE_ACTOR_NAME = "#";
 
   private String conductorType = null;
-  private String scriptFileName = null;
   private String defaultVariables = null;
 
-  public Conductor(Project project) {
+  public ActorGroup(Project project) {
     super(project);
   }
 
   public static ArrayList<String> getConductorNameList() {
     return new ArrayList<>(Arrays.asList(
-      RubyConductor.class.getCanonicalName(),
-      TestConductor.class.getCanonicalName()
+      RubyConductor.class.getCanonicalName()
     ));
   }
 
-  public Conductor(Project project, UUID id, String name) {
+  public ActorGroup(Project project, UUID id, String name) {
     super(project, id, name);
   }
 
@@ -66,17 +61,17 @@ public class Conductor extends ProjectData implements DataDirectory {
     return project.getDirectoryPath().resolve(KEY_CONDUCTOR);
   }
 
-  public static Conductor getInstance(Project project, String id) {
-    final Conductor[] conductor = {null};
+  public static ActorGroup getInstance(Project project, String id) {
+    final ActorGroup[] conductor = {null};
 
-    handleDatabase(new Conductor(project), new Handler() {
+    handleDatabase(new ActorGroup(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
         statement.setString(1, id);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          conductor[0] = new Conductor(
+          conductor[0] = new ActorGroup(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
@@ -88,17 +83,17 @@ public class Conductor extends ProjectData implements DataDirectory {
     return conductor[0];
   }
 
-  public static Conductor getInstanceByName(Project project, String name) {
-    final Conductor[] conductor = {null};
+  public static ActorGroup getInstanceByName(Project project, String name) {
+    final ActorGroup[] conductor = {null};
 
-    handleDatabase(new Conductor(project), new Handler() {
+    handleDatabase(new ActorGroup(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
         statement.setString(1, name);
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          conductor[0] = new Conductor(
+          conductor[0] = new ActorGroup(
             project,
             UUID.fromString(resultSet.getString("id")),
             resultSet.getString("name")
@@ -114,15 +109,15 @@ public class Conductor extends ProjectData implements DataDirectory {
     return conductor[0];
   }
 
-  public static Conductor find(Project project, String key) {
+  public static ActorGroup find(Project project, String key) {
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(project, key);
     }
     return getInstanceByName(project, key);
   }
 
-  public static ArrayList<Conductor> getList(Project project) {
-    ArrayList<Conductor> simulatorList = new ArrayList<>();
+  public static ArrayList<ActorGroup> getList(Project project) {
+    ArrayList<ActorGroup> simulatorList = new ArrayList<>();
 
     try {
       Files.list(getBaseDirectoryPath(project)).forEach(path -> {
@@ -131,7 +126,7 @@ public class Conductor extends ProjectData implements DataDirectory {
         }
       });
     } catch (IOException e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
 
     /*
@@ -153,11 +148,11 @@ public class Conductor extends ProjectData implements DataDirectory {
     return simulatorList;
   }
 
-  public static Conductor create(Project project, String name) {
-    Conductor conductor = new Conductor(project, UUID.randomUUID(), name);
+  public static ActorGroup create(Project project, String name) {
+    ActorGroup conductor = new ActorGroup(project, UUID.randomUUID(), name);
 
     if (
-      handleDatabase(new Conductor(project), new Handler() {
+      handleDatabase(new ActorGroup(project), new Handler() {
         @Override
         void handling(Database db) throws SQLException {
           PreparedStatement statement
@@ -175,27 +170,27 @@ public class Conductor extends ProjectData implements DataDirectory {
       try {
         Files.createDirectories(conductor.getDirectoryPath());
       } catch (IOException e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
     }
 
-    if (! Files.exists(conductor.getScriptPath())) {
-      new RubyConductor().prepareConductor(conductor);
+    if (! Files.exists(conductor.getRepresentativeActorScriptPath())) {
+      conductor.updateRepresentativeActorScript(null);
     }
     //abstractConductor.prepareConductor(conductor);
 
-    if (! Files.exists(conductor.getDirectoryPath().resolve(KEY_LISTENER))) {
+    if (! Files.exists(conductor.getDirectoryPath().resolve(KEY_ACTOR))) {
       try {
-        Files.createDirectories(conductor.getDirectoryPath().resolve(KEY_LISTENER));
+        Files.createDirectories(conductor.getDirectoryPath().resolve(KEY_ACTOR));
       } catch (IOException e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
     }
 
     try {
-      conductor.getArrayFromProperty(KEY_LISTENER);
+      conductor.getArrayFromProperty(KEY_ACTOR);
     } catch (Exception e) {
-      conductor.putNewArrayToProperty(KEY_LISTENER);
+      conductor.putNewArrayToProperty(KEY_ACTOR);
     }
 
     return conductor;
@@ -206,34 +201,30 @@ public class Conductor extends ProjectData implements DataDirectory {
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
-  public String getScriptFileName() {
-    return "main.rb";
+  public Path getRepresentativeActorScriptPath() {
+    return getDirectoryPath().resolve(KEY_REPRESENTATIVE_ACTOR + Constants.EXT_RUBY);
   }
 
-  public Path getScriptPath() {
-    return getDirectoryPath().resolve(getScriptFileName());
+  public String getRepresentativeActorScript() {
+    return getFileContents(getRepresentativeActorScriptPath());
   }
 
-  public String getListenerScriptFileName(String name) {
-    return name + KEY_EXT_RUBY;
+  public Path getActorScriptPath(String name) {
+    return getDirectoryPath().resolve(KEY_ACTOR).resolve(name + Constants.EXT_RUBY);
   }
 
-  public Path getListenerScriptPath(String name) {
-    return getDirectoryPath().resolve(KEY_LISTENER).resolve(getListenerScriptFileName(name));
+  public String getActorScript(String name) {
+    return getFileContents(getActorScriptPath(name));
   }
 
-  public String getListenerScript(String name) {
-    return getFileContents(KEY_LISTENER + File.separator + getListenerScriptFileName(name));
-  }
-
-  public List<String> getListenerNameList() {
+  public List<String> getActor1NameList() {
     List<String> list = null;
     try {
-      JSONArray array = getArrayFromProperty(KEY_LISTENER);
+      JSONArray array = getArrayFromProperty(KEY_ACTOR);
       list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
       for (String name : list) {
-        if (! Files.exists(getListenerScriptPath(name))) {
-          removeFromArrayOfProperty(KEY_LISTENER, name);
+        if (! Files.exists(getActorScriptPath(name))) {
+          removeFromArrayOfProperty(KEY_ACTOR, name);
         }
       }
     } catch (JSONException e) {
@@ -241,25 +232,14 @@ public class Conductor extends ProjectData implements DataDirectory {
     return list;
   }
 
-  public String getConductorType() {
-    if (conductorType == null) {
-      conductorType = getStringFromDB(KEY_CONDUCTOR_TYPE);
-    }
-    return conductorType;
-  }
-
   public JSONObject getDefaultVariables() {
+    final String fileName = KEY_DEFAULT_VARIABLES + Constants.EXT_JSON;
     if (defaultVariables == null) {
-      defaultVariables = getFileContents(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON);
+      defaultVariables = getFileContents(fileName);
       if (defaultVariables.equals("")) {
         defaultVariables = "{}";
-        try {
-          FileWriter filewriter = new FileWriter(getDirectoryPath().resolve(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON).toFile());
-          filewriter.write(defaultVariables);
-          filewriter.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+        createNewFile(fileName);
+        updateFileContents(fileName, defaultVariables);
       }
     }
     return new JSONObject(defaultVariables);
@@ -268,61 +248,35 @@ public class Conductor extends ProjectData implements DataDirectory {
   public void setDefaultVariables(String json) {
     try {
       JSONObject object = new JSONObject(json);
-      updateFileContents(KEY_DEFAULT_VARIABLES + KEY_EXT_JSON, object.toString(2));
+      updateFileContents(KEY_DEFAULT_VARIABLES + Constants.EXT_JSON, object.toString(2));
     } catch (Exception e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
   }
 
-  public String getMainScript() {
-    String mainScript = "";
-    try {
-      mainScript = new String(Files.readAllBytes(getScriptPath()));
-    } catch (IOException e) {
-    }
-    return mainScript;
+  public void createNewActor(String name) {
+    Path path = getActorScriptPath(name);
+    createNewFile(path);
+    updateFileContents(path, ResourceFile.getContents(RUBY_ACTOR_TEMPLATE_RB));
+    putToArrayOfProperty(KEY_ACTOR, name);
   }
 
-  public void createNewListener(String name) {
-    Path path = getListenerScriptPath(name);
-    if (! Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(ResourceFile.getContents("/ruby_listener_template.rb"));
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-    putToArrayOfProperty(KEY_LISTENER, name);
+  public void updateActorScript(String name, String script) {
+    updateFileContents(getActorScriptPath(name), script);
   }
 
-  public void updateListenerScript(String name, String script) {
-    Path path = getListenerScriptPath(name);
+  public void updateRepresentativeActorScript(String contents) {
+    Path path = getRepresentativeActorScriptPath();
     if (Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(script);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  public void updateMainScript(String contents) {
-    if (Files.exists(getScriptPath())) {
-      try {
-        FileWriter filewriter = new FileWriter(getScriptPath().toFile());
-        filewriter.write(contents);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      updateFileContents(path, contents);
+    } else {
+      createNewFile(path);
+      updateFileContents(path, ResourceFile.getContents(RUBY_ACTOR_TEMPLATE_RB));
     }
   }
 
   public boolean checkSyntax() {
+    /*
     String mainScriptSyntaxError = RubyConductor.checkSyntax(getScriptPath());
     if (! "".equals(mainScriptSyntaxError)) {
       return false;
@@ -330,13 +284,15 @@ public class Conductor extends ProjectData implements DataDirectory {
 
     for (File child : getDirectoryPath().toFile().listFiles()) {
       String fileName = child.getName();
-      if (child.isFile() && fileName.startsWith(KEY_LISTENER + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
+      if (child.isFile() && fileName.startsWith(KEY_ACTOR + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
         String scriptSyntaxError = RubyConductor.checkSyntax(child.toPath());
         if (! "".equals(scriptSyntaxError)) {
           return false;
         }
       }
     }
+
+     */
 
     return true;
   }

@@ -5,7 +5,6 @@ import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -215,7 +214,7 @@ public class ConductorTemplate extends DirectoryBaseData {
     Path path = getListenerScriptPath(name);
     if (! Files.exists(path)) {
       createNewFile(path);
-      updateListenerScript(name, ResourceFile.getContents("/ruby_listener_template.rb"));
+      updateListenerScript(name, ResourceFile.getContents("/ruby_actor_template.rb"));
     }
     putToArrayOfProperty(KEY_LISTENER, name);
   }

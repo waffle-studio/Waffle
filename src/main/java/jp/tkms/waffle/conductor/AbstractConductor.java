@@ -1,28 +1,28 @@
 package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.AbstractRun;
-import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.ConductorRun;
+import jp.tkms.waffle.data.ActorGroup;
+import jp.tkms.waffle.data.Actor;
 import jp.tkms.waffle.data.util.State;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 abstract public class AbstractConductor {
-  abstract protected void mainProcess(ConductorRun entity);
-  abstract protected void eventHandler(ConductorRun entity, AbstractRun run);
-  abstract protected void finalizeProcess(ConductorRun entity);
-  abstract protected void suspendProcess(ConductorRun entity);
+  abstract protected void mainProcess(Actor entity);
+  abstract protected void eventHandler(Actor entity, AbstractRun run);
+  abstract protected void finalizeProcess(Actor entity);
+  abstract protected void suspendProcess(Actor entity);
   abstract public String defaultScriptName();
-  abstract public void prepareConductor(Conductor conductor);
+  abstract public void prepareConductor(ActorGroup conductor);
 
   private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
-  private static HashMap<ConductorRun, AbstractConductor> runningInstance = new HashMap<>();
+  private static HashMap<Actor, AbstractConductor> runningInstance = new HashMap<>();
 
   public AbstractConductor() {
   }
 
-  public void start(ConductorRun conductorRun, boolean async) {
+  public void start(Actor conductorRun, boolean async) {
     Thread thread = new Thread() {
       @Override
       public void run() {
@@ -45,7 +45,7 @@ abstract public class AbstractConductor {
     }
   }
 
-  public void eventHandle(ConductorRun conductorRun, AbstractRun run) {
+  public void eventHandle(Actor conductorRun, AbstractRun run) {
     eventHandler(conductorRun, run);
     if (! conductorRun.isRunning()) {
       if (run.getState().equals(State.Finished)) {
@@ -57,15 +57,15 @@ abstract public class AbstractConductor {
     }
   }
 
-  public void hibernate(ConductorRun entity) {
+  public void hibernate(Actor entity) {
     suspendProcess(entity);
   }
 
-  public static AbstractConductor getInstance(ConductorRun entity) {
+  public static AbstractConductor getInstance(Actor entity) {
     if (runningInstance.containsKey(entity)) {
       return runningInstance.get(entity);
     }
-    return getInstance(entity.getConductor().getConductorType());
+    return getInstance(RubyConductor.class.getCanonicalName());
   }
 
   public static AbstractConductor getInstance(String className) {

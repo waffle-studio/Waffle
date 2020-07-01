@@ -3,7 +3,6 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
@@ -333,12 +332,12 @@ public class Simulator extends ProjectData implements DataDirectory {
         FileWriter filewriter = new FileWriter(path.toFile());
         filewriter.write(new RubyParameterExtractor().contentsTemplate());
         filewriter.close();
-
-        putToArrayOfProperty(KEY_EXTRACTOR, name);
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
+
+    putToArrayOfProperty(KEY_EXTRACTOR, name);
   }
 
   public void removeExtractor(String name) {
@@ -422,12 +421,12 @@ public class Simulator extends ProjectData implements DataDirectory {
         FileWriter filewriter = new FileWriter(path.toFile());
         filewriter.write(new RubyResultCollector().contentsTemplate());
         filewriter.close();
-
-        putToArrayOfProperty(KEY_COLLECTOR, name);
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
+
+    putToArrayOfProperty(KEY_COLLECTOR, name);
   }
 
   public void removeCollector(String name) {
@@ -467,11 +466,11 @@ public class Simulator extends ProjectData implements DataDirectory {
     if (runNode == null) {
       runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
     }
-    ConductorRun baseRun = ConductorRun.getInstanceByName(getProject(), baseRunName);
+    Actor baseRun = Actor.getInstanceByName(getProject(), baseRunName);
     if (baseRun == null) {
-      baseRun = ConductorRun.create(getProject(), ConductorRun.getRootInstance(getProject()), null, runNode);
+      baseRun = Actor.create(runNode, Actor.getRootInstance(getProject()), null);
     }
-    SimulatorRun run = SimulatorRun.create(baseRun, this, host, runNode.createSimulatorRunNode(LocalDateTime.now().toString()));
+    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), baseRun, this, host);
     setToDB(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();

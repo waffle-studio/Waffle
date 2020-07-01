@@ -3,7 +3,7 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.ConductorRun;
+import jp.tkms.waffle.data.Actor;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
@@ -17,7 +17,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   private Project project;
-  private ConductorRun conductorRun;
+  private Actor conductorRun;
   public TrialsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -32,14 +32,14 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + ConductorRun.ROOT_NAME);
+    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + Actor.ROOT_NAME);
   }
 
-  public static String getUrl(Project project, ConductorRun conductorRun) {
+  public static String getUrl(Project project, Actor conductorRun) {
     return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + conductorRun.getId());
   }
 
-  public static String getUrl(Project project, ConductorRun conductorRun, String mode) {
+  public static String getUrl(Project project, Actor conductorRun, String mode) {
     return getUrl(project, conductorRun) + "/" + mode;
   }
 
@@ -48,10 +48,10 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
-    if (requestedId.equals(ConductorRun.ROOT_NAME)){
-      conductorRun = ConductorRun.getRootInstance(project);
+    if (requestedId.equals(Actor.ROOT_NAME)){
+      conductorRun = Actor.getRootInstance(project);
     } else {
-      conductorRun = ConductorRun.getInstance(project, requestedId);
+      conductorRun = Actor.getInstance(project, requestedId);
     }
 
     renderTrialsList();
@@ -75,7 +75,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectComponent.getUrl(project), project.getName())
         ));
         ArrayList<String> conductorRunList = new ArrayList<>();
-        ConductorRun parent = conductorRun.getParent();
+        Actor parent = conductorRun.getParent();
         if (parent == null) {
           breadcrumb.add("Runs");
         } else {
@@ -139,7 +139,7 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (ConductorRun run : ConductorRun.getList(project, TrialsComponent.this.conductorRun)) {
+              for (Actor run : Actor.getList(project, TrialsComponent.this.conductorRun)) {
                 list.add(new Lte.TableRow(
                   Html.a(getUrl(project, run), null, null, run.getShortId()),
                   run.getName(),

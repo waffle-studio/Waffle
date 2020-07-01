@@ -226,9 +226,9 @@ public class Project extends Data implements DataDirectory {
       }
     }
 
-    if (! Files.exists(Conductor.getBaseDirectoryPath(this))) {
+    if (! Files.exists(ActorGroup.getBaseDirectoryPath(this))) {
       try {
-        Files.createDirectories(Conductor.getBaseDirectoryPath(this));
+        Files.createDirectories(ActorGroup.getBaseDirectoryPath(this));
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -252,7 +252,7 @@ public class Project extends Data implements DataDirectory {
   }
 
   public void hibernate() {
-    for (ConductorRun entity : ConductorRun.getNotFinishedList(this)) {
+    for (Actor entity : Actor.getNotFinishedList(this)) {
       AbstractConductor.getInstance(entity).hibernate(entity);
     }
   }

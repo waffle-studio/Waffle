@@ -4,7 +4,7 @@ end
 class Host < Java::jp.tkms.waffle.data.Host
 end
 
-class Conductor < Java::jp.tkms.waffle.data.Conductor
+class ActorGroup < Java::jp.tkms.waffle.data.ActorGroup
 end
 
 class ConductorArgument
@@ -21,7 +21,7 @@ class ConductorArgument
     end
 end
 
-class ConductorRun < Java::jp.tkms.waffle.data.ConductorRun
+class Actor < Java::jp.tkms.waffle.data.Actor
 end
 
 class SimulatorRun < Java::jp.tkms.waffle.data.SimulatorRun
@@ -161,6 +161,49 @@ def exec_result_collect(run, remote)
     end
 end
 
+class Actor < Java::jp.tkms.waffle.data.Actor
+    def initialize(instance)
+        super(instance)
+        @store = get_store(getRegistry, instance.id)
+        @template_argument =  get_template_argument(getRegistry, instance.id)
+    end
+
+    def close
+    #TODO: check with depth
+        getRegistry.set(".S:" + getId, Marshal.dump(@store))
+        getRegistry.set(".TA:" + getId, Marshal.dump(@template_argument))
+        commit
+        getRegistry.set(".S:" + getId, Marshal.dump(@store))
+        getRegistry.set(".TA:" + getId, Marshal.dump(@template_argument))
+    end
+
+    def loadConductorTemplate(name)
+        super
+        @template_argument
+    end
+
+    def loadListenerTemplate(name)
+        super
+        @template_argument
+    end
+
+    def p
+        @template_argument.p
+    end
+
+    def f
+        @template_argument.f
+    end
+end
+
+def exec_actor_script(instance, caller)
+    result = true
+    local_instance = Actor.new(instance)
+    result = actor_script(local_instance, caller)
+    local_instance.close
+    return result
+end
+
 class Java::JavaLang::Object
     def is_group?()
         return self.is_a?(Java::JavaUtil::HashMap)
@@ -170,5 +213,9 @@ end
 class Numeric
     def is_group?()
         return false
+    end
+
+    def to_str
+        return to_s
     end
 end

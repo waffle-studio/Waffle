@@ -1,22 +1,12 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.conductor.TestConductor;
 import jp.tkms.waffle.data.util.ResourceFile;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
 
 public class ListenerTemplate extends DirectoryBaseData {
   protected static final String KEY_LISTENER_TEMPLATE = "listener_template";
@@ -38,7 +28,7 @@ public class ListenerTemplate extends DirectoryBaseData {
 
       if (! Files.exists(listenerTemplate.getScriptPath())) {
         listenerTemplate.createNewFile(listenerTemplate.getScriptPath());
-        listenerTemplate.updateScript(ResourceFile.getContents("/ruby_listener_template.rb"));
+        listenerTemplate.updateScript(ResourceFile.getContents("/ruby_actor_template.rb"));
       }
     }
 

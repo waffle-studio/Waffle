@@ -1,27 +1,27 @@
 package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.AbstractRun;
-import jp.tkms.waffle.data.Conductor;
-import jp.tkms.waffle.data.ConductorRun;
+import jp.tkms.waffle.data.Actor;
+import jp.tkms.waffle.data.ActorGroup;
 
 public class EmptyConductor extends CycleConductor {
   @Override
-  protected void preProcess(ConductorRun entity) {
+  protected void preProcess(Actor entity) {
 
   }
 
   @Override
-  protected void eventHandler(ConductorRun entity, AbstractRun run) {
+  protected void eventHandler(Actor entity, AbstractRun run) {
 
   }
 
   @Override
-  protected void finalizeProcess(ConductorRun entity) {
+  protected void finalizeProcess(Actor entity) {
 
   }
 
   @Override
-  protected void suspendProcess(ConductorRun entity) {
+  protected void suspendProcess(Actor entity) {
 
   }
 
@@ -31,7 +31,7 @@ public class EmptyConductor extends CycleConductor {
   }
 
   @Override
-  public void prepareConductor(Conductor conductor) {
+  public void prepareConductor(ActorGroup conductor) {
 
   }
 }

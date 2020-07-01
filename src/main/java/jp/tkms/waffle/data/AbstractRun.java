@@ -1,12 +1,12 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,21 +18,24 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   protected static final String KEY_FINALIZER = "finalizer";
   protected static final String KEY_VARIABLES = "variables";
   protected static final String KEY_STATE = "state";
-  protected static final String KEY_ERROR_NOTE = "error_note";
   protected static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
   public static final String KEY_RUNNODE = "runnode";
+  public static final String KEY_PARENT_RUNNODE = "parent_runnode";
 
   abstract public void start();
   abstract public boolean isRunning();
   abstract public State getState();
   abstract public void setState(State state);
 
-  private Conductor conductor = null;
-  private ConductorRun parentConductorRun = null;
+  private ActorGroup conductor = null;
+  private Actor parentConductorRun = null;
   private JSONArray finalizers = null;
   private JSONObject parameters = null;
   protected boolean isStarted = false;
   private RunNode runNode = null;
+  private RunNode parentRunNode = null;
+
+  Registry registry;
 
   public AbstractRun(Project project) {
     super(project);
@@ -41,17 +44,23 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   public AbstractRun(Project project, UUID id, String name, RunNode runNode) {
     super(project, id, runNode.getSimpleName());
     this.runNode = runNode;
+
+    this.registry = new Registry(getProject());
   }
 
   public boolean isStarted() {
     return isStarted;
   }
 
-  public ConductorRun getParent() {
+  public Actor getParent() {
     if (parentConductorRun == null) {
-      parentConductorRun = ConductorRun.getInstance(getProject(), getStringFromDB(KEY_PARENT));
+      parentConductorRun = Actor.getInstance(getProject(), getStringFromDB(KEY_PARENT));
     }
     return parentConductorRun;
+  }
+
+  public Registry getRegistry() {
+    return registry;
   }
 
   @Override
@@ -72,9 +81,26 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     return runNode;
   }
 
-  public Conductor getConductor() {
+  protected void setRunNode(RunNode node) {
+    setToDB(KEY_RUNNODE, node.getId());
+    runNode = node;
+  }
+
+  public RunNode getParentRunNode() {
+    if (parentRunNode == null) {
+      parentRunNode = RunNode.getInstance(getProject(), getStringFromDB(KEY_PARENT_RUNNODE));
+    }
+    return parentRunNode;
+  }
+
+  protected void setParentRunNode(RunNode node) {
+    setToDB(KEY_PARENT_RUNNODE, node.getId());
+    runNode = node;
+  }
+
+  public ActorGroup getConductor() {
     if (conductor == null) {
-      conductor = Conductor.getInstance(getProject(), getStringFromDB(KEY_CONDUCTOR));
+      conductor = ActorGroup.getInstance(getProject(), getStringFromDB(KEY_CONDUCTOR));
     }
     return conductor;
   }
@@ -93,42 +119,21 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   public void setFinalizers(ArrayList<String> finalizers) {
     this.finalizers = new JSONArray(finalizers);
     String finalizersJson = this.finalizers.toString();
-
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_FINALIZER + "=? where " + KEY_ID + "=?;");
-        statement.setString(1, finalizersJson);
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    });
+    setToDB(KEY_FINALIZER, finalizersJson);
   }
 
-  public void appendErrorNote(String note) {
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ERROR_NOTE + "=" + KEY_ERROR_NOTE + "||? where " + KEY_ID + "=?;");
-        statement.setString(1, note + '\n');
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    });
-  }
-
-  public String getErrorNote() {
-    return getStringFromDB(KEY_ERROR_NOTE);
-  }
-
-  public void addRawFinalizerScript(String script) {
+  public void addFinalizer(String id) {
     ArrayList<String> finalizers = getFinalizers();
-    finalizers.add(script);
+    finalizers.add(id);
     setFinalizers(finalizers);
   }
 
-  public void addFinalizer(String name) {
-    addRawFinalizerScript(getParent().getConductor().getListenerScript(name));
+  public void appendErrorNote(String note) {
+    getRunNode().appendErrorNote(note);
+  }
+
+  public String getErrorNote() {
+    return getRunNode().getErrorNote();
   }
 
   protected void updateVariablesStore() {
@@ -148,8 +153,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     try {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-      e.printStackTrace();
+      WarnLogMessage.issue(e);
     }
     JSONObject map = new JSONObject(getStringFromDB(KEY_VARIABLES));
     if (valueMap != null) {

@@ -11,16 +11,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 
 public class RunNode extends DirectoryBaseData {
-  public static final String KEY_TYPE = "type";
   public static final String KEY_EXPECTED_NAME = "expected_name";
   public static final String KEY_PROPERTY = "property";
   public static final String KEY_RUN = "run";
   public static final String KEY_STATE = "state";
   public static final String KEY_NOTE_TXT = "note.txt";
+  public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
   Project project;
 
   public RunNode() {
@@ -202,6 +204,15 @@ public class RunNode extends DirectoryBaseData {
 
   public String getNote() {
     return getFileContents(KEY_NOTE_TXT);
+  }
+
+  public void appendErrorNote(String note) {
+    createNewFile(KEY_ERROR_NOTE_TXT);
+    updateFileContents(KEY_ERROR_NOTE_TXT, getErrorNote().concat(note).concat("\n"));
+  }
+
+  public String getErrorNote() {
+    return getFileContents(KEY_ERROR_NOTE_TXT);
   }
 
   protected void propagateState(State prev, State next) {

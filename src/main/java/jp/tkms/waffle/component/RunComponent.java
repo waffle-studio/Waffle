@@ -4,11 +4,9 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.ConductorRun;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
 import spark.Spark;
 
 import java.nio.file.Files;

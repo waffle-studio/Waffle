@@ -141,7 +141,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
     for (String[] regExp : quickLinkRegExps) {
       message = message.replaceFirst(regExp[0], regExp[1]);
     }
-    return message;
+    return message.replace("<", "&lt;").replace(">", "&gt;");
   }
 
   private String convertMessageJavascript() {
@@ -149,7 +149,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
     for (String[] regExp : quickLinkRegExps) {
       javascript += ".replace(/" + regExp[0].replace("/", "\\/") + "/, \"" + regExp[1].replace("\"", "\\\"") + "\")";
     }
-    return javascript;
+    return javascript.replace("<", "&lt;").replace(">", "&gt;");
   }
 
   public enum Mode {Default, GetOld}

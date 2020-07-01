@@ -121,7 +121,6 @@ public class Log extends Data {
   }
 
   public static Log create(LogMessage log) {
-    String message = log.getMessage().replaceAll("\"", "").replaceAll("'", "").replaceAll("\n", "");
     if (log instanceof InfoLogMessage) {
       return create(Level.Info, log.getMessage());
     } else if (log instanceof WarnLogMessage) {

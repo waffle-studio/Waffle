@@ -9,13 +9,12 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.UUID;
 
 public class Hub {
 
   Project project;
-  ConductorRun conductorRun;
-  ConductorRun nextParentConductorRun;
+  Actor conductorRun;
+  Actor nextParentConductorRun;
   AbstractRun run;
   Registry registry;
   ArrayList<AbstractRun> createdRunList;
@@ -29,7 +28,7 @@ public class Hub {
   ConductorTemplate conductorTemplate = null;
   ListenerTemplate listenerTemplate = null;
 
-  public Hub(ConductorRun conductorRun, AbstractRun run, ConductorTemplate conductorTemplate) {
+  public Hub(Actor conductorRun, AbstractRun run, ConductorTemplate conductorTemplate) {
     this.project = conductorRun.getProject();
     this.conductorRun = conductorRun;
     this.nextParentConductorRun = conductorRun;
@@ -46,7 +45,7 @@ public class Hub {
     }
   }
 
-  public Hub(ConductorRun conductorRun, AbstractRun run) {
+  public Hub(Actor conductorRun, AbstractRun run) {
     this(conductorRun, run, null);
   }
 
@@ -54,7 +53,7 @@ public class Hub {
     return project;
   }
 
-  public ConductorRun getConductorRun() {
+  public Actor getConductorRun() {
     return conductorRun;
   }
 
@@ -75,12 +74,12 @@ public class Hub {
   }
 
   public void changeParent(String name) {
-    nextParentConductorRun = ConductorRun.find(project, name);
+    nextParentConductorRun = Actor.find(project, name);
   }
 
-  public ConductorRun createConductorRun(String name) {
-    Conductor conductor = Conductor.find(project, name);
-    if (conductor == null) {
+  public Actor createActor(String name) {
+    ActorGroup actorGroup = ActorGroup.find(project, name);
+    if (actorGroup == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
 
@@ -88,9 +87,9 @@ public class Hub {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    ConductorRun createdRun = ConductorRun.create(nextParentConductorRun, conductor, runNode.createInclusiveRunNode(""));
-    createdRunList.add(createdRun);
-    return createdRun;
+    Actor actor = Actor.create(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
+    createdRunList.add(actor);
+    return actor;
   }
 
   public SimulatorRun createSimulatorRun(String name, String hostName) {
@@ -111,7 +110,7 @@ public class Hub {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    SimulatorRun createdRun = SimulatorRun.create(nextParentConductorRun, simulator, host, runNode.createSimulatorRunNode(""));
+    SimulatorRun createdRun = SimulatorRun.create(runNode.createSimulatorRunNode(""), nextParentConductorRun, simulator, host);
     createdRunList.add(createdRun);
     return createdRun;
   }
@@ -130,7 +129,7 @@ public class Hub {
       }
       container.terminate();
     } else {
-      String script = conductorRun.getConductor().getListenerScript(name);
+      String script = conductorRun.getConductor().getActorScript(name);
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());

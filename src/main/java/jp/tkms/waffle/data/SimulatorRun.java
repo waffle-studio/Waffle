@@ -54,7 +54,7 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray localSharedList;
 
-  private SimulatorRun(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
+  private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
     this(parent.getProject(), runNode.getUuid(),"",
       simulator.getId(), host.getId(), State.Created, runNode);
   }
@@ -120,7 +120,7 @@ public class SimulatorRun extends AbstractRun {
     return state;
   }
 
-  public static ArrayList<SimulatorRun> getList(Project project, ConductorRun parent) {
+  public static ArrayList<SimulatorRun> getList(Project project, Actor parent) {
     ArrayList<SimulatorRun> list = new ArrayList<>();
 
     handleDatabase(new SimulatorRun(project), new Handler() {
@@ -153,7 +153,7 @@ public class SimulatorRun extends AbstractRun {
     return list;
   }
 
-  public static int getNumberOfRunning(Project project, ConductorRun parent) {
+  public static int getNumberOfRunning(Project project, Actor parent) {
     final int[] count = new int[1];
 
     handleDatabase(new SimulatorRun(project), new Handler() {
@@ -173,9 +173,9 @@ public class SimulatorRun extends AbstractRun {
     return count[0];
   }
 
-  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host, RunNode runNode) {
+  public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
     SimulatorRun run = new SimulatorRun(parent, simulator, host, runNode);
-    Conductor conductor = parent.getConductor();
+    ActorGroup conductor = parent.getConductor();
     String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
@@ -634,13 +634,13 @@ public class SimulatorRun extends AbstractRun {
                 KEY_HOST + "," +
                 KEY_STATE + "," +
                 KEY_RUNNODE + "," +
+                KEY_PARENT_RUNNODE + "," +
                 KEY_VARIABLES + " default '{}'," +
                 KEY_FINALIZER + " default '[]'," +
                 KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
                 KEY_ENVIRONMENTS + " default '{}'," +
                 KEY_RESTART_COUNT + " default 0," +
-                KEY_ERROR_NOTE + " default ''," +
                 KEY_TIMESTAMP_CREATE + " timestamp default (DATETIME('now','localtime'))" +
                 ");");
             }

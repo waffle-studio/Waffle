@@ -15,6 +15,10 @@ public enum State {
     return values()[i];
   }
 
+  public boolean isRunning() {
+    return ordinal() <= Running.ordinal();
+  }
+
   public String getStatusBadge() {
     switch (this) {
       case Created:
