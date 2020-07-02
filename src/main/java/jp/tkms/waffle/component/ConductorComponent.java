@@ -139,14 +139,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         ArrayList<Actor> notFinishedList = new ArrayList<>();
         for (Actor notFinished : Actor.getNotFinishedList(project)) {
           if (!notFinished.isRoot()) {
-            if (notFinished.getParent() != null && notFinished.getParent().isRoot()) {
+            if (notFinished.getParentActor() != null && notFinished.getParentActor().isRoot()) {
               notFinishedList.add(notFinished);
             }
           }
         }
         int runningCount = 0;
         for (Actor notFinished : notFinishedList) {
-          if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(conductor.getId())) {
+          if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {
             runningCount += 1;
           }
         }

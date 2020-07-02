@@ -1,7 +1,6 @@
 package jp.tkms.waffle.component.updater;
 
 import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.util.State;
 
@@ -25,7 +24,7 @@ public class RunStatusUpdater extends AbstractUpdater {
         State.Created.getStatusBadge()
       ),
       Html.divWithId("template-Queued-badge",
-        State.Queued.getStatusBadge()
+        State.Prepared.getStatusBadge()
       ),
       Html.divWithId("template-Submitted-badge",
         State.Submitted.getStatusBadge()

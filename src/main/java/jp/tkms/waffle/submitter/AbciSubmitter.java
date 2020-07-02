@@ -117,7 +117,7 @@ public class AbciSubmitter extends SshSubmitter {
       packWaitThread.resetWaitTime();
     }
 
-    job.setState(State.Queued);
+    job.setState(State.Prepared);
     prepareJob(job);
 
     synchronized (objectLocker) {
@@ -193,7 +193,7 @@ public class AbciSubmitter extends SshSubmitter {
             createdJobList.add(job);
           }
           break;
-        case Queued:
+        case Prepared:
           submittedCount++;
           break;
         case Submitted:

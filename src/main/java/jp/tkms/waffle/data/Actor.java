@@ -1,7 +1,5 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.conductor.AbstractConductor;
-import jp.tkms.waffle.conductor.EmptyConductor;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -149,6 +147,31 @@ public class Actor extends AbstractRun {
     return list;
   }
 
+  public static ArrayList<Actor> getChildList(Project project, Actor parent) {
+    ArrayList<Actor> list = new ArrayList<>();
+
+    handleDatabase(new Actor(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
+          .where(Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, parent.getId()))
+          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
+        while (resultSet.next()) {
+          Actor conductorRun = new Actor(
+            project,
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME),
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
+            resultSet.getString(KEY_ACTOR)
+          );
+          list.add(conductorRun);
+        }
+      }
+    });
+
+    return list;
+  }
+
   public static ArrayList<Actor> getList(Project project, ActorGroup actorGroup) {
     ArrayList<Actor> list = new ArrayList<>();
 
@@ -238,6 +261,7 @@ public class Actor extends AbstractRun {
           Sql.Value.equal( KEY_ID, conductorRun.getId() ),
           Sql.Value.equal( KEY_NAME, conductorRun.getName() ),
           Sql.Value.equal( KEY_PARENT, parent.getId() ),
+          Sql.Value.equal( KEY_RESPONSIBLE_ACTOR, parent.getId() ),
           Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
           Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
           Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
@@ -254,26 +278,8 @@ public class Actor extends AbstractRun {
     return create(runNode, parent, actorGroup, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
-  public void finish() {
-    if (getState().isRunning()) {
-      for (String actorId : getFinalizers()) {
-        Actor finalizer = Actor.getInstance(getProject(), actorId);
-        if (finalizer != null) {
-          finalizer.processMessage(this);
-        } else {
-          WarnLogMessage.issue("the actor(" + actorId + ") is not found");
-        }
-      }
-
-      setState(State.Finished);
-    }
-    if (!isRoot()) {
-      getParent().update(this);
-    }
-  }
-
   public ArrayList<Actor> getChildActorRunList() {
-    return getList(getProject(), this);
+    return getChildList(getProject(), this);
   }
 
   public boolean hasRunningChildSimulationRun() {
@@ -286,6 +292,10 @@ public class Actor extends AbstractRun {
 
   public void setState(State state) {
     setToDB(KEY_STATE, state.ordinal());
+  }
+
+  public String getActorName() {
+    return actorName;
   }
 
   @Override
@@ -308,10 +318,20 @@ public class Actor extends AbstractRun {
   }
 
   public void start(boolean async) {
+    /*
+    StackTraceElement[] ste = new Throwable().getStackTrace();
+    System.out.println("vvvvvvvvvvvvvvvv");
+    for (int i = 0; i < ste.length; i++) {
+      System.out.println(ste[i].getFileName() + " : " + ste[i].getLineNumber()); // ファイル名を取得
+    }
+    System.out.println("^^^^^^^^^^^^^^^^");
+
+     */
+
     isStarted = true;
     setState(State.Running);
     if (!isRoot()) {
-      getParent().setState(State.Running);
+      getResponsibleActor().setState(State.Running);
     }
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     //abstractConductor.start(this, async);
@@ -323,6 +343,7 @@ public class Actor extends AbstractRun {
         processMessage(null); //?????
 
         if (! isRunning()) {
+          setState(jp.tkms.waffle.data.util.State.Finished);
           finish();
         }
         return;
@@ -338,25 +359,31 @@ public class Actor extends AbstractRun {
     }
   }
 
-  public void update(AbstractRun run) {
+  public void update() {
     if (!isRoot()) {
       //eventHandler(conductorRun, run);
       if (! isRunning()) {
-        if (! run.getState().equals(State.Finished)) {
+        /*
+        if (! run.getState().equals(State.Finished)) { // TOD: check!!!
           setState(State.Failed);
         }
-        finish();
+         */
+
+        if (! getState().equals(State.Finished)) {
+          setState(State.Finished);
+          finish();
+        }
       }
 
       //TODO: do refactor
-      if (getConductor() != null) {
+      if (getActorGroup() != null) {
         int runningCount = 0;
         for (Actor notFinished : Actor.getNotFinishedList(getProject()) ) {
-          if (notFinished.getConductor() != null && notFinished.getConductor().getId().equals(getConductor().getId())) {
+          if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(getActorGroup().getId())) {
             runningCount += 1;
           }
         }
-        BrowserMessage.addMessage("updateConductorJobNum('" + getConductor().getId() + "'," + runningCount + ")");
+        BrowserMessage.addMessage("updateConductorJobNum('" + getActorGroup().getId() + "'," + runningCount + ")");
       }
     }
   }
@@ -375,7 +402,7 @@ public class Actor extends AbstractRun {
           new UpdateTask() {
             @Override
             void task(Database db) throws SQLException {
-              new Sql.Create(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT, KEY_CONDUCTOR,
+              new Sql.Create(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT, KEY_RESPONSIBLE_ACTOR, KEY_CONDUCTOR,
                 Sql.Create.withDefault(KEY_VARIABLES, "'{}'"),
                 Sql.Create.withDefault(KEY_FINALIZER, "'[]'"),
                 KEY_STATE,
@@ -387,6 +414,7 @@ public class Actor extends AbstractRun {
                 Sql.Value.equal(KEY_ID, UUID.randomUUID().toString()),
                 Sql.Value.equal(KEY_NAME, ROOT_NAME),
                 Sql.Value.equal(KEY_PARENT, ""),
+                Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, ""),
                 Sql.Value.equal(KEY_RUNNODE, RunNode.getRootInstance(getProject()).getId())// for compatibility
               ).execute();
             }
@@ -398,9 +426,9 @@ public class Actor extends AbstractRun {
 
   private Path getActorScriptPath() {
     if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(actorName)) {
-      return getConductor().getRepresentativeActorScriptPath();
+      return getActorGroup().getRepresentativeActorScriptPath();
     }
-    return getConductor().getActorScriptPath(actorName);
+    return getActorGroup().getActorScriptPath(actorName);
   }
 
   public void processMessage(AbstractRun caller) {

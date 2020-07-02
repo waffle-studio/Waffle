@@ -106,7 +106,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
                 list.add(new Lte.TableRow(
                   log.getLevel().name(),
                   log.getTimestamp(),
-                  convertMessage(log.getMessage())
+                  convertMessage(log.getMessage().replace("<", "&lt;").replace(">", "&gt;"))
                   )
                 );
                 lastRowId[0] = log.getRowid();
@@ -141,7 +141,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
     for (String[] regExp : quickLinkRegExps) {
       message = message.replaceFirst(regExp[0], regExp[1]);
     }
-    return message.replace("<", "&lt;").replace(">", "&gt;");
+    return message;
   }
 
   private String convertMessageJavascript() {
@@ -149,7 +149,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
     for (String[] regExp : quickLinkRegExps) {
       javascript += ".replace(/" + regExp[0].replace("/", "\\/") + "/, \"" + regExp[1].replace("\"", "\\\"") + "\")";
     }
-    return javascript.replace("<", "&lt;").replace(">", "&gt;");
+    return javascript;
   }
 
   public enum Mode {Default, GetOld}
