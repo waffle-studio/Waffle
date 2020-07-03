@@ -137,6 +137,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         // TODO: do refactoring
         ArrayList<Actor> notFinishedList = new ArrayList<>();
+        /*
         for (Actor notFinished : Actor.getNotFinishedList(project)) {
           if (!notFinished.isRoot()) {
             if (notFinished.getParentActor() != null && notFinished.getParentActor().isRoot()) {
@@ -144,6 +145,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             }
           }
         }
+         */
         int runningCount = 0;
         for (Actor notFinished : notFinishedList) {
           if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {

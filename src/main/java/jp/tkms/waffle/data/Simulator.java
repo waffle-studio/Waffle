@@ -54,11 +54,6 @@ public class Simulator extends ProjectData implements DataDirectory {
     super(project);
   }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
-
   public static Path getBaseDirectoryPath(Project project) {
     return project.getDirectoryPath().resolve(KEY_SIMULATOR);
   }
@@ -445,31 +440,4 @@ public class Simulator extends ProjectData implements DataDirectory {
     return SimulatorRun.getInstance(getProject(), getStringFromProperty(KEY_TESTRUN));
   }
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-    new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_TESTRUN + " default ''," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-     */
-  }
 }

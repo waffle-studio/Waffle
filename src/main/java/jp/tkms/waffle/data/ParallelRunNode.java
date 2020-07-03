@@ -8,7 +8,7 @@ public class ParallelRunNode extends RunNode {
   public static final String KEY_PARALLEL = "PARALLEL";
 
   public ParallelRunNode(Project project, Path path) {
-    super(project, path);
+    super(ParallelRunNode.class, project, path);
     Path flagPath = path.resolve(KEY_PARALLEL);
     if (! Files.exists(flagPath)) {
       try {

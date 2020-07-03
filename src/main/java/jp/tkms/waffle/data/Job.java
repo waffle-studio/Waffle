@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class Job extends Data {
+public class Job extends DatabaseFileData {
   private static final String TABLE_NAME = "job";
   private static final String KEY_PROJECT = "project";
   private static final String KEY_HOST = "host";

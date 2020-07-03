@@ -1,21 +1,16 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class Project extends Data implements DataDirectory {
+public class Project extends PropertyFileData implements DataDirectory {
   protected static final String TABLE_NAME = "project";
 
   private static final HashMap<String, Project> instanceMap = new HashMap<>();
@@ -23,11 +18,6 @@ public class Project extends Data implements DataDirectory {
   public Project(UUID id, String name) {
     super(id, name);
     initialize();
-  }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
   }
 
   public Project() { }
@@ -111,7 +101,7 @@ public class Project extends Data implements DataDirectory {
   }
 
   public static Path getBaseDirectoryPath() {
-    return Data.getWaffleDirectoryPath().resolve(Constants.PROJECT);
+    return PropertyFileData.getWaffleDirectoryPath().resolve(Constants.PROJECT);
   }
 
   @Override
@@ -122,68 +112,6 @@ public class Project extends Data implements DataDirectory {
   static public Path getDirectoryPath(String name) {
     return getBaseDirectoryPath().resolve(name);
   }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-      new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(id,name,location," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-     */
-  }
-
-  /*
-  private static class ProjectInitializer extends ProjectData {
-    public ProjectInitializer(Project project) {
-      super(project);
-    }
-
-    boolean init() {
-      return handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into system(name,value) values('id',?);");
-          statement.setString(1, getProject().getId());
-          statement.execute();
-
-          statement = db.preparedStatement("insert into system(name,value) values('name',?);");
-          statement.setString(1, getProject().getName());
-          statement.execute();
-
-          db.execute("insert into system(name,value)" +
-            " values('timestamp_create',(DATETIME('now','localtime')));");
-        }
-      });
-    }
-
-    @Override
-    protected String getTableName() {
-      return null;
-    }
-
-    @Override
-    protected Updater getDatabaseUpdater() { return null; }
-  }
-   */
 
   @Override
   public void initialize() {

@@ -47,11 +47,6 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   }
 
   @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
-
-  @Override
   protected Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_CONDUCTOR + Constants.EXT_JSON);
   }
@@ -279,30 +274,4 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     return true;
   }
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /* new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-     */
-  }
 }

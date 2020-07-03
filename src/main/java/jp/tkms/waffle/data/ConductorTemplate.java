@@ -21,7 +21,7 @@ public class ConductorTemplate extends DirectoryBaseData {
   private String arguments = null;
 
   public ConductorTemplate(String name) {
-    super(getBaseDirectoryPath().resolve(name));
+    super(DirectoryBaseData.class, getBaseDirectoryPath().resolve(name));
   }
 
   public static ConductorTemplate getInstance(String name) {
@@ -141,7 +141,7 @@ public class ConductorTemplate extends DirectoryBaseData {
   }
 
   public static Path getBaseDirectoryPath() {
-    return Data.getWaffleDirectoryPath().resolve(Constants.CONDUCTOR_TEMPLATE);
+    return PropertyFileData.getWaffleDirectoryPath().resolve(Constants.CONDUCTOR_TEMPLATE);
   }
 
   @Override

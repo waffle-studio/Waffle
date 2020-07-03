@@ -5,14 +5,11 @@ import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.State;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -28,8 +25,8 @@ public class RunNode extends DirectoryBaseData {
   public RunNode() {
   }
 
-  public RunNode(Project project, Path path) {
-    super(path);
+  public RunNode(Class clazz, Project project, Path path) {
+    super(clazz, path);
     this.project = project;
   }
 
@@ -132,7 +129,7 @@ public class RunNode extends DirectoryBaseData {
    Path path = getDirectoryPath().resolve(generateUniqueName(name));
     try {
       Files.createDirectories(path);
-      resetUuid(path);
+      resetId(RunNode.class, path);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -143,7 +140,7 @@ public class RunNode extends DirectoryBaseData {
     Path path = getDirectoryPath().resolve(generateUniqueName(name));
     try {
       Files.createDirectories(path);
-      resetUuid(path);
+      resetId(RunNode.class, path);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -154,7 +151,7 @@ public class RunNode extends DirectoryBaseData {
     Path path = getDirectoryPath().resolve(generateUniqueName(name));
     try {
       Files.createDirectories(path);
-      resetUuid(path);
+      resetId(RunNode.class, path);
     } catch (IOException e) {
       e.printStackTrace();
     }

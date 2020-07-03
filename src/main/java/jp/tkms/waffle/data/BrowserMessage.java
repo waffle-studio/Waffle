@@ -1,6 +1,5 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.util.Sql;
 
 import java.sql.PreparedStatement;
@@ -10,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class BrowserMessage extends Data {
+public class BrowserMessage extends DatabaseFileData {
   private static final String TABLE_NAME = "browser_message";
   private static final String KEY_MESSAGE = "message";
   private static final String KEY_ROWID = "rowid";

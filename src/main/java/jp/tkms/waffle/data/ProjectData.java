@@ -6,7 +6,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-abstract public class ProjectData extends Data {
+abstract public class ProjectData extends PropertyFileData {
   private Project project;
 
   public ProjectData(Project project, UUID id, String name) {
@@ -20,10 +20,5 @@ abstract public class ProjectData extends Data {
 
   public Project getProject() {
     return project;
-  }
-
-  @Override
-  protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(project.getDirectoryPath() + File.separator + Constants.PROJECT_DB_NAME));
   }
 }

@@ -3,18 +3,13 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
-import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -42,12 +37,7 @@ public class Host extends DirectoryBaseData {
   private JSONObject xsubTemplate = null;
 
   public Host(String name) {
-    super(getBaseDirectoryPath().resolve(name));
-  }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+    super(Host.class, getBaseDirectoryPath().resolve(name));
   }
 
   public static Host getInstance(String id) {
@@ -312,36 +302,8 @@ public class Host extends DirectoryBaseData {
     return jsonObject;
   }
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-    new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              new Sql.Create(db, tableName(),
-                KEY_ID,
-                Sql.Create.withDefault(KEY_XSUB_TEMPLATE, "'{}'"),
-                Sql.Create.withDefault(KEY_STATE, String.valueOf(HostState.Unviable.ordinal()))).execute();
-            }
-          }
-        ));
-      }
-    };
-     */
-  }
-
   public static Path getBaseDirectoryPath() {
-    return Data.getWaffleDirectoryPath().resolve(Constants.HOST);
+    return PropertyFileData.getWaffleDirectoryPath().resolve(Constants.HOST);
   }
 
   @Override
@@ -355,7 +317,7 @@ public class Host extends DirectoryBaseData {
   }
 
   public static void initializeWorkDirectory() {
-    Data.initializeWorkDirectory();
+    PropertyFileData.initializeWorkDirectory();
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
       create(KEY_LOCAL);
     }

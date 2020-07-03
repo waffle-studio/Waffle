@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -11,6 +12,7 @@ import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
+import org.json.JSONArray;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -22,17 +24,19 @@ public class Actor extends AbstractRun {
   protected static final String TABLE_NAME = "conductor_run";
   public static final String ROOT_NAME = "ROOT";
   public static final String KEY_ACTOR = "actor";
+  private static final String ACTOR_PREFIX = "#";
 
-  private String actorName;
+  private static final HashMap<String, Actor> instanceMap = new HashMap<>();
+  private static final String KEY_RUNNING_CHILD_ACTOR = "running_actor";
 
-  public Actor(Project project, UUID id, String name, RunNode runNode, String actorName) {
-    super(project, id, name, runNode);
-    this.actorName = actorName;
+  private String actorName = null;
+
+  public Actor(Project project, UUID id, String name) {
+    super(project, id, name);
   }
 
   public Actor(Actor actor) {
-    super(actor.getProject(), actor.getUuid(), actor.getName(), actor.getRunNode());
-    this.actorName = actor.actorName;
+    super(actor.getProject(), actor.getUuid(), actor.getName());
   }
 
   protected Actor(Project project) {
@@ -40,79 +44,57 @@ public class Actor extends AbstractRun {
   }
 
   @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  protected Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(ACTOR_PREFIX + getName() + Constants.EXT_JSON);
+  }
+
+  protected static Path getPropertyStorePath(RunNode runNode, String name) {
+    return runNode.getDirectoryPath().resolve(ACTOR_PREFIX + name + Constants.EXT_JSON);
+  }
+
+  @Override
+  public Path getDirectoryPath() {
+    return getRunNode().getDirectoryPath();
   }
 
   public static Actor getInstance(Project project, String id) {
-    final Actor[] conductorRun = {null};
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
-        while (resultSet.next()) {
-          conductorRun[0] = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-        }
-      }
-    });
-
-    return conductorRun[0];
+    DataId dataId = DataId.getInstance(id);
+    Actor actor = instanceMap.get(dataId.getId());
+    if (actor != null) {
+      return actor;
+    }
+    return actor;
   }
 
   public static Actor getInstanceByName(Project project, String name) {
-    final Actor[] conductorRun = {null};
+    RunNode runNode = RunNode.getRootInstance(project);
+    DataId dataId = DataId.getInstance(Actor.class, getPropertyStorePath(runNode, name));
+    Actor actor = instanceMap.get(dataId.getId());
+    if (actor != null) {
+      return actor;
+    }
 
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR).where(Sql.Value.equal(KEY_NAME, name)).executeQuery();
-        while (resultSet.next()) {
-          RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
-          if (runNode == null) {
-            new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
-          } else {
-            conductorRun[0] = new Actor(
-              project,
-              UUID.fromString(resultSet.getString(KEY_ID)),
-              resultSet.getString(KEY_NAME),
-              runNode,
-              resultSet.getString(KEY_ACTOR)
-            );
-          }
-        }
-      }
-    });
+    actor = new Actor(project, dataId.getUuid(), name);
+    instanceMap.put(dataId.getId(), actor);
 
-    return conductorRun[0];
+    return actor;
   }
 
   public static Actor getRootInstance(Project project) {
-    final Actor[] conductorRun = {null};
+    RunNode runNode = RunNode.getRootInstance(project);
+    DataId dataId = DataId.getInstance(Actor.class, runNode.getDirectoryPath());
+    Actor actor = instanceMap.get(dataId.getId());
+    if (actor != null) {
+      return actor;
+    }
 
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR).where(Sql.Value.and(Sql.Value.equal(KEY_NAME, ROOT_NAME), Sql.Value.equal(KEY_PARENT, ""))).executeQuery();
-        while (resultSet.next()) {
-          conductorRun[0] = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getRootInstance(project),
-            resultSet.getString(KEY_ACTOR)
-          );
-        }
-      }
-    });
+    actor = new Actor(project, dataId.getUuid(), ROOT_NAME);
+    actor.setToProperty(KEY_PARENT, "");
+    actor.setToProperty(KEY_RESPONSIBLE_ACTOR, "");
+    actor.setToProperty(KEY_RUNNODE, runNode.getId());
 
-    return conductorRun[0];
+    instanceMap.put(dataId.getId(), actor);
+    return actor;
   }
 
   public static Actor find(Project project, String key) {
@@ -122,6 +104,7 @@ public class Actor extends AbstractRun {
     return getInstanceByName(project, key);
   }
 
+  /*
   public static ArrayList<Actor> getList(Project project, Actor parent) {
     ArrayList<Actor> list = new ArrayList<>();
 
@@ -147,31 +130,9 @@ public class Actor extends AbstractRun {
     return list;
   }
 
-  public static ArrayList<Actor> getChildList(Project project, Actor parent) {
-    ArrayList<Actor> list = new ArrayList<>();
+   */
 
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, parent.getId()))
-          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
-        while (resultSet.next()) {
-          Actor conductorRun = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-          list.add(conductorRun);
-        }
-      }
-    });
-
-    return list;
-  }
-
+  /*
   public static ArrayList<Actor> getList(Project project, ActorGroup actorGroup) {
     ArrayList<Actor> list = new ArrayList<>();
 
@@ -179,7 +140,7 @@ public class Actor extends AbstractRun {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_CONDUCTOR, actorGroup.getId()))
+          .where(Sql.Value.equal(KEY_ACTOR_GROUP, actorGroup.getId()))
           .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
           Actor conductorRun = new Actor(
@@ -196,15 +157,17 @@ public class Actor extends AbstractRun {
 
     return list;
   }
+   */
 
   public static Actor getLastInstance(Project project, ActorGroup actorGroup) {
     final Actor[] conductorRun = {null};
 
+    /*
     handleDatabase(new Actor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_CONDUCTOR, actorGroup.getId())).orderBy(KEY_TIMESTAMP_CREATE, true).limit(1).executeQuery();
+          .where(Sql.Value.equal(KEY_ACTOR_GROUP, actorGroup.getId())).orderBy(KEY_TIMESTAMP_CREATE, true).limit(1).executeQuery();
         while (resultSet.next()) {
           conductorRun[0] = new Actor(
             project,
@@ -217,9 +180,12 @@ public class Actor extends AbstractRun {
       }
     });
 
+     */
+
     return conductorRun[0];
   }
 
+  /*
   public static ArrayList<Actor> getList(Project project, String parentId) {
     return getList(project, getInstance(project, parentId));
   }
@@ -246,40 +212,36 @@ public class Actor extends AbstractRun {
 
     return list;
   }
+   */
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
+    DataId dataId = DataId.getInstance(Actor.class, runNode.getDirectoryPath());
+
     Project project = parent.getProject();
     String conductorId = (actorGroup == null ? "" : actorGroup.getId());
     String conductorName = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName());
-    String name = conductorName + " : " + LocalDateTime.now().toString();
-    Actor conductorRun = new Actor(project, UUID.randomUUID(), name, runNode, actorName);
+    String name = conductorName + "_" + LocalDateTime.now().toString() + "_" + UUID.randomUUID().toString();
 
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal( KEY_ID, conductorRun.getId() ),
-          Sql.Value.equal( KEY_NAME, conductorRun.getName() ),
-          Sql.Value.equal( KEY_PARENT, parent.getId() ),
-          Sql.Value.equal( KEY_RESPONSIBLE_ACTOR, parent.getId() ),
-          Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
-          Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
-          Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
-          Sql.Value.equal( KEY_RUNNODE, runNode.getId()),
-          Sql.Value.equal( KEY_ACTOR, actorName)
-        ).execute();
-      }
-    });
+    Actor actor = new Actor(project, dataId.getUuid(), name);
+    actor.setRunNode(runNode);
 
-    return conductorRun;
+    actor.setToProperty(KEY_PARENT, parent.getId());
+    actor.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
+    actor.setToProperty(KEY_ACTOR_GROUP, conductorId);
+    actor.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+    actor.setToProperty(KEY_STATE, State.Created.ordinal());
+    actor.setToProperty(KEY_RUNNODE, runNode.getId());
+    actor.setToProperty(KEY_ACTOR, actorName);
+
+    return actor;
   }
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup) {
     return create(runNode, parent, actorGroup, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
-  public ArrayList<Actor> getChildActorRunList() {
-    return getChildList(getProject(), this);
+  public JSONArray getRunningChildActorIdRunList() {
+    return getArrayFromProperty(KEY_RUNNING_CHILD_ACTOR, false);
   }
 
   public boolean hasRunningChildSimulationRun() {
@@ -287,11 +249,11 @@ public class Actor extends AbstractRun {
   }
 
   public State getState() {
-    return State.valueOf(getIntFromDB(KEY_STATE));
+    return State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
   }
 
   public void setState(State state) {
-    setToDB(KEY_STATE, state.ordinal());
+    setToProperty(KEY_STATE, state.ordinal());
   }
 
   public String getActorName() {
@@ -304,10 +266,8 @@ public class Actor extends AbstractRun {
       return true;
     }
 
-    for (Actor conductorRun : getChildActorRunList()) {
-      if (conductorRun.isRunning()) {
-        return true;
-      }
+    if (getRunningChildActorIdRunList().length() > 0) {
+      return true;
     }
 
     return false;
@@ -376,6 +336,7 @@ public class Actor extends AbstractRun {
       }
 
       //TODO: do refactor
+      /*
       if (getActorGroup() != null) {
         int runningCount = 0;
         for (Actor notFinished : Actor.getNotFinishedList(getProject()) ) {
@@ -385,43 +346,8 @@ public class Actor extends AbstractRun {
         }
         BrowserMessage.addMessage("updateConductorJobNum('" + getActorGroup().getId() + "'," + runningCount + ")");
       }
+       */
     }
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              new Sql.Create(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT, KEY_RESPONSIBLE_ACTOR, KEY_CONDUCTOR,
-                Sql.Create.withDefault(KEY_VARIABLES, "'{}'"),
-                Sql.Create.withDefault(KEY_FINALIZER, "'[]'"),
-                KEY_STATE,
-                KEY_RUNNODE,
-                KEY_ACTOR,
-                Sql.Create.timestamp(KEY_TIMESTAMP_CREATE),
-                KEY_PARENT_RUNNODE).execute();
-              new Sql.Insert(db, TABLE_NAME,
-                Sql.Value.equal(KEY_ID, UUID.randomUUID().toString()),
-                Sql.Value.equal(KEY_NAME, ROOT_NAME),
-                Sql.Value.equal(KEY_PARENT, ""),
-                Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, ""),
-                Sql.Value.equal(KEY_RUNNODE, RunNode.getRootInstance(getProject()).getId())// for compatibility
-              ).execute();
-            }
-          }
-        ));
-      }
-    };
   }
 
   private Path getActorScriptPath() {
