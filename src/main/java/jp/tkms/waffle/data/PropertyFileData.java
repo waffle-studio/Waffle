@@ -202,8 +202,11 @@ abstract public class PropertyFileData {
   }
 
   protected JSONArray getArrayFromProperty(String key, boolean returnNull) {
-    JSONArray jsonArray = getPropertyStore().getJSONArray(key);
-    if (jsonArray == null) {
+    JSONArray jsonArray = null;
+    try {
+      jsonArray = getPropertyStore().getJSONArray(key);
+    } catch (Exception e) {}
+    if ((! returnNull) && jsonArray == null) {
       jsonArray = new JSONArray();
       setToProperty(key, jsonArray);
     }

@@ -232,7 +232,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               , "collapsed-card", null)
           );
 
-        for (String listenerName : conductor.getActor1NameList()) {
+        for (String listenerName : conductor.getActorNameList()) {
           Path path = conductor.getActorScriptPath(listenerName);
           String scriptSyntaxError = RubyConductor.checkSyntax(path);
           content +=

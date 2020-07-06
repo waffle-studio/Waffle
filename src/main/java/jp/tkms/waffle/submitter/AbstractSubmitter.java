@@ -4,7 +4,9 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.FailedToProcessScriptException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.WaffleException;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.LogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -58,8 +60,13 @@ abstract public class AbstractSubmitter {
   }
 
   public void submit(Job job) {
-    prepareJob(job);
-    processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+    try {
+      prepareJob(job);
+      processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.setState(State.Excepted);
+    }
   }
 
   public State update(Job job) {
@@ -74,7 +81,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Job job) {
+  protected void prepareJob(Job job) throws WaffleException {
     SimulatorRun run = job.getRun();
     run.setRemoteWorkingDirectoryLog(getRunDirectory(run));
 
@@ -88,19 +95,17 @@ abstract public class AbstractSubmitter {
         new RubyParameterExtractor().extract(this, run, extractorName);
       }
     } catch (Exception e) {
-      WarnLogMessage.issue(e);
-      job.setState(State.Excepted);
-      return;
+      throw new FailedToProcessScriptException();
     }
     putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    if (! exists(Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString())) {
+    if (!exists(Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString())) {
       Path binPath = run.getSimulator().getBinDirectory().toAbsolutePath();
       try {
         transferFile(binPath, Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString());
       } catch (FailedToTransferFileException e) {
-        WarnLogMessage.issue(e);
+        throw e;
       }
     }
 
@@ -207,8 +212,7 @@ abstract public class AbstractSubmitter {
       job.setState(State.Submitted);
       InfoLogMessage.issue(job.getRun(), "was submitted");
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println(json);
+      WarnLogMessage.issue(e);
     }
   }
 
@@ -274,7 +278,7 @@ abstract public class AbstractSubmitter {
       }
     } catch (Exception e) {
       job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-      e.printStackTrace();
+      WarnLogMessage.issue(e);
     }
   }
 
@@ -330,7 +334,7 @@ abstract public class AbstractSubmitter {
       SimulatorRun run = job.getRun();
 
       if (run != null) {
-        switch (run.getState()) {
+        switch (job.getState()) {
           case Created:
             if (queuedJobList.size() < maximumNumberOfJobs) {
               queuedJobList.add(job);

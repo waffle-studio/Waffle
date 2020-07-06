@@ -3,6 +3,7 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 
 import java.util.ArrayList;
@@ -117,12 +118,17 @@ public class AbciSubmitter extends SshSubmitter {
       packWaitThread.resetWaitTime();
     }
 
-    job.setState(State.Prepared);
-    prepareJob(job);
+    try {
+      prepareJob(job);
+      job.setState(State.Prepared);
 
-    synchronized (objectLocker) {
-      packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(job.getRun()) + "\n");
-      packWaitThread.addReadyJob(job);
+      synchronized (objectLocker) {
+        packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(job.getRun()) + "\n");
+        packWaitThread.addReadyJob(job);
+      }
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.setState(State.Excepted);
     }
   }
 

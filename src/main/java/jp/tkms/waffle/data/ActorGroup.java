@@ -25,7 +25,7 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   private static final String KEY_ACTOR = "actor";
   public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
   private static final String RUBY_ACTOR_TEMPLATE_RB = "/ruby_actor_template.rb";
-  public static final String KEY_REPRESENTATIVE_ACTOR_NAME = "#";
+  public static final String KEY_REPRESENTATIVE_ACTOR_NAME = "~";
 
   private static final HashMap<String, ActorGroup> instanceMap = new HashMap<>();
 
@@ -194,10 +194,10 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     return getFileContents(getActorScriptPath(name));
   }
 
-  public List<String> getActor1NameList() {
+  public List<String> getActorNameList() {
     List<String> list = null;
     try {
-      JSONArray array = getArrayFromProperty(KEY_ACTOR);
+      JSONArray array = getArrayFromProperty(KEY_ACTOR, false);
       list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
       for (String name : list) {
         if (! Files.exists(getActorScriptPath(name))) {

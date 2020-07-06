@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.util.Scanner;
 
 public class SimulatorRunNode extends RunNode {
   protected static final String KEY_TMP = ".tmp";
@@ -33,6 +34,7 @@ public class SimulatorRunNode extends RunNode {
     if (name.length() <= 0) {
       name = "_0";
     }
+
     rename(KEY_TMP);
     InclusiveRunNode node = parent.createInclusiveRunNode(virtualNodeName);
 
@@ -43,6 +45,7 @@ public class SimulatorRunNode extends RunNode {
     } catch (IOException e) { }
 
     replace(node.getDirectoryPath().resolve(name));
+
     return node;
   }
 

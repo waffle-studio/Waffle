@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 
@@ -163,10 +164,14 @@ public class Job extends DatabaseFileData {
   }
 
   public void setState(State state) {
-    setToDB(KEY_STATE, state.ordinal());
-    this.state = state;
-    if (getRun() != null) {
-      getRun().setState(state);
+    try {
+      setToDB(KEY_STATE, state.ordinal());
+      this.state = state;
+      if (getRun() != null) {
+        getRun().setState(state);
+      }
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
     }
   }
 
