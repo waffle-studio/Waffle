@@ -7,6 +7,7 @@ import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.Workspace;
 import spark.Spark;
 
 import java.nio.file.Files;
@@ -20,6 +21,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   ;
   private Project project;
+  private Workspace workspace;
   private SimulatorRun run;
   public RunComponent(Mode mode) {
     super();
@@ -36,19 +38,19 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project, UUID runId) {
-    return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + runId.toString());
+    return "/run/" + (project == null ? ":project/:id" : project.getName() + "/" + runId.toString());
   }
 
   public static String getUrl(Project project, SimulatorRun run, String mode) {
-    return "/run/" + (project == null ? ":project/:id/" + mode : project.getId() + "/" + run.getId() + "/" + mode);
+    return "/run/" + (project == null ? ":project/:id/" + mode : project.getName() + "/" + run.getId() + "/" + mode);
   }
 
   @Override
   public void controller() {
-    project = Project.getInstance(request.params("project"));
+    project = Project.getInstanceByName(request.params("project"));
     String requestedId = request.params("id");
 
-    run = SimulatorRun.getInstance(project, requestedId);
+    run = SimulatorRun.getInstance(Workspace.getInstanceByName(project, workspaceName), requestedId);
 
     switch (mode) {
       case ReCheck:

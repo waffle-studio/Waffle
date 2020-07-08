@@ -13,6 +13,7 @@ import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 import org.json.JSONArray;
+import org.w3c.dom.Entity;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,16 +33,12 @@ public class Actor extends AbstractRun {
 
   private String actorName = null;
 
-  protected Actor(Project project, UUID id, String name) {
-    super(project, id, name);
+  protected Actor(Workspace workspace, UUID id, String name) {
+    super(workspace, id, name);
   }
 
   public Actor(Actor actor) {
-    super(actor.getProject(), actor.getUuid(), actor.getName());
-  }
-
-  protected Actor(Project project) {
-    super(project);
+    super(actor.getWorkspace(), actor.getUuid(), actor.getName());
   }
 
   public static Path getLocalPath(String name) {
@@ -52,33 +49,35 @@ public class Actor extends AbstractRun {
     return getLocalPath(getName());
   }
 
-  @Override
-  protected Path getPropertyStorePath() {
-    return getProject().getDirectoryPath().resolve(getName() + Constants.EXT_JSON);
-  }
-
-  @Override
-  public Path getDirectoryPath() {
-    return getPropertyStorePath().getParent();
-  }
-
-  public static Actor getInstance(Project project, String id) {
+  public static Actor getInstance(Workspace workspace, String id) {
     if (id == null || "".equals(id)) {
       return null;
     }
 
-    DataId dataId = DataId.getInstance(id);
-    Actor actor = instanceMap.get(dataId.getId());
+    Actor actor = instanceMap.get(id);
     if (actor != null) {
       return actor;
     }
 
-    actor = new Actor(project, dataId.getUuid(), project.getDirectoryPath().relativize(dataId.getPath()).toString());
-    instanceMap.put(dataId.getId(), actor);
+    synchronized (workspace.getDatabase()) {
+      try {
+        ResultSet resultSet = new Sql.Select(workspace.getDatabase(), KEY_ACTOR, KEY_ID, KEY_NAME).executeQuery();
+        while (resultSet.next()) {
+          actor = new Actor(workspace, UUID.fromString(resultSet.getString(KEY_ID)), resultSet.getString(KEY_NAME));
+        }
+      } catch (SQLException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    if (actor != null) {
+      instanceMap.put(id, actor);
+    }
 
     return actor;
   }
 
+  /*
   public static Actor getInstanceByName(Project project, String name) {
     if (name == null || "".equals(name)) {
       return null;
@@ -95,10 +94,10 @@ public class Actor extends AbstractRun {
 
     return actor;
   }
+   */
 
-  public static Actor getRootInstance(Project project) {
-    RunNode runNode = RunNode.getRootInstance(project);
-    DataId dataId = DataId.getInstance(Actor.class, runNode.getDirectoryPath());
+  /*
+  public static Actor getRootInstance(Workspace workspace) {
     Actor actor = instanceMap.get(dataId.getId());
     if (actor != null) {
       return actor;
@@ -112,12 +111,13 @@ public class Actor extends AbstractRun {
     instanceMap.put(dataId.getId(), actor);
     return actor;
   }
+   */
 
-  public static Actor find(Project project, String key) {
+  public static Actor find(Workspace workspace, String key) {
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
-      return getInstance(project, key);
+      return getInstance(workspace, key);
     }
-    return getInstanceByName(project, key);
+    return null;//getInstanceByName(project, key);
   }
 
   /*
@@ -232,22 +232,21 @@ public class Actor extends AbstractRun {
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
 
-    Project project = parent.getProject();
+    Workspace workspace = runNode.getWorkspace();
     String conductorId = (actorGroup == null ? "" : actorGroup.getId());
     String conductorName = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName());
     String name = ACTOR_PREFIX + conductorName + "_" + LocalDateTime.now().toString() + "_" + UUID.randomUUID().toString();
-    DataId dataId = DataId.getInstance(Actor.class, runNode.getDirectoryPath().resolve(getLocalPath(name)));
 
-    Actor actor = new Actor(project, dataId.getUuid(), project.getDirectoryPath().relativize(dataId.getPath()).toString());
+    Actor actor = new Actor(workspace, UUID.randomUUID(), name);
     actor.setRunNode(runNode);
 
-    actor.setToProperty(KEY_PARENT, parent.getId());
-    actor.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
-    actor.setToProperty(KEY_ACTOR_GROUP, conductorId);
-    actor.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
-    actor.setToProperty(KEY_STATE, State.Created.ordinal());
-    actor.setToProperty(KEY_RUNNODE, runNode.getId());
-    actor.setToProperty(KEY_ACTOR, actorName);
+    actor.setToDB(KEY_PARENT, parent == null ? "" : parent.getId());
+    actor.setToDB(KEY_RESPONSIBLE_ACTOR, parent == null ? "" : parent.getId());
+    actor.setToDB(KEY_ACTOR_GROUP, conductorId);
+    actor.setToDB(KEY_VARIABLES, parent == null ? "'{}'" : parent.getVariables().toString());
+    actor.setToDB(KEY_STATE, State.Created.ordinal());
+    actor.setToDB(KEY_RUNNODE, runNode.getPath().toString());
+    actor.setToDB(KEY_ACTOR, actorName);
 
     return actor;
   }
@@ -256,40 +255,35 @@ public class Actor extends AbstractRun {
     return create(runNode, parent, actorGroup, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
-  public JSONArray getRunningChildActorIdRunList() {
-    return getArrayFromProperty(KEY_RUNNING_CHILD_ACTOR, false);
-  }
-
-  public boolean hasRunningChildSimulationRun() {
-    return SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
+  public boolean isRunning() {
+    boolean result = false;
+    synchronized (getWorkspace().getDatabase()) {
+      try {
+        ResultSet resultSet = new Sql.Select(getWorkspace().getDatabase(), KEY_ACTOR, "count(*) as count")
+          .where(Sql.Value.and(Sql.Value.equal(KEY_PARENT, getId()), Sql.Value.lessThan(KEY_STATE, State.Finished.ordinal()))).executeQuery();
+        while (resultSet.next()) {
+          result = resultSet.getInt("count") > 0;
+        }
+      } catch (SQLException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+    return result;
   }
 
   public State getState() {
-    return State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
+    return State.valueOf(getIntFromDB(KEY_STATE));
   }
 
   public void setState(State state) {
-    setToProperty(KEY_STATE, state.ordinal());
+    setToDB(KEY_STATE, state.ordinal());
   }
 
   public String getActorName() {
     if (actorName == null) {
-      actorName = getStringFromProperty(KEY_ACTOR);
+      actorName = getStringFromDB(KEY_ACTOR);
     }
     return actorName;
-  }
-
-  @Override
-  public boolean isRunning() {
-    if (hasRunningChildSimulationRun()) {
-      return true;
-    }
-
-    if (getRunningChildActorIdRunList().length() > 0) {
-      return true;
-    }
-
-    return false;
   }
 
   public void start() {
@@ -409,22 +403,25 @@ public class Actor extends AbstractRun {
   private ArrayList<AbstractRun> transactionRunList = new ArrayList<>();
 
   public Actor createActor(String name) {
-    ActorGroup actorGroup = ActorGroup.find(getProject(), name);
+    ActorGroup actorGroup = ActorGroup.find(getWorkspace().getProject(), name);
     if (actorGroup == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
 
+    Actor actor = null;
     if (getRunNode() instanceof SimulatorRunNode) {
-      setRunNode(((SimulatorRunNode) getRunNode()).moveToVirtualNode());
+      //setRunNode(((SimulatorRunNode) getRunNode()).moveToVirtualNode());
+      actor = Actor.create(getRunNode().getParent().createInclusiveRunNode(""), this, actorGroup);
+    } else {
+      actor = Actor.create(getRunNode().createInclusiveRunNode(""), this, actorGroup);
     }
 
-    Actor actor = Actor.create(getRunNode().createInclusiveRunNode(""), this, actorGroup);
     transactionRunList.add(actor);
     return actor;
   }
 
   public SimulatorRun createSimulatorRun(String name, String hostName) {
-    Simulator simulator = Simulator.find(getProject(), name);
+    Simulator simulator = Simulator.find(getWorkspace().getProject(), name);
     if (simulator == null) {
       throw new RuntimeException("Simulator(\"" + name + "\") is not found");
     }

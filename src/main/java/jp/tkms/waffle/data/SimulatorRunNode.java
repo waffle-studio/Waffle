@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.State;
 
@@ -15,18 +16,19 @@ public class SimulatorRunNode extends RunNode {
   protected static final String KEY_TMP = ".tmp";
   protected static final String KEY_SIMULATOR = ".SIMULATOR";
 
-  public SimulatorRunNode(Project project, Path path) {
-    super(SimulatorRun.class, project, path);
-    Path flagPath = path.resolve(KEY_SIMULATOR);
+  public SimulatorRunNode(Workspace workspace, Path path) {
+    super(workspace, path);
+    Path flagPath = getDirectoryPath(workspace, path).resolve(KEY_SIMULATOR);
     if (! Files.exists(flagPath)) {
       try {
         flagPath.toFile().createNewFile();
       } catch (IOException e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
     }
   }
 
+  /*
   public InclusiveRunNode moveToVirtualNode() {
     String virtualNodeName = getDirectoryPath().getFileName().toString();
     RunNode parent = getParent();
@@ -49,11 +51,13 @@ public class SimulatorRunNode extends RunNode {
     return node;
   }
 
+   */
+
+  /*
   public void updateState(State prev, State next) {
     propagateState(prev, next);
   }
 
-  @Override
   public State getState() {
     SimulatorRun run = SimulatorRun.getInstance(project, getId());
     if (run == null) {
@@ -61,4 +65,5 @@ public class SimulatorRunNode extends RunNode {
     }
     return run.getState();
   }
+   */
 }

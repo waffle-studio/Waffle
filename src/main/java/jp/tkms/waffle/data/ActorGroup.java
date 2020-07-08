@@ -55,16 +55,18 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     return project.getDirectoryPath().resolve(KEY_CONDUCTOR);
   }
 
+  /*
   public static ActorGroup getInstance(Project project, String id) {
     DataId dataId = DataId.getInstance(id);
     return instanceMap.get(dataId.getId());
   }
+   */
 
   public static ActorGroup getInstanceByName(Project project, String name) {
 
-    DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
+    //DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
 
-    ActorGroup actorGroup = instanceMap.get(dataId.getId());
+    ActorGroup actorGroup = instanceMap.get(name);
     if (actorGroup != null) {
       return actorGroup;
     }
@@ -77,9 +79,11 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   }
 
   public static ActorGroup find(Project project, String key) {
+    /*
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(project, key);
     }
+     */
     return getInstanceByName(project, key);
   }
 
@@ -116,8 +120,8 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   }
 
   public static ActorGroup create(Project project, String name) {
-    DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
-    ActorGroup actorGroup = new ActorGroup(project, dataId.getUuid(), name);
+    //DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
+    ActorGroup actorGroup = new ActorGroup(project, UUID.randomUUID(), name);
     /*
     if (
       handleDatabase(new ActorGroup(project), new Handler() {
@@ -168,7 +172,7 @@ public class ActorGroup extends ProjectData implements DataDirectory {
       actorGroup.putNewArrayToProperty(KEY_ACTOR);
     }
 
-    instanceMap.put(dataId.getId(), actorGroup);
+    instanceMap.put(name, actorGroup);
 
     return actorGroup;
   }

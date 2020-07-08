@@ -27,7 +27,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   private Project project;
   private ActorGroup conductor;
-  private Actor parent;
+  //private Actor parent;
   public ConductorComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -39,8 +39,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ConductorComponent());
-    Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
-    Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
+    Spark.get(getUrl(null, "prepare"), new ConductorComponent(Mode.Prepare));
+    Spark.post(getUrl(null, "run"), new ConductorComponent(Mode.Run));
     Spark.post(getUrl(null, "update-arguments"), new ConductorComponent(Mode.UpdateArguments));
     Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, "update-listener-script"), new ConductorComponent(Mode.UpdateListenerScript));
@@ -49,12 +49,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(ActorGroup conductor) {
     return "/conductor/"
-      + (conductor == null ? ":project/:id" : conductor.getProject().getId() + '/' + conductor.getId());
-  }
-
-  public static String getUrl(ActorGroup conductor, String mode, Actor parent) {
-    return getUrl(conductor) + '/' + mode + '/'
-      + (parent == null ? ":parent" : parent.getId());
+      + (conductor == null ? ":project/:id" : conductor.getProject().getName() + '/' + conductor.getId());
   }
 
   public static String getUrl(ActorGroup conductor, String mode) {
@@ -63,21 +58,21 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    project = Project.getInstance(request.params("project"));
+    project = Project.getInstanceByName(request.params("project"));
     if (!project.isValid()) {
     }
 
-    conductor = ActorGroup.getInstance(project, request.params("id"));
+    conductor = ActorGroup.getInstanceByName(project, request.params("name"));
 
     if (mode == Mode.Prepare) {
       if (conductor.checkSyntax()) {
-        parent = Actor.getInstance(project, request.params("parent"));
+        //parent = Actor.getInstance(project, request.params("parent"));
         renderPrepareForm();
       } else {
         response.redirect(getUrl(conductor));
       }
     } else if (mode == Mode.Run) {
-      parent = Actor.getInstance(project, request.params("parent"));
+      //parent = Actor.getInstance(project, request.params("parent"));
       String newRunNodeName = "" + request.queryParams(KEY_NAME);
       Actor conductorRun = Actor.create(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, conductor);
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
@@ -179,7 +174,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
             Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
-            Html.a(getUrl(conductor, "prepare", Actor.getRootInstance(project)),
+            Html.a(getUrl(conductor, "prepare"),
               Html.span("right badge badge-secondary", null, "run")
             ),
             Lte.cardToggleButton(false),
@@ -301,7 +296,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String content = "";
 
         content +=
-          Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
+          Html.form(getUrl(conductor, "run"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Properties",
               null,
               Lte.divRow(

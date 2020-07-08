@@ -38,13 +38,13 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
   public static String getStaticUrl(Simulator simulator, String mode) {
     return "/result_collector-" + mode + "/"
-      + (simulator == null ? ":project/:simulator" : simulator.getProject().getId() + "/" + simulator.getId());
+      + (simulator == null ? ":project/:simulator" : simulator.getProject().getName() + "/" + simulator.getName());
   }
 
   public static String getUrl(Simulator simulator, String name) {
     return "/result_collector/"
       + (name == null ? ":project/:simulator/:name"
-      : simulator.getProject().getId() + '/' + simulator.getId() + '/' +  name);
+      : simulator.getProject().getName() + '/' + simulator.getName() + '/' +  name);
   }
 
   public static String getUrl(Simulator simulator, String name, String mode) {
@@ -53,8 +53,8 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
   @Override
   public void controller() {
-    project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params("simulator"));
+    project = Project.getInstanceByName(request.params("project"));
+    simulator = Simulator.getInstanceByName(project, request.params("simulator"));
 
     switch (mode) {
       case Add:

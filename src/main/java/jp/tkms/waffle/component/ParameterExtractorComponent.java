@@ -38,13 +38,13 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
   public static String getStaticUrl(Simulator simulator, String mode) {
     return "/parameter_extractor-" + mode + "/"
-      + (simulator == null ? ":project/:simulator" : simulator.getProject().getId() + "/" + simulator.getId());
+      + (simulator == null ? ":project/:simulator" : simulator.getProject().getName() + "/" + simulator.getName());
   }
 
   public static String getUrl(Simulator simulator, String name) {
     return "/parameter_extractor/"
       + (name == null ? ":project/:simulator/:name"
-      : simulator.getProject().getId() + '/' + simulator.getId() + '/' +  name);
+      : simulator.getProject().getName() + '/' + simulator.getName() + '/' +  name);
   }
 
   public static String getUrl(Simulator simulator, String name, String mode) {
@@ -53,8 +53,8 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
   @Override
   public void controller() {
-    project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params("simulator"));
+    project = Project.getInstanceByName(request.params("project"));
+    simulator = Simulator.getInstanceByName(project, request.params("simulator"));
 
     switch (mode) {
       case Add:

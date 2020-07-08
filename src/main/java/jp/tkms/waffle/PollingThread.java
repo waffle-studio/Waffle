@@ -32,7 +32,7 @@ public class PollingThread extends Thread {
       submitter.pollingTask(host);
       submitter.close();
       InfoLogMessage.issue(host, "was scanned");
-      host = Host.getInstance(host.getId());
+      host = Host.getInstanceByName(host.getName());
       System.gc();
       if (Main.hibernateFlag) {
         submitter.hibernate();
@@ -40,7 +40,7 @@ public class PollingThread extends Thread {
       }
     } while (Job.getList(host).size() > 0);
 
-    threadMap.remove(host.getId());
+    threadMap.remove(host.getName());
 
     InfoLogMessage.issue(host, "submitter closed");
   }
@@ -48,10 +48,10 @@ public class PollingThread extends Thread {
   synchronized public static void startup() {
     if (!Main.hibernateFlag) {
       for (Host host : Host.getList()) {
-        if (!threadMap.containsKey(host.getId()) && Job.getList(host).size() > 0) {
+        if (!threadMap.containsKey(host.getName()) && Job.getList(host).size() > 0) {
           host.update();
           PollingThread pollingThread = new PollingThread(host);
-          threadMap.put(host.getId(), pollingThread);
+          threadMap.put(host.getName(), pollingThread);
           pollingThread.start();
         }
       }

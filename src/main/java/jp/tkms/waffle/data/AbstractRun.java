@@ -11,12 +11,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
-abstract public class AbstractRun extends ProjectData implements DataDirectory {
+abstract public class AbstractRun implements EntityDatabase {
+  protected static final String KEY_NAME = "name";
+  protected static final String KEY_ACTOR = "actor";
   protected static final String KEY_PARENT = "parent";
   protected static final String KEY_ACTOR_GROUP = "actor_group";
   protected static final String KEY_FINALIZER = "finalizer";
@@ -40,16 +43,65 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   protected boolean isStarted = false;
   private RunNode runNode = null;
 
+  UUID id;
+  String name;
+  Workspace workspace;
   Registry registry;
 
-  public AbstractRun(Project project) {
-    super(project);
+  public AbstractRun(Workspace workspace, UUID id, String name) {
+    this.workspace = workspace;
+    this.id = id;
+    this.name = name;
+
+    this.registry = new Registry(workspace.getProject());
   }
 
-  public AbstractRun(Project project, UUID id, String name) {
-    super(project, id, name);
+  public String getId() {
+    return id.toString();
+  }
 
-    this.registry = new Registry(getProject());
+  public String getShortId() {
+    return getShortId(getUuid());
+  }
+
+  public static String getShortId(UUID id) {
+    return id.toString().replaceFirst("-.*$", "");
+  }
+
+  public UUID getUuid() {
+    return id;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+    setToDB(KEY_NAME, name);
+  }
+
+  public Workspace getWorkspace() {
+    return workspace;
+  }
+
+  public Project getProject() {
+    return getWorkspace().getProject();
+  }
+
+  @Override
+  public Database getDatabase() {
+    return getWorkspace().getDatabase();
+  }
+
+  @Override
+  public String getEntityId() {
+    return getId();
+  }
+
+  @Override
+  public String getEntityTable() {
+    return KEY_ACTOR;
   }
 
   public boolean isStarted() {
@@ -58,20 +110,20 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
   public Actor getParentActor() {
     if (parentActor == null) {
-      parentActor = Actor.getInstance(getProject(), getStringFromProperty(KEY_PARENT));
+      parentActor = Actor.getInstance(getWorkspace(), getStringFromDB(KEY_PARENT));
     }
     return parentActor;
   }
 
   public Actor getResponsibleActor() {
     if (responsibleActor == null) {
-      responsibleActor = Actor.getInstance(getProject(), getStringFromProperty(KEY_RESPONSIBLE_ACTOR));
+      responsibleActor = Actor.getInstance(getWorkspace(), getStringFromDB(KEY_RESPONSIBLE_ACTOR));
     }
     return responsibleActor;
   }
 
   protected void setResponsibleActor(Actor actor) {
-    setToProperty(KEY_RESPONSIBLE_ACTOR, actor.getId());
+    setToDB(KEY_RESPONSIBLE_ACTOR, actor.getId());
     responsibleActor = actor;
   }
 
@@ -81,35 +133,30 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
   public RunNode getRunNode() {
     if (runNode == null) {
-      runNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_RUNNODE, getId()));
+      runNode = RunNode.getInstance(getWorkspace(), Paths.get(getStringFromDB(KEY_RUNNODE)));
     }
     return runNode;
   }
 
   protected void setRunNode(RunNode node) {
     runNode = node;
-    setToProperty(KEY_RUNNODE, node.getId());
+    setToDB(KEY_RUNNODE, node.getPath().toString());
   }
 
   public boolean isRoot() {
     return getParentActor() == null;
   }
 
-  @Override
-  public Path getDirectoryPath() {
-    return getRunNode().getDirectoryPath();
-  }
-
   public ActorGroup getActorGroup() {
     if (actorGroup == null) {
-      actorGroup = ActorGroup.getInstance(getProject(), getStringFromProperty(KEY_ACTOR_GROUP));
+      actorGroup = ActorGroup.getInstanceByName(getWorkspace().getProject(), getStringFromDB(KEY_ACTOR_GROUP));
     }
     return actorGroup;
   }
 
   public ArrayList<String> getFinalizers() {
     if (finalizers == null) {
-      finalizers = new JSONArray(getStringFromProperty(KEY_FINALIZER, "[]"));
+      finalizers = new JSONArray(getStringFromDB(KEY_FINALIZER));
     }
     ArrayList<String> stringList = new ArrayList<>();
     for (Object o : finalizers.toList()) {
@@ -121,25 +168,25 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   public void setFinalizers(ArrayList<String> finalizers) {
     this.finalizers = new JSONArray(finalizers);
     String finalizersJson = this.finalizers.toString();
-    setToProperty(KEY_FINALIZER, finalizersJson);
+    setToDB(KEY_FINALIZER, finalizersJson);
   }
 
   public void addFinalizer(String key) {
     Actor actor = Actor.create(getRunNode(), (Actor)(this instanceof SimulatorRun ? getParentActor() : this), getActorGroup(), key);
     ArrayList<String> finalizers = getFinalizers();
-    finalizers.add(actor.getName());
+    finalizers.add(actor.getId());
     setFinalizers(finalizers);
   }
 
   public void finish() {
     if (! getState().isRunning()) {
-      for (String actorName : getFinalizers()) {
-        Actor finalizer = Actor.getInstanceByName(getProject(), actorName);
+      for (String actorId : getFinalizers()) {
+        Actor finalizer = Actor.getInstance(getWorkspace(), actorId);
         finalizer.setResponsibleActor(getResponsibleActor());
         if (finalizer != null) {
           finalizer.start(this);
         } else {
-          WarnLogMessage.issue("the actor(" + actorName + ") is not found");
+          WarnLogMessage.issue("the actor(" + actorId + ") is not found");
         }
       }
     }
@@ -165,14 +212,14 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     } catch (Exception e) {
       WarnLogMessage.issue(e);
     }
-    JSONObject map = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
+    JSONObject map = new JSONObject(getStringFromDB(KEY_VARIABLES));
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
         parameters.put(key, valueMap.get(key));
       }
 
-      setToProperty(KEY_VARIABLES, parameters);
+      setToDB(KEY_VARIABLES, parameters.toString());
     }
   }
 
@@ -184,7 +231,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
   public JSONObject getVariables() {
     if (parameters == null) {
-      parameters = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
+      parameters = new JSONObject(getStringFromDB(KEY_VARIABLES));
     }
     return parameters;
   }
@@ -216,6 +263,6 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   public HashMap v() { return variables(); }
 
   public void updateRunNode(RunNode runNode) {
-    setToProperty(KEY_RUNNODE, getRunNode().getName());
+    setToDB(KEY_RUNNODE, getRunNode().getPath().toString());
   }
 }

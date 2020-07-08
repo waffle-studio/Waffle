@@ -2,8 +2,6 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
-import jp.tkms.waffle.data.DataId;
-import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import spark.Spark;

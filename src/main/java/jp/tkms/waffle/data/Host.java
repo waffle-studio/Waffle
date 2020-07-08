@@ -1,11 +1,13 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,7 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class Host extends DirectoryBaseData {
+public class Host implements EntityProperty, DataDirectory {
   private static final String TABLE_NAME = "host";
   private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
   private static final String KEY_LOCAL = "LOCAL";
@@ -36,12 +38,14 @@ public class Host extends DirectoryBaseData {
   private JSONObject parameters = null;
   private JSONObject xsubTemplate = null;
 
+  private String name;
+
   public Host(String name) {
-    super(Host.class, getBaseDirectoryPath().resolve(name));
+    this.name = name;
   }
 
-  public static Host getInstance(String id) {
-    return getInstanceByName(getName(id));
+  public String getName() {
+    return name;
   }
 
   public static Host getInstanceByName(String name) {
@@ -49,8 +53,7 @@ public class Host extends DirectoryBaseData {
       return null;
     }
 
-    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath().resolve(name));
-    Host host = instanceMap.get(dataId.getId());
+    Host host = instanceMap.get(name);
     if (host != null) {
       return host;
     }
@@ -65,15 +68,17 @@ public class Host extends DirectoryBaseData {
       if (host.getPollingInterval() == null) { host.setPollingInterval(10); }
     }
 
-    instanceMap.put(dataId.getId(), host);
+    instanceMap.put(name, host);
 
     return host;
   }
 
   public static Host find(String key) {
+    /*
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(key);
     }
+     */
     return getInstanceByName(key);
   }
 
@@ -108,7 +113,11 @@ public class Host extends DirectoryBaseData {
   }
 
   public static Host create(String name) {
-    createDirectories(getBaseDirectoryPath().resolve(name));
+    try {
+      Files.createDirectories(getBaseDirectoryPath().resolve(name));
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
     return getInstanceByName(name);
   }
 
@@ -312,7 +321,7 @@ public class Host extends DirectoryBaseData {
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(Constants.HOST + Constants.EXT_JSON);
   }
 

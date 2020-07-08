@@ -69,7 +69,7 @@ public class ConductorTemplate extends DirectoryBaseData {
     return conductor[0];
   }
 
-  public static ConductorTemplate getInstanceByName(String name) {
+  public static ConductorTemplate getInstance(String name) {
     final ConductorTemplate[] conductor = {null};
 
     handleDatabase(new ConductorTemplate(), new Handler() {
@@ -94,7 +94,7 @@ public class ConductorTemplate extends DirectoryBaseData {
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(key);
     }
-    return getInstanceByName(key);
+    return getInstance(key);
   }
   dd
    */

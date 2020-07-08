@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
@@ -12,10 +13,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.*;
 
-public class SimulatorRun extends AbstractRun {
+public class SimulatorRun extends AbstractRun implements EntityProperty, DataDirectory {
   protected static final String TABLE_NAME = "simulator_run";
   private static final String KEY_HOST = "host";
   private static final String KEY_SIMULATOR = "simulator";
@@ -36,9 +40,7 @@ public class SimulatorRun extends AbstractRun {
   public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
   private static final String KEY_ACTUAL_HOST = "actual_host";
 
-  protected SimulatorRun(Project project) {
-    super(project);
-  }
+  private static final HashMap<String, SimulatorRun> instanceMap = new HashMap<>();
 
   private Host host;
   private State state;
@@ -51,22 +53,33 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray localSharedList;
   private RunNode parentRunNode = null;
 
-  private SimulatorRun(Actor parent, RunNode runNode) {
-    this(parent.getProject(), runNode);
+  private SimulatorRun(Workspace workspace, UUID id, String name) {
+    super(workspace, id, name);
   }
 
-  private SimulatorRun(Project project, RunNode runNode) {
-    super(project, runNode.getUuid(), runNode.getSimpleName());
-    setRunNode(runNode);
-  }
+  public static SimulatorRun getInstance(Workspace workspace, String id) {
+    if (id == null || "".equals(id)) {
+      return null;
+    }
 
-  public static SimulatorRun getInstance(Project project, String id) {
-    SimulatorRun run = null;
+    SimulatorRun run = instanceMap.get(id);
+    if (run != null) {
+      return run;
+    }
 
-    RunNode runNode = RunNode.getInstance(project, id);
+    synchronized (workspace.getDatabase()) {
+      try {
+        ResultSet resultSet = new Sql.Select(workspace.getDatabase(), KEY_ACTOR, KEY_ID, KEY_NAME).executeQuery();
+        while (resultSet.next()) {
+          run = new SimulatorRun(workspace, UUID.fromString(resultSet.getString(KEY_ID)), resultSet.getString(KEY_NAME));
+        }
+      } catch (SQLException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
 
-    if (runNode != null) {
-      run = new SimulatorRun(project, runNode);
+    if (run != null) {
+      instanceMap.put(id, run);
     }
 
     return run;
@@ -89,7 +102,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public Simulator getSimulator() {
-    return Simulator.getInstanceByName(getProject(), getStringFromProperty(KEY_SIMULATOR));
+    return Simulator.getInstanceByName(getWorkspace().getProject(), getStringFromProperty(KEY_SIMULATOR));
   }
 
   public void setSimulator(Simulator simulator) {
@@ -128,23 +141,22 @@ public class SimulatorRun extends AbstractRun {
 
   public RunNode getParentRunNode() {
     if (parentRunNode == null) {
-      parentRunNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_PARENT_RUNNODE));
+      parentRunNode = RunNode.getInstance(getWorkspace(), Paths.get(getStringFromDB(KEY_PARENT_RUNNODE)));
     }
     return parentRunNode;
   }
 
   protected void setParentRunNode(RunNode node) {
-    setToProperty(KEY_PARENT_RUNNODE, node.getId());
+    setToProperty(KEY_PARENT_RUNNODE, node.getPath().toString());
     parentRunNode = node;
   }
 
-  @Override
   public void setName(String name) {
     super.setName(getRunNode().rename(name));
   }
 
   public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(parent, runNode);
+    SimulatorRun run = new SimulatorRun(parent.getWorkspace(), UUID.randomUUID(), runNode.getSimpleName());
     run.setSimulator(simulator);
     run.setHost(host);
     ActorGroup conductor = parent.getActorGroup();
@@ -152,7 +164,7 @@ public class SimulatorRun extends AbstractRun {
     String simulatorName = run.getSimulator().getName();
     String hostName = run.getHost().getName();
 
-    ((SimulatorRunNode) runNode).updateState(null, State.Created);
+    runNode.propagateState(null, State.Created);
 
     /*
     JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
@@ -188,7 +200,7 @@ public class SimulatorRun extends AbstractRun {
     run.setToProperty(KEY_HOST, hostName);
     run.setToProperty(KEY_STATE, run.getState().ordinal());
     run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
-    run.setToProperty(KEY_RUNNODE, runNode.getId());
+    run.setToProperty(KEY_RUNNODE, runNode.getPath().toString());
 
     run.setExitStatus(-1);
     run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());
@@ -219,7 +231,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_RUN + Constants.EXT_JSON);
   }
 
@@ -246,7 +258,7 @@ public class SimulatorRun extends AbstractRun {
           setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
       }
 
-      ((SimulatorRunNode) getRunNode()).updateState(currentState, state);
+      getRunNode().propagateState(currentState, state);
       setToProperty(KEY_STATE, state.ordinal());
       this.state = state;
       new RunStatusUpdater(this);
@@ -644,4 +656,9 @@ public class SimulatorRun extends AbstractRun {
     return parametersWrapper;
   }
   public HashMap p() { return parameters(); }
+
+  @Override
+  public Path getDirectoryPath() {
+    return getRunNode().getDirectoryPath();
+  }
 }

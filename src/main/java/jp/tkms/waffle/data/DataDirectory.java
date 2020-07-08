@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.log.ErrorLogMessage;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,7 +20,7 @@ public interface DataDirectory {
         Files.createDirectories(getDirectoryPath());
         path.toFile().createNewFile();
       } catch (IOException e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
     }
   }
@@ -45,7 +47,7 @@ public interface DataDirectory {
         filewriter.write(contents);
         filewriter.close();
       } catch (IOException e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
     }
   }
@@ -60,5 +62,23 @@ public interface DataDirectory {
 
   default void updateFileContents(String fileName, String contents) {
     updateFileContents(Paths.get(fileName), contents);
+  }
+
+  default void createDirectories(Path path) {
+    if (! path.isAbsolute()) {
+      path = getDirectoryPath().resolve(path);
+    }
+
+    if (!Files.exists(path)) {
+      try {
+        Files.createDirectories(path);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+  }
+
+  default void createDirectories(String dirName) {
+    createDirectories(Paths.get(dirName));
   }
 }

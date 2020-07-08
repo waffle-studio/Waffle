@@ -17,7 +17,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   public enum Mode {Default, NotFound, EditConstModel, AddConductor}
   Mode mode;
 
-  private String requestedId;
+  private String requestedName;
   private Project project;
   public ProjectComponent(Mode mode) {
     super();
@@ -42,7 +42,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/project/" + (project == null ? ":id" : project.getId());
+    return "/project/" + (project == null ? ":name" : project.getName());
   }
 
   public static String getUrl(Project project, String mode) {
@@ -53,8 +53,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   public void controller() {
     Mode mode = this.mode;
 
-    requestedId = request.params("id");
-    project = Project.getInstance(requestedId);
+    requestedName = request.params("name");
+    project = Project.getInstanceByName(requestedName);
 
     if (project == null) {
       mode = Mode.NotFound;
@@ -86,7 +86,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "[" + requestedId + "]";
+        return "[" + requestedName + "]";
       }
 
       @Override
@@ -233,7 +233,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                     new Lte.TableValue("text-align:right;",
                       Html.span(null, null,
                         Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
-                        Html.a(ConductorComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
+                        Html.a(ConductorComponent.getUrl(conductor, "prepare"),
                           Html.span("right badge badge-secondary", null, "run")
                         ),
                         Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")

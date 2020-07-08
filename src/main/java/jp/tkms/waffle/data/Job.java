@@ -17,12 +17,14 @@ import java.util.UUID;
 public class Job extends DatabaseFileData {
   private static final String TABLE_NAME = "job";
   private static final String KEY_PROJECT = "project";
+  private static final String KEY_WORKSPACE = "workspace";
   private static final String KEY_HOST = "host";
   private static final String KEY_JOB_ID = "job_id";
   private static final String KEY_STATE = "state";
   private static final String KEY_ERROR_COUNT = "error_count";
 
   private Project project = null;
+  private Workspace workspace = null;
   private Host host = null;
   private SimulatorRun run = null;
   private String jobId = null;
@@ -86,7 +88,7 @@ public class Job extends DatabaseFileData {
       void handling(Database db) throws SQLException {
         PreparedStatement statement
           = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
-        statement.setString(1, host.getId());
+        statement.setString(1, host.getName());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           list.add(new Job(
@@ -116,8 +118,6 @@ public class Job extends DatabaseFileData {
   }
 
   public static void addRun(SimulatorRun run) {
-    String hostId = run.getHost().getId();
-
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -130,8 +130,9 @@ public class Job extends DatabaseFileData {
         if (count <= 0) {
           new Sql.Insert(db, TABLE_NAME,
             Sql.Value.equal(KEY_ID, run.getId()),
-            Sql.Value.equal(KEY_PROJECT, run.getProject().getId()),
-            Sql.Value.equal(KEY_HOST, hostId),
+            Sql.Value.equal(KEY_PROJECT, run.getWorkspace().getProject().getName()),
+            Sql.Value.equal(KEY_WORKSPACE, run.getWorkspace().getName()),
+            Sql.Value.equal(KEY_HOST, run.getHost().getName()),
             Sql.Value.equal(KEY_STATE, run.getState().ordinal())
             ).execute();
         }
@@ -198,21 +199,28 @@ public class Job extends DatabaseFileData {
 
   public Project getProject() {
     if (project == null) {
-      project = Project.getInstance(getStringFromDB(KEY_PROJECT));
+      project = Project.getInstanceByName(getStringFromDB(KEY_PROJECT));
     }
     return project;
   }
 
+  public Workspace getWorkspace() {
+    if (workspace == null) {
+      workspace = Workspace.getInstanceByName(getProject(), getStringFromDB(KEY_WORKSPACE));
+    }
+    return workspace;
+  }
+
   public Host getHost() {
     if (host == null) {
-      host = Host.getInstance(getStringFromDB(KEY_HOST));
+      host = Host.getInstanceByName(getStringFromDB(KEY_HOST));
     }
     return host;
   }
 
   public SimulatorRun getRun() {
     if (run == null) {
-      run = SimulatorRun.getInstance(getProject(), getId());
+      run = SimulatorRun.getInstance(getWorkspace(), getId());
     }
     return run;
   }
@@ -254,6 +262,7 @@ public class Job extends DatabaseFileData {
             void task(Database db) throws SQLException {
               db.execute("create table " + TABLE_NAME + "(id," +
                 KEY_PROJECT + "," +
+                KEY_WORKSPACE + "," +
                 KEY_HOST + "," +
                 KEY_JOB_ID + " default ''," +
                 KEY_ERROR_COUNT + " default 0," +

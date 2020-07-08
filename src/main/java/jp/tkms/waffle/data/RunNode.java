@@ -8,40 +8,53 @@ import jp.tkms.waffle.data.util.State;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
 
-public class RunNode extends DirectoryBaseData {
+public class RunNode implements DataDirectory, EntityProperty {
   public static final String KEY_EXPECTED_NAME = "expected_name";
   public static final String KEY_PROPERTY = "property";
   public static final String KEY_RUN = "run";
   public static final String KEY_STATE = "state";
   public static final String KEY_NOTE_TXT = "note.txt";
   public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
-  Project project;
+
+  protected Workspace workspace;
+  protected Path path;
 
   public RunNode() {
   }
 
-  public RunNode(Class clazz, Project project, Path path) {
-    super(clazz, path);
-    this.project = project;
+  public RunNode(Workspace workspace, Path path) {
+    this.workspace = workspace;
+    this.path = path;
+  }
+
+  public Workspace getWorkspace() {
+    return workspace;
+  }
+
+  public Path getPath() {
+    return path;
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_PROPERTY + Constants.EXT_JSON);
   }
 
   @Override
   public Path getDirectoryPath() {
-    return getDirectoryPath(getId()).toAbsolutePath();
+    return getDirectoryPath(workspace, path);
+  }
+
+  public static Path getDirectoryPath(Workspace workspace, Path path) {
+    return workspace.getDirectoryPath().resolve(path);
   }
 
   public Project getProject() {
-    return project;
+    return workspace.getProject();
   }
 
   public String getSimpleName() {
@@ -52,31 +65,21 @@ public class RunNode extends DirectoryBaseData {
     return project.getDirectoryPath().resolve(KEY_RUN);
   }
 
-  public static RunNode getInstanceByName(Project project, Path path) {
+  public static RunNode getInstance(Workspace workspace, Path path) {
     Path instancePath = path;
-    if (!path.isAbsolute()) {
-      instancePath = getBaseDirectoryPath(project).resolve(path);
+    if (path.isAbsolute()) {
+      instancePath = workspace.getDirectoryPath().relativize(path);
     }
-    if (Files.exists(instancePath.resolve(ParallelRunNode.KEY_PARALLEL))) {
-      return new ParallelRunNode(project, getBaseDirectoryPath(project).resolve(path));
-    } else if (Files.exists(instancePath.resolve(SimulatorRunNode.KEY_SIMULATOR))) {
-      return new SimulatorRunNode(project, getBaseDirectoryPath(project).resolve(path));
-    } else if (Files.exists(instancePath)) {
-      return new InclusiveRunNode(project, getBaseDirectoryPath(project).resolve(path));
-    }
-    return null;
-  }
+    Path dirPath = workspace.getDirectoryPath().resolve(instancePath);
 
-  public static RunNode getRootInstance(Project project) {
-    return new InclusiveRunNode(project, getBaseDirectoryPath(project));
-  }
-
-  public static RunNode getInstance(Project project, String id) {
-    Path path = getDirectoryPath(id);
-    if (path == null) {
-      return null;
+    if (Files.exists(dirPath.resolve(ParallelRunNode.KEY_PARALLEL))) {
+      return new ParallelRunNode(workspace, instancePath);
+    } else if (Files.exists(dirPath.resolve(SimulatorRunNode.KEY_SIMULATOR))) {
+      return new SimulatorRunNode(workspace, instancePath);
+    } else if (Files.exists(dirPath.resolve(InclusiveRunNode.KEY_INCLUSIVE))) {
+      return new InclusiveRunNode(workspace, instancePath);
     }
-    return getInstanceByName(project, path.toAbsolutePath());
+    return workspace;
   }
 
   public ArrayList<RunNode> getList() {
@@ -91,7 +94,7 @@ public class RunNode extends DirectoryBaseData {
         }
       })).forEach(path -> {
         if (Files.isDirectory(path)) {
-          list.add(getInstanceByName(project, path.toAbsolutePath()));
+          list.add(getInstance(workspace, path.toAbsolutePath()));
         }
       });
     } catch (IOException e) {
@@ -106,14 +109,10 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public RunNode getParent() {
-    Path path = getDirectoryPath();
-    try {
-      if (Files.isSameFile(getBaseDirectoryPath(project), path)) {
-        return null;
-      }
-    } catch (IOException e) { }
-
-    return getInstanceByName(project, Paths.get(".").resolve( getBaseDirectoryPath(project).relativize(path) ).getParent());
+    if (this instanceof Workspace) {
+      return null;
+    }
+    return getInstance(workspace, path.getParent());
   }
 
   private String generateUniqueName(String name) {
@@ -129,40 +128,45 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public InclusiveRunNode createInclusiveRunNode(String name) {
-   Path path = getDirectoryPath().resolve(generateUniqueName(name));
+   Path nodePath = path.resolve(generateUniqueName(name));
     try {
-      Files.createDirectories(path);
-      resetId(RunNode.class, path);
+      Files.createDirectories(getDirectoryPath(workspace, nodePath));
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return new InclusiveRunNode(project, path);
+    return new InclusiveRunNode(workspace, nodePath);
   }
 
   public ParallelRunNode createParallelRunNode(String name) {
-    Path path = getDirectoryPath().resolve(generateUniqueName(name));
+    Path nodePath = path.resolve(generateUniqueName(name));
     try {
-      Files.createDirectories(path);
-      resetId(RunNode.class, path);
+      Files.createDirectories(getDirectoryPath(workspace, nodePath));
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return new ParallelRunNode(project, path);
+    return new ParallelRunNode(workspace, nodePath);
   }
 
   public SimulatorRunNode createSimulatorRunNode(String name) {
-    Path path = getDirectoryPath().resolve(generateUniqueName(name));
+    Path nodePath = path.resolve(generateUniqueName(name));
     try {
-      Files.createDirectories(path);
-      resetId(RunNode.class, path);
+      Files.createDirectories(getDirectoryPath(workspace, nodePath));
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return new SimulatorRunNode(project, path);
+    return new SimulatorRunNode(workspace, nodePath);
   }
 
   public ParallelRunNode switchToParallel() {
-    return new ParallelRunNode(project, getDirectoryPath());
+    try {
+      Files.delete(getDirectoryPath().resolve(InclusiveRunNode.KEY_INCLUSIVE));
+    } catch (IOException e) {}
+    try {
+      getDirectoryPath().resolve(ParallelRunNode.KEY_PARALLEL).toFile().createNewFile();
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    return (ParallelRunNode) getInstance(workspace, path);
   }
 
   public boolean isRoot() {
@@ -181,7 +185,16 @@ public class RunNode extends DirectoryBaseData {
     while (nextName.length() <= 0 || Files.exists(path.getParent().resolve(nextName))) {
       nextName = name + '_' + count++;
     }
-    replace(path.getParent().resolve(nextName));
+
+    if (Files.exists(getDirectoryPath())) {
+      try {
+        Path nextPath = path.getParent().resolve(nextName);
+        Files.move(getDirectoryPath(), nextPath);
+        this.path = workspace.getDirectoryPath().relativize(nextPath);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
 
     return nextName;
   }

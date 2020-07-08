@@ -22,6 +22,7 @@ public class Project extends PropertyFileData implements DataDirectory {
 
   public Project() { }
 
+  /*
   public static Project getInstance(String id) {
     initializeWorkDirectory();
 
@@ -41,26 +42,25 @@ public class Project extends PropertyFileData implements DataDirectory {
 
     return null;
   }
+   */
 
   public static Project getInstanceByName(String name) {
     if (name == null) {
       return null;
     }
 
-    DataId dataId = DataId.getInstance(Project.class, getDirectoryPath(name));
+    //DataId dataId = DataId.getInstance(Project.class, getDirectoryPath(name));
 
-    Project project = instanceMap.get(dataId.getId());
+    Project project = instanceMap.get(name);
     if (project != null) {
-      return project;
-    }
-
-    project = getInstance(dataId.getId());
-    if (project != null) {
+      project.initialize();
       return project;
     }
 
     if (project == null && Files.exists(getBaseDirectoryPath().resolve(name))) {
       project = create(name);
+      project.initialize();
+      return project;
     }
 
     return project;
@@ -88,7 +88,7 @@ public class Project extends PropertyFileData implements DataDirectory {
   public static Project create(String name) {
     initializeWorkDirectory();
 
-    Project project = new Project(DataId.getInstance(Project.class, getDirectoryPath(name)).getUuid(), name);
+    Project project = new Project(UUID.randomUUID(), name);
     instanceMap.put(project.getId(), project);
 
     try {

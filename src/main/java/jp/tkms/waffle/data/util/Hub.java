@@ -74,7 +74,7 @@ public class Hub {
   }
 
   public void changeParent(String name) {
-    nextParentConductorRun = Actor.find(project, name);
+    //nextParentConductorRun = Actor.find(project, name);
   }
 
   public Actor createActor(String name) {
@@ -84,7 +84,7 @@ public class Hub {
     }
 
     if (runNode instanceof SimulatorRunNode) {
-      runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
+      //runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
     Actor actor = Actor.create(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
@@ -107,7 +107,7 @@ public class Hub {
     }
 
     if (runNode instanceof SimulatorRunNode) {
-      runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
+      //runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
     SimulatorRun createdRun = SimulatorRun.create(runNode.createSimulatorRunNode(""), nextParentConductorRun, simulator, host);

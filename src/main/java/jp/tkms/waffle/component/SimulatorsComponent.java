@@ -14,7 +14,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   ;
-  private String requestedId;
+  private String requestedName;
   private Project project;
   public SimulatorsComponent(Mode mode) {
     super();
@@ -32,7 +32,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/simulators/" + (project == null ? ":project" : project.getId());
+    return "/simulators/" + (project == null ? ":project" : project.getName());
   }
 
   public static String getUrl(Project project, String mode) {
@@ -41,8 +41,8 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    requestedId = request.params("project");
-    project = Project.getInstance(requestedId);
+    requestedName = request.params("project");
+    project = Project.getInstanceByName(requestedName);
 
     if (mode == Mode.Add) {
       if (request.requestMethod().toLowerCase().equals("post")) {

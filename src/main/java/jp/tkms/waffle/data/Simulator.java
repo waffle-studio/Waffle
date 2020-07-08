@@ -17,9 +17,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -63,16 +60,17 @@ public class Simulator extends ProjectData implements DataDirectory {
     return getDirectoryPath().resolve(KEY_SIMULATOR + Constants.EXT_JSON);
   }
 
+  /*
   public static Simulator getInstance(Project project, String id) {
     DataId dataId = DataId.getInstance(id);
     return instanceMap.get(dataId.getId());
   }
+   */
 
   public static Simulator getInstanceByName(Project project, String name) {
-    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
     Simulator simulator = null;
 
-    simulator = instanceMap.get(dataId.getId());
+    simulator = instanceMap.get(name);
     if (simulator != null) {
       return simulator;
     }
@@ -85,9 +83,12 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   public static Simulator find(Project project, String key) {
+    /*
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(project, key);
     }
+
+     */
     return getInstanceByName(project, key);
   }
 
@@ -124,8 +125,11 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   public static Simulator create(Project project, String name) {
+    /*
     DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
     Simulator simulator = new Simulator(project, dataId.getUuid(), name);
+     */
+    Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
 
     try {
       Files.createDirectories(simulator.getDirectoryPath());
@@ -152,7 +156,7 @@ public class Simulator extends ProjectData implements DataDirectory {
       simulator.initializeGit();
     }
 
-    instanceMap.put(dataId.getId(), simulator);
+    instanceMap.put(name, simulator);
 
     return simulator;
   }
@@ -421,14 +425,8 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   public SimulatorRun runTest(Host host, String parametersJsonText) {
     String baseRunName = "TESTRUN-" + name;
-    RunNode runNode = RunNode.getInstanceByName(getProject(), Paths.get(baseRunName));
-    if (runNode == null) {
-      runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
-    }
-    Actor baseRun = Actor.getInstanceByName(getProject(), baseRunName);
-    if (baseRun == null) {
-      baseRun = Actor.create(runNode, Actor.getRootInstance(getProject()), null);
-    }
+    RunNode runNode = Workspace.getInstanceByName(getProject(), baseRunName);
+    Actor baseRun = Actor.create(runNode, null, null);
     SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), baseRun, this, host);
     setToProperty(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
@@ -437,7 +435,9 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   public SimulatorRun getLatestTestRun() {
-    return SimulatorRun.getInstance(getProject(), getStringFromProperty(KEY_TESTRUN));
+    String baseRunName = "TESTRUN-" + name;
+    Workspace workspace = Workspace.getInstanceByName(getProject(), baseRunName);
+    return SimulatorRun.getInstance(workspace, getStringFromProperty(KEY_TESTRUN));
   }
 
 }

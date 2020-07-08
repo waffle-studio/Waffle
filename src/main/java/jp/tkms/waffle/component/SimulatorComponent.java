@@ -46,7 +46,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(Simulator simulator) {
     return "/simulator/"
-      + (simulator == null ? ":project/:id" : simulator.getProject().getId() + '/' + simulator.getId());
+      + (simulator == null ? ":project/:name" : simulator.getProject().getName() + '/' + simulator.getName());
   }
 
   public static String getUrl(Simulator simulator, String mode) {
@@ -55,8 +55,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params("id"));
+    project = Project.getInstanceByName(request.params("project"));
+    simulator = Simulator.getInstanceByName(project, request.params("name"));
 
     switch (mode) {
       case Update:
