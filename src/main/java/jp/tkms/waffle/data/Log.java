@@ -19,7 +19,7 @@ import java.util.UUID;
 
 import static jp.tkms.waffle.data.AbstractRun.KEY_TIMESTAMP_CREATE;
 
-public class Log extends DatabaseFileData {
+public class Log extends Data {
   protected static final String TABLE_NAME = "log";
   private static final String KEY_LEVEL = "level";
   private static final String KEY_MESSAGE = "message";

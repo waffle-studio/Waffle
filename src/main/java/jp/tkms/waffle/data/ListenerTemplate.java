@@ -17,7 +17,7 @@ public class ListenerTemplate extends DirectoryBaseData {
   private String arguments = null;
 
   public ListenerTemplate(String name) {
-    super(ListenerTemplate.class, getBaseDirectoryPath().resolve(name));
+    super(getBaseDirectoryPath().resolve(name));
   }
 
   public static ListenerTemplate getInstance(String name) {
@@ -59,7 +59,7 @@ public class ListenerTemplate extends DirectoryBaseData {
   }
 
   public static Path getBaseDirectoryPath() {
-    return PropertyFileData.getWaffleDirectoryPath().resolve(Constants.LISTENER_TEMPLATE);
+    return Data.getWaffleDirectoryPath().resolve(Constants.LISTENER_TEMPLATE);
   }
 
   @Override

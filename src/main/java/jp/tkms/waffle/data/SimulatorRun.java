@@ -12,6 +12,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -40,6 +42,7 @@ public class SimulatorRun extends AbstractRun {
     super(project);
   }
 
+  private String simulator;
   private String host;
   private State state;
   private Integer exitStatus;
@@ -50,32 +53,58 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray localSharedList;
 
-  private SimulatorRun(Actor parent, RunNode runNode) {
-    this(parent.getProject(), runNode);
+  private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
+    this(parent.getProject(), runNode.getUuid(),"",
+      simulator.getId(), host.getId(), State.Created, runNode);
   }
 
-  private SimulatorRun(Project project, RunNode runNode) {
-    super(project, runNode.getUuid(), runNode.getSimpleName());
+  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state, RunNode runNode) {
+    super(project, id, name, runNode);
+    this.simulator = simulator;
+    this.host = host;
+    this.state = state;
   }
 
   public static SimulatorRun getInstance(Project project, String id) {
-    SimulatorRun run = null;
+    final SimulatorRun[] run = {null};
 
-    RunNode runNode = RunNode.getInstance(project, id);
+    handleDatabase(new SimulatorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
+          KEY_ID,
+          KEY_NAME,
+          KEY_CONDUCTOR,
+          KEY_PARENT,
+          KEY_SIMULATOR,
+          KEY_HOST,
+          KEY_STATE,
+          KEY_RUNNODE
+        ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
+        while (resultSet.next()) {
+          RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
+          if (runNode == null) {
+            new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
+          } else {
+            run[0] = new SimulatorRun(
+              project,
+              UUID.fromString(resultSet.getString(KEY_ID)),
+              resultSet.getString(KEY_NAME),
+              resultSet.getString(KEY_SIMULATOR),
+              resultSet.getString(KEY_HOST),
+              State.valueOf(resultSet.getInt(KEY_STATE)),
+              runNode
+            );
+          }
+        }
+      }
+    });
 
-    if (runNode != null) {
-      run = new SimulatorRun(project, runNode);
-    }
-
-    return run;
+    return run[0];
   }
 
   public Host getHost() {
-    return Host.getInstanceByName(getStringFromProperty(KEY_HOST));
-  }
-
-  public void setHost(Host host) {
-    setToProperty(KEY_HOST, host.getName());
+    return Host.getInstance(host);
   }
 
   public Host getActualHost() {
@@ -83,22 +112,47 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public Simulator getSimulator() {
-    return Simulator.getInstanceByName(getProject(), getStringFromProperty(KEY_SIMULATOR));
-  }
-
-  public void setSimulator(Simulator simulator) {
-    setToProperty(KEY_SIMULATOR, simulator.getName());
+    return Simulator.getInstance(getProject(), simulator);
   }
 
   public State getState() {
-    if (state == null) {
-      state = State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
-    }
     return state;
   }
 
+  public static ArrayList<SimulatorRun> getList(Project project, Actor parent) {
+    ArrayList<SimulatorRun> list = new ArrayList<>();
+
+    handleDatabase(new SimulatorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
+          KEY_ID,
+          KEY_NAME,
+          KEY_PARENT,
+          KEY_SIMULATOR,
+          KEY_HOST,
+          KEY_STATE,
+          KEY_RUNNODE
+        ).where(Sql.Value.equal(KEY_PARENT, parent.getId()))
+          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
+        while (resultSet.next()) {
+          list.add(new SimulatorRun(
+            project,
+            UUID.fromString(resultSet.getString(KEY_ID)),
+            resultSet.getString(KEY_NAME),
+            resultSet.getString(KEY_SIMULATOR),
+            resultSet.getString(KEY_HOST),
+            State.valueOf(resultSet.getInt(KEY_STATE)),
+            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
+          ));
+        }
+      }
+    });
+
+    return list;
+  }
+
   public static int getNumberOfRunning(Project project, Actor parent) {
-    /*
     final int[] count = new int[1];
 
     handleDatabase(new SimulatorRun(project), new Handler() {
@@ -114,15 +168,12 @@ public class SimulatorRun extends AbstractRun {
         }
       }
     });
-     */
 
-    return 0;
+    return count[0];
   }
 
   public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(parent, runNode);
-    run.setSimulator(simulator);
-    run.setHost(host);
+    SimulatorRun run = new SimulatorRun(parent, simulator, host, runNode);
     ActorGroup conductor = parent.getActorGroup();
     String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
@@ -139,7 +190,6 @@ public class SimulatorRun extends AbstractRun {
     }
      */
 
-    /*
     handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -155,16 +205,7 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_RUNNODE, runNode.getId())
         ).execute();
       }
-     */
-
-    run.setToProperty(KEY_ACTOR_GROUP, conductorId);
-    run.setToProperty(KEY_PARENT, parent.getId());
-    run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
-    run.setToProperty(KEY_SIMULATOR, simulatorId);
-    run.setToProperty(KEY_HOST, hostId);
-    run.setToProperty(KEY_STATE, run.getState().ordinal());
-    run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
-    run.setToProperty(KEY_RUNNODE, runNode.getId());
+    });
 
     run.setExitStatus(-1);
     run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());
@@ -209,8 +250,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void setState(State state) {
-    State currentState = getState();
-    if (!currentState.equals(state)) {
+    if (!this.state.equals(state)) {
       switch (state) {
         case Finished:
         case Failed:
@@ -222,8 +262,8 @@ public class SimulatorRun extends AbstractRun {
           setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
       }
 
-      ((SimulatorRunNode) getRunNode()).updateState(currentState, state);
-      setToProperty(KEY_STATE, state.ordinal());
+      ((SimulatorRunNode) getRunNode()).updateState(this.state, state);
+      setToDB(KEY_STATE, state.ordinal());
       this.state = state;
       new RunStatusUpdater(this);
 
@@ -242,7 +282,7 @@ public class SimulatorRun extends AbstractRun {
 
   public int getRestartCount() {
     if (restartCount == null) {
-      restartCount = getIntFromProperty(KEY_RESTART_COUNT, 0);
+      restartCount = Integer.valueOf(getStringFromDB(KEY_RESTART_COUNT));
     }
     return restartCount;
   }
@@ -474,7 +514,6 @@ public class SimulatorRun extends AbstractRun {
 
   @Override
   public boolean isRunning() {
-    State state = getState();
     return (state.equals(State.Created)
       || state.equals(State.Prepared)
       || state.equals(State.Submitted)
@@ -488,7 +527,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void restart() {
-    setToProperty(KEY_RESTART_COUNT, getRestartCount() +1);
+    setToDB(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
     Job.addRun(this);
@@ -557,6 +596,51 @@ public class SimulatorRun extends AbstractRun {
     } catch (Exception e) {}
   }
    */
+
+  @Override
+  protected String getTableName() {
+    return TABLE_NAME;
+  }
+
+  @Override
+  protected Updater getDatabaseUpdater() {
+    return new Updater() {
+      @Override
+      String tableName() {
+        return TABLE_NAME;
+      }
+
+      @Override
+      ArrayList<UpdateTask> updateTasks() {
+        return new ArrayList<UpdateTask>(Arrays.asList(
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              db.execute("create table " + TABLE_NAME + "(" +
+                KEY_ID + "," +
+                KEY_NAME + "," +
+                KEY_CONDUCTOR + "," +
+                KEY_PARENT + "," +
+                KEY_RESPONSIBLE_ACTOR + "," +
+                KEY_SIMULATOR + "," +
+                KEY_HOST + "," +
+                KEY_STATE + "," +
+                KEY_RUNNODE + "," +
+                KEY_PARENT_RUNNODE + "," +
+                KEY_VARIABLES + " default '{}'," +
+                KEY_FINALIZER + " default '[]'," +
+                KEY_ARGUMENTS + " default '[]'," +
+                KEY_EXIT_STATUS + " default -1," +
+                KEY_ENVIRONMENTS + " default '{}'," +
+                KEY_RESTART_COUNT + " default 0," +
+                KEY_TIMESTAMP_CREATE + " timestamp default (DATETIME('now','localtime'))" +
+                ");");
+            }
+          }
+        ));
+      }
+    };
+  }
 
   public HashMap<Object, Object> environmentsWrapper = null;
   public HashMap environments() {

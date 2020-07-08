@@ -48,39 +48,6 @@ public class DataId {
     return Constants.WORK_DIR.resolve(directory);
   }
 
-  public void resetId() {
-    synchronized (objectLocker) {
-      Database db = Database.getDatabase(Constants.WORK_DIR.resolve(FILE_NAME));
-      try {
-        new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, id)).execute();
-        new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal(KEY_ID, id),
-          Sql.Value.equal(KEY_CLASS, className),
-          Sql.Value.equal(KEY_DIRECTORY, directory)
-        ).execute();
-      } catch (SQLException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-  }
-
-  public void setDirectory(Path path) {
-    Path localPath = Constants.WORK_DIR.relativize(path.toAbsolutePath());
-    synchronized (objectLocker) {
-      Database db = Database.getDatabase(Constants.WORK_DIR.resolve(FILE_NAME));
-      try {
-        new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, id)).execute();
-        new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal(KEY_ID, id),
-          Sql.Value.equal(KEY_CLASS, className),
-          Sql.Value.equal(KEY_DIRECTORY, localPath.toString())
-        ).execute();
-      } catch (SQLException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-  }
-
   /*
   public static DataId getInstance(Path path) {
     DataId dataId = null;

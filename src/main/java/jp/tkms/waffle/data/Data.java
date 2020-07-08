@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jnr.ffi.annotations.In;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.Sql;
@@ -16,9 +17,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.UUID;
 
-abstract public class DatabaseFileData {
+abstract public class Data {
   public static final String KEY_ROWID = "rowid";
   public static final String KEY_ID = "id";
   public static final String KEY_NAME = "name";
@@ -30,9 +32,9 @@ abstract public class DatabaseFileData {
   protected String shortId = null;
   protected String name;
 
-  public DatabaseFileData() {}
+  public Data() {}
 
-  public DatabaseFileData(UUID id, String name) {
+  public Data(UUID id, String name) {
     this.id = id;
     this.shortId = getShortId(id);
     this.name = name;
@@ -170,7 +172,7 @@ abstract public class DatabaseFileData {
   }
 
   protected Path getPropertyStorePath() {
-    return Paths.get("waffle.json").toAbsolutePath();
+    return Paths.get("waffle.json");
   }
 
   private JSONObject propertyStore = null;
@@ -197,7 +199,7 @@ abstract public class DatabaseFileData {
         try {
           Files.createDirectories(directoryPath);
         } catch (IOException e) {
-          ErrorLogMessage.issue(e);
+          e.printStackTrace();
         }
       }
 
@@ -353,7 +355,7 @@ abstract public class DatabaseFileData {
 
         @Override
         ArrayList<UpdateTask> updateTasks() {
-          return new ArrayList<UpdateTask>(Arrays.asList(
+          return new ArrayList<Updater.UpdateTask>(Arrays.asList(
             new UpdateTask() {
               @Override
               void task(Database db) throws SQLException {
@@ -385,7 +387,7 @@ abstract public class DatabaseFileData {
     return Database.getDatabase(null);
   }
 
-  synchronized protected static boolean handleDatabase(DatabaseFileData base, Handler handler) {
+  synchronized protected static boolean handleDatabase(Data base, Handler handler) {
     boolean isSuccess = true;
 
     initializeMainDatabase();

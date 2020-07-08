@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.util.Sql;
 
+import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class UserSession extends DatabaseFileData {
+public class UserSession extends Data {
   static final String TABLE_NAME = "user_session";
   public static final String KEY_SESSION_ID = "session_id";
   private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";

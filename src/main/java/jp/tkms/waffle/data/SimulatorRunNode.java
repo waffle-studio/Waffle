@@ -15,7 +15,7 @@ public class SimulatorRunNode extends RunNode {
   protected static final String KEY_SIMULATOR = ".SIMULATOR";
 
   public SimulatorRunNode(Project project, Path path) {
-    super(SimulatorRun.class, project, path);
+    super(project, path);
     Path flagPath = path.resolve(KEY_SIMULATOR);
     if (! Files.exists(flagPath)) {
       try {
