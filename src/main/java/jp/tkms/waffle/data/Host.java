@@ -4,7 +4,6 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
@@ -15,7 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class Host extends DirectoryBaseData {
@@ -32,10 +30,10 @@ public class Host extends DirectoryBaseData {
   private static final String KEY_STATE = "state";
   private static final String KEY_ENVIRONMENTS = "environments";
 
-  private static final HashMap<String, Host> instanceMap = new HashMap<>();
-
+  private String hostName = null;
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
+  private String os = null;
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
   private JSONObject parameters = null;
@@ -55,18 +53,25 @@ public class Host extends DirectoryBaseData {
   }
 
   public static Host getInstanceByName(String name) {
+    Host host = null;
+
     if (name == null) {
       return null;
     }
 
-    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath().resolve(name));
-    Host host = instanceMap.get(dataId.getId());
-    if (host != null) {
-      return host;
-    }
-
     if (Files.exists(getBaseDirectoryPath().resolve(name))) {
       host = new Host(name);
+
+      Host finalHost = host;
+      handleDatabase(host, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          boolean exist = false;
+          ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID).where(Sql.Value.equal(KEY_ID, finalHost.getId())).executeQuery();
+          while (resultSet.next()) { exist = true; }
+          if (! exist) { new Sql.Insert(db, TABLE_NAME, Sql.Value.equal(KEY_ID, finalHost.getId())).execute(); }
+        }
+      });
 
       if (host.getState() == null) { host.setState(HostState.Unviable); }
       if (host.getXsubDirectory() == null) { host.setXsubDirectory(""); }
@@ -74,8 +79,6 @@ public class Host extends DirectoryBaseData {
       if (host.getMaximumNumberOfJobs() == null) { host.setMaximumNumberOfJobs(1); }
       if (host.getPollingInterval() == null) { host.setPollingInterval(10); }
     }
-
-    instanceMap.put(dataId.getId(), host);
 
     return host;
   }
@@ -119,7 +122,15 @@ public class Host extends DirectoryBaseData {
 
   public static Host create(String name) {
     createDirectories(getBaseDirectoryPath().resolve(name));
-    return getInstanceByName(name);
+    Host host = new Host(name);
+    handleDatabase(host, new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, host.getId())).execute();
+        new Sql.Insert(db, TABLE_NAME, Sql.Value.equal(KEY_ID, host.getId())).execute();
+      }
+    });
+    return host;
   }
 
   public synchronized void update() {
@@ -134,11 +145,11 @@ public class Host extends DirectoryBaseData {
   }
 
   private void setState(HostState state) {
-    setToProperty(KEY_STATE, state.ordinal());
+    setToDB(KEY_STATE, state.ordinal());
   }
 
   public HostState getState() {
-    Integer state = getIntFromProperty(KEY_STATE, HostState.Unviable.ordinal());
+    Integer state = getIntFromDB(KEY_STATE);
     if (state == null) {
       return null;
     }
@@ -289,13 +300,13 @@ public class Host extends DirectoryBaseData {
 
   public JSONObject getXsubTemplate() {
     if (xsubTemplate == null) {
-      xsubTemplate = new JSONObject(getStringFromProperty(KEY_XSUB_TEMPLATE, "{}"));
+      xsubTemplate = new JSONObject(getStringFromDB(KEY_XSUB_TEMPLATE));
     }
     return xsubTemplate;
   }
 
   public void setXsubTemplate(JSONObject jsonObject) {
-    setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
+    setToDB(KEY_XSUB_TEMPLATE, jsonObject.toString());
     this.xsubTemplate = jsonObject;
   }
 
@@ -314,9 +325,7 @@ public class Host extends DirectoryBaseData {
 
   @Override
   protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-    new Updater() {
+    return new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -337,7 +346,6 @@ public class Host extends DirectoryBaseData {
         ));
       }
     };
-     */
   }
 
   public static Path getBaseDirectoryPath() {

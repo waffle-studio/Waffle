@@ -12,6 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
@@ -174,7 +175,7 @@ public class SimulatorRun extends AbstractRun {
 
   public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
     SimulatorRun run = new SimulatorRun(parent, simulator, host, runNode);
-    ActorGroup conductor = parent.getActorGroup();
+    ActorGroup conductor = parent.getConductor();
     String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
@@ -197,7 +198,6 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_ID, run.getId()),
           Sql.Value.equal(KEY_CONDUCTOR, conductorId),
           Sql.Value.equal(KEY_PARENT, parent.getId()),
-          Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, parent.getId()),
           Sql.Value.equal(KEY_SIMULATOR, simulatorId),
           Sql.Value.equal(KEY_HOST, hostId),
           Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
@@ -251,24 +251,33 @@ public class SimulatorRun extends AbstractRun {
 
   public void setState(State state) {
     if (!this.state.equals(state)) {
-      switch (state) {
-        case Finished:
-        case Failed:
-        case Excepted:
-        case Canceled:
-          setToProperty(KEY_FINISHED_AT, ZonedDateTime.now().toEpochSecond());
-          break;
-        case Submitted:
-          setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
-      }
-
       ((SimulatorRunNode) getRunNode()).updateState(this.state, state);
-      setToDB(KEY_STATE, state.ordinal());
-      this.state = state;
-      new RunStatusUpdater(this);
 
-      finish();
+      if (
+        handleDatabase(this, new Handler() {
+          @Override
+          void handling(Database db) throws SQLException {
+            PreparedStatement statement
+              = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
+            statement.setInt(1, state.ordinal());
+            statement.setString(2, getId());
+            statement.execute();
+          }
+        })
+      ) {
+        this.state = state;
+        new RunStatusUpdater(this);
 
+        if (state.equals(State.Finished)
+          || state.equals(State.Failed)
+          || state.equals((State.Excepted))
+          || state.equals(State.Canceled)) {
+          setToProperty(KEY_FINISHED_AT, ZonedDateTime.now().toEpochSecond());
+          getParent().update(this);
+        } else if (state.equals(State.Submitted)) {
+          setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
+        }
+      }
     }
   }
 
@@ -515,7 +524,7 @@ public class SimulatorRun extends AbstractRun {
   @Override
   public boolean isRunning() {
     return (state.equals(State.Created)
-      || state.equals(State.Prepared)
+      || state.equals(State.Queued)
       || state.equals(State.Submitted)
       || state.equals(State.Running)
     );
@@ -621,7 +630,6 @@ public class SimulatorRun extends AbstractRun {
                 KEY_NAME + "," +
                 KEY_CONDUCTOR + "," +
                 KEY_PARENT + "," +
-                KEY_RESPONSIBLE_ACTOR + "," +
                 KEY_SIMULATOR + "," +
                 KEY_HOST + "," +
                 KEY_STATE + "," +

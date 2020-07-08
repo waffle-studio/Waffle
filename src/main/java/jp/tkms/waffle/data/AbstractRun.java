@@ -21,16 +21,14 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   protected static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
   public static final String KEY_RUNNODE = "runnode";
   public static final String KEY_PARENT_RUNNODE = "parent_runnode";
-  public static final String KEY_RESPONSIBLE_ACTOR = "responsible";
 
   abstract public void start();
   abstract public boolean isRunning();
   abstract public State getState();
   abstract public void setState(State state);
 
-  private ActorGroup actorGroup = null;
-  private Actor parentActor = null;
-  private Actor responsibleActor = null;
+  private ActorGroup conductor = null;
+  private Actor parentConductorRun = null;
   private JSONArray finalizers = null;
   private JSONObject parameters = null;
   protected boolean isStarted = false;
@@ -54,23 +52,11 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     return isStarted;
   }
 
-  public Actor getParentActor() {
-    if (parentActor == null) {
-      parentActor = Actor.getInstance(getProject(), getStringFromDB(KEY_PARENT));
+  public Actor getParent() {
+    if (parentConductorRun == null) {
+      parentConductorRun = Actor.getInstance(getProject(), getStringFromDB(KEY_PARENT));
     }
-    return parentActor;
-  }
-
-  public Actor getResponsibleActor() {
-    if (responsibleActor == null) {
-      responsibleActor = Actor.getInstance(getProject(), getStringFromDB(KEY_RESPONSIBLE_ACTOR));
-    }
-    return responsibleActor;
-  }
-
-  protected void setResponsibleActor(Actor actor) {
-    setToDB(KEY_RESPONSIBLE_ACTOR, actor.getId());
-    responsibleActor = actor;
+    return parentConductorRun;
   }
 
   public Registry getRegistry() {
@@ -83,7 +69,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   public boolean isRoot() {
-    return getParentActor() == null;
+    return getParent() == null;
   }
 
   @Override
@@ -112,11 +98,11 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     runNode = node;
   }
 
-  public ActorGroup getActorGroup() {
-    if (actorGroup == null) {
-      actorGroup = ActorGroup.getInstance(getProject(), getStringFromDB(KEY_CONDUCTOR));
+  public ActorGroup getConductor() {
+    if (conductor == null) {
+      conductor = ActorGroup.getInstance(getProject(), getStringFromDB(KEY_CONDUCTOR));
     }
-    return actorGroup;
+    return conductor;
   }
 
   public ArrayList<String> getFinalizers() {
@@ -136,29 +122,10 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     setToDB(KEY_FINALIZER, finalizersJson);
   }
 
-  public void addFinalizer(String key) {
-    Actor actor = Actor.create(getRunNode(), (Actor)(this instanceof SimulatorRun ? getParentActor() : this), getActorGroup(), key);
+  public void addFinalizer(String id) {
     ArrayList<String> finalizers = getFinalizers();
-    finalizers.add(actor.getId());
+    finalizers.add(id);
     setFinalizers(finalizers);
-  }
-
-  public void finish() {
-    if (! getState().isRunning()) {
-      for (String actorId : getFinalizers()) {
-        Actor finalizer = Actor.getInstance(getProject(), actorId);
-        finalizer.setResponsibleActor(getResponsibleActor());
-        if (finalizer != null) {
-          finalizer.start();
-        } else {
-          WarnLogMessage.issue("the actor(" + actorId + ") is not found");
-        }
-      }
-    }
-
-    if (!isRoot()) {
-      getResponsibleActor().update();
-    }
   }
 
   public void appendErrorNote(String note) {

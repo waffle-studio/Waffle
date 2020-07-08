@@ -75,14 +75,14 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectComponent.getUrl(project), project.getName())
         ));
         ArrayList<String> conductorRunList = new ArrayList<>();
-        Actor parent = conductorRun.getParentActor();
+        Actor parent = conductorRun.getParent();
         if (parent == null) {
           breadcrumb.add("Runs");
         } else {
           breadcrumb.add(Html.a(TrialsComponent.getUrl(project), "Runs"));
           while (parent != null) {
             conductorRunList.add(Html.a(TrialsComponent.getUrl(project, parent), parent.getShortId()));
-            parent = parent.getParentActor();
+            parent = parent.getParent();
           }
           conductorRunList.remove(conductorRunList.size() - 1);
           Collections.reverse(conductorRunList);

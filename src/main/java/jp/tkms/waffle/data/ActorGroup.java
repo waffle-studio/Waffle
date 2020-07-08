@@ -14,7 +14,10 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 public class ActorGroup extends ProjectData implements DataDirectory {
   protected static final String TABLE_NAME = "conductor";
@@ -26,8 +29,6 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
   private static final String RUBY_ACTOR_TEMPLATE_RB = "/ruby_actor_template.rb";
   public static final String KEY_REPRESENTATIVE_ACTOR_NAME = "#";
-
-  private static final HashMap<String, ActorGroup> instanceMap = new HashMap<>();
 
   private String conductorType = null;
   private String defaultVariables = null;
@@ -61,24 +62,51 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   }
 
   public static ActorGroup getInstance(Project project, String id) {
-    DataId dataId = DataId.getInstance(id);
-    return instanceMap.get(dataId.getId());
+    final ActorGroup[] conductor = {null};
+
+    handleDatabase(new ActorGroup(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          conductor[0] = new ActorGroup(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    return conductor[0];
   }
 
   public static ActorGroup getInstanceByName(Project project, String name) {
+    final ActorGroup[] conductor = {null};
 
-    DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
+    handleDatabase(new ActorGroup(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          conductor[0] = new ActorGroup(
+            project,
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
 
-    ActorGroup actorGroup = instanceMap.get(dataId.getId());
-    if (actorGroup != null) {
-      return actorGroup;
+    if (conductor[0] == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+      conductor[0] = create(project, name);
     }
 
-    if (actorGroup == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-      actorGroup = create(project, name);
-    }
-
-    return actorGroup;
+    return conductor[0];
   }
 
   public static ActorGroup find(Project project, String key) {
@@ -121,9 +149,8 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   }
 
   public static ActorGroup create(Project project, String name) {
-    DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
-    ActorGroup actorGroup = new ActorGroup(project, dataId.getUuid(), name);
-    /*
+    ActorGroup conductor = new ActorGroup(project, UUID.randomUUID(), name);
+
     if (
       handleDatabase(new ActorGroup(project), new Handler() {
         @Override
@@ -146,36 +173,27 @@ public class ActorGroup extends ProjectData implements DataDirectory {
         ErrorLogMessage.issue(e);
       }
     }
-     */
 
-    try {
-      Files.createDirectories(actorGroup.getDirectoryPath());
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
-
-    if (! Files.exists(actorGroup.getRepresentativeActorScriptPath())) {
-      actorGroup.updateRepresentativeActorScript(null);
+    if (! Files.exists(conductor.getRepresentativeActorScriptPath())) {
+      conductor.updateRepresentativeActorScript(null);
     }
     //abstractConductor.prepareConductor(conductor);
 
-    if (! Files.exists(actorGroup.getDirectoryPath().resolve(KEY_ACTOR))) {
+    if (! Files.exists(conductor.getDirectoryPath().resolve(KEY_ACTOR))) {
       try {
-        Files.createDirectories(actorGroup.getDirectoryPath().resolve(KEY_ACTOR));
+        Files.createDirectories(conductor.getDirectoryPath().resolve(KEY_ACTOR));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
     }
 
     try {
-      actorGroup.getArrayFromProperty(KEY_ACTOR);
+      conductor.getArrayFromProperty(KEY_ACTOR);
     } catch (Exception e) {
-      actorGroup.putNewArrayToProperty(KEY_ACTOR);
+      conductor.putNewArrayToProperty(KEY_ACTOR);
     }
 
-    instanceMap.put(dataId.getId(), actorGroup);
-
-    return actorGroup;
+    return conductor;
   }
 
   @Override
@@ -281,8 +299,7 @@ public class ActorGroup extends ProjectData implements DataDirectory {
 
   @Override
   protected Updater getDatabaseUpdater() {
-    return null;
-    /* new Updater() {
+    return new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -303,6 +320,5 @@ public class ActorGroup extends ProjectData implements DataDirectory {
         ));
       }
     };
-     */
   }
 }

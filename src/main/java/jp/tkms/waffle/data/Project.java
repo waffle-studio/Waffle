@@ -2,7 +2,6 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.AbstractConductor;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,13 +11,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class Project extends Data implements DataDirectory {
   protected static final String TABLE_NAME = "project";
-
-  private static final HashMap<String, Project> instanceMap = new HashMap<>();
 
   public Project(UUID id, String name) {
     super(id, name);
@@ -35,45 +31,52 @@ public class Project extends Data implements DataDirectory {
   public static Project getInstance(String id) {
     initializeWorkDirectory();
 
-    DataId dataId = DataId.getInstance(id);
-    if (dataId != null) {
-      Project project = instanceMap.get(dataId.getId());
-      if (project != null) {
-        project.initialize();
-        return project;
-      } else {
-        project = new Project(dataId.getUuid(), dataId.getPath().getFileName().toString()) ;
-        instanceMap.put(project.getId(), project);
-        project.initialize();
-        return project;
-      }
-    }
+    final Project[] project = {null};
 
-    return null;
+    handleDatabase(new Project(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select id,name,location from " + TABLE_NAME + " where id=?;");
+        statement.setString(1, id);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          project[0] = new Project(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    project[0].initialize();
+
+    return project[0];
   }
 
   public static Project getInstanceByName(String name) {
-    if (name == null) {
-      return null;
+    final Project[] project = {null};
+
+    handleDatabase(new Project(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
+        statement.setString(1, name);
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          project[0] = new Project(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+        }
+      }
+    });
+
+    if (project[0] == null && Files.exists(getBaseDirectoryPath().resolve(name))) {
+      project[0] = create(name);
     }
 
-    DataId dataId = DataId.getInstance(Project.class, getDirectoryPath(name));
-
-    Project project = instanceMap.get(dataId.getId());
-    if (project != null) {
-      return project;
-    }
-
-    project = getInstance(dataId.getId());
-    if (project != null) {
-      return project;
-    }
-
-    if (project == null && Files.exists(getBaseDirectoryPath().resolve(name))) {
-      project = create(name);
-    }
-
-    return project;
+    return project[0];
   }
 
   public static ArrayList<Project> getList() {
@@ -91,6 +94,21 @@ public class Project extends Data implements DataDirectory {
       e.printStackTrace();
     }
 
+    /*
+    handleDatabase(new Project(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          Project project = new Project(
+            UUID.fromString(resultSet.getString("id")),
+            resultSet.getString("name")
+          );
+          projectList.add(project);
+        }
+      }
+    });
+     */
 
     return projectList;
   }
@@ -98,13 +116,34 @@ public class Project extends Data implements DataDirectory {
   public static Project create(String name) {
     initializeWorkDirectory();
 
-    Project project = new Project(DataId.getInstance(Project.class, getDirectoryPath(name)).getUuid(), name);
-    instanceMap.put(project.getId(), project);
+    Project project = new Project(UUID.randomUUID(), name);
 
-    try {
-      Files.createDirectories(project.getDirectoryPath());
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
+    if (
+      handleDatabase(project, new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          PreparedStatement statement
+            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,location) values(?,?,?);");
+          statement.setString(1, project.getId());
+          statement.setString(2, project.getName());
+          statement.setString(3, project.getDirectoryPath().toString());
+          statement.execute();
+        }
+      })
+    ) {
+      try {
+        Files.createDirectories(project.getDirectoryPath());
+
+        if (new ProjectInitializer(project).init()) {
+          /*
+          Conductor.create(project, "Trial Submitter",
+            AbstractConductor.getInstance(TestConductor.class.getCanonicalName()), "");
+           */
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
     }
 
     return project;
@@ -119,15 +158,9 @@ public class Project extends Data implements DataDirectory {
     return getBaseDirectoryPath().resolve(name);
   }
 
-  static public Path getDirectoryPath(String name) {
-    return getBaseDirectoryPath().resolve(name);
-  }
-
   @Override
   protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-      new Updater() {
+    return new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -147,10 +180,8 @@ public class Project extends Data implements DataDirectory {
         ));
       }
     };
-     */
   }
 
-  /*
   private static class ProjectInitializer extends ProjectData {
     public ProjectInitializer(Project project) {
       super(project);
@@ -183,7 +214,6 @@ public class Project extends Data implements DataDirectory {
     @Override
     protected Updater getDatabaseUpdater() { return null; }
   }
-   */
 
   @Override
   public void initialize() {
@@ -192,7 +222,7 @@ public class Project extends Data implements DataDirectory {
       try {
         Files.createDirectories(getDirectoryPath());
       } catch (IOException e) {
-        ErrorLogMessage.issue(e);
+        e.printStackTrace();
       }
     }
 
@@ -200,7 +230,7 @@ public class Project extends Data implements DataDirectory {
       try {
         Files.createDirectories(ActorGroup.getBaseDirectoryPath(this));
       } catch (IOException e) {
-        ErrorLogMessage.issue(e);
+        e.printStackTrace();
       }
     }
 
@@ -208,7 +238,7 @@ public class Project extends Data implements DataDirectory {
       try {
         Files.createDirectories(Simulator.getBaseDirectoryPath(this));
       } catch (IOException e) {
-        ErrorLogMessage.issue(e);
+        e.printStackTrace();
       }
     }
 
@@ -216,8 +246,14 @@ public class Project extends Data implements DataDirectory {
       try {
         Files.createDirectories(RunNode.getBaseDirectoryPath(this));
       } catch (IOException e) {
-        ErrorLogMessage.issue(e);
+        e.printStackTrace();
       }
+    }
+  }
+
+  public void hibernate() {
+    for (Actor entity : Actor.getNotFinishedList(this)) {
+      AbstractConductor.getInstance(entity).hibernate(entity);
     }
   }
 }
