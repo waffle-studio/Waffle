@@ -15,7 +15,6 @@ import org.jruby.embed.ScriptingContainer;
 import org.json.JSONArray;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -32,7 +31,7 @@ public class Actor extends AbstractRun {
 
   private String actorName = null;
 
-  protected Actor(Project project, UUID id, String name) {
+  public Actor(Project project, UUID id, String name) {
     super(project, id, name);
   }
 
@@ -44,53 +43,38 @@ public class Actor extends AbstractRun {
     super(project);
   }
 
-  public static Path getLocalPath(String name) {
-    return Paths.get(name + Constants.EXT_JSON);
-  }
-
-  public Path getLocalPath() {
-    return getLocalPath(getName());
-  }
-
   @Override
   protected Path getPropertyStorePath() {
-    return getProject().getDirectoryPath().resolve(getName() + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(ACTOR_PREFIX + getName() + Constants.EXT_JSON);
+  }
+
+  protected static Path getPropertyStorePath(RunNode runNode, String name) {
+    return runNode.getDirectoryPath().resolve(ACTOR_PREFIX + name + Constants.EXT_JSON);
   }
 
   @Override
   public Path getDirectoryPath() {
-    return getPropertyStorePath().getParent();
+    return getRunNode().getDirectoryPath();
   }
 
   public static Actor getInstance(Project project, String id) {
-    if (id == null || "".equals(id)) {
-      return null;
-    }
-
     DataId dataId = DataId.getInstance(id);
     Actor actor = instanceMap.get(dataId.getId());
     if (actor != null) {
       return actor;
     }
-
-    actor = new Actor(project, dataId.getUuid(), project.getDirectoryPath().relativize(dataId.getPath()).toString());
-    instanceMap.put(dataId.getId(), actor);
-
     return actor;
   }
 
   public static Actor getInstanceByName(Project project, String name) {
-    if (name == null || "".equals(name)) {
-      return null;
-    }
-
-    DataId dataId = DataId.getInstance(Actor.class, project.getDirectoryPath().resolve(name));
+    RunNode runNode = RunNode.getRootInstance(project);
+    DataId dataId = DataId.getInstance(Actor.class, getPropertyStorePath(runNode, name));
     Actor actor = instanceMap.get(dataId.getId());
     if (actor != null) {
       return actor;
     }
 
-    actor = new Actor(project, dataId.getUuid(), project.getDirectoryPath().relativize(dataId.getPath()).toString());
+    actor = new Actor(project, dataId.getUuid(), name);
     instanceMap.put(dataId.getId(), actor);
 
     return actor;
@@ -231,14 +215,14 @@ public class Actor extends AbstractRun {
    */
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
+    DataId dataId = DataId.getInstance(Actor.class, runNode.getDirectoryPath());
 
     Project project = parent.getProject();
     String conductorId = (actorGroup == null ? "" : actorGroup.getId());
     String conductorName = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName());
-    String name = ACTOR_PREFIX + conductorName + "_" + LocalDateTime.now().toString() + "_" + UUID.randomUUID().toString();
-    DataId dataId = DataId.getInstance(Actor.class, runNode.getDirectoryPath().resolve(getLocalPath(name)));
+    String name = conductorName + "_" + LocalDateTime.now().toString() + "_" + UUID.randomUUID().toString();
 
-    Actor actor = new Actor(project, dataId.getUuid(), project.getDirectoryPath().relativize(dataId.getPath()).toString());
+    Actor actor = new Actor(project, dataId.getUuid(), name);
     actor.setRunNode(runNode);
 
     actor.setToProperty(KEY_PARENT, parent.getId());
@@ -273,9 +257,6 @@ public class Actor extends AbstractRun {
   }
 
   public String getActorName() {
-    if (actorName == null) {
-      actorName = getStringFromProperty(KEY_ACTOR);
-    }
     return actorName;
   }
 
@@ -293,18 +274,10 @@ public class Actor extends AbstractRun {
   }
 
   public void start() {
-    start(false, getParentActor());
-  }
-
-  public void start(AbstractRun caller) {
-    start(false, caller);
+    start(false);
   }
 
   public void start(boolean async) {
-    start(async, getParentActor());
-  }
-
-  public void start(boolean async, AbstractRun caller) {
     /*
     StackTraceElement[] ste = new Throwable().getStackTrace();
     System.out.println("vvvvvvvvvvvvvvvv");
@@ -315,12 +288,10 @@ public class Actor extends AbstractRun {
 
      */
 
-    if (! isStarted) {
-      isStarted = true;
-      setState(State.Running);
-      if (!isRoot()) {
-        getResponsibleActor().setState(State.Running);
-      }
+    isStarted = true;
+    setState(State.Running);
+    if (!isRoot()) {
+      getResponsibleActor().setState(State.Running);
     }
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     //abstractConductor.start(this, async);
@@ -329,7 +300,7 @@ public class Actor extends AbstractRun {
       @Override
       public void run() {
         super.run();
-        processMessage(caller); //?????
+        processMessage(null); //?????
 
         if (! isRunning()) {
           setState(jp.tkms.waffle.data.util.State.Finished);
@@ -380,10 +351,10 @@ public class Actor extends AbstractRun {
   }
 
   private Path getActorScriptPath() {
-    if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(getActorName())) {
+    if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(actorName)) {
       return getActorGroup().getRepresentativeActorScriptPath();
     }
-    return getActorGroup().getActorScriptPath(getActorName());
+    return getActorGroup().getActorScriptPath(actorName);
   }
 
   public void processMessage(AbstractRun caller) {
@@ -437,14 +408,11 @@ public class Actor extends AbstractRun {
       throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
     }
 
-    SimulatorRun createdRun = null;
     if (getRunNode() instanceof SimulatorRunNode) {
-      //setRunNode(((SimulatorRunNode) getRunNode()).moveToVirtualNode());
-      createdRun = SimulatorRun.create(getRunNode().getParent().createSimulatorRunNode(""), this, simulator, host);
-    } else {
-      createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, host);
+      setRunNode(((SimulatorRunNode) getRunNode()).moveToVirtualNode());
     }
 
+    SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, host);
     transactionRunList.add(createdRun);
     return createdRun;
   }

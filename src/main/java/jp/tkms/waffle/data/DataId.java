@@ -7,7 +7,6 @@ import jp.tkms.waffle.data.util.Sql;
 import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class DataId {
@@ -19,17 +18,14 @@ public class DataId {
 
   private static final Object objectLocker = new Object();
 
-  private static final HashMap<String, DataId> instanceIdMap = new HashMap<>();
-  private static final HashMap<String, DataId> instanceLocalPathMap = new HashMap<>();
-
   private String id;
   private String className;
-  private String localPath;
+  private String directory;
 
-  protected DataId(String id, String className, String localPath) {
+  public DataId(String id, String className, String directory) {
     this.id = id;
     this.className = className;
-    this.localPath = localPath;
+    this.directory = directory;
   }
 
   public String getId() {
@@ -44,38 +40,33 @@ public class DataId {
     return className;
   }
 
-  public String getLocalPath() {
-    return localPath;
+  public String getDirectory() {
+    return directory;
   }
 
   public Path getPath() {
-    return Constants.WORK_DIR.resolve(localPath);
+    return Constants.WORK_DIR.resolve(directory);
   }
 
   public void resetId() {
     synchronized (objectLocker) {
-      UUID newId = UUID.randomUUID();
       Database db = Database.getDatabase(Constants.WORK_DIR.resolve(FILE_NAME));
       try {
         new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, id)).execute();
         new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal(KEY_ID, newId.toString()),
+          Sql.Value.equal(KEY_ID, id),
           Sql.Value.equal(KEY_CLASS, className),
-          Sql.Value.equal(KEY_DIRECTORY, localPath)
+          Sql.Value.equal(KEY_DIRECTORY, directory)
         ).execute();
       } catch (SQLException e) {
         ErrorLogMessage.issue(e);
       }
-      try { db.close(); } catch (SQLException e) { }
-      instanceIdMap.remove(this.id);
-      this.id = newId.toString();
-      instanceIdMap.put(this.id, this);
     }
   }
 
-  public void setLocalPath(Path localPath) {
+  public void setDirectory(Path path) {
+    Path localPath = Constants.WORK_DIR.relativize(path.toAbsolutePath());
     synchronized (objectLocker) {
-      instanceLocalPathMap.remove(getLocalPath());
       Database db = Database.getDatabase(Constants.WORK_DIR.resolve(FILE_NAME));
       try {
         new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, id)).execute();
@@ -87,9 +78,6 @@ public class DataId {
       } catch (SQLException e) {
         ErrorLogMessage.issue(e);
       }
-      try { db.close(); } catch (SQLException e) { }
-      this.localPath = localPath.toString();
-      instanceLocalPathMap.put(getLocalPath(), this);
     }
   }
 
@@ -128,17 +116,8 @@ public class DataId {
    */
 
   public static DataId getInstance(String id) {
-    if (id == null || "".equals(id)) {
-      return null;
-    }
-
     DataId dataId = null;
     synchronized (objectLocker) {
-      dataId = instanceIdMap.get(id);
-      if (dataId != null) {
-        return dataId;
-      }
-
       Database db = Database.getDatabase(Constants.WORK_DIR.resolve(FILE_NAME));
       try {
         ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_CLASS, KEY_DIRECTORY)
@@ -163,11 +142,6 @@ public class DataId {
       } catch (SQLException e) {
         ErrorLogMessage.issue(e);
       }
-
-      if (dataId != null) {
-        instanceIdMap.put(dataId.getId(), dataId);
-        instanceLocalPathMap.put(dataId.getLocalPath(), dataId);
-      }
     }
     return dataId;
   }
@@ -175,13 +149,7 @@ public class DataId {
   public static DataId getInstance(Class clazz, Path path) {
     Path localPath = Constants.WORK_DIR.relativize(path.toAbsolutePath());
     UUID uuid = UUID.randomUUID();
-    DataId dataId = null;
     synchronized (objectLocker) {
-      dataId = instanceLocalPathMap.get(localPath.toString());
-      if (dataId != null) {
-        return dataId;
-      }
-
       Database db = Database.getDatabase(Constants.WORK_DIR.resolve(FILE_NAME));
       try {
         ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID)
@@ -212,11 +180,7 @@ public class DataId {
       } catch (SQLException e) {
         ErrorLogMessage.issue(e);
       }
-
-      dataId = new DataId(uuid.toString(), clazz.getCanonicalName(), localPath.toString());
-      instanceIdMap.put(dataId.getId(), dataId);
-      instanceLocalPathMap.put(dataId.getLocalPath(), dataId);
     }
-    return dataId;
+    return new DataId(uuid.toString(), clazz.getCanonicalName(), localPath.toString());
   }
 }

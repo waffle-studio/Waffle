@@ -53,10 +53,7 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public static RunNode getInstanceByName(Project project, Path path) {
-    Path instancePath = path;
-    if (!path.isAbsolute()) {
-      instancePath = getBaseDirectoryPath(project).resolve(path);
-    }
+    Path instancePath = getBaseDirectoryPath(project).resolve(path);
     if (Files.exists(instancePath.resolve(ParallelRunNode.KEY_PARALLEL))) {
       return new ParallelRunNode(project, getBaseDirectoryPath(project).resolve(path));
     } else if (Files.exists(instancePath.resolve(SimulatorRunNode.KEY_SIMULATOR))) {
@@ -182,7 +179,6 @@ public class RunNode extends DirectoryBaseData {
       nextName = name + '_' + count++;
     }
     replace(path.getParent().resolve(nextName));
-
     return nextName;
   }
 

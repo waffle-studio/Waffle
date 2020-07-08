@@ -39,6 +39,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   private JSONObject parameters = null;
   protected boolean isStarted = false;
   private RunNode runNode = null;
+  private RunNode parentRunNode = null;
 
   Registry registry;
 
@@ -79,16 +80,9 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     return registry;
   }
 
-  public RunNode getRunNode() {
-    if (runNode == null) {
-      runNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_RUNNODE, getId()));
-    }
-    return runNode;
-  }
-
-  protected void setRunNode(RunNode node) {
-    runNode = node;
-    setToProperty(KEY_RUNNODE, node.getId());
+  @Override
+  public void setName(String name) {
+    super.setName(getRunNode().rename(name));
   }
 
   public boolean isRoot() {
@@ -98,6 +92,30 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   @Override
   public Path getDirectoryPath() {
     return getRunNode().getDirectoryPath();
+  }
+
+  public RunNode getRunNode() {
+    if (runNode == null) {
+      runNode = RunNode.getInstance(getProject(), getId());
+    }
+    return runNode;
+  }
+
+  protected void setRunNode(RunNode node) {
+    setToProperty(KEY_RUNNODE, node.getId());
+    runNode = node;
+  }
+
+  public RunNode getParentRunNode() {
+    if (parentRunNode == null) {
+      parentRunNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_PARENT_RUNNODE));
+    }
+    return parentRunNode;
+  }
+
+  protected void setParentRunNode(RunNode node) {
+    setToProperty(KEY_PARENT_RUNNODE, node.getId());
+    parentRunNode = node;
   }
 
   public ActorGroup getActorGroup() {
@@ -127,19 +145,19 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   public void addFinalizer(String key) {
     Actor actor = Actor.create(getRunNode(), (Actor)(this instanceof SimulatorRun ? getParentActor() : this), getActorGroup(), key);
     ArrayList<String> finalizers = getFinalizers();
-    finalizers.add(actor.getName());
+    finalizers.add(actor.getId());
     setFinalizers(finalizers);
   }
 
   public void finish() {
     if (! getState().isRunning()) {
-      for (String actorName : getFinalizers()) {
-        Actor finalizer = Actor.getInstanceByName(getProject(), actorName);
+      for (String actorId : getFinalizers()) {
+        Actor finalizer = Actor.getInstance(getProject(), actorId);
         finalizer.setResponsibleActor(getResponsibleActor());
         if (finalizer != null) {
-          finalizer.start(this);
+          finalizer.start();
         } else {
-          WarnLogMessage.issue("the actor(" + actorName + ") is not found");
+          WarnLogMessage.issue("the actor(" + actorId + ") is not found");
         }
       }
     }

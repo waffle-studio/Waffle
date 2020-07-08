@@ -40,7 +40,7 @@ public class SimulatorRun extends AbstractRun {
     super(project);
   }
 
-  private Host host;
+  private String host;
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
@@ -49,7 +49,6 @@ public class SimulatorRun extends AbstractRun {
   private JSONObject environments;
   private JSONArray arguments;
   private JSONArray localSharedList;
-  private RunNode parentRunNode = null;
 
   private SimulatorRun(Actor parent, RunNode runNode) {
     this(parent.getProject(), runNode);
@@ -57,7 +56,6 @@ public class SimulatorRun extends AbstractRun {
 
   private SimulatorRun(Project project, RunNode runNode) {
     super(project, runNode.getUuid(), runNode.getSimpleName());
-    setRunNode(runNode);
   }
 
   public static SimulatorRun getInstance(Project project, String id) {
@@ -73,14 +71,10 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public Host getHost() {
-    if (host == null) {
-      host = Host.getInstanceByName(getStringFromProperty(KEY_HOST));
-    }
-    return host;
+    return Host.getInstanceByName(getStringFromProperty(KEY_HOST));
   }
 
   public void setHost(Host host) {
-    this.host = host;
     setToProperty(KEY_HOST, host.getName());
   }
 
@@ -125,32 +119,14 @@ public class SimulatorRun extends AbstractRun {
     return 0;
   }
 
-
-  public RunNode getParentRunNode() {
-    if (parentRunNode == null) {
-      parentRunNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_PARENT_RUNNODE));
-    }
-    return parentRunNode;
-  }
-
-  protected void setParentRunNode(RunNode node) {
-    setToProperty(KEY_PARENT_RUNNODE, node.getId());
-    parentRunNode = node;
-  }
-
-  @Override
-  public void setName(String name) {
-    super.setName(getRunNode().rename(name));
-  }
-
   public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
     SimulatorRun run = new SimulatorRun(parent, runNode);
     run.setSimulator(simulator);
     run.setHost(host);
     ActorGroup conductor = parent.getActorGroup();
     String conductorId = (conductor == null ? "" : conductor.getId());
-    String simulatorName = run.getSimulator().getName();
-    String hostName = run.getHost().getName();
+    String simulatorId = run.getSimulator().getId();
+    String hostId = run.getHost().getId();
 
     ((SimulatorRunNode) runNode).updateState(null, State.Created);
 
@@ -184,8 +160,8 @@ public class SimulatorRun extends AbstractRun {
     run.setToProperty(KEY_ACTOR_GROUP, conductorId);
     run.setToProperty(KEY_PARENT, parent.getId());
     run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
-    run.setToProperty(KEY_SIMULATOR, simulatorName);
-    run.setToProperty(KEY_HOST, hostName);
+    run.setToProperty(KEY_SIMULATOR, simulatorId);
+    run.setToProperty(KEY_HOST, hostId);
     run.setToProperty(KEY_STATE, run.getState().ordinal());
     run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
     run.setToProperty(KEY_RUNNODE, runNode.getId());

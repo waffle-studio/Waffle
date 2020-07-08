@@ -2,10 +2,14 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.util.Sql;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.UUID;
 
 public abstract class DirectoryBaseData extends PropertyFileData implements DataDirectory {
 
@@ -35,9 +39,7 @@ public abstract class DirectoryBaseData extends PropertyFileData implements Data
     }
 
     DataId dataId = DataId.getInstance(getId());
-    dataId.setLocalPath(localPath);
-
-    setName(path.getFileName().toString());
+    dataId.setDirectory(localPath);
   }
 
   static public void resetId(Class clazz, Path path) {
