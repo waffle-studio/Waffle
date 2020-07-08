@@ -2,7 +2,7 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.util.ResourceFile;
 import spark.Spark;
@@ -11,11 +11,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ParameterExtractorComponent extends AbstractAccessControlledComponent {
+  public static final String KEY_REMOVE = "remove";
+
   private Mode mode;
 
   private Project project;
   private Simulator simulator;
-  private ParameterExtractor extractor;
+  private String extractorName;
 
   public ParameterExtractorComponent(Mode mode) {
     super();
@@ -27,13 +29,11 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ParameterExtractorComponent());
+    Spark.get(getUrl(null, null), new ParameterExtractorComponent());
     Spark.get(getStaticUrl(null, "add"), new ParameterExtractorComponent(Mode.Add));
     Spark.post(getStaticUrl(null, "add"), new ParameterExtractorComponent(Mode.Add));
-    Spark.post(getUrl(null, "update"), new ParameterExtractorComponent(Mode.Update));
-
-    SimulatorsComponent.register();
-    TrialsComponent.register();
+    Spark.post(getUrl(null, null, "update"), new ParameterExtractorComponent(Mode.Update));
+    Spark.get(getUrl(null, null, KEY_REMOVE), new ParameterExtractorComponent(Mode.Remove));
   }
 
   public static String getStaticUrl(Simulator simulator, String mode) {
@@ -41,14 +41,14 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
       + (simulator == null ? ":project/:simulator" : simulator.getProject().getId() + "/" + simulator.getId());
   }
 
-  public static String getUrl(ParameterExtractor extractor) {
+  public static String getUrl(Simulator simulator, String name) {
     return "/parameter_extractor/"
-      + (extractor == null ? ":project/:simulator/:id"
-      : extractor.getSimulator().getProject().getId() + '/' + extractor.getSimulator().getId() + '/' +  extractor.getId());
+      + (name == null ? ":project/:simulator/:name"
+      : simulator.getProject().getId() + '/' + simulator.getId() + '/' +  name);
   }
 
-  public static String getUrl(ParameterExtractor extractor, String mode) {
-    return getUrl(extractor) + '/' + mode;
+  public static String getUrl(Simulator simulator, String name, String mode) {
+    return getUrl(simulator, name) + '/' + mode;
   }
 
   @Override
@@ -56,31 +56,34 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     project = Project.getInstance(request.params("project"));
     simulator = Simulator.getInstance(project, request.params("simulator"));
 
-    if (mode.equals(Mode.Default) || mode.equals(Mode.Update)) {
-      extractor = ParameterExtractor.getInstance(simulator, request.params("id"));
-    }
-
     switch (mode) {
       case Add:
         if (isPost()) {
+          System.out.println("OK");
           addParameterExtractor();
         } else {
           renderAddParameterExtractorForm();
         }
         break;
       case Update:
+        extractorName = request.params("name");
         updateParameterExtractor();
         break;
+      case Remove:
+        extractorName = request.params("name");
+        removeParameterExtractor();
+        break;
       default:
+        extractorName = request.params("name");
         renderParameterExtractor();
     }
   }
 
   private void renderParameterExtractor() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return extractor.getName();
+        return extractorName;
       }
 
       @Override
@@ -91,7 +94,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
           "Parameter Extractor",
-          extractor.getId()
+          extractorName
         ));
         return breadcrumb;
       }
@@ -102,17 +105,25 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("tasks") + "Properties",
-          null,
-          Html.form(getUrl(extractor, "update"), Html.Method.Post,
+        content += Html.form(getUrl(simulator, extractorName, "update"), Html.Method.Post,
+          Lte.card(Html.fasIcon("tasks") + "Properties", null,
             Html.div(null,
-              Lte.formInputGroup("text", "name", "Name", "Name", extractor.getName(), errors),
-              Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", extractor.getScript(), errors),
-              Lte.formSubmitButton("primary", "Update")
+              Lte.formInputGroup("text", "name", "Name", "Name", extractorName, errors),
+              Lte.formDataEditorGroup("extract_script", "Script", "ruby", simulator.getExtractorScript(extractorName), errors)
             )
+            , Lte.formSubmitButton("primary", "Update")
           )
-          , null);
+        );
 
+        content += Html.form(getUrl(simulator, extractorName, KEY_REMOVE), Html.Method.Get,
+          Lte.card(Html.fasIcon("trash-alt") + "Remove",
+            Lte.cardToggleButton(true),
+            Html.div(null,
+              Lte.formSubmitButton("danger", "Remove")
+            )
+            , null, "collapsed-card", null
+          )
+        );
 
         return content;
       }
@@ -120,7 +131,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   private void renderAddParameterExtractorForm() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Parameter Extractor";
@@ -150,16 +161,15 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("tasks") + "Properties",
-          null,
-          Html.form(getUrl(extractor, "add"), Html.Method.Post,
+        content += Html.form(getStaticUrl(simulator,"add"), Html.Method.Post,
+          Lte.card(Html.fasIcon("tasks") + "Properties",
+            null,
             Html.div(null,
-              Lte.formInputGroup("text", "name", "Name", "Name", "", errors),
-              Lte.formDataEditorGroup("extract_script", "Extract script", "ruby", ResourceFile.getContents("/command_arguments.rb"), errors),
-              Lte.formSubmitButton("success", "Add")
+              Lte.formInputGroup("text", "name", "Name", "Name", "", errors)
             )
+            , Lte.formSubmitButton("success", "Add")
           )
-          , null);
+        );
 
 
         return content;
@@ -169,17 +179,21 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
   public void addParameterExtractor() {
     String name = request.queryParams("name");
-    String script = request.queryParams("extract_script");
-    ParameterExtractor extractor = ParameterExtractor.create(simulator, name, script);
-    response.redirect(getUrl(extractor));
+    simulator.createExtractor(name);
+    response.redirect(getUrl(simulator, name));
   }
 
   public void updateParameterExtractor() {
     String name = request.queryParams("name");
     String script = request.queryParams("extract_script");
-    extractor.update(name, script);
-    response.redirect(getUrl(extractor));
+    simulator.updateExtractorScript(name, script);
+    response.redirect(getUrl(simulator, extractorName));
   }
 
-  public enum Mode {Default, Add, Update}
+  public void removeParameterExtractor() {
+    simulator.removeExtractor(extractorName);
+    response.redirect(SimulatorComponent.getUrl(simulator));
+  }
+
+  public enum Mode {Default, Add, Update, Remove}
 }

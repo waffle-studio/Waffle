@@ -1,6 +1,5 @@
 package jp.tkms.waffle.extractor;
 
-import jp.tkms.waffle.data.ParameterExtractor;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
@@ -9,7 +8,7 @@ import java.util.HashMap;
 
 public abstract class AbstractParameterExtractor {
 
-  abstract public void extract(SimulatorRun run, ParameterExtractor extractor, AbstractSubmitter submitter);
+  abstract public void extract(AbstractSubmitter submitter, SimulatorRun run, String extractorName);
   abstract public String contentsTemplate();
 
   public AbstractParameterExtractor() {

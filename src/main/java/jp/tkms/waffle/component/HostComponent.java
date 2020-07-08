@@ -10,6 +10,7 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 
 public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_WORKBASE = "work_base_dir";
@@ -17,6 +18,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_ENVIRONMENTS = "environments";
   private Mode mode;
 
   ;
@@ -36,7 +38,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Host host) {
-    return "/host/" + (host == null ? ":id" : host.getId());
+    return "/host/" + (host == null ? ":name" : host.getName());
   }
 
   public static String getUrl(Host host, String mode) {
@@ -45,7 +47,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    host = Host.getInstance(request.params("id"));
+    host = Host.find(request.params("name"));
     switch (mode) {
       case Update:
         updateHost();
@@ -58,6 +60,11 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private void renderHost() {
     new MainTemplate() {
       @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return host.getName();
       }
@@ -66,7 +73,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(HostsComponent.getUrl(), "Hosts"),
-          host.getId()
+          host.getName()
         ));
       }
 
@@ -76,9 +83,9 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Lte.card(Html.faIcon("terminal") + "Properties",
-          null,
-          Html.form(getUrl(host, "update"), Html.Method.Post,
+        content += Html.form(getUrl(host, "update"), Html.Method.Post,
+          Lte.card(Html.fasIcon("terminal") + "Properties",
+            host.getState().getStatusBadge(),
             Html.div(null,
               Lte.formInputGroup("text", KEY_XSUB,
                 "Xsub directory on host",
@@ -89,11 +96,12 @@ public class HostComponent extends AbstractAccessControlledComponent {
                 "Maximum number of jobs", "", host.getMaximumNumberOfJobs().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
-              Lte.formTextAreaGroup(KEY_PARAMETERS, "Parameters", 10, host.getParameters().toString(2), null),
-              Lte.formSubmitButton("success", "Update")
+              Lte.formDataEditorGroup(KEY_ENVIRONMENTS, "Environments", "json", host.getEnvironments().toString(2), null),
+              Lte.formDataEditorGroup(KEY_PARAMETERS, "Parameters", "json", host.getParameters().toString(2), null)
             )
+            , Lte.formSubmitButton("success", "Update")
           )
-          , null);
+        );
 
         return content;
       }
@@ -127,6 +135,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
     host.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
     host.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_MAX_JOBS)));
     host.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
+    host.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
     host.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));
     host.update();
     response.redirect(getUrl(host));

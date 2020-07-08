@@ -1,183 +1,151 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.conductor.AbstractConductor;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.UUID;
 
-public class Project extends Data {
+public class Project extends PropertyFileData implements DataDirectory {
   protected static final String TABLE_NAME = "project";
 
-  private Path location;
+  private static final HashMap<String, Project> instanceMap = new HashMap<>();
 
   public Project(UUID id, String name) {
     super(id, name);
-    this.location = Paths.get(Constants.DEFAULT_PROJECT_DIR.replaceFirst( "\\$\\{NAME\\}", getUnifiedName()));
-  }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+    initialize();
   }
 
   public Project() { }
 
-  protected void setLocation(Path location) {
-    this.location = location;
-  }
-
   public static Project getInstance(String id) {
-    final Project[] project = {null};
+    initializeWorkDirectory();
 
-    handleDatabase(new Project(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("select id,name,location from " + TABLE_NAME + " where id=?;");
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          project[0] = new Project(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-          project[0].setLocation(Paths.get(resultSet.getString("location")));
-        }
+    DataId dataId = DataId.getInstance(id);
+    if (dataId != null) {
+      Project project = instanceMap.get(dataId.getId());
+      if (project != null) {
+        project.initialize();
+        return project;
+      } else {
+        project = new Project(dataId.getUuid(), dataId.getPath().getFileName().toString()) ;
+        instanceMap.put(project.getId(), project);
+        project.initialize();
+        return project;
       }
-    });
+    }
 
-    return project[0];
+    return null;
   }
 
-  public static ArrayList<Project> getList() {
-    ArrayList<Project> projectList = new ArrayList<>();
+  public static Project getInstanceByName(String name) {
+    if (name == null) {
+      return null;
+    }
 
-    handleDatabase(new Project(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          Project project = new Project(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-          project.setLocation(null);
-          projectList.add(project);
-        }
-      }
-    });
+    DataId dataId = DataId.getInstance(Project.class, getDirectoryPath(name));
 
-    return projectList;
-  }
+    Project project = instanceMap.get(dataId.getId());
+    if (project != null) {
+      return project;
+    }
 
-  public static Project create(String name) {
-    Project project = new Project(UUID.randomUUID(), name);
+    project = getInstance(dataId.getId());
+    if (project != null) {
+      return project;
+    }
 
-    if (
-      handleDatabase(project, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name,location) values(?,?,?);");
-          statement.setString(1, project.getId());
-          statement.setString(2, project.getName());
-          statement.setString(3, project.getLocation().toString());
-          statement.execute();
-        }
-      })
-    ) {
-      try {
-        Files.createDirectories(project.getLocation());
-
-        if (new ProjectInitializer(project).init()) {
-          /*
-          Conductor.create(project, "Trial Submitter",
-            AbstractConductor.getInstance(TestConductor.class.getCanonicalName()), "");
-           */
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-
+    if (project == null && Files.exists(getBaseDirectoryPath().resolve(name))) {
+      project = create(name);
     }
 
     return project;
   }
 
-  public Path getLocation() {
-    return location;
-  }
+  public static ArrayList<Project> getList() {
+    initializeWorkDirectory();
 
+    ArrayList<Project> projectList = new ArrayList<>();
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(id,name,location," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-  }
-
-  private static class ProjectInitializer extends ProjectData {
-    public ProjectInitializer(Project project) {
-      super(project);
-    }
-
-    boolean init() {
-      return handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into system(name,value) values('id',?);");
-          statement.setString(1, getProject().getId());
-          statement.execute();
-
-          statement = db.preparedStatement("insert into system(name,value) values('name',?);");
-          statement.setString(1, getProject().getName());
-          statement.execute();
-
-          db.execute("insert into system(name,value)" +
-            " values('timestamp_create',(DATETIME('now','localtime')));");
+    try {
+      Files.list(getBaseDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          projectList.add(getInstanceByName(path.getFileName().toString()));
         }
       });
+    } catch (IOException e) {
+      e.printStackTrace();
     }
 
-    @Override
-    protected String getTableName() {
-      return null;
-    }
 
-    @Override
-    protected Updater getDatabaseUpdater() { return null; }
+    return projectList;
   }
 
-  public void hibernate() {
-    for (ConductorRun entity : ConductorRun.getNotFinishedList(this)) {
-      AbstractConductor.getInstance(entity).hibernate(entity);
+  public static Project create(String name) {
+    initializeWorkDirectory();
+
+    Project project = new Project(DataId.getInstance(Project.class, getDirectoryPath(name)).getUuid(), name);
+    instanceMap.put(project.getId(), project);
+
+    try {
+      Files.createDirectories(project.getDirectoryPath());
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+
+    return project;
+  }
+
+  public static Path getBaseDirectoryPath() {
+    return PropertyFileData.getWaffleDirectoryPath().resolve(Constants.PROJECT);
+  }
+
+  @Override
+  public Path getDirectoryPath() {
+    return getBaseDirectoryPath().resolve(name);
+  }
+
+  static public Path getDirectoryPath(String name) {
+    return getBaseDirectoryPath().resolve(name);
+  }
+
+  @Override
+  public void initialize() {
+    super.initialize();
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    if (! Files.exists(ActorGroup.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(ActorGroup.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    if (! Files.exists(Simulator.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(Simulator.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    if (! Files.exists(RunNode.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(RunNode.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
     }
   }
 }

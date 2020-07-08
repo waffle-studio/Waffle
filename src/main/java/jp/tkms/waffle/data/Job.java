@@ -1,6 +1,8 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.State;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -12,17 +14,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class Job extends Data {
+public class Job extends DatabaseFileData {
   private static final String TABLE_NAME = "job";
   private static final String KEY_PROJECT = "project";
   private static final String KEY_HOST = "host";
   private static final String KEY_JOB_ID = "job_id";
+  private static final String KEY_STATE = "state";
   private static final String KEY_ERROR_COUNT = "error_count";
 
   private Project project = null;
   private Host host = null;
   private SimulatorRun run = null;
   private String jobId = null;
+  private State state = null;
   private Integer errorCount = null;
 
   public Job(UUID id) {
@@ -95,61 +99,79 @@ public class Job extends Data {
     return list;
   }
 
+  public static int getNum() {
+    final int[] num = {0};
+
+    handleDatabase(new Job(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select count(*) as num from " + TABLE_NAME + ";");
+        while (resultSet.next()) {
+          num[0] = resultSet.getInt("num");
+        }
+      }
+    });
+
+    return num[0];
+  }
+
   public static void addRun(SimulatorRun run) {
     String hostId = run.getHost().getId();
 
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = new Sql.Select(db, TABLE_NAME, "count(*) as count").where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, run.getId());
-        ResultSet resultSet = statement.executeQuery();
+        ResultSet resultSet
+          = new Sql.Select(db, TABLE_NAME, "count(*) as count").where(Sql.Value.equal(KEY_ID, run.getId())).executeQuery();
         int count = 0;
         while (resultSet.next()) {
           count = resultSet.getInt("count");
         }
         if (count <= 0) {
-          statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,"
-            + KEY_PROJECT + ","
-            + KEY_HOST
-            + ") values(?,?,?);");
-          statement.setString(1, run.getId());
-          statement.setString(2, run.getProject().getId());
-          statement.setString(3, hostId);
-          statement.execute();
+          new Sql.Insert(db, TABLE_NAME,
+            Sql.Value.equal(KEY_ID, run.getId()),
+            Sql.Value.equal(KEY_PROJECT, run.getProject().getId()),
+            Sql.Value.equal(KEY_HOST, hostId),
+            Sql.Value.equal(KEY_STATE, run.getState().ordinal())
+            ).execute();
         }
       }
     });
+    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+  }
+
+  public void cancel() {
+    if (getRun().isRunning()) {
+      setState(State.Cancel);
+    }
   }
 
   public void remove() {
+
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-        statement.setString(1, getId());
-        statement.execute();
+        new Sql.Delete(db, getTableName()).where(Sql.Value.equal(KEY_ID, getId())).execute();
       }
     });
+    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
   public void setJobId(String jobId) {
-    if (
-      handleDatabase(new Job(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_JOB_ID + "=?" + " where id=?;");
-          statement.setString(1, jobId);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      })
-    ) {
-      this.jobId = jobId;
+    setToDB(KEY_JOB_ID, jobId);
+    this.jobId = jobId;
+    getRun().setJobId(jobId);
+  }
+
+  public void setState(State state) {
+    try {
+      setToDB(KEY_STATE, state.ordinal());
+      this.state = state;
+      if (getRun() != null) {
+        getRun().setState(state);
+      }
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
     }
   }
 
@@ -176,14 +198,14 @@ public class Job extends Data {
 
   public Project getProject() {
     if (project == null) {
-      project = Project.getInstance(getFromDB(KEY_PROJECT));
+      project = Project.getInstance(getStringFromDB(KEY_PROJECT));
     }
     return project;
   }
 
   public Host getHost() {
     if (host == null) {
-      host = Host.getInstance(getFromDB(KEY_HOST));
+      host = Host.getInstance(getStringFromDB(KEY_HOST));
     }
     return host;
   }
@@ -197,14 +219,21 @@ public class Job extends Data {
 
   public String getJobId() {
     if (jobId == null) {
-      jobId = getFromDB(KEY_JOB_ID);
+      jobId = getStringFromDB(KEY_JOB_ID);
     }
     return jobId;
   }
 
+  public State getState() {
+    if (state == null) {
+      state = State.valueOf(getIntFromDB(KEY_STATE));
+    }
+    return state;
+  }
+
   public int getErrorCount() {
     if (errorCount == null) {
-      errorCount = Integer.valueOf(getFromDB(KEY_ERROR_COUNT));
+      errorCount = Integer.valueOf(getStringFromDB(KEY_ERROR_COUNT));
     }
     return errorCount;
   }
@@ -226,10 +255,16 @@ public class Job extends Data {
               db.execute("create table " + TABLE_NAME + "(id," +
                 KEY_PROJECT + "," +
                 KEY_HOST + "," +
-                KEY_JOB_ID + " default 0," +
+                KEY_JOB_ID + " default ''," +
                 KEY_ERROR_COUNT + " default 0," +
                 "timestamp_create timestamp default (DATETIME('now','localtime'))" +
                 ");");
+            }
+          },
+          new UpdateTask() {
+            @Override
+            void task(Database db) throws SQLException {
+              new Sql.AlterTable(db, TABLE_NAME, Sql.AlterTable.withDefault(KEY_STATE, String.valueOf(State.Created.ordinal()))).execute();
             }
           }
         ));

@@ -4,7 +4,7 @@ end
 class Host < Java::jp.tkms.waffle.data.Host
 end
 
-class Conductor < Java::jp.tkms.waffle.data.Conductor
+class ActorGroup < Java::jp.tkms.waffle.data.ActorGroup
 end
 
 class ConductorArgument
@@ -21,7 +21,7 @@ class ConductorArgument
     end
 end
 
-class ConductorRun < Java::jp.tkms.waffle.data.ConductorRun
+class Actor < Java::jp.tkms.waffle.data.Actor
 end
 
 class SimulatorRun < Java::jp.tkms.waffle.data.SimulatorRun
@@ -44,97 +44,164 @@ def get_store(registry, entity_id)
     end
 end
 
-class Hub < Java::jp.tkms.waffle.data.util.Hub
-    def initialize(conductorRun)
-        super(conductorRun)
-        @store = get_store(registry, conductorRun.id)
-    end
-
-    def createConductorRun(name)
-        conductor = Conductor.find(getProject(), name);
-        return ConductorRun.create(conductorRun, conductor)
-    end
-
-    def createSimulatorRun(name, host_name)
-        simulator = Simulator.find(getProject(), name)
-        host = Host.find(host_name)
-        return SimulatorRun.create(getConductorRun(), simulator, host);
-    end
-
-    def close()
-        registry.set(".S:" + conductorRun.id, Marshal.dump(store))
+def get_template_argument(registry, entity_id)
+    serialized_template_argument = registry.get(".TA:" + entity_id, "[]")
+    if serialized_template_argument == "[]" then
+        template_argument = TemplateArgument.new()
+    else
+        template_argument = Marshal.load(serialized_template_argument)
     end
 end
 
-def exec_process(conductorRun, &block)
+class TemplateArgument
+    def initialize
+        @p = Hash.new
+        @f = Hash.new
+    end
+
+    def p
+        @p
+    end
+
+    def f
+        @f
+    end
+end
+
+class Hub < Java::jp.tkms.waffle.data.util.Hub
+    def initialize(conductorRun, run, template)
+        super(conductorRun, run, template)
+        @store = get_store(registry, conductorRun.id)
+        @template_argument =  get_template_argument(registry, conductorRun.id)
+    end
+
+    def close
+    #TODO: check with depth
+        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+        registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
+        super
+        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+        registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
+    end
+
+    def loadConductorTemplate(name)
+        super
+        @template_argument
+    end
+
+    def loadListenerTemplate(name)
+        super
+        @template_argument
+    end
+
+    def p
+        @template_argument.p
+    end
+
+    def f
+        @template_argument.f
+    end
+end
+
+def exec_process(conductorRun, run, &block)
     result = true
-    hub = Hub.new(conductorRun)
+    hub = Hub.new(conductorRun, run, nil)
     result = block.call(hub)
     hub.close
     return result
 end
 
-def exec_register_default_parameters(conductorRun, moduleInstanceName)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        register_default_parameters(hub)
-        hub.setParameterStore(nil)
-        return true
-    end
-end
-
 def exec_conductor_script(conductorRun)
-    exec_process conductorRun do | hub |
-        return conductor_script(hub, conductorRun)
+    exec_process conductorRun, conductorRun do | hub |
+        next conductor_script(hub, conductorRun)
     end
 end
 
-def exec_post_cycle_process(conductorRun, run)
-    exec_process conductorRun do | hub |
-        post_cycle_process(hub, run)
-        return true
+def exec_listener_script(conductorRun, run)
+    exec_process conductorRun, run do | hub |
+        next listener_script(hub, run)
     end
 end
 
-def exec_finalize_process(conductorRun)
-    exec_process conductorRun do | hub |
-        return finalize_process(hub, run)
+def exec_template_process(conductorRun, run, template, &block)
+    result = true
+    hub = Hub.new(conductorRun, run, template)
+    result = block.call(hub)
+    hub.close
+    return result
+end
+
+def exec_conductor_template_script(conductorRun, conductorTemplate)
+    exec_template_process conductorRun, conductorRun, conductorTemplate do | hub |
+        next conductor_script(hub, conductorRun)
     end
 end
 
-def exec_module_cycle_process(conductorRun, moduleInstanceName, run)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        result = cycle_process(hub, run)
-        hub.setParameterStore(nil)
-        return result
+def exec_listener_template_script(conductorRun, run)
+    exec_template_process conductorRun, run, nil do | hub |
+        next listener_script(hub, run)
     end
-end
-
-def exec_module_post_cycle_process(conductorRun, moduleInstanceName, run)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        post_cycle_process(hub, run)
-        return true
-    end
-end
-
-def exec_module_finalize_process(conductorRun, moduleInstanceName)
-    exec_process conductorRun do | hub |
-        hub.switchParameterStore(moduleInstanceName)
-        result = finalize_process(hub, run)
-        hub.setParameterStore(nil)
-        return result
-    end
-end
-
-def exec_update_value(entity, value)
-    registry = Registry.new(entity.project)
-    v = update_value(value, registry)
-    return v
 end
 
 def parameter_extract(run)
+end
+
+def exec_parameter_extract(run)
+    Dir.chdir(run.getWorkPath().toString()) do
+        parameter_extract(run)
+    end
+end
+
+def result_collect(run, remote)
+end
+
+def exec_result_collect(run, remote)
+    Dir.chdir(run.getWorkPath().toString()) do
+        result_collect(run, remote)
+    end
+end
+
+class Actor < Java::jp.tkms.waffle.data.Actor
+    def initialize(instance)
+        super(instance)
+        @store = get_store(getRegistry, instance.id)
+        @template_argument =  get_template_argument(getRegistry, instance.id)
+    end
+
+    def close
+    #TODO: check with depth
+        getRegistry.set(".S:" + getId, Marshal.dump(@store))
+        getRegistry.set(".TA:" + getId, Marshal.dump(@template_argument))
+        commit
+        getRegistry.set(".S:" + getId, Marshal.dump(@store))
+        getRegistry.set(".TA:" + getId, Marshal.dump(@template_argument))
+    end
+
+    def loadConductorTemplate(name)
+        super
+        @template_argument
+    end
+
+    def loadListenerTemplate(name)
+        super
+        @template_argument
+    end
+
+    def p
+        @template_argument.p
+    end
+
+    def f
+        @template_argument.f
+    end
+end
+
+def exec_actor_script(instance, caller)
+    result = true
+    local_instance = Actor.new(instance)
+    result = actor_script(local_instance, caller)
+    local_instance.close
+    return result
 end
 
 class Java::JavaLang::Object
@@ -146,5 +213,9 @@ end
 class Numeric
     def is_group?()
         return false
+    end
+
+    def to_str
+        return to_s
     end
 end

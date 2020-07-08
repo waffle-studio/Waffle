@@ -1,14 +1,15 @@
 package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
-import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.SimulatorRun;
-import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
@@ -80,16 +81,16 @@ public class SshSubmitter extends AbstractSubmitter {
       session.connect(retry);
     } catch (Exception e) {
       e.printStackTrace();
+      throw new RuntimeException(e.getMessage());
     }
 
     return this;
   }
 
   @Override
-  String getWorkDirectory(SimulatorRun run) {
-    Host host = run.getHost();
-    String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + RUN_DIR + host.getDirectorySeparetor() + run.getId();
+  public String getRunDirectory(SimulatorRun run) {
+    Host host = run.getActualHost();
+    String pathString = host.getWorkBaseDirectory() + '/' + RUN_DIR + '/' + run.getId();
 
     try {
       session.mkdir(pathString, "~/");
@@ -101,22 +102,31 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String getSimulatorBinDirectory(SimulatorRun run) {
-    String sep = run.getHost().getDirectorySeparetor();
-    String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.BIN_DIR;
+  public String getWorkDirectory(SimulatorRun run) {
+    return getRunDirectory(run) + "/" + SimulatorRun.WORKING_DIR; // do refactor
+  }
+
+  @Override
+  String getSimulatorBinDirectory(Job job) {
+    //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
+    String pathString = job.getHost().getWorkBaseDirectory() + '/' + SIMULATOR_DIR + '/' + job.getRun().getSimulator().getVersionId();
 
     return toAbsoluteHomePath(pathString);
   }
 
   @Override
-  void prepareSubmission(SimulatorRun run) {
+  void prepareSubmission(Job job) {
+    SimulatorRun run = job.getRun();
     try {
-      session.mkdir(getSimulatorBinDirectory(run), "/tmp");
-      //session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+      session.mkdir(getSimulatorBinDirectory(job), "/tmp");
+      if (true) {  // TODO: Check if the simulator has been updated
+        Path work = run.getWorkPath();
+        session.scp(work.toFile(), Paths.get(getRunDirectory(run)).resolve(work.getFileName()).toString(), "/tmp");
+      }
     } catch (JSchException e) {
       e.printStackTrace();
     }
-    BrowserMessage.info("Run(" + run.getShortId() + ") was prepared");
+    InfoLogMessage.issue(run, "was prepared");
   }
 
   @Override
@@ -136,18 +146,18 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  int getExitStatus(SimulatorRun run) throws Exception {
-    int status = -1;
-
-    status = Integer.valueOf(session.getText(EXIT_STATUS_FILE, getWorkDirectory(run)).replaceAll("\\r|\\n", ""));
-
-    return status;
+  boolean exists(String path) {
+    try {
+      return session.exec("test -e \"" + path + "\"", "").getExitStatus() == 0;
+    } catch (JSchException e) {
+    }
+    return false;
   }
 
   @Override
-  void postProcess(SimulatorRun run) {
+  void postProcess(Job job) {
     try {
-      //session.rmdir(getWorkDirectory(run), "/tmp");
+      //session.rmdir(getRunDirectory(run), "/tmp");
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -160,9 +170,9 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(SimulatorRun run, String path, String text) {
+  public void putText(Job job, String path, String text) {
     try {
-      session.putText(text, path, getWorkDirectory(run));
+      session.putText(text, path, getRunDirectory(job.getRun()));
     } catch (JSchException e) {
       e.printStackTrace();
     }
@@ -178,7 +188,8 @@ public class SshSubmitter extends AbstractSubmitter {
     return null;
   }
 
-  public JSONObject defaultParameters(Host host) {
+  @Override
+  public JSONObject getDefaultParameters(Host host) {
     JSONObject jsonObject = new JSONObject();
     jsonObject.put("host", host.getName());
     jsonObject.put("user", System.getProperty("user.name"));
@@ -186,6 +197,24 @@ public class SshSubmitter extends AbstractSubmitter {
     jsonObject.put("identity_pass", "");
     jsonObject.put("port", 22);
     return jsonObject;
+  }
+
+  @Override
+  public void transferFile(Path localPath, String remotePath) {
+    try {
+      session.scp(localPath.toFile(), remotePath, "/tmp");
+    } catch (JSchException e) {
+      WarnLogMessage.issue(e);
+    }
+  }
+
+  @Override
+  public void transferFile(String remotePath, Path localPath) {
+    try {
+      session.scp(remotePath, localPath.toFile(), "/tmp");
+    } catch (JSchException e) {
+      WarnLogMessage.issue(e);
+    }
   }
 
   protected String toAbsoluteHomePath(String pathString) {

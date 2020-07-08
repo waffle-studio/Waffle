@@ -6,6 +6,7 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 
 public class ErrorComponent extends AbstractAccessControlledComponent {
   static public void register() {
@@ -19,6 +20,11 @@ public class ErrorComponent extends AbstractAccessControlledComponent {
 
     new MainTemplate() {
       @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return "" + response.status();
       }
@@ -30,7 +36,7 @@ public class ErrorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        return Html.h1("text-center", Html.faIcon("question"));
+        return Html.h1("text-center", Html.fasIcon("question"));
       }
     }.render(this);
   }

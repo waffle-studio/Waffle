@@ -1,261 +1,310 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
+import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public class SimulatorRun extends AbstractRun {
-  protected static final String TABLE_NAME = "run";
-  private static final String KEY_PARENT_RUN = "parent_run";
+  protected static final String TABLE_NAME = "simulator_run";
   private static final String KEY_HOST = "host";
-  private static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_SIMULATOR = "simulator";
-  private static final String KEY_STATE = "state";
   private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_ENVIRONMENTS = "environments";
   protected static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_RESULTS = "results";
+  private static final String KEY_CREATED_AT = "created_at";
+  private static final String KEY_SUBMITTED_AT = "submitted_at";
+  private static final String KEY_FINISHED_AT = "finished_at";
+  private static final String KEY_RUN = "run";
+  private static final String KEY_ENTRY = "entry";
+  private static final String KEY_JOB_ID = "job_id";
+  private static final String KEY_LOCAL_SHARED = "local_shared";
+  public static final String WORKING_DIR = "WORK";
+  public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
+  private static final String KEY_ACTUAL_HOST = "actual_host";
 
-  private static Map<Integer, State> stateMap = new HashMap<>();
-
-  public SimulatorRun(Project project) {
+  protected SimulatorRun(Project project) {
     super(project);
   }
 
-  public enum State {
-    Created(0), Queued(1), Submitted(2), Running(3), Finished(4), Failed(5);
-
-    private final int id;
-
-    State(final int id) {
-      this.id = id;
-      stateMap.put(id, this);
-    }
-
-    int toInt() { return id; }
-
-    static State valueOf(int i) {
-      return stateMap.get(i);
-    }
-  }
-
-  private String conductor;
-  private String parentConductorRun;
-  private String simulator;
-  private String host;
+  private Host host;
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
+  private JSONObject parameters = null;
+  private JSONObject results = null;
   private JSONObject environments;
-  private JSONObject parameters;
   private JSONArray arguments;
+  private JSONArray localSharedList;
+  private RunNode parentRunNode = null;
 
-  private SimulatorRun(Conductor conductor, ConductorRun parent, Simulator simulator, Host host) {
-    this(conductor.getProject(), UUID.randomUUID(),
-      conductor.getId(), parent.getId(), simulator.getId(), host.getId(), State.Created);
+  private SimulatorRun(Actor parent, RunNode runNode) {
+    this(parent.getProject(), runNode);
   }
 
-  private SimulatorRun(Project project, UUID id, String name, String conductor, String parent, String simulator, String host, State state) {
-    super(project, id, name);
-    this.conductor = conductor;
-    this.parentConductorRun = parent;
-    this.simulator = simulator;
-    this.host = host;
-    this.state = state;
-  }
-
-  private SimulatorRun(Project project, UUID id, String conductor, String trials, String simulator, String host, State state) {
-    this(project, id, "", conductor, trials, simulator, host, state);
+  private SimulatorRun(Project project, RunNode runNode) {
+    super(project, runNode.getUuid(), runNode.getSimpleName());
+    setRunNode(runNode);
   }
 
   public static SimulatorRun getInstance(Project project, String id) {
-    final SimulatorRun[] run = {null};
+    SimulatorRun run = null;
 
-    handleDatabase(new SimulatorRun(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createSelect(TABLE_NAME,
-          KEY_ID,
-          KEY_NAME,
-          KEY_CONDUCTOR,
-          KEY_PARENT_RUN,
-          KEY_SIMULATOR,
-          KEY_HOST,
-          KEY_STATE
-        ).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          run[0] = new SimulatorRun(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_PARENT_RUN),
-            resultSet.getString(KEY_SIMULATOR),
-            resultSet.getString(KEY_HOST),
-            State.valueOf(resultSet.getInt(KEY_STATE))
-          );
-        }
-      }
-    });
+    RunNode runNode = RunNode.getInstance(project, id);
 
-    return run[0];
-  }
-
-  public Conductor getConductor() {
-    return Conductor.getInstance(getProject(), conductor);
-  }
-
-  public Host getHost() {
-    return Host.getInstance(host);
-  }
-
-  public Simulator getSimulator() {
-    return Simulator.getInstance(getProject(), simulator);
-  }
-
-  public State getState() {
-    return state;
-  }
-
-  public static ArrayList<SimulatorRun> getList(Project project, ConductorRun parent) {
-    ArrayList<SimulatorRun> list = new ArrayList<>();
-
-    handleDatabase(new SimulatorRun(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createSelect(TABLE_NAME,
-          KEY_ID,
-          KEY_CONDUCTOR,
-          KEY_PARENT_RUN,
-          KEY_SIMULATOR,
-          KEY_HOST,
-          KEY_STATE
-        ).where(Sql.Value.equalP(KEY_PARENT_RUN)).toPreparedStatement();
-        statement.setString(1, parent.getId());
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          list.add(new SimulatorRun(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_CONDUCTOR),
-            resultSet.getString(KEY_PARENT_RUN),
-            resultSet.getString(KEY_SIMULATOR),
-            resultSet.getString(KEY_HOST),
-            State.valueOf(resultSet.getInt(KEY_STATE))
-          ));
-        }
-      }
-    });
-
-    return list;
-  }
-
-  public static SimulatorRun create(ConductorRun parent, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(parent.getConductor(), parent, simulator, host);
-    String conductorId = run.getConductor().getId();
-    String simulatorId = run.getSimulator().getId();
-    String hostId = run.getHost().getId();
-    JSONObject parameters = parent.getNextRunParameters(simulator);
-
-    handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.createInsert(TABLE_NAME,
-          KEY_ID,
-          KEY_CONDUCTOR,
-          KEY_PARENT_RUN,
-          KEY_SIMULATOR,
-          KEY_HOST,
-          KEY_STATE,
-          KEY_PARAMETERS
-        ).toPreparedStatement();
-        statement.setString(1, run.getId());
-        statement.setString(2, conductorId);
-        statement.setString(3, parent.getId());
-        statement.setString(4, simulatorId);
-        statement.setString(5, hostId);
-        statement.setInt(6, run.getState().toInt());
-        statement.setString(7, parameters.toString());
-        statement.execute();
-      }
-    });
-
-    new RunStatusUpdater(run);
+    if (runNode != null) {
+      run = new SimulatorRun(project, runNode);
+    }
 
     return run;
   }
 
-  public void setState(State state) {
-    if (!this.state.equals(state)) {
-      if (
-        handleDatabase(this, new Handler() {
-          @Override
-          void handling(Database db) throws SQLException {
-            PreparedStatement statement
-              = db.preparedStatement("update " + getTableName() + " set " + KEY_STATE + "=?" + " where id=?;");
-            statement.setInt(1, state.toInt());
-            statement.setString(2, getId());
-            statement.execute();
-          }
-        })
-      ) {
-        this.state = state;
-        new RunStatusUpdater(this);
+  public Host getHost() {
+    if (host == null) {
+      host = Host.getInstanceByName(getStringFromProperty(KEY_HOST));
+    }
+    return host;
+  }
 
-        if (state.equals(State.Finished) || state.equals(State.Failed)) {
-          getParent().update(this);
+  public void setHost(Host host) {
+    this.host = host;
+    setToProperty(KEY_HOST, host.getName());
+  }
+
+  public Host getActualHost() {
+    return Host.getInstanceByName(getStringFromProperty(KEY_ACTUAL_HOST, getHost().getName()));
+  }
+
+  public Simulator getSimulator() {
+    return Simulator.getInstanceByName(getProject(), getStringFromProperty(KEY_SIMULATOR));
+  }
+
+  public void setSimulator(Simulator simulator) {
+    setToProperty(KEY_SIMULATOR, simulator.getName());
+  }
+
+  public State getState() {
+    if (state == null) {
+      state = State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
+    }
+    return state;
+  }
+
+  public static int getNumberOfRunning(Project project, Actor parent) {
+    /*
+    final int[] count = new int[1];
+
+    handleDatabase(new SimulatorRun(project), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, "count(*) as count")
+          .where(
+            Sql.Value.and(
+              Sql.Value.equal(KEY_PARENT, parent.getId()), Sql.Value.lessThan(KEY_STATE, State.Finished.ordinal())
+            )).executeQuery();
+        while (resultSet.next()) {
+          count[0] = resultSet.getInt("count");
         }
       }
+    });
+     */
+
+    return 0;
+  }
+
+
+  public RunNode getParentRunNode() {
+    if (parentRunNode == null) {
+      parentRunNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_PARENT_RUNNODE));
+    }
+    return parentRunNode;
+  }
+
+  protected void setParentRunNode(RunNode node) {
+    setToProperty(KEY_PARENT_RUNNODE, node.getId());
+    parentRunNode = node;
+  }
+
+  @Override
+  public void setName(String name) {
+    super.setName(getRunNode().rename(name));
+  }
+
+  public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
+    SimulatorRun run = new SimulatorRun(parent, runNode);
+    run.setSimulator(simulator);
+    run.setHost(host);
+    ActorGroup conductor = parent.getActorGroup();
+    String conductorId = (conductor == null ? "" : conductor.getId());
+    String simulatorName = run.getSimulator().getName();
+    String hostName = run.getHost().getName();
+
+    ((SimulatorRunNode) runNode).updateState(null, State.Created);
+
+    /*
+    JSONObject parameters = ParameterGroup.getRootInstance(simulator).toJSONObject();
+    if (copyParameters) {
+      for (Map.Entry<String, Object> entry : parent.getParameters().toMap().entrySet()) {
+        parameters.put(entry.getKey(), entry.getValue());
+      }
+    }
+     */
+
+    /*
+    handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        new Sql.Insert(db, TABLE_NAME,
+          Sql.Value.equal(KEY_ID, run.getId()),
+          Sql.Value.equal(KEY_CONDUCTOR, conductorId),
+          Sql.Value.equal(KEY_PARENT, parent.getId()),
+          Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, parent.getId()),
+          Sql.Value.equal(KEY_SIMULATOR, simulatorId),
+          Sql.Value.equal(KEY_HOST, hostId),
+          Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
+          Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString()),
+          Sql.Value.equal(KEY_RUNNODE, runNode.getId())
+        ).execute();
+      }
+     */
+
+    run.setToProperty(KEY_ACTOR_GROUP, conductorId);
+    run.setToProperty(KEY_PARENT, parent.getId());
+    run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
+    run.setToProperty(KEY_SIMULATOR, simulatorName);
+    run.setToProperty(KEY_HOST, hostName);
+    run.setToProperty(KEY_STATE, run.getState().ordinal());
+    run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+    run.setToProperty(KEY_RUNNODE, runNode.getId());
+
+    run.setExitStatus(-1);
+    run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());
+    run.setToProperty(KEY_SUBMITTED_AT, -1);
+    run.setToProperty(KEY_FINISHED_AT, -1);
+
+    new RunStatusUpdater(run);
+
+    try {
+      Files.createDirectories(run.getWorkPath());
+    } catch (Exception e) {}
+    run.parameters = new JSONObject(simulator.getDefaultParameters().toString());
+    run.updateParametersStore();
+
+    return run;
+  }
+
+  public DateTime getCreatedDateTime() {
+    return new DateTime(getLongFromProperty(KEY_CREATED_AT));
+  }
+
+  public DateTime getSubmittedDateTime() {
+    return new DateTime(getLongFromProperty(KEY_SUBMITTED_AT));
+  }
+
+  public DateTime getFinishedDateTime() {
+    return new DateTime(getLongFromProperty(KEY_FINISHED_AT));
+  }
+
+  @Override
+  protected Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(KEY_RUN + Constants.EXT_JSON);
+  }
+
+  public Path getWorkPath() {
+    return getDirectoryPath().resolve(WORKING_DIR).toAbsolutePath();
+  }
+
+  @Override
+  public void appendErrorNote(String note) {
+    super.appendErrorNote(note);
+  }
+
+  public void setState(State state) {
+    State currentState = getState();
+    if (!currentState.equals(state)) {
+      switch (state) {
+        case Finished:
+        case Failed:
+        case Excepted:
+        case Canceled:
+          setToProperty(KEY_FINISHED_AT, ZonedDateTime.now().toEpochSecond());
+          break;
+        case Submitted:
+          setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
+      }
+
+      ((SimulatorRunNode) getRunNode()).updateState(currentState, state);
+      setToProperty(KEY_STATE, state.ordinal());
+      this.state = state;
+      new RunStatusUpdater(this);
+
+      finish();
+
     }
   }
 
-  public void setExitStatus(int exitStatus) {
-    if (
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_EXIT_STATUS + "=?" + " where id=?;");
-          statement.setInt(1, exitStatus);
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      })
-    ) {
-      this.exitStatus = exitStatus;
-    }
+  public void setRemoteWorkingDirectoryLog(String path) {
+    setToProperty(KEY_REMOTE_WORKING_DIR, path);
   }
 
-  public ConductorRun getParent() {
-    return ConductorRun.getInstance(getProject(), parentConductorRun);
+  public String getRemoteWorkingDirectoryLog() {
+    return getStringFromProperty(KEY_REMOTE_WORKING_DIR);
   }
 
   public int getRestartCount() {
     if (restartCount == null) {
-      restartCount = Integer.valueOf(getFromDB(KEY_RESTART_COUNT));
+      restartCount = getIntFromProperty(KEY_RESTART_COUNT, 0);
     }
     return restartCount;
   }
 
+  public void setExitStatus(int exitStatus) {
+    setToProperty(KEY_EXIT_STATUS, exitStatus);
+    this.exitStatus = exitStatus;
+  }
+
   public int getExitStatus() {
     if (exitStatus == null) {
-      exitStatus = Integer.valueOf(getFromDB(KEY_EXIT_STATUS));
+      exitStatus = getIntFromProperty(KEY_EXIT_STATUS);
     }
     return exitStatus;
   }
 
+  public void setJobId(String jobId) {
+    setToProperty(KEY_JOB_ID, jobId);
+  }
+
+  public String getJobId() {
+    return getStringFromProperty(KEY_JOB_ID, "");
+  }
+
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
-      arguments = new JSONArray(getFromDB(KEY_ARGUMENTS));
+      Path storePath = getDirectoryPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
+      String json = "[]";
+      if (Files.exists(storePath)) {
+        try {
+          json = new String(Files.readAllBytes(storePath));
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } else {
+        setArguments(new ArrayList<>());
+      }
+      arguments = new JSONArray(json);
     }
     return new ArrayList<>(arguments.toList());
   }
@@ -264,15 +313,14 @@ public class SimulatorRun extends AbstractRun {
     this.arguments = new JSONArray(arguments);
     String argumentsJson = this.arguments.toString();
 
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_ARGUMENTS + "=? where " + KEY_ID + "=?;");
-        statement.setString(1, argumentsJson);
-        statement.setString(2, getId());
-        statement.execute();
-      }
-    });
+    Path storePath = getDirectoryPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(argumentsJson);
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public void addArgument(Object o) {
@@ -283,7 +331,7 @@ public class SimulatorRun extends AbstractRun {
 
   public JSONObject getEnvironments() {
     if (environments == null) {
-      environments = (new JSONObject(getFromDB(KEY_ENVIRONMENTS)));
+      environments = getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
     }
     return environments;
   }
@@ -292,19 +340,47 @@ public class SimulatorRun extends AbstractRun {
     return getEnvironments().get(key);
   }
 
-  public Object setEnvironment(String key, Object value) {
-    getEnvironments();
+  public Object putEnvironment(String key, Object value) {
+    environments = getEnvironments();
     environments.put(key, value);
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_ENVIRONMENTS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, environments.toString());
-        statement.setString(2, getId());
-        statement.execute();
+    setToProperty(KEY_ENVIRONMENTS, environments);
+    return environments;
+  }
+
+  protected void updateParametersStore() {
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
       }
-    });
-    return value;
+    }
+
+    if (parameters == null) {
+      parameters = new JSONObject();
+    }
+
+    Path storePath = getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(parameters.toString(2));
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String getFromParametersStore() {
+    Path storePath = getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+    String json = "{}";
+    if (Files.exists(storePath)) {
+      try {
+        json = new String(Files.readAllBytes(storePath));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return json;
   }
 
   public void putParametersByJson(String json) {
@@ -314,23 +390,17 @@ public class SimulatorRun extends AbstractRun {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
       BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      e.printStackTrace();
     }
-    JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject map = new JSONObject(getFromParametersStore());
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
         parameters.put(key, valueMap.get(key));
       }
 
-      handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement = db.preparedStatement("update " + getTableName() + " set " + KEY_PARAMETERS + "=? where " + KEY_ID + "=?;");
-          statement.setString(1, map.toString());
-          statement.setString(2, getId());
-          statement.execute();
-        }
-      });
+      updateParametersStore();
     }
   }
 
@@ -342,7 +412,7 @@ public class SimulatorRun extends AbstractRun {
 
   public JSONObject getParameters() {
     if (parameters == null) {
-      parameters = new JSONObject(getFromDB(KEY_PARAMETERS));
+      parameters = new JSONObject(getFromParametersStore());
     }
     return parameters;
   }
@@ -351,31 +421,98 @@ public class SimulatorRun extends AbstractRun {
     return getParameters().get(key);
   }
 
-  public Object setParameter(String key, Object value) {
-    getParameters();
-    parameters.put(key, value);
-    handleDatabase(this, new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Update(db, getTableName(), KEY_PARAMETERS).where(Sql.Value.equalP(KEY_ID)).toPreparedStatement();
-        statement.setString(1, parameters.toString());
-        statement.setString(2, getId());
-        statement.execute();
+  protected void updateResultsStore() {
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
       }
-    });
-    return value;
+    }
+
+    if (results == null) {
+      results = new JSONObject();
+    }
+
+    Path storePath = getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(results.toString(2));
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
+  private String getFromResultsStore() {
+    Path storePath = getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+    String json = "{}";
+    if (Files.exists(storePath)) {
+      try {
+        json = new String(Files.readAllBytes(storePath));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return json;
+  }
+
+  public void putResultsByJson(String json) {
+    getResults(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      e.printStackTrace();
+    }
+    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject map = new JSONObject(getFromResultsStore());
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        results.put(key, valueMap.get(key));
+      }
+
+      updateResultsStore();
+    }
+  }
+
+  public void putResult(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putResultsByJson(obj.toString());
+  }
+
+  public JSONObject getResults() {
+    if (results == null) {
+      results = new JSONObject(getFromResultsStore());
+    }
+    //return results;
+    return new JSONObject(getFromResultsStore());
+  }
+
+  public Object getResult(String key) {
+    return getResults().get(key);
+  }
+
+  @Override
   public boolean isRunning() {
-    return !(state.equals(State.Finished) || state.equals(State.Failed));
+    State state = getState();
+    return (state.equals(State.Created)
+      || state.equals(State.Prepared)
+      || state.equals(State.Submitted)
+      || state.equals(State.Running)
+    );
   }
 
   public void start() {
+    isStarted = true;
     Job.addRun(this);
   }
 
   public void restart() {
-    setIntToDB(KEY_RESTART_COUNT, getRestartCount() +1);
+    setToProperty(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
     Job.addRun(this);
@@ -387,317 +524,124 @@ public class SimulatorRun extends AbstractRun {
     Job.addRun(this);
   }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
+  public JSONArray getLocalSharedList() {
+    if (localSharedList == null) {
+      try {
+        localSharedList = getArrayFromProperty(KEY_LOCAL_SHARED);
+      } catch (Exception e) {}
+      if (localSharedList == null) {
+        putNewArrayToProperty(KEY_LOCAL_SHARED);
+        localSharedList = new JSONArray();
       }
+    }
+    return localSharedList;
+  }
 
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(" +
-                KEY_ID + "," +
-                KEY_NAME + "," +
-                KEY_CONDUCTOR + "," +
-                KEY_PARENT_RUN + "," +
-                KEY_SIMULATOR + "," +
-                KEY_HOST + "," +
-                KEY_STATE + "," +
-                KEY_PARAMETERS + " default '{}'," +
-                KEY_FINALIZER + " default '[]'," +
-                KEY_ARGUMENTS + " default '[]'," +
-                KEY_EXIT_STATUS + " default -1," +
-                KEY_ENVIRONMENTS + " default '{}'," +
-                KEY_RESTART_COUNT + " default 0," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
+  public void makeLocalShared(String key, String remote) {
+    localSharedList = getLocalSharedList();
+    JSONArray entry = new JSONArray();
+    entry.put(key);
+    entry.put(remote);
+    localSharedList.put(entry);
+    setToProperty(KEY_LOCAL_SHARED, this.localSharedList);
+  }
+
+  /*
+  public ArrayList<Object> getStageInList() {
+    if (stageInList == null) {
+      stageInList = getArrayFromProperty(KEY_STAGE_IN);
+      if (stageInList == null) {
+        putNewArrayToProperty(KEY_STAGE_IN);
+        stageInList = new JSONArray();
       }
-    };
+    }
+    return new ArrayList<>(stageInList.toList());
   }
 
-  public ParametersWrapper parameters() {
-    return new ParametersWrapper(getParameters());
+  public void setStageInList(ArrayList<Object> stageInList) {
+    this.stageInList = new JSONArray(stageInList);
+    setToProperty(KEY_STAGE_IN, this.stageInList);
   }
 
-  public class ParametersWrapper implements Map<String, Object> {
-    Map m;
-
-    public ParametersWrapper(JSONObject o) {
-      m = o.toMap();
-    }
-
-    @Override
-    public int size() {
-      return m.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return m.isEmpty();
-    }
-
-    @Override
-    public boolean containsKey(Object o) {
-      return m.containsKey(o);
-    }
-
-    @Override
-    public boolean containsValue(Object o) {
-      return m.containsValue(o);
-    }
-
-    @Override
-    public Object get(Object k) {
-      Object o = getParameters().get(k.toString());
-      if (o instanceof JSONObject) {
-        return new ParametersWrapper((JSONObject) o);
-      }
-      return o;
-    }
-
-    @Override
-    public Object put(String s, Object o) {
-      return setParameter(s, o);
-    }
-
-    @Override
-    public Object remove(Object o) {
-      return m.remove(o);
-    }
-
-    @Override
-    public void putAll(Map<? extends String, ?> map) {
-      m.putAll(map);
-    }
-
-    @Override
-    public void clear() {
-      m.clear();
-    }
-
-    @Override
-    public Set<String> keySet() {
-      return m.keySet();
-    }
-
-    @Override
-    public Collection<Object> values() {
-      return m.values();
-    }
-
-    @Override
-    public Set<Entry<String, Object>> entrySet() {
-      return m.entrySet();
-    }
+  public void stageIn(String name, String remote) {
+    ArrayList<Object> stageInList = getStageInList();
+    JSONArray entry = new JSONArray();
+    entry.put(name);
+    entry.put(remote);
+    stageInList.add(entry);
+    setStageInList(stageInList);
   }
 
-  public EnvironmentsWrapper environments() {
-    return new EnvironmentsWrapper(getEnvironments());
+  public void stageOut(String name, String remote) {
+    try {
+      AbstractSubmitter submitter = AbstractSubmitter.getInstance(getHost()).connect();
+      submitter.connect(true);
+      submitter.stageOut(this, name, remote);
+      submitter.close();
+    } catch (Exception e) {}
   }
+   */
 
-  public class EnvironmentsWrapper implements Map<String, Object> {
-    Map m;
+  public HashMap<Object, Object> environmentsWrapper = null;
+  public HashMap environments() {
+    if (environmentsWrapper == null) {
+      environmentsWrapper = new HashMap<>(getEnvironments().toMap()) {
+        @Override
+        public Object get(Object key) {
+          return getEnvironment(key.toString());
+        }
 
-    public EnvironmentsWrapper(JSONObject o) {
-      m = o.toMap();
+        @Override
+        public Object put(Object key, Object value) {
+          super.put(key, value);
+          putEnvironment(key.toString(), value);
+          return value;
+        }
+      };
     }
-
-    @Override
-    public int size() {
-      return m.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return m.isEmpty();
-    }
-
-    @Override
-    public boolean containsKey(Object o) {
-      return m.containsKey(o);
-    }
-
-    @Override
-    public boolean containsValue(Object o) {
-      return m.containsValue(o);
-    }
-
-    @Override
-    public Object get(Object k) {
-      return m.get(k);
-    }
-
-    @Override
-    public Object put(String s, Object o) {
-      return setEnvironment(s, o);
-    }
-
-    @Override
-    public Object remove(Object o) {
-      return m.remove(o);
-    }
-
-    @Override
-    public void putAll(Map<? extends String, ?> map) {
-      m.putAll(map);
-    }
-
-    @Override
-    public void clear() {
-      m.clear();
-    }
-
-    @Override
-    public Set<String> keySet() {
-      return m.keySet();
-    }
-
-    @Override
-    public Collection<Object> values() {
-      return m.values();
-    }
-
-    @Override
-    public Set<Entry<String, Object>> entrySet() {
-      return m.entrySet();
-    }
+    return environmentsWrapper;
   }
+  public HashMap e() { return environments(); }
 
-  private ArgumentsWrapper argumentsWrapper = new ArgumentsWrapper();
-  public ArgumentsWrapper arguments() {
+  private ArrayList<Object> argumentsWrapper = null;
+  public ArrayList<Object> arguments() {
+    if (argumentsWrapper == null) {
+      argumentsWrapper = new ArrayList<>(getArguments()) {
+        @Override
+        public boolean add(Object o) {
+          addArgument(o);
+          return true;
+        }
+      };
+    }
     return argumentsWrapper;
   }
+  public ArrayList<Object> a() { return arguments(); }
 
-  public class ArgumentsWrapper implements List {
+  private HashMap<Object, Object> parametersWrapper = null;
+  public HashMap parameters() {
+    if (parametersWrapper == null) {
+      parametersWrapper = new HashMap<Object, Object>(getParameters().toMap()) {
+        @Override
+        public Object get(Object key) {
+          return getParameter(key.toString());
+        }
 
-    @Override
-    public int size() {
-      return getArguments().size();
+        @Override
+        public Object put(Object key, Object value) {
+          super.put(key, value);
+          putParameter(key.toString(), value);
+          return value;
+        }
+
+        @Override
+        public String toString() {
+          return getParameters().toString();
+        }
+      };
     }
 
-    @Override
-    public boolean isEmpty() {
-      return getArguments().isEmpty();
-    }
-
-    @Override
-    public boolean contains(Object o) {
-      return getArguments().contains(o);
-    }
-
-    @Override
-    public Iterator iterator() {
-      return getArguments().iterator();
-    }
-
-    @Override
-    public Object[] toArray() {
-      return getArguments().toArray();
-    }
-
-    @Override
-    public boolean add(Object o) {
-      addArgument(o);
-      return true;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-      return getArguments().remove(o);
-    }
-
-    @Override
-    public boolean addAll(Collection collection) {
-      return getArguments().addAll(collection);
-    }
-
-    @Override
-    public boolean addAll(int i, Collection collection) {
-      return getArguments().addAll(i, collection);
-    }
-
-    @Override
-    public void clear() {
-      getArguments().clear();
-    }
-
-    @Override
-    public Object get(int i) {
-      return getArguments().get(i);
-    }
-
-    @Override
-    public Object set(int i, Object o) {
-      return getArguments().set(i, o);
-    }
-
-    @Override
-    public void add(int i, Object o) {
-      getArguments().add(i, o);
-    }
-
-    @Override
-    public Object remove(int i) {
-      return getArguments().remove(i);
-    }
-
-    @Override
-    public int indexOf(Object o) {
-      return getArguments().indexOf(o);
-    }
-
-    @Override
-    public int lastIndexOf(Object o) {
-      return getArguments().lastIndexOf(o);
-    }
-
-    @Override
-    public ListIterator listIterator() {
-      return getArguments().listIterator();
-    }
-
-    @Override
-    public ListIterator listIterator(int i) {
-      return getArguments().listIterator(i);
-    }
-
-    @Override
-    public List subList(int i, int i1) {
-      return getArguments().subList(i, i1);
-    }
-
-    @Override
-    public boolean retainAll(Collection collection) {
-      return getArguments().retainAll(collection);
-    }
-
-    @Override
-    public boolean removeAll(Collection collection) {
-      return getArguments().removeAll(collection);
-    }
-
-    @Override
-    public boolean containsAll(Collection collection) {
-      return getArguments().containsAll(collection);
-    }
-
-    @Override
-    public Object[] toArray(Object[] objects) {
-      return getArguments().toArray(objects);
-    }
+    return parametersWrapper;
   }
+  public HashMap p() { return parameters(); }
 }

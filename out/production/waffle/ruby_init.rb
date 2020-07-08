@@ -31,7 +31,7 @@ class Host < Java::jp.tkms.waffle.data.Host
     end
 end
 
-class Conductor < Java::jp.tkms.waffle.data.Conductor
+class Conductor < Java::jp.tkms.waffle.data.ActorGroup
 end
 
 class ConductorArgument
@@ -48,7 +48,7 @@ class ConductorArgument
     end
 end
 
-class ConductorEntity < Java::jp.tkms.waffle.data.ConductorRun
+class ConductorEntity < Java::jp.tkms.waffle.data.Actor
 end
 
 class Run < Java::jp.tkms.waffle.data.SimulatorRun

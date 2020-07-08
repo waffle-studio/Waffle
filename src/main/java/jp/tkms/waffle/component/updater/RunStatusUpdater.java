@@ -1,8 +1,8 @@
 package jp.tkms.waffle.component.updater;
 
 import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.util.State;
 
 public class RunStatusUpdater extends AbstractUpdater {
 
@@ -21,22 +21,28 @@ public class RunStatusUpdater extends AbstractUpdater {
     } catch (Exception e) {}
     return Html.div(null,
       Html.divWithId("template-Created-badge",
-        Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), "Created")
+        State.Created.getStatusBadge()
       ),
       Html.divWithId("template-Queued-badge",
-        Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), "Queued")
+        State.Prepared.getStatusBadge()
       ),
       Html.divWithId("template-Submitted-badge",
-        Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), "Submitted")
+        State.Submitted.getStatusBadge()
       ),
       Html.divWithId("template-Running-badge",
-        Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), "Running")
+        State.Running.getStatusBadge()
       ),
       Html.divWithId("template-Finished-badge",
-        Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), "Finished")
+        State.Finished.getStatusBadge()
       ),
       Html.divWithId("template-Failed-badge",
-        Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), "Failed")
+        State.Failed.getStatusBadge()
+      ),
+      Html.divWithId("template-Excepted-badge",
+        State.Excepted.getStatusBadge()
+      ),
+      Html.divWithId("template-Canceled-badge",
+        State.Canceled.getStatusBadge()
       ),
       reloadDaemon
     );
@@ -51,7 +57,7 @@ public class RunStatusUpdater extends AbstractUpdater {
   public String scriptBody() {
     return "try{document.getElementById(id + '-badge').innerHTML = document.getElementById('template-' + status + '-badge').innerHTML;}catch(e){}" +
       "if (status == 'Created') { isUpdateNeeded = true; }" +
-      "else if (status == 'Failed' || status == 'Finished') { try{document.getElementById(id + '-jobrow').style.display = 'none';}catch(e){} }" +
+      "else if (status == 'Failed' || status == 'Finished' || status == 'Excepted' || status == 'Canceled' ) { try{document.getElementById(id + '-jobrow').style.display = 'none';}catch(e){} }" +
       "try{if (id==run_id) {setTimeout(function(){location.reload();}, 1000);}}catch(e){}";
   }
 

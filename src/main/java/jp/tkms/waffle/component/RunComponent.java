@@ -1,14 +1,19 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
+import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 
 public class RunComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -30,8 +35,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, null, "recheck"), new RunComponent(Mode.ReCheck));
   }
 
-  public static String getUrl(Project project, SimulatorRun run) {
-    return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + run.getId());
+  public static String getUrl(Project project, UUID runId) {
+    return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + runId.toString());
   }
 
   public static String getUrl(Project project, SimulatorRun run, String mode) {
@@ -48,7 +53,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     switch (mode) {
       case ReCheck:
         run.recheck();
-        response.redirect(RunComponent.getUrl(project, run));
+        response.redirect(RunComponent.getUrl(project, run.getUuid()));
         return;
     }
 
@@ -56,20 +61,30 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderRun() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return run.getId();
+        return (run.getName() == null || "".equals(run.getName()) ? run.getId() : run.getName());
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
+        ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          "Runs",
-          request.params("id")
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          Html.a(RunsComponent.getUrl(project), "Runs")
         ));
+        ArrayList<String> runNodeList = new ArrayList<>();
+        RunNode parent = run.getRunNode().getParent();
+        while (parent != null) {
+          runNodeList.add(Html.a(RunsComponent.getUrl(project, parent), parent.getSimpleName()));
+          parent = parent.getParent();
+        }
+        runNodeList.remove(runNodeList.size() -1);
+        Collections.reverse(runNodeList);
+        breadcrumb.addAll(runNodeList);
+        breadcrumb.add(run.getName());
+        return breadcrumb;
       }
 
       @Override
@@ -78,7 +93,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
         content += Html.javascript("var run_id = '" + run.getId() + "';");
 
-        content += Lte.card(Html.faIcon("info-circle") + "Status", null,
+        content += Lte.card(Html.fasIcon("info-circle") + "Status", null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
@@ -88,24 +103,69 @@ public class RunComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
-                list.add(new Lte.TableRow("Status", JobsComponent.getStatusBadge(run)));
-                list.add(new Lte.TableRow("Return Code", "" + run.getExitStatus()
+                list.add(new Lte.TableRow("Status", run.getState().getStatusBadge()));
+                if (run.getActorGroup() != null) {
+                  list.add(new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName())));
+                } else {
+                  list.add(new Lte.TableRow("Conductor", "No Conductor"));
+                }
+                list.add(new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName())));
+                list.add(new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName()))) );
+                list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
                   Lte.badge("secondary", null, "ReCheck")):"")));
+                list.add(new Lte.TableRow("Created at", run.getCreatedDateTime().toString()));
+                list.add(new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString()));
+                list.add(new Lte.TableRow("Finished at", run.getFinishedDateTime().toString()));
+                list.add(new Lte.TableRow("Remote Directory", Lte.readonlyTextInputWithCopyButton(null, run.getRemoteWorkingDirectoryLog(), true)));
                 return list;
               }
             })
           , null, null, "p-0");
 
-        content += Lte.card(Html.faIcon("list-alt") + "Parameters",
+        content += Lte.card(Html.fasIcon("list-alt") + "Variables",
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, 10, run.getParameters().toString(2))
+              Lte.readonlyTextAreaGroup("", null, run.getVariables().toString(2))
+            )
+          )
+          , null, "collapsed-card", null);
+
+        content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
+          Lte.cardToggleButton(false),
+          Lte.divRow(
+            Lte.divCol(Lte.DivSize.F12,
+              Lte.readonlyTextAreaGroup("", "Parameters", run.getParameters().toString(2))
+            ),
+            Lte.divCol(Lte.DivSize.F12,
+              Lte.readonlyTextAreaGroup("", "Results", run.getResults().toString(2))
             )
           )
           , null);
+
+        if (Files.exists(run.getDirectoryPath().resolve(Constants.STDOUT_FILE))) {
+          content += Lte.card(Html.fasIcon("file") + "Standard Output",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.readonlyTextAreaGroup("", null, run.getFileContents(Constants.STDOUT_FILE))
+              )
+            )
+            , null, "collapsed-card", null);
+        }
+
+        if (Files.exists(run.getDirectoryPath().resolve(Constants.STDERR_FILE))) {
+          content += Lte.card(Html.fasIcon("file") + "Standard Error",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.readonlyTextAreaGroup("", null, run.getFileContents(Constants.STDERR_FILE))
+              )
+            )
+            , null, "collapsed-card", null);
+        }
 
         return content;
       }

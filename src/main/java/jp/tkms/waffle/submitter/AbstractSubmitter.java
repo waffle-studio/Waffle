@@ -1,33 +1,47 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
+import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
+import jp.tkms.waffle.data.exception.FailedToProcessScriptException;
+import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.WaffleException;
+import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.LogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
   protected static final String SIMULATOR_DIR = "simulator";
-  protected static final String INNER_WORK_DIR = "WORK";
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
-  protected static final String ENVIRONMENTS_FILE = "environments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract public AbstractSubmitter connect(boolean retry);
-  abstract String getWorkDirectory(SimulatorRun run);
-  abstract String getSimulatorBinDirectory(SimulatorRun run);
-  abstract void prepareSubmission(SimulatorRun run);
+  abstract public String getRunDirectory(SimulatorRun run);
+  abstract public String getWorkDirectory(SimulatorRun run);
+  abstract String getSimulatorBinDirectory(Job job);
+  abstract void prepareSubmission(Job job);
   abstract String exec(String command);
-  abstract int getExitStatus(SimulatorRun run) throws Exception;
-  abstract void postProcess(SimulatorRun run);
+  abstract boolean exists(String path);
+  abstract void postProcess(Job job);
   abstract public void close();
-  abstract public void putText(SimulatorRun run, String path, String text);
+  abstract public void putText(Job job, String path, String text);
   abstract public String getFileContents(SimulatorRun run, String path);
-  abstract public JSONObject defaultParameters(Host host);
+  abstract public JSONObject getDefaultParameters(Host host);
+  abstract public void transferFile(Path localPath, String remotePath) throws FailedToTransferFileException;
+  abstract public void transferFile(String remotePath, Path localPath) throws FailedToTransferFileException;
 
   public AbstractSubmitter connect() {
     return connect(true);
@@ -46,70 +60,135 @@ abstract public class AbstractSubmitter {
   }
 
   public void submit(Job job) {
-    SimulatorRun run = job.getRun();
-
-    putText(run, BATCH_FILE, makeBatchFileText(run));
-
-    for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-      AbstractParameterExtractor instance = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-      instance.extract(run, extractor, this);
+    try {
+      prepareJob(job);
+      processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.setState(State.Excepted);
     }
-
-    putText(run, EXIT_STATUS_FILE, "-2");
-    putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
-    putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
-
-    prepareSubmission(run);
-
-    processXsubSubmit(job, exec(xsubSubmitCommand(job)));
   }
 
-  public SimulatorRun.State update(Job job) {
+  public State update(Job job) {
     SimulatorRun run = job.getRun();
     processXstat(job, exec(xstatCommand(job)));
     return run.getState();
   }
 
-  String makeBatchFileText(SimulatorRun run) {
-    return "#!/bin/sh\n" +
-      "\n" +
-      "export PATH='" + getSimulatorBinDirectory(run) + "':$PATH\n" +
-      "mkdir " + INNER_WORK_DIR + "\n" +
-      "BATCH_WORKING_DIR=`pwd`\n" +
-      "cd " + INNER_WORK_DIR + "\n" +
-      "cat ../" + ARGUMENTS_FILE + " | xargs -d '\\n' " +
-      run.getSimulator().getSimulationCommand() + " >${BATCH_WORKING_DIR}/stdout.txt 2>${BATCH_WORKING_DIR}/stderr.txt\n" +
-      "EXIT_STATUS=$?\n" +
-      "cd ${BATCH_WORKING_DIR}\n" +
-      "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" +
-      "";
+  public void cancel(Job job) {
+    if (! job.getJobId().equals("-1")) {
+      processXdel(job, exec(xdelCommand(job)));
+    }
   }
 
-  String makeArgumentFileText(SimulatorRun run) {
+  protected void prepareJob(Job job) throws WaffleException {
+    SimulatorRun run = job.getRun();
+    run.setRemoteWorkingDirectoryLog(getRunDirectory(run));
+
+    run.getSimulator().updateVersionId();
+
+    putText(job, BATCH_FILE, makeBatchFileText(job));
+    putText(job, EXIT_STATUS_FILE, "-2");
+
+    try {
+      for (String extractorName : run.getSimulator().getExtractorNameList()) {
+        new RubyParameterExtractor().extract(this, run, extractorName);
+      }
+    } catch (Exception e) {
+      throw new FailedToProcessScriptException();
+    }
+    putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
+    //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
+
+    if (!exists(Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString())) {
+      Path binPath = run.getSimulator().getBinDirectory().toAbsolutePath();
+      try {
+        transferFile(binPath, Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString());
+      } catch (FailedToTransferFileException e) {
+        throw e;
+      }
+    }
+
+    prepareSubmission(job);
+  }
+
+  String makeBatchFileText(Job job) {
+    SimulatorRun run = job.getRun();
+    JSONArray localSharedList = run.getLocalSharedList();
+
+    String text = "#!/bin/sh\n" +
+      "\n" +
+      "export WAFFLE_REMOTE='" + getSimulatorBinDirectory(job) + "'\n" +
+      "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
+      "mkdir -p " + getWorkDirectory(run) +"\n" +
+      "cd " + getWorkDirectory(run) + "\n" +
+      "export WAFFLE_WORKING_DIR=`pwd`\n" +
+      "cd '" + getSimulatorBinDirectory(job) + "'\n" +
+      "chmod a+x '" + run.getSimulator().getSimulationCommand() + "' >/dev/null 2>&1\n" +
+      "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
+      "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
+      "export WAFFLE_LOCAL_SHARED=\"" + job.getHost().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getId() + "\"\n" +
+      "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
+      "cd \"${WAFFLE_WORKING_DIR}\"\n";
+
+    for (int i = 0; i < localSharedList.length(); i++) {
+      JSONArray a = localSharedList.getJSONArray(i);
+      text += makeLocalSharingPreCommandText(a.getString(0), a.getString(1));
+    }
+
+    text += makeEnvironmentCommandText(job);
+
+    text += "\n" + run.getSimulator().getSimulationCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
+      "EXIT_STATUS=$?\n";
+
+    for (int i = 0; i < localSharedList.length(); i++) {
+      JSONArray a = localSharedList.getJSONArray(i);
+      text += makeLocalSharingPostCommandText(a.getString(0), a.getString(1));
+    }
+
+    text += "\n" + "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
+      "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" +
+      "\n";
+
+    return text;
+  }
+
+  String makeLocalSharingPreCommandText(String key, String remote) {
+    return "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi\n";
+  }
+
+  String makeLocalSharingPostCommandText(String key, String remote) {
+    return "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi\n";
+  }
+
+  String makeArgumentFileText(Job job) {
     String text = "";
-    for (Object o : run.getArguments()) {
+    for (Object o : job.getRun().getArguments()) {
       text += o.toString() + "\n";
     }
     return text;
   }
 
-  String makeEnvironmentFileText(SimulatorRun run) {
+  String makeEnvironmentCommandText(Job job) {
     String text = "";
-    for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
-      text += "export " + entry.getKey() + "='" + entry.getValue().toString() + "'\n";
+    for (Map.Entry<String, Object> entry : job.getHost().getEnvironments().toMap().entrySet()) {
+      text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
+    }
+    for (Map.Entry<String, Object> entry : job.getRun().getEnvironments().toMap().entrySet()) {
+      text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
     }
     return text;
   }
 
   String xsubSubmitCommand(Job job) {
-    //return xsubCommand(job) + " -d '" + getWorkDirectory(job.getRun()) + "' " + BATCH_FILE;
+    //return xsubCommand(job) + " -d '" + getRunDirectory(job.getRun()) + "' " + BATCH_FILE;
     return xsubCommand(job) + " " + BATCH_FILE;
   }
 
   String xsubCommand(Job job) {
     Host host = job.getHost();
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
-      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(job.getRun()) + "'; " +
+      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()) + "'; " +
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
@@ -126,87 +205,120 @@ abstract public class AbstractSubmitter {
   }
 
   void processXsubSubmit(Job job, String json) {
-    JSONObject object = new JSONObject(json);
-    String jobId = object.getString("job_id");
-    job.setJobId(jobId);
-    job.getRun().setState(SimulatorRun.State.Submitted);
-    BrowserMessage.info("Run(" + job.getRun().getShortId() + ") was submitted");
+    try {
+      JSONObject object = new JSONObject(json);
+      String jobId = object.getString("job_id");
+      job.setJobId(jobId);
+      job.setState(State.Submitted);
+      InfoLogMessage.issue(job.getRun(), "was submitted");
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+    }
   }
 
   void processXstat(Job job, String json) {
-    BrowserMessage.info("Run(" + job.getRun().getShortId() + ") will be checked");
+    InfoLogMessage.issue(job.getRun(), "will be checked");
     JSONObject object = new JSONObject(json);
     try {
       String status = object.getString("status");
       switch (status) {
         case "running" :
-          job.getRun().setState(SimulatorRun.State.Running);
+          job.setState(State.Running);
           break;
         case "finished" :
           int exitStatus = -1;
           try {
-            exitStatus = getExitStatus(job.getRun());
+            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()) + (job.getHost().isLocal() ? File.separator : "/") + EXIT_STATUS_FILE).trim());
           } catch (Exception e) {
-            /*
-            if (job.getErrorCount() >= 5) {
-              System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
-            } else {
-              job.incrementErrorCount();
-              break;
-            }
-            */
-            System.err.println(getWorkDirectory(job.getRun()) + "/" + EXIT_STATUS_FILE);
+            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+            WarnLogMessage.issue(e);
+          }
+
+          try {
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+          } catch (Exception | Error e) {
+            //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+            WarnLogMessage.issue(e);
+          }
+
+          try {
+            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+          } catch (Exception | Error e) {
+            //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+            WarnLogMessage.issue(e);
           }
 
           if (exitStatus == 0) {
-            BrowserMessage.info("Run(" + job.getRun().getShortId() + ") results will be collected");
-            job.getRun().setState(SimulatorRun.State.Finished);
-            for ( ResultCollector collector : ResultCollector.getList(job.getRun().getSimulator()) ) {
-              collector.getResultCollector().collect(this, job.getRun(), collector);
+            InfoLogMessage.issue(job.getRun(), "results will be collected");
+
+            boolean isNoException = true;
+            for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+              try {
+                new RubyResultCollector().collect(this, job.getRun(), collectorName);
+              } catch (Exception | Error e) {
+                isNoException = false;
+                job.setState(State.Excepted);
+                job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+                WarnLogMessage.issue(e);
+              }
+            }
+
+            if (isNoException) {
+              job.setState(State.Finished);
             }
           } else {
-            job.getRun().setState(SimulatorRun.State.Failed);
+            job.setState(State.Failed);
           }
 
           job.getRun().setExitStatus(exitStatus);
           job.remove();
-          postProcess(job.getRun());
+
+          postProcess(job);
           break;
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+      WarnLogMessage.issue(e);
     }
   }
 
   void processXdel(Job job, String json) {
+    job.setState(State.Canceled);
+    job.remove();
   }
 
   String getContentsPath(SimulatorRun run, String path) {
-    return getWorkDirectory(run) + run.getHost().getDirectorySeparetor() + INNER_WORK_DIR
-       + run.getHost().getDirectorySeparetor() + path;
+    String separator = (run.getActualHost().isLocal() ? File.separator : "/");
+    if (path.indexOf(separator) == 0) {
+      return path;
+    }
+    return getWorkDirectory(run) + separator + path;
   }
 
   public static String getXsubBinDirectory(Host host) {
-    return (host.getXsubDirectory().equals("") ? "":
-      host.getXsubDirectory() + host.getDirectorySeparetor() + "bin" + host.getDirectorySeparetor()
-      );
+    String separator = (host.isLocal() ? File.separator : "/");
+    return (host.getXsubDirectory().equals("") ? "": host.getXsubDirectory() + separator + "bin" + separator);
   }
 
-  public static JSONObject getXsubTemplate(Host host, boolean retry) {
+  public static JSONObject getXsubTemplate(Host host, boolean retry) throws RuntimeException {
     AbstractSubmitter submitter = getInstance(host).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
       getXsubBinDirectory(host) + "xsub -t";
     String json = submitter.exec(command);
     if (json != null) {
-      jsonObject = new JSONObject(json);
+      try {
+        jsonObject = new JSONObject(json);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to parse JSON");
+      }
     }
     return jsonObject;
   }
 
   public static JSONObject getParameters(Host host) {
     AbstractSubmitter submitter = getInstance(host);
-    JSONObject jsonObject = submitter.defaultParameters(host);
+    JSONObject jsonObject = submitter.getDefaultParameters(host);
     return jsonObject;
   }
 
@@ -220,22 +332,42 @@ abstract public class AbstractSubmitter {
 
     for (Job job : jobList) {
       SimulatorRun run = job.getRun();
-      switch (run.getState()) {
-        case Created:
-          if (queuedJobList.size() < maximumNumberOfJobs) {
-            queuedJobList.add(job);
-          }
-          break;
-        case Submitted:
-        case Running:
-          SimulatorRun.State state = update(job);
-          if (!(SimulatorRun.State.Finished.equals(state) || SimulatorRun.State.Failed.equals(state))) {
-            submittedCount++;
-          }
-          break;
-        case Finished:
-        case Failed:
-          job.remove();
+
+      if (run != null) {
+        switch (job.getState()) {
+          case Created:
+            if (queuedJobList.size() < maximumNumberOfJobs) {
+              queuedJobList.add(job);
+            }
+            break;
+          case Submitted:
+          case Running:
+            State state = update(job);
+            if (!(State.Finished.equals(state)
+              || State.Failed.equals(state)
+              || State.Excepted.equals(state)
+              || State.Canceled.equals(state))) {
+              submittedCount++;
+            }
+            break;
+          case Cancel:
+            cancel(job);
+            break;
+          case Finished:
+          case Failed:
+          case Excepted:
+          case Canceled:
+            job.remove();
+        }
+      } else {
+        cancel(job);
+        job.remove();
+        WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
+      }
+
+      //TODO: do refactoring
+      if (Main.hibernateFlag) {
+        break;
       }
     }
 
@@ -250,4 +382,17 @@ abstract public class AbstractSubmitter {
   public void hibernate() {
 
   }
+
+  /*
+  public boolean stageIn(SimulatorRun run, String name, String remote) {
+    if (updated) {
+      tranfar file to remote shared dir from local shared dir
+    }
+    soft copy to run dir from remote shared dir
+  }
+
+  public boolean stageOut(SimulatorRun run, String name, String remote) {
+
+  }
+   */
 }

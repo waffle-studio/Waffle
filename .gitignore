@@ -5,11 +5,12 @@
 
 waffle.dat
 *.db
-work/
-tmp/
+/work/
+/waffle/
+/tmp/
+/_waffle/
 
-
-build/scriptsShadow/
+/build/
 
 # Compiled class file
 *.class

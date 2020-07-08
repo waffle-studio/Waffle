@@ -2,6 +2,8 @@ package jp.tkms.waffle.component.template;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -61,12 +63,12 @@ public class Lte {
   public static String cardToggleButton(boolean flag) {
     return Html.element("button", new Attributes(value("class", "btn btn-tool"),
       value("type", "button"), value("data-card-widget","collapse"),
-      value("data-toggle", "tooltip")), (flag?Html.faIcon("plus"):Html.faIcon("minus")));
+      value("data-toggle", "tooltip")), (flag?Html.fasIcon("plus"):Html.fasIcon("minus")));
   }
 
   public static String infoBox(DivSize divSize, String icon, String iconBgCLass, String text, String number) {
     return divCol(divSize, div("info-box",
-      span(listBySpace("info-box-icon", iconBgCLass), null, faIcon(icon)),
+      span(listBySpace("info-box-icon", iconBgCLass), null, fasIcon(icon)),
       div("info-box-content",
         span("info-box-text", null, text),
         span("info-box-number", null, number)
@@ -91,6 +93,11 @@ public class Lte {
     );
   }
 
+  public static String formTextAreaGroup(String name, String label, String contents, ArrayList<FormError> errors) {
+    return formTextAreaGroup(name, label, contents.split("\\n").length, contents, errors);
+  }
+
+
   public static String formDataEditorGroup(String name, String label, String type,
                                          String contents, ArrayList<FormError> errors) {
     String id = "input" + name;
@@ -109,8 +116,7 @@ public class Lte {
     );
   }
 
-  public static String readonlyTextAreaGroup(String name, String label, int rows,
-                                         String contents) {
+  public static String readonlyTextAreaGroup(String name, String label, int rows, String contents) {
     String id = "input" + name;
     return div("form-group",
       (label != null ?
@@ -126,6 +132,10 @@ public class Lte {
         , contents
       )
     );
+  }
+
+  public static String readonlyTextAreaGroup(String name, String label, String contents) {
+    return readonlyTextAreaGroup(name, label, contents.split("\\n").length, contents);
   }
 
   public static String formInputGroup(String type, String name, String label,
@@ -145,7 +155,7 @@ public class Lte {
     );
   }
 
-  public static String formSelectGroup(String name, String label, ArrayList<String> optionList, ArrayList<FormError> errors) {
+  public static String formSelectGroup(String name, String label, List<String> optionList, ArrayList<FormError> errors) {
     String id = "input" + name;
     String options = "";
     for (String option : optionList) {
@@ -204,6 +214,32 @@ public class Lte {
     );
   }
 
+  public static String readonlyTextInputWithCopyButton(String label, String value) {
+    return readonlyTextInputWithCopyButton(label, value, false);
+  }
+
+  public static String readonlyTextInputWithCopyButton(String label, String value, boolean isSmall) {
+    UUID uuid = UUID.randomUUID();
+    return div("form-group",
+      (label != null ? element("label", null, label) : null),
+      div("input-group" + (isSmall?" input-group-sm":""),
+        attribute("input",
+          value("type", "text"),
+          value("value", value),
+          value("id", uuid.toString()),
+          value("class", "form-control"),
+          value("readonly", null)
+        ),
+        span("input-group-append", null,
+          element("button", new Attributes(value("class", "btn btn-falt btn-secondary"),
+            value("type", "button"),
+            value("id", uuid.toString().concat("_")),
+            value("onclick", "document.getElementById('" + uuid.toString() + "').select();document.execCommand('copy');toastr.info('Copied');")), fasIcon("clipboard"))
+        )
+      )
+    );
+  }
+
   public static String table(String classValue, Table table) {
     String headerValue = "";
     if (table.tableHeaders() != null) {
@@ -223,7 +259,7 @@ public class Lte {
     return elementWithClass("table", listBySpace("table", classValue),
       (table.tableHeaders() != null ?
         element("thead", null, element("tr", null, headerValue)) : null),
-      element("tbody", null, contentsValue)
+      element("tbody", new Attributes(value("id", table.id.toString())), contentsValue)
     );
   }
 
@@ -240,6 +276,11 @@ public class Lte {
     public TableValue(String style, String value) {
       this.style = style;
       this.value = value;
+    }
+
+    @Override
+    public String toString() {
+      return value;
     }
   }
 
@@ -263,7 +304,22 @@ public class Lte {
   }
 
   public abstract static class Table {
+    public UUID id = UUID.randomUUID();
     public abstract ArrayList<TableValue> tableHeaders();
     public abstract ArrayList<TableRow> tableRows();
+  }
+
+  public static String errorNoticeTextAreaGroup(String contents) {
+    return div("form-group",
+      element("textarea",
+        new Attributes(
+          value("class", "form-control  is-invalid"),
+          value("style", "font-family:monospace;"),
+          value("rows", String.valueOf(contents.split("\\n").length)),
+          value("readonly", null)
+        )
+        , contents
+      )
+    );
   }
 }

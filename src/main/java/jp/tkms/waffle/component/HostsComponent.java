@@ -9,6 +9,7 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 
 public class HostsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -61,6 +62,11 @@ public class HostsComponent extends AbstractAccessControlledComponent {
   private void renderAddForm(ArrayList<Lte.FormError> errors) {
     new MainTemplate() {
       @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return "Hosts";
       }
@@ -101,6 +107,11 @@ public class HostsComponent extends AbstractAccessControlledComponent {
   private void renderHostList() {
     new MainTemplate() {
       @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return "Hosts";
       }
@@ -115,7 +126,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         return Lte.card(null,
           Html.a(getUrl("add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override
@@ -124,6 +135,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
               list.add(new Lte.TableValue("width:8em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("width:8em;", "Job"));
+              list.add(new Lte.TableValue("width:2em;", ""));
               return list;
             }
 
@@ -133,7 +145,10 @@ public class HostsComponent extends AbstractAccessControlledComponent {
               for (Host host : Host.getList()) {
                 list.add(new Lte.TableRow(
                   Html.a(HostComponent.getUrl(host), null, null,  host.getShortId()),
-                  host.getName(), String.valueOf(Job.getList(host).size()))
+                  host.getName(),
+                  String.valueOf(Job.getList(host).size()),
+                  host.getState().getStatusBadge()
+                  )
                 );
               }
               return list;

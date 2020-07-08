@@ -2,7 +2,7 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
 import spark.Spark;
@@ -61,7 +61,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderAddForm(ArrayList<Lte.FormError> errors) {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Simulators";
@@ -76,7 +76,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
           "Add"));
       }
@@ -101,10 +101,8 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void addSimulator() {
-    Simulator simulator = Simulator.create(project,
-      request.queryParams("name"),
-      request.queryParams("sim_cmd")
-    );
+    Simulator simulator = Simulator.create(project, request.queryParams("name"));
+    simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
     response.redirect(SimulatorComponent.getUrl(simulator));
   }
 
@@ -113,7 +111,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderSimulatorList() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Simulators";
@@ -133,14 +131,14 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
         if (simulatorList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl(project, "add"), null, null,
-              Html.faIcon("plus-square") + "Add simulator"
+              Html.fasIcon("plus-square") + "Add simulator"
             ),
             null
           );
         }
         return Lte.card(null,
           Html.a(getUrl(project, "add"),
-            null, null, Html.faIcon("plus-square")
+            null, null, Html.fasIcon("plus-square")
           ),
           Lte.table("table-condensed", new Lte.Table() {
             @Override

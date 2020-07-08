@@ -2,20 +2,21 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.conductor.AbstractConductor;
+import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.data.util.KeyValue;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ProjectComponent extends AbstractAccessControlledComponent {
-  public enum Mode {Default, NotFound, EditConstModel, AddConductor}
-  private Mode mode;
+import static jp.tkms.waffle.component.template.Html.*;
 
-  ;
+public class ProjectComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "Project";
+
+  public enum Mode {Default, NotFound, EditConstModel, AddConductor}
+  Mode mode;
+
   private String requestedId;
   private Project project;
   public ProjectComponent(Mode mode) {
@@ -35,8 +36,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
     SimulatorsComponent.register();
     SimulatorComponent.register();
-    TrialsComponent.register();
     ConductorComponent.register();
+    RunsComponent.register();
     RunComponent.register();
   }
 
@@ -50,10 +51,12 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
+    Mode mode = this.mode;
+
     requestedId = request.params("id");
     project = Project.getInstance(requestedId);
 
-    if (!project.isValid()) {
+    if (project == null) {
       mode = Mode.NotFound;
     }
 
@@ -80,7 +83,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderProjectNotFound() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "[" + requestedId + "]";
@@ -96,7 +99,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         ArrayList<Project> projectList = Project.getList();
         return Lte.card(null, null,
-          Html.h1("text-center", Html.faIcon("question")),
+          Html.h1("text-center", Html.fasIcon("question")),
           null
         );
       }
@@ -104,7 +107,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderConductorAddForm(ArrayList<Lte.FormError> errors) {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return "Conductors";
@@ -132,7 +135,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors),
-                Lte.formSelectGroup("type", "type", Conductor.getConductorNameList(), errors)
+                Lte.formSelectGroup("type", "type", ActorGroup.getConductorNameList(), errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -143,7 +146,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   private void renderProject() {
-    new MainTemplate() {
+    new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
         return project.getName();
@@ -152,31 +155,55 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"), project.getId()));
+          Html.a(ProjectsComponent.getUrl(), "Projects"), project.getName()));
       }
 
       @Override
       protected String pageContent() {
-        String content = Lte.divRow(
+        String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getId() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
+        content += Lte.divRow(
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
-            Html.a(TrialsComponent.getUrl(project), "Trials"), ""),
+            Html.a(RunsComponent.getUrl(project), "Runs"), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
             Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
         );
 
-        ArrayList<Conductor> conductorList = Conductor.getList(project);
+        ArrayList<ActorGroup> conductorList = ActorGroup.getList(project);
         if (conductorList.size() <= 0) {
-          content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
             Html.a(getUrl(project, "add_conductor"), null, null,
-              Html.faIcon("plus-square") + "Add new conductor"
+              Html.fasIcon("plus-square") + "Add new conductor"
             ),
             null
           );
         } else {
-          content += Lte.card(Html.faIcon("user-tie") + "Conductors",
+          ArrayList<Actor> notFinishedList = new ArrayList<>();
+          /*
+          for (Actor notFinished : Actor.getNotFinishedList(project)) {
+            if (!notFinished.isRoot()) {
+              if (notFinished.getParentActor() != null && notFinished.getParentActor().isRoot()) {
+                notFinishedList.add(notFinished);
+              }
+            }
+          }
+
+           */
+
+          content += Html.element("script", new Attributes(value("type", "text/javascript")),
+              "var updateConductorJobNum = function(c,n) {" +
+              "if (n > 0) {" +
+              "document.getElementById('conductor-jobnum-' + c).style.display = 'inline-block';" +
+              "document.getElementById('conductor-jobnum-' + c).innerHTML = n;" +
+              "} else {" +
+              "document.getElementById('conductor-jobnum-' + c).style.display = 'none';" +
+              "}" +
+              "};"
+          );
+
+          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             Html.a(getUrl(project, "add_conductor"),
-              null, null, Html.faIcon("plus-square")
+              null, null, Html.fasIcon("plus-square")
             ),
             Lte.table(null, new Lte.Table() {
               @Override
@@ -190,15 +217,26 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Lte.TableRow> tableRows() {
                 ArrayList<Lte.TableRow> list = new ArrayList<>();
-                for (Conductor conductor : Conductor.getList(project)) {
+                for (ActorGroup conductor : ActorGroup.getList(project)) {
+                  int runningCount = 0;
+                  for (Actor notFinished : notFinishedList) {
+                    if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {
+                      runningCount += 1;
+                    }
+                  }
+
                   list.add(new Lte.TableRow(
                     new Lte.TableValue("",
                       Html.a(ConductorComponent.getUrl(conductor),
                         null, null, conductor.getShortId())),
                     new Lte.TableValue("", conductor.getName()),
                     new Lte.TableValue("text-align:right;",
-                      Html.a(ConductorComponent.getUrl(conductor, "prepare", ConductorRun.getRootInstance(project)),
-                        Html.span("right badge badge-secondary", null, "run")
+                      Html.span(null, null,
+                        Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
+                        Html.a(ConductorComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
+                          Html.span("right badge badge-secondary", null, "run")
+                        ),
+                        Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
                       )
                     )
                   ));
@@ -208,31 +246,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             })
             , null, null, "p-0");
         }
-
-        content += Lte.card(Html.faIcon("list") + "Registry", null,
-          Lte.table("table-condensed table-sm", new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("", "Key"));
-              list.add(new Lte.TableValue("", "Value"));
-              return list;
-            }
-
-            @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (KeyValue e : Registry.getList(project)) {
-                if (e.getKey().indexOf('.') == 0) { continue; }
-                list.add(new Lte.TableRow(
-                  new Lte.TableValue("", e.getKey()),
-                  new Lte.TableValue("", e.getValue())
-                ));
-              }
-              return list;
-            }
-          })
-          , null, null, "p-0");
 
         return content;
       }
@@ -246,8 +259,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   private void addConductor() {
     String name = request.queryParams("name");
     String type = request.queryParams("type");
-    AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    Conductor.create(project, name, abstractConductor, abstractConductor.defaultScriptName());
-    response.redirect(ProjectComponent.getUrl(project));
+    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
+    ActorGroup conductor = ActorGroup.create(project, name);
+    response.redirect(ConductorComponent.getUrl(conductor));
   }
 }

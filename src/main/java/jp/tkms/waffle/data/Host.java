@@ -1,26 +1,22 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
-public class Host extends Data {
+public class Host extends DirectoryBaseData {
   private static final String TABLE_NAME = "host";
   private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+  private static final String KEY_LOCAL = "LOCAL";
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_XSUB_TEMPLATE = "xsub_template";
@@ -28,67 +24,50 @@ public class Host extends Data {
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_OS = "os";
   private static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_STATE = "state";
+  private static final String KEY_ENVIRONMENTS = "environments";
 
-  private String hostName = null;
+  private static final HashMap<String, Host> instanceMap = new HashMap<>();
+
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
-  private String os = null;
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
   private JSONObject parameters = null;
   private JSONObject xsubTemplate = null;
 
-  public Host(UUID id, String name) {
-    super(id, name);
-  }
-
-  public Host() { }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public Host(String name) {
+    super(Host.class, getBaseDirectoryPath().resolve(name));
   }
 
   public static Host getInstance(String id) {
-    final Host[] host = {null};
-
-    handleDatabase(new Host(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          host[0] = new Host(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
-      }
-    });
-
-    return host[0];
+    return getInstanceByName(getName(id));
   }
 
   public static Host getInstanceByName(String name) {
-    final Host[] host = {null};
+    if (name == null) {
+      return null;
+    }
 
-    handleDatabase(new Host(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
-        statement.setString(1, name);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          host[0] = new Host(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
-      }
-    });
+    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath().resolve(name));
+    Host host = instanceMap.get(dataId.getId());
+    if (host != null) {
+      return host;
+    }
 
-    return host[0];
+    if (Files.exists(getBaseDirectoryPath().resolve(name))) {
+      host = new Host(name);
+
+      if (host.getState() == null) { host.setState(HostState.Unviable); }
+      if (host.getXsubDirectory() == null) { host.setXsubDirectory(""); }
+      if (host.getWorkBaseDirectory() == null) { host.setWorkBaseDirectory("/tmp/waffle"); }
+      if (host.getMaximumNumberOfJobs() == null) { host.setMaximumNumberOfJobs(1); }
+      if (host.getPollingInterval() == null) { host.setPollingInterval(10); }
+    }
+
+    instanceMap.put(dataId.getId(), host);
+
+    return host;
   }
 
   public static Host find(String key) {
@@ -101,87 +80,94 @@ public class Host extends Data {
   public static ArrayList<Host> getList() {
     ArrayList<Host> list = new ArrayList<>();
 
-    handleDatabase(new Host(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          list.add(new Host(
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name"))
-          );
+    initializeWorkDirectory();
+
+    try {
+      Files.list(getBaseDirectoryPath()).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          list.add(getInstanceByName(path.getFileName().toString()));
         }
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return list;
+  }
+
+  public static ArrayList<Host> getViableList() {
+    ArrayList<Host> list = new ArrayList<>();
+
+    for (Host host : getList()) {
+      if (host.getState().equals(HostState.Viable)) {
+        list.add(host);
       }
-    });
+    }
 
     return list;
   }
 
   public static Host create(String name) {
-    Host host = new Host(UUID.randomUUID(), name);
-    handleDatabase(new Host(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-          KEY_ID, KEY_NAME, KEY_WORKBASE, KEY_XSUB, KEY_MAX_JOBS, KEY_POLLING).toPreparedStatement();
-        statement.setString(1, host.getId());
-        statement.setString(2, host.getName());
-        statement.setString(3, "/tmp/waffle");
-        statement.setString(4, "");
-        statement.setInt(5, 1);
-        statement.setInt(6, 10);
-        statement.execute();
-      }
-    });
-    return host;
+    createDirectories(getBaseDirectoryPath().resolve(name));
+    return getInstanceByName(name);
   }
 
-  public void update() {
-    setXsubTemplate(AbstractSubmitter.getXsubTemplate(this, false));
+  public synchronized void update() {
+    try {
+      JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
+      setXsubTemplate(jsonObject);
+      setParameters(getParameters());
+      setState(HostState.Viable);
+    } catch (RuntimeException e) {
+      setState(HostState.Unviable);
+    }
   }
 
-  public Path getLocation() {
-    Path path = Paths.get( TABLE_NAME + File.separator + name + '_' + shortId );
-    return path;
+  private void setState(HostState state) {
+    setToProperty(KEY_STATE, state.ordinal());
+  }
+
+  public HostState getState() {
+    Integer state = getIntFromProperty(KEY_STATE, HostState.Unviable.ordinal());
+    if (state == null) {
+      return null;
+    }
+    return HostState.valueOf(state);
   }
 
   public boolean isLocal() {
-    return LOCAL_UUID.equals(id);
+    //return LOCAL_UUID.equals(id);
+    return getName().equals(KEY_LOCAL);
   }
 
   public String getWorkBaseDirectory() {
     if (workBaseDirectory == null) {
-      workBaseDirectory = getFromDB(KEY_WORKBASE);
+      workBaseDirectory = getStringFromProperty(KEY_WORKBASE);
     }
     return workBaseDirectory;
   }
 
   public void setWorkBaseDirectory(String workBaseDirectory) {
-    if (
-      setStringToDB(KEY_WORKBASE, workBaseDirectory)
-    ) {
-      this.workBaseDirectory = workBaseDirectory;
-    }
+    setToProperty(KEY_WORKBASE, workBaseDirectory);
+    this.workBaseDirectory = workBaseDirectory;
   }
 
   public String getXsubDirectory() {
     if (xsubDirectory == null) {
-      xsubDirectory = getFromDB(KEY_XSUB);
+      xsubDirectory = getStringFromProperty(KEY_XSUB);
     }
     return xsubDirectory;
   }
 
   public void setXsubDirectory(String xsubDirectory) {
-    if (
-      setStringToDB(KEY_XSUB, xsubDirectory)
-    ) {
-      this.xsubDirectory = xsubDirectory;
-    }
+    setToProperty(KEY_XSUB, xsubDirectory);
+    this.xsubDirectory = xsubDirectory;
   }
 
+  /*
   public String getOs() {
     if (os == null) {
-      os = getFromDB(KEY_OS);
+      os = getStringFromDB(KEY_OS);
     }
     return os;
   }
@@ -193,35 +179,30 @@ public class Host extends Data {
     }
     return directorySeparetor;
   }
+   */
 
   public Integer getPollingInterval() {
     if (pollingInterval == null) {
-      pollingInterval = Integer.valueOf(getFromDB(KEY_POLLING));
+      pollingInterval = getIntFromProperty(KEY_POLLING);
     }
     return pollingInterval;
   }
 
   public void setPollingInterval(Integer pollingInterval) {
-    if (
-      setIntToDB(KEY_POLLING, pollingInterval)
-    ) {
-      this.pollingInterval = pollingInterval;
-    }
+    setToProperty(KEY_POLLING, pollingInterval);
+    this.pollingInterval = pollingInterval;
   }
 
   public Integer getMaximumNumberOfJobs() {
     if (maximumNumberOfJobs == null) {
-      maximumNumberOfJobs = Integer.valueOf(getFromDB(KEY_MAX_JOBS));
+      maximumNumberOfJobs = getIntFromProperty(KEY_MAX_JOBS);
     }
     return maximumNumberOfJobs;
   }
 
   public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
-    if (
-      setIntToDB(KEY_MAX_JOBS, maximumNumberOfJobs)
-    ) {
-      this.maximumNumberOfJobs = maximumNumberOfJobs;
-    }
+    setToProperty(KEY_MAX_JOBS, maximumNumberOfJobs);
+    this.maximumNumberOfJobs = maximumNumberOfJobs;
   }
 
   public JSONObject getXsubParameters() {
@@ -234,7 +215,7 @@ public class Host extends Data {
 
   public JSONObject getParametersWithoutXsubParameter() {
     JSONObject parameters = AbstractSubmitter.getParameters(this);
-    JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject jsonObject = getParameters();
     for (String key : jsonObject.keySet()) {
       parameters.put(key, jsonObject.get(key));
     }
@@ -243,13 +224,25 @@ public class Host extends Data {
 
   public JSONObject getParameters() {
     if (parameters == null) {
-      parameters = getDefaultParametersWithXsubParametersTemplate();
-      JSONObject jsonObject = new JSONObject(getFromDB(KEY_PARAMETERS));
+      String json = getFileContents(KEY_PARAMETERS + Constants.EXT_JSON);
+      if (json.equals("")) {
+        json = "{}";
+        createNewFile(KEY_PARAMETERS + Constants.EXT_JSON);
+        updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, json);
+      }
+      parameters = getXsubParametersTemplate();
+      try {
+        JSONObject jsonObject = AbstractSubmitter.getInstance(this).getDefaultParameters(this);
+        for (String key : jsonObject.toMap().keySet()) {
+          parameters.put(key, jsonObject.getJSONObject(key));
+        }
+      } catch (Exception e) {}
+      JSONObject jsonObject = new JSONObject(json);
       for (String key : jsonObject.keySet()) {
         parameters.put(key, jsonObject.get(key));
       }
     }
-    return parameters;
+    return new JSONObject(parameters.toString());
   }
 
   public Object getParameter(String key) {
@@ -257,10 +250,15 @@ public class Host extends Data {
   }
 
   public void setParameters(JSONObject jsonObject) {
-    if (
-      setStringToDB(KEY_PARAMETERS, jsonObject.toString())
-    ) {
-      this.parameters = jsonObject;
+    updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON,  jsonObject.toString(2));
+    this.parameters = jsonObject;
+  }
+
+  public void setParameters(String json) {
+    try {
+      setParameters(new JSONObject(json));
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
     }
   }
 
@@ -271,32 +269,24 @@ public class Host extends Data {
     return value;
   }
 
+  public JSONObject getEnvironments() {
+    return getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
+  }
+
+  public void setEnvironments(JSONObject jsonObject) {
+    setToProperty(KEY_ENVIRONMENTS, jsonObject);
+  }
+
   public JSONObject getXsubTemplate() {
     if (xsubTemplate == null) {
-      xsubTemplate = new JSONObject(getFromDB(KEY_XSUB_TEMPLATE));
+      xsubTemplate = new JSONObject(getStringFromProperty(KEY_XSUB_TEMPLATE, "{}"));
     }
     return xsubTemplate;
   }
 
   public void setXsubTemplate(JSONObject jsonObject) {
-    if (
-      setStringToDB(KEY_XSUB_TEMPLATE, jsonObject.toString())
-    ) {
-      this.xsubTemplate = jsonObject;
-    }
-  }
-
-  public JSONObject getDefaultParametersWithXsubParametersTemplate() {
-    JSONObject jsonObject = AbstractSubmitter.getInstance(this).defaultParameters(this);
-
-    try {
-      JSONObject object = getXsubTemplate().getJSONObject("parameters");
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key).get("default"));
-      }
-    } catch (Exception e) {}
-
-    return jsonObject;
+    setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
+    this.xsubTemplate = jsonObject;
   }
 
   public JSONObject getXsubParametersTemplate() {
@@ -312,60 +302,24 @@ public class Host extends Data {
     return jsonObject;
   }
 
+  public static Path getBaseDirectoryPath() {
+    return PropertyFileData.getWaffleDirectoryPath().resolve(Constants.HOST);
+  }
+
   @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
+  public Path getDirectoryPath() {
+    return getBaseDirectoryPath().resolve(name);
+  }
 
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(id,name," +
-                KEY_WORKBASE + "," +
-                KEY_XSUB + "," +
-                KEY_MAX_JOBS + "," +
-                KEY_POLLING + "," +
-                KEY_XSUB_TEMPLATE + " default '{}'," +
-                KEY_PARAMETERS + " default '{}'," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
+  @Override
+  protected Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(Constants.HOST + Constants.EXT_JSON);
+  }
 
-              PreparedStatement statement = new Sql.Insert(db, TABLE_NAME,
-                KEY_ID, KEY_NAME,
-                KEY_WORKBASE,
-                KEY_XSUB,
-                KEY_MAX_JOBS,
-                KEY_POLLING
-                ).toPreparedStatement();
-              statement.setString(1, LOCAL_UUID.toString());
-              statement.setString(2, "LOCAL");
-              statement.setString(3, Constants.LOCAL_WORK_DIR);
-              statement.setString(4, Constants.LOCAL_XSUB_DIR);
-              statement.setInt(5, 1);
-              statement.setInt(6, 5);
-              statement.execute();
-
-              try {
-                Files.createDirectories(Paths.get(Constants.LOCAL_WORK_DIR));
-              } catch (IOException e) {
-                e.printStackTrace();
-              }
-            }
-          },
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("alter table " + TABLE_NAME + " add " + KEY_OS + " default 'U';");
-            }
-          }
-        ));
-      }
-    };
+  public static void initializeWorkDirectory() {
+    PropertyFileData.initializeWorkDirectory();
+    if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
+      create(KEY_LOCAL);
+    }
   }
 }

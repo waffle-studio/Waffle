@@ -3,8 +3,8 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.extractor.AbstractParameterExtractor;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.util.State;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +21,9 @@ public class AbciSubmitter extends SshSubmitter {
   int remainingJobSize = 0;
 
   HashMap<UUID, PackWaitThread> packWaitThreadMap = new HashMap<>();
-  Semaphore packWaitThreadSemaphore = new Semaphore(1);
+
+  private static final Object objectLocker = new Object();
+
   class PackWaitThread extends Thread {
     private int waitTime = 0;
     private ArrayList<Job> readyJobList = new ArrayList<>();
@@ -50,22 +52,12 @@ public class AbciSubmitter extends SshSubmitter {
         } catch (InterruptedException e) {
         }
 
-        try {
-          packWaitThreadSemaphore.acquire();
-        } catch (InterruptedException e) {
+        synchronized (objectLocker) {
+          waitTime -= 1;
         }
-        waitTime -= 1;
-        packWaitThreadSemaphore.release();
-      }
-
-      try {
-        packWaitThreadSemaphore.acquire();
-      } catch (InterruptedException e) {
       }
 
       submitQueue(packId);
-
-      packWaitThreadSemaphore.release();
     }
   };
 
@@ -73,16 +65,18 @@ public class AbciSubmitter extends SshSubmitter {
     super(host);
   }
 
-  synchronized private void submitQueue(UUID packId) {
-    putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
-    host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
-    String resultJson = exec(xsubSubmitCommand(packId));
-    for (Job job : queuedJobList.get(packId)) {
-      processXsubSubmit(job, resultJson);
+  private void submitQueue(UUID packId) {
+    synchronized (objectLocker) {
+      putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
+      host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
+      String resultJson = exec(xsubSubmitCommand(packId));
+      for (Job job : queuedJobList.get(packId)) {
+        processXsubSubmit(job, resultJson);
+      }
+      queuedJobList.remove(packId);
+      packBatchTextList.remove(packId);
+      packWaitThreadMap.remove(packId);
     }
-    queuedJobList.remove(packId);
-    packBatchTextList.remove(packId);
-    packWaitThreadMap.remove(packId);
   }
 
   String xsubSubmitCommand(UUID packId) {
@@ -91,74 +85,51 @@ public class AbciSubmitter extends SshSubmitter {
 
   @Override
   public void submit(Job job) {
-    try {
-      packWaitThreadSemaphore.acquire();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+    UUID packId = null;
+    PackWaitThread packWaitThread = null;
 
-    if (currentPackId == null || !queuedJobList.containsKey(currentPackId)
-      || queuedJobList.get(currentPackId).size() >= AbciResourceSelector.getPackSize(remainingJobSize)) {
-      UUID packId = UUID.randomUUID();
-      currentPackId = packId;
-      queuedJobList.put(packId, new ArrayList<>());
-      packBatchTextList.put(packId,
-        "#!/bin/sh\n\n" +
-          "run() {\n" +
-          "cd $1\n" +
-          "sh batch.sh\n" +
-          "}\n" +
-          "export -f run\n" +
-          "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n"
+    synchronized (objectLocker) {
+      if (currentPackId == null || !queuedJobList.containsKey(currentPackId)
+        || queuedJobList.get(currentPackId).size() >= AbciResourceSelector.getPackSize(remainingJobSize)) {
+        packId = UUID.randomUUID();
+        currentPackId = packId;
+        queuedJobList.put(packId, new ArrayList<>());
+        packBatchTextList.put(packId,
+          "#!/bin/sh\n\n" +
+            "run() {\n" +
+            "cd $1\n" +
+            "sh batch.sh\n" +
+            "}\n" +
+            "export -f run\n" +
+            "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n"
         );
 
-      PackWaitThread thread = new PackWaitThread(packId);
-      packWaitThreadMap.put(packId, thread);
-      thread.start();
+        PackWaitThread thread = new PackWaitThread(packId);
+        packWaitThreadMap.put(packId, thread);
+        thread.start();
+      }
+
+      packId = currentPackId;
+      jobPackMap.put(job, packId);
+      queuedJobList.get(packId).add(job);
+      packWaitThread = packWaitThreadMap.get(packId);
+      remainingJobSize -= 1;
+
+      packWaitThread.resetWaitTime();
     }
-
-    UUID packId = currentPackId;
-    jobPackMap.put(job, packId);
-    queuedJobList.get(packId).add(job);
-    PackWaitThread packWaitThread = packWaitThreadMap.get(packId);
-    remainingJobSize -= 1;
-
-    packWaitThread.resetWaitTime();
-    packWaitThreadSemaphore.release();
 
     try {
-      Thread.sleep((int)(2000.0 * Math.random()));
-    } catch (InterruptedException e) {
-      e.printStackTrace();
+      prepareJob(job);
+      job.setState(State.Prepared);
+
+      synchronized (objectLocker) {
+        packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(job.getRun()) + "\n");
+        packWaitThread.addReadyJob(job);
+      }
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.setState(State.Excepted);
     }
-
-    SimulatorRun run = job.getRun();
-
-    putText(run, BATCH_FILE, makeBatchFileText(run));
-
-    for (ParameterExtractor extractor : ParameterExtractor.getList(run.getSimulator())) {
-      AbstractParameterExtractor instance
-        = AbstractParameterExtractor.getInstance(RubyParameterExtractor.class.getCanonicalName());
-      instance.extract(run, extractor, this);
-    }
-
-    putText(run, EXIT_STATUS_FILE, "-2");
-    putText(run, ARGUMENTS_FILE, makeArgumentFileText(run));
-    putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
-
-    prepareSubmission(run);
-
-    job.getRun().setState(SimulatorRun.State.Queued);
-
-    try {
-      packWaitThreadSemaphore.acquire();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    packBatchTextList.put(packId, packBatchTextList.get(packId) + getWorkDirectory(run) + "\n");
-
-    packWaitThread.addReadyJob(job);
-    packWaitThreadSemaphore.release();
   }
 
   public void putText(UUID packId, String path, String text) {
@@ -170,9 +141,9 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   String getWorkDirectory(UUID packId) {
-    String pathString = host.getWorkBaseDirectory() + host.getDirectorySeparetor()
-      + RUN_DIR + host.getDirectorySeparetor()
-      + "pack" + host.getDirectorySeparetor()
+    String pathString = host.getWorkBaseDirectory() + '/'
+      + RUN_DIR + '/'
+      + "pack" + '/'
       + packId.toString();
 
     try {
@@ -190,20 +161,9 @@ public class AbciSubmitter extends SshSubmitter {
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
-  String xstatCommand(Job job) {
-    Host host = job.getHost();
-    return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + getXsubBinDirectory(host) + "xstat " + job.getJobId();
-  }
-
-  String xdelCommand(Job job) {
-    Host host = job.getHost();
-    return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + getXsubBinDirectory(host) + "xdel " + job.getJobId();
-  }
-
   HashMap<UUID, String> updatedPackJson = new HashMap<>();
-  public SimulatorRun.State update(Job job) {
+  @Override
+  public State update(Job job) {
     SimulatorRun run = job.getRun();
     UUID packId = jobPackMap.get(job);
     if (!updatedPackJson.containsKey(packId)) {
@@ -213,7 +173,15 @@ public class AbciSubmitter extends SshSubmitter {
     return run.getState();
   }
 
+  @Override
   public void pollingTask(Host host) {
+
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     ArrayList<Job> jobList = Job.getList(host);
 
     int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
@@ -231,20 +199,24 @@ public class AbciSubmitter extends SshSubmitter {
             createdJobList.add(job);
           }
           break;
-        case Queued:
+        case Prepared:
           submittedCount++;
-          job.remove();
           break;
         case Submitted:
         case Running:
-          SimulatorRun.State state = update(job);
-          if (!(SimulatorRun.State.Finished.equals(state) || SimulatorRun.State.Failed.equals(state))) {
+          State state = update(job);
+          if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
             submittedCount++;
           }
           break;
         case Finished:
         case Failed:
+        case Excepted:
+        case Canceled:
           job.remove();
+          break;
+        case Cancel:
+          cancel(job);
       }
 
       if (Main.hibernateFlag) {
@@ -316,7 +288,7 @@ public class AbciSubmitter extends SshSubmitter {
       } else if (jobSize >= 15) {
         return 20;
       } else {
-        return 3;
+        return 5;
       }
     }
   }

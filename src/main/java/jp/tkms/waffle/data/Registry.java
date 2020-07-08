@@ -1,19 +1,33 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.KeyValue;
 import jp.tkms.waffle.data.util.ValueType;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
-public class Registry extends ProjectData implements Map<Object, Object> {
+public class Registry extends DatabaseFileData implements Map<Object, Object> {
   protected static final String TABLE_NAME = "registry";
   private static final String KEY_VALUE = "value";
+  private Project project;
 
   public Registry(Project project) {
-    super(project, UUID.randomUUID(), "");
+    super(UUID.randomUUID(), "");
+    this.project = project;
+  }
+
+  public Project getProject() {
+    return project;
+  }
+
+  @Override
+  protected Database getDatabase() {
+    return Database.getDatabase(Paths.get(project.getDirectoryPath() + File.separator + Constants.PROJECT_DB_NAME));
   }
 
   @Override
