@@ -2,28 +2,23 @@ package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.data.SimulatorRun;
-
-import javax.swing.*;
-import java.util.HashMap;
-import java.util.Map;
 
 public enum State {
-  Created, Queued, Submitted, Running, Finished, Failed, Excepted, Cancel, Canceled, None;
+  Created, Prepared, Submitted, Running, Finished, Failed, Excepted, Cancel, Canceled, None;
 
   public static State valueOf(int i) {
     return values()[i];
   }
 
   public boolean isRunning() {
-    return ordinal() <= Running.ordinal();
+    return ordinal() < Finished.ordinal();
   }
 
   public String getStatusBadge() {
     switch (this) {
       case Created:
         return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), name());
-      case Queued:
+      case Prepared:
         return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Submitted:
         return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), name());

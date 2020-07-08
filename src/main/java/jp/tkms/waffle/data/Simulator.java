@@ -38,6 +38,8 @@ public class Simulator extends ProjectData implements DataDirectory {
   protected static final String TABLE_NAME = "simulator";
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
 
+  private static final HashMap<String, Simulator> instanceMap = new HashMap<>();
+
   private String simulationCommand = null;
   private String defaultParameters = null;
   private String versionId = null;
@@ -67,51 +69,24 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   public static Simulator getInstance(Project project, String id) {
-    final Simulator[] simulator = {null};
-
-    handleDatabase(new Simulator(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where id=?;");
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          simulator[0] = new Simulator(
-            project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
-      }
-    });
-
-    return simulator[0];
+    DataId dataId = DataId.getInstance(id);
+    return instanceMap.get(dataId.getId());
   }
 
   public static Simulator getInstanceByName(Project project, String name) {
-    final Simulator[] simulator = {null};
+    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
+    Simulator simulator = null;
 
-    handleDatabase(new Simulator(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id,name from " + TABLE_NAME + " where name=?;");
-        statement.setString(1, name);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          simulator[0] = new Simulator(
-            project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name")
-          );
-        }
-      }
-    });
-
-    if (simulator[0] == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-      simulator[0] = create(project, name);
+    simulator = instanceMap.get(dataId.getId());
+    if (simulator != null) {
+      return simulator;
     }
 
-    return simulator[0];
+    if (simulator == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+      simulator = create(project, name);
+    }
+
+    return simulator;
   }
 
   public static Simulator find(Project project, String key) {
@@ -154,46 +129,35 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   public static Simulator create(Project project, String name) {
-    Simulator simulator = new Simulator(project, UUID.randomUUID(), name);
+    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
+    Simulator simulator = new Simulator(project, dataId.getUuid(), name);
 
-    if (
-      handleDatabase(new Simulator(project), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name"
-            + ") values(?,?);");
-          statement.setString(1, simulator.getId());
-          statement.setString(2, simulator.getName());
-          statement.execute();
-        }
-      })
-    ) {
-      try {
-        Files.createDirectories(simulator.getDirectoryPath());
-        Files.createDirectories(simulator.getBinDirectory());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-
-      if (simulator.getSimulationCommand() == null) {
-        simulator.setSimulatorCommand("");
-      }
-
-      if (simulator.getExtractorNameList() == null) {
-        simulator.createExtractor(KEY_COMMAND_ARGUMENTS);
-        simulator.updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("/default_parameter_extractor.rb"));
-      }
-
-      if (simulator.getCollectorNameList() == null) {
-        simulator.createCollector(KEY_OUTPUT_JSON);
-        simulator.updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
-      }
-
-      if (! Files.exists(simulator.getDirectoryPath().resolve(".git"))) {
-        simulator.initializeGit();
-      }
+    try {
+      Files.createDirectories(simulator.getDirectoryPath());
+      Files.createDirectories(simulator.getBinDirectory());
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+
+    if (simulator.getSimulationCommand() == null) {
+      simulator.setSimulatorCommand("");
+    }
+
+    if (simulator.getExtractorNameList() == null) {
+      simulator.createExtractor(KEY_COMMAND_ARGUMENTS);
+      simulator.updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("/default_parameter_extractor.rb"));
+    }
+
+    if (simulator.getCollectorNameList() == null) {
+      simulator.createCollector(KEY_OUTPUT_JSON);
+      simulator.updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
+    }
+
+    if (! Files.exists(simulator.getDirectoryPath().resolve(".git"))) {
+      simulator.initializeGit();
+    }
+
+    instanceMap.put(dataId.getId(), simulator);
 
     return simulator;
   }
@@ -471,19 +435,21 @@ public class Simulator extends ProjectData implements DataDirectory {
       baseRun = Actor.create(runNode, Actor.getRootInstance(getProject()), null);
     }
     SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), baseRun, this, host);
-    setToDB(KEY_TESTRUN, run.getId());
+    setToProperty(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();
     return run;
   }
 
   public SimulatorRun getLatestTestRun() {
-    return SimulatorRun.getInstance(getProject(), getStringFromDB(KEY_TESTRUN));
+    return SimulatorRun.getInstance(getProject(), getStringFromProperty(KEY_TESTRUN));
   }
 
   @Override
   protected Updater getDatabaseUpdater() {
-    return new Updater() {
+    return null;
+    /*
+    new Updater() {
       @Override
       String tableName() {
         return TABLE_NAME;
@@ -504,5 +470,6 @@ public class Simulator extends ProjectData implements DataDirectory {
         ));
       }
     };
+     */
   }
 }

@@ -129,7 +129,7 @@ public class Hub {
       }
       container.terminate();
     } else {
-      String script = conductorRun.getConductor().getActorScript(name);
+      String script = conductorRun.getActorGroup().getActorScript(name);
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
       try {
         container.runScriptlet(RubyConductor.getInitScript());

@@ -281,7 +281,7 @@ public class Sql {
 
     public Create(Database database, String table, String... keys) {
       super(database);
-      sql = "create table " + table + "("  + Sql.listByComma(keys) + ")";
+      sql = "create table if not exists " + table + "("  + Sql.listByComma(keys) + ")";
     }
 
     @Override

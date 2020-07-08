@@ -2,7 +2,6 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.State;
@@ -43,7 +42,7 @@ public class RubyConductor extends CycleConductor {
   @Override
   protected void finalizeProcess(Actor conductorRun) {
     //TODO: do refactor
-    Actor parent = conductorRun.getParent();
+    Actor parent = conductorRun.getParentActor();
     if (parent == null) {
       parent = conductorRun;
     }
