@@ -20,6 +20,11 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  public boolean isConnected() {
+    return true;
+  }
+
+  @Override
   public String getRunDirectory(SimulatorRun run) {
     Host host = run.getActualHost();
     String pathString = host.getWorkBaseDirectory() + File.separator

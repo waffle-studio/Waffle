@@ -34,6 +34,13 @@ public class SshSession {
     }
   }
 
+  public boolean isConnected() {
+    if (session != null) {
+      return session.isConnected();
+    }
+    return false;
+  }
+
   public void addIdentity(String privKey) throws JSchException {
     jsch.addIdentity(privKey);
   }
@@ -67,6 +74,7 @@ public class SshSession {
           throw e;
         } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
           WarnLogMessage.issue(e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
+          session.disconnect();
           try {
             Thread.sleep(waitTime * 1000);
           } catch (InterruptedException ex) {
@@ -163,7 +171,7 @@ public class SshSession {
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
-            ex.printStackTrace();
+            WarnLogMessage.issue(e);
           }
           channelSftp = (ChannelSftp) openChannel("sftp");
         } else {
@@ -206,7 +214,7 @@ public class SshSession {
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
-            ex.printStackTrace();
+            WarnLogMessage.issue(e);
           }
           channelSftp = (ChannelSftp) openChannel("sftp");
         } else {

@@ -18,6 +18,11 @@ public class ErrorComponent extends AbstractAccessControlledComponent {
   public void controller() {
     logger.info(response.status() + ": " + request.url());
 
+    if (response.status() == 404 && request.url().indexOf("/bm/") > 0) {
+      response.redirect(request.url(), 302);
+      return;
+    }
+
     new MainTemplate() {
       @Override
       protected ArrayList<Map.Entry<String, String>> pageNavigation() {

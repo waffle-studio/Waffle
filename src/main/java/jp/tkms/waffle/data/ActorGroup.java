@@ -61,11 +61,19 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   }
 
   public static ActorGroup getInstance(Project project, String id) {
+    if ("".equals(id) || id == null) {
+      return null;
+    }
+
     DataId dataId = DataId.getInstance(id);
     return instanceMap.get(dataId.getId());
   }
 
   public static ActorGroup getInstanceByName(Project project, String name) {
+
+    if ("".equals(name) || name == null) {
+      return null;
+    }
 
     DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
 
@@ -231,6 +239,7 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     try {
       JSONObject object = new JSONObject(json);
       updateFileContents(KEY_DEFAULT_VARIABLES + Constants.EXT_JSON, object.toString(2));
+      defaultVariables = object.toString();
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }

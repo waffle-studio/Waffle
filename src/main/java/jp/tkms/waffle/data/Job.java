@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.UUID;
 
 public class Job extends Data {
@@ -20,6 +21,8 @@ public class Job extends Data {
   private static final String KEY_JOB_ID = "job_id";
   private static final String KEY_STATE = "state";
   private static final String KEY_ERROR_COUNT = "error_count";
+
+  private static final HashMap<String, Job> instanceMap = new HashMap<>();
 
   private Project project = null;
   private Host host = null;
@@ -42,6 +45,11 @@ public class Job extends Data {
   public static Job getInstance(String id) {
     final Job[] job = {null};
 
+    job[0] = instanceMap.get(id);
+    if (job[0] != null) {
+      return job[0];
+    }
+
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -55,6 +63,8 @@ public class Job extends Data {
         }
       }
     });
+
+    instanceMap.put(id, job[0]);
 
     return job[0];
   }
@@ -137,6 +147,8 @@ public class Job extends Data {
       }
     });
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+
+    getInstance(run.getId()); //load cache
   }
 
   public void cancel() {
@@ -154,6 +166,8 @@ public class Job extends Data {
       }
     });
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+
+    instanceMap.remove(getId());
   }
 
   public void setJobId(String jobId) {

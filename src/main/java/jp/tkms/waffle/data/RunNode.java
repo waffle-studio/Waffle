@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -23,6 +25,7 @@ public class RunNode extends DirectoryBaseData {
   public static final String KEY_STATE = "state";
   public static final String KEY_NOTE_TXT = "note.txt";
   public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
+  protected static final String KEY_TMP = ".tmp";
   Project project;
 
   public RunNode() {
@@ -169,8 +172,30 @@ public class RunNode extends DirectoryBaseData {
     return getParent() == null;
   }
 
-  public String rename(String name) {
-    setExpectedName(name);
+  public InclusiveRunNode moveToVirtualNode() {
+    String virtualNodeName = getDirectoryPath().getFileName().toString();
+    RunNode parent = getParent();
+    String name = FileName.removeRestrictedCharacters(getExpectedName());
+    if (name.length() <= 0) {
+      name = "_0";
+    }
+    rename(KEY_TMP, false);
+    InclusiveRunNode node = parent.createInclusiveRunNode(virtualNodeName);
+
+    try {
+      BasicFileAttributeView nodeAttributes = Files.getFileAttributeView(node.getDirectoryPath(), BasicFileAttributeView.class);
+      FileTime time = Files.readAttributes(getDirectoryPath(), BasicFileAttributes.class).creationTime();
+      nodeAttributes.setTimes(time, time, time);
+    } catch (IOException e) { }
+
+    replace(node.getDirectoryPath().resolve(name));
+    return node;
+  }
+
+  public String rename(String name, boolean isExpectedName) {
+    if (isExpectedName) {
+      setExpectedName(name);
+    }
     name = FileName.removeRestrictedCharacters(name);
     String nextName = name;
     int count = 0;
@@ -183,6 +208,10 @@ public class RunNode extends DirectoryBaseData {
     }
     replace(path.getParent().resolve(nextName));
     return nextName;
+  }
+
+  public String rename(String name) {
+    return rename(name, true);
   }
 
   private void setExpectedName(String name) {

@@ -1,1 +1,0 @@
-/home/takamin/Workspace/waffle/tmp/simulator/963672b997ef504da73c75ed85283881c3fb8687/./test.sh

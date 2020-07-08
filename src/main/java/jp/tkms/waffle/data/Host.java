@@ -261,7 +261,7 @@ public class Host extends DirectoryBaseData {
 
   public void setParameters(JSONObject jsonObject) {
     updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON,  jsonObject.toString(2));
-    this.parameters = jsonObject;
+    this.parameters = null;
   }
 
   public void setParameters(String json) {
@@ -295,8 +295,8 @@ public class Host extends DirectoryBaseData {
   }
 
   public void setXsubTemplate(JSONObject jsonObject) {
-    setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
     this.xsubTemplate = jsonObject;
+    setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
   }
 
   public JSONObject getXsubParametersTemplate() {

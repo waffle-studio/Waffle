@@ -70,14 +70,16 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   public static Simulator getInstance(Project project, String id) {
     DataId dataId = DataId.getInstance(id);
-    return instanceMap.get(dataId.getId());
+    Simulator simulator = instanceMap.get(dataId.getId());
+    if (simulator != null) {
+      return simulator;
+    }
+    return getInstanceByName(project, dataId.getPath().getFileName().toString());
   }
 
   public static Simulator getInstanceByName(Project project, String name) {
     DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
-    Simulator simulator = null;
-
-    simulator = instanceMap.get(dataId.getId());
+    Simulator simulator = instanceMap.get(dataId.getId());
     if (simulator != null) {
       return simulator;
     }
@@ -269,10 +271,10 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   public void setDefaultParameters(String json) {
     try {
-      JSONObject object = new JSONObject(json);
-      updateFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON, object.toString(2));
+      defaultParameters = new JSONObject(json).toString(2);
+      updateFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON, defaultParameters);
     } catch (Exception e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
   }
 

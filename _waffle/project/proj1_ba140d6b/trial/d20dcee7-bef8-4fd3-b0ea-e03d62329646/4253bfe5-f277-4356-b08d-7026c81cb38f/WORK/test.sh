@@ -1,1 +1,0 @@
-/home/takamin/Workspace/waffle/waffle/project/proj1_ba140d6b/simulator/test1/REMOTE/./test.sh

@@ -13,7 +13,6 @@ import java.util.Arrays;
 public class SimulatorsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  ;
   private String requestedId;
   private Project project;
   public SimulatorsComponent(Mode mode) {
@@ -121,7 +120,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Simulators"));
       }
 

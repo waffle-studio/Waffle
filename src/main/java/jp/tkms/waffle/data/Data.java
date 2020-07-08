@@ -28,6 +28,8 @@ abstract public class Data {
   public static final String KEY_DIRECTORY = "directory";
   public static final String KEY_CLASS = "class";
 
+  private static final Object databaseLocker = new Object();
+
   protected UUID id = null;
   protected String shortId = null;
   protected String name;
@@ -345,28 +347,31 @@ abstract public class Data {
     createDirectories(Host.getBaseDirectoryPath());
   }
 
-  private static synchronized void initializeMainDatabase() {
-    try(Database db = Database.getDatabase(null)) {
-      new Updater(){
-        @Override
-        String tableName() {
-          return KEY_UUID;
-        }
+  private static void initializeMainDatabase() {
+    synchronized (databaseLocker) {
+      try (Database db = Database.getDatabase(null)) {
+        new Updater() {
+          @Override
+          String tableName() {
+            return KEY_UUID;
+          }
 
-        @Override
-        ArrayList<UpdateTask> updateTasks() {
-          return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-            new UpdateTask() {
-              @Override
-              void task(Database db) throws SQLException {
-                new Sql.Create(db, tableName(), KEY_ID, KEY_NAME, KEY_CLASS, KEY_DIRECTORY).execute();
+          @Override
+          ArrayList<UpdateTask> updateTasks() {
+            return new ArrayList<Updater.UpdateTask>(Arrays.asList(
+              new UpdateTask() {
+                @Override
+                void task(Database db) throws SQLException {
+                  new Sql.Create(db, tableName(), KEY_ID, KEY_NAME, KEY_CLASS, KEY_DIRECTORY).execute();
+                }
               }
-            }
-          ));
-        }
-      }.update(db);
-      db.commit();
-    } catch (SQLException e) { }
+            ));
+          }
+        }.update(db);
+        db.commit();
+      } catch (SQLException e) {
+      }
+    }
   }
 
   protected static void createDirectories(Path path) {
@@ -387,23 +392,25 @@ abstract public class Data {
     return Database.getDatabase(null);
   }
 
-  synchronized protected static boolean handleDatabase(Data base, Handler handler) {
+  protected static boolean handleDatabase(Data base, Handler handler) {
     boolean isSuccess = true;
 
     initializeMainDatabase();
 
-    try(Database db = (base == null ? Database.getDatabase(null) : base.getDatabase())) {
-      Updater updater = (base == null ? null : base.getDatabaseUpdater());
-      if (updater != null) {
-        updater.update(db);
-      } else {
-        db.getVersion(null);
+    synchronized (databaseLocker) {
+      try (Database db = (base == null ? Database.getDatabase(null) : base.getDatabase())) {
+        Updater updater = (base == null ? null : base.getDatabaseUpdater());
+        if (updater != null) {
+          updater.update(db);
+        } else {
+          db.getVersion(null);
+        }
+        handler.handling(db);
+        db.commit();
+      } catch (SQLException e) {
+        isSuccess = false;
+        e.printStackTrace();
       }
-      handler.handling(db);
-      db.commit();
-    } catch (SQLException e) {
-      isSuccess = false;
-      e.printStackTrace();
     }
 
     return isSuccess;

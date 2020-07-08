@@ -11,6 +11,7 @@ import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
+import org.json.JSONArray;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -252,8 +253,25 @@ public class Actor extends AbstractRun {
     String conductorId = (actorGroup == null ? "" : actorGroup.getId());
     String conductorName = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName());
     String name = conductorName + " : " + LocalDateTime.now().toString();
+
+    String callname = getCallName(actorGroup, actorName);
+    JSONArray callstack = parent.getCallstack();
+    if (callstack.toList().contains(callname)) {
+      Actor parentActor = parent;
+      while (parentActor != null && ! callname.equals(getCallName(parentActor.getActorGroup(), parentActor.getActorName()))) {
+        parentActor = parentActor.getParentActor();
+      }
+      if (parentActor != null) {
+        callstack = parentActor.getCallstack();
+        runNode = parentActor.getRunNode();
+      }
+    }
+    callstack.put(callname);
+
     Actor conductorRun = new Actor(project, UUID.randomUUID(), name, runNode, actorName);
 
+    JSONArray finalCallstack = callstack;
+    RunNode finalRunNode = runNode;
     handleDatabase(new Actor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -265,8 +283,9 @@ public class Actor extends AbstractRun {
           Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
           Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
           Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
-          Sql.Value.equal( KEY_RUNNODE, runNode.getId()),
-          Sql.Value.equal( KEY_ACTOR, actorName)
+          Sql.Value.equal( KEY_RUNNODE, finalRunNode.getId()),
+          Sql.Value.equal( KEY_ACTOR, actorName),
+          Sql.Value.equal( KEY_CALLSTACK, finalCallstack.toString())
         ).execute();
       }
     });
@@ -405,6 +424,7 @@ public class Actor extends AbstractRun {
               new Sql.Create(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT, KEY_RESPONSIBLE_ACTOR, KEY_CONDUCTOR,
                 Sql.Create.withDefault(KEY_VARIABLES, "'{}'"),
                 Sql.Create.withDefault(KEY_FINALIZER, "'[]'"),
+                Sql.Create.withDefault(KEY_CALLSTACK, "'[]'"),
                 KEY_STATE,
                 KEY_RUNNODE,
                 KEY_ACTOR,
@@ -460,7 +480,16 @@ public class Actor extends AbstractRun {
     }
 
     if (getRunNode() instanceof SimulatorRunNode) {
-      setRunNode(((SimulatorRunNode) getRunNode()).moveToVirtualNode());
+      setRunNode(getRunNode().moveToVirtualNode());
+    } else if (getRunNode() instanceof ParallelRunNode) {
+      setRunNode(getRunNode().getParent());
+    }
+
+    if (transactionRunList.size() == 1) {
+      AbstractRun run = transactionRunList.get(0);
+      RunNode runNode = run.getRunNode().moveToVirtualNode();
+      run.setRunNode(runNode);
+      setRunNode(runNode);
     }
 
     Actor actor = Actor.create(getRunNode().createInclusiveRunNode(""), this, actorGroup);
@@ -483,7 +512,15 @@ public class Actor extends AbstractRun {
     }
 
     if (getRunNode() instanceof SimulatorRunNode) {
-      setRunNode(((SimulatorRunNode) getRunNode()).moveToVirtualNode());
+      setRunNode(getRunNode().moveToVirtualNode());
+    } else if (getRunNode() instanceof ParallelRunNode) {
+      setRunNode(getRunNode().getParent());
+    }
+
+    if (transactionRunList.size() == 1) {
+      AbstractRun run = transactionRunList.get(0);
+      RunNode runNode = run.getRunNode().moveToVirtualNode();
+      setRunNode(runNode);
     }
 
     SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, host);
@@ -524,6 +561,7 @@ public class Actor extends AbstractRun {
     }
 
     for (AbstractRun createdRun : transactionRunList) {
+      createdRun.putVariablesByJson(getVariables().toString());
       if (! createdRun.isStarted()) {
         createdRun.start();
       }

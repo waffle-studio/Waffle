@@ -4,7 +4,10 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.FailedToProcessScriptException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.WaffleException;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.LogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -27,6 +30,7 @@ abstract public class AbstractSubmitter {
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
   abstract public AbstractSubmitter connect(boolean retry);
+  abstract public boolean isConnected();
   abstract public String getRunDirectory(SimulatorRun run);
   abstract public String getWorkDirectory(SimulatorRun run);
   abstract String getSimulatorBinDirectory(Job job);
@@ -58,8 +62,12 @@ abstract public class AbstractSubmitter {
   }
 
   public void submit(Job job) {
-    prepareJob(job);
-    processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+    try {
+      processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.setState(State.Excepted);
+    }
   }
 
   public State update(Job job) {
@@ -74,7 +82,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Job job) {
+  protected void prepareJob(Job job) throws WaffleException {
     SimulatorRun run = job.getRun();
     run.setRemoteWorkingDirectoryLog(getRunDirectory(run));
 
@@ -88,9 +96,7 @@ abstract public class AbstractSubmitter {
         new RubyParameterExtractor().extract(this, run, extractorName);
       }
     } catch (Exception e) {
-      WarnLogMessage.issue(e);
-      job.setState(State.Excepted);
-      return;
+      throw new FailedToProcessScriptException();
     }
     putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
@@ -100,11 +106,13 @@ abstract public class AbstractSubmitter {
       try {
         transferFile(binPath, Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString());
       } catch (FailedToTransferFileException e) {
-        WarnLogMessage.issue(e);
+        throw e;
       }
     }
 
     prepareSubmission(job);
+
+    job.setState(State.Prepared);
   }
 
   String makeBatchFileText(Job job) {
@@ -199,7 +207,7 @@ abstract public class AbstractSubmitter {
       + getXsubBinDirectory(host) + "xdel " + job.getJobId();
   }
 
-  void processXsubSubmit(Job job, String json) {
+  void processXsubSubmit(Job job, String json) throws Exception {
     try {
       JSONObject object = new JSONObject(json);
       String jobId = object.getString("job_id");
@@ -207,8 +215,7 @@ abstract public class AbstractSubmitter {
       job.setState(State.Submitted);
       InfoLogMessage.issue(job.getRun(), "was submitted");
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println(json);
+      throw e;
     }
   }
 
@@ -248,15 +255,22 @@ abstract public class AbstractSubmitter {
             InfoLogMessage.issue(job.getRun(), "results will be collected");
 
             boolean isNoException = true;
-            for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
-              try {
-                new RubyResultCollector().collect(this, job.getRun(), collectorName);
-              } catch (Exception | Error e) {
-                isNoException = false;
-                job.setState(State.Excepted);
-                job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-                WarnLogMessage.issue(e);
+            try {
+              for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+                try {
+                  new RubyResultCollector().collect(this, job.getRun(), collectorName);
+                } catch (Exception | Error e) {
+                  isNoException = false;
+                  job.setState(State.Excepted);
+                  job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+                  WarnLogMessage.issue(e);
+                }
               }
+            } catch (Exception e) {
+              isNoException = false;
+              job.setState(State.Excepted);
+              job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+              WarnLogMessage.issue(e);
             }
 
             if (isNoException) {
@@ -330,8 +344,9 @@ abstract public class AbstractSubmitter {
       SimulatorRun run = job.getRun();
 
       if (run != null) {
-        switch (run.getState()) {
+        switch (job.getState()) {
           case Created:
+          case Prepared:
             if (queuedJobList.size() < maximumNumberOfJobs) {
               queuedJobList.add(job);
             }
@@ -368,9 +383,17 @@ abstract public class AbstractSubmitter {
     }
 
     for (Job job : queuedJobList) {
-      if (submittedCount < maximumNumberOfJobs) {
-        submit(job);
-        submittedCount++;
+      try {
+        if (job.getState().equals(State.Created)) {
+          prepareJob(job);
+        }
+        if (submittedCount < maximumNumberOfJobs) {
+          submit(job);
+          submittedCount++;
+        }
+      } catch (Exception e) {
+        WarnLogMessage.issue(e);
+        job.setState(State.Excepted);
       }
     }
   }

@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
+import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.data.SimulatorRun;
 import spark.Spark;
 
@@ -16,7 +17,6 @@ import java.util.TreeMap;
 public class JobsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  ;
   public JobsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -82,6 +82,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("width:6.5em;", "ID"));
               list.add(new Lte.TableValue("", "Project"));
+              list.add(new Lte.TableValue("", "Simulator"));
               list.add(new Lte.TableValue("", "Host"));
               list.add(new Lte.TableValue("width:5em;", "JobID"));
               list.add(new Lte.TableValue("width:3em;", ""));
@@ -93,13 +94,21 @@ public class JobsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Lte.TableRow> tableRows() {
               ArrayList<Lte.TableRow> list = new ArrayList<>();
               for (Job job : Job.getList()) {
+                SimulatorRun run = job.getRun();
                 list.add(new Lte.TableRow(
                   Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
                   Html.a(
                     ProjectComponent.getUrl(job.getProject()),
                     job.getProject().getName()
                   ),
-                  job.getHost().getName(),
+                  Html.a(
+                    SimulatorComponent.getUrl(run.getSimulator()),
+                    run.getSimulator().getName()
+                  ),
+                  Html.a(
+                    HostComponent.getUrl(job.getHost()),
+                    job.getHost().getName()
+                  ),
                   job.getJobId(),
                   Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
                   Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))

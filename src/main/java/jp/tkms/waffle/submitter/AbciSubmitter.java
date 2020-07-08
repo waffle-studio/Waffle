@@ -3,6 +3,7 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 
 import java.util.ArrayList;
@@ -70,7 +71,12 @@ public class AbciSubmitter extends SshSubmitter {
       host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
       String resultJson = exec(xsubSubmitCommand(packId));
       for (Job job : queuedJobList.get(packId)) {
-        processXsubSubmit(job, resultJson);
+        try {
+          processXsubSubmit(job, resultJson);
+        } catch (Exception e) {
+          WarnLogMessage.issue(e);
+          job.setState(State.Excepted);
+        }
       }
       queuedJobList.remove(packId);
       packBatchTextList.remove(packId);
@@ -118,11 +124,16 @@ public class AbciSubmitter extends SshSubmitter {
     }
 
     job.setState(State.Prepared);
-    prepareJob(job);
+    try {
+      prepareJob(job);
 
-    synchronized (objectLocker) {
-      packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(job.getRun()) + "\n");
-      packWaitThread.addReadyJob(job);
+      synchronized (objectLocker) {
+        packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(job.getRun()) + "\n");
+        packWaitThread.addReadyJob(job);
+      }
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+      job.setState(State.Excepted);
     }
   }
 

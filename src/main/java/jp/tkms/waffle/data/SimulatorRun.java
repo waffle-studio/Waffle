@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
@@ -112,6 +113,9 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public Simulator getSimulator() {
+    if (simulator == null) {
+      simulator = getStringFromDB(KEY_SIMULATOR);
+    }
     return Simulator.getInstance(getProject(), simulator);
   }
 
@@ -178,6 +182,8 @@ public class SimulatorRun extends AbstractRun {
     String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
     String hostId = run.getHost().getId();
+    JSONArray callstack = parent.getCallstack();
+    callstack.put("##");
 
     ((SimulatorRunNode) runNode).updateState(null, State.Created);
 
@@ -202,7 +208,8 @@ public class SimulatorRun extends AbstractRun {
           Sql.Value.equal(KEY_HOST, hostId),
           Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
           Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString()),
-          Sql.Value.equal(KEY_RUNNODE, runNode.getId())
+          Sql.Value.equal(KEY_RUNNODE, runNode.getId()),
+          Sql.Value.equal( KEY_CALLSTACK, callstack.toString())
         ).execute();
       }
     });
@@ -262,13 +269,16 @@ public class SimulatorRun extends AbstractRun {
           setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
       }
 
-      ((SimulatorRunNode) getRunNode()).updateState(this.state, state);
+      try {
+        ((SimulatorRunNode) getRunNode()).updateState(this.state, state);
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
       setToDB(KEY_STATE, state.ordinal());
       this.state = state;
       new RunStatusUpdater(this);
 
       finish();
-
     }
   }
 
@@ -629,6 +639,7 @@ public class SimulatorRun extends AbstractRun {
                 KEY_PARENT_RUNNODE + "," +
                 KEY_VARIABLES + " default '{}'," +
                 KEY_FINALIZER + " default '[]'," +
+                KEY_CALLSTACK + " default '[]'," +
                 KEY_ARGUMENTS + " default '[]'," +
                 KEY_EXIT_STATUS + " default -1," +
                 KEY_ENVIRONMENTS + " default '{}'," +

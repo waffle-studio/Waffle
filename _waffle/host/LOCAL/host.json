@@ -1,6 +1,0 @@
-{
-  "xsub_dir": "",
-  "maximum_jobs": 1,
-  "work_base_dir": "/tmp/waffle",
-  "polling_interval": 10
-}

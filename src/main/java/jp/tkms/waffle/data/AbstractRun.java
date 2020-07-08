@@ -22,6 +22,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   public static final String KEY_RUNNODE = "runnode";
   public static final String KEY_PARENT_RUNNODE = "parent_runnode";
   public static final String KEY_RESPONSIBLE_ACTOR = "responsible";
+  public static final String KEY_CALLSTACK = "callstack";
 
   abstract public void start();
   abstract public boolean isRunning();
@@ -32,6 +33,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   private Actor parentActor = null;
   private Actor responsibleActor = null;
   private JSONArray finalizers = null;
+  private JSONArray callstack = null;
   private JSONObject parameters = null;
   protected boolean isStarted = false;
   private RunNode runNode = null;
@@ -44,7 +46,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   public AbstractRun(Project project, UUID id, String name, RunNode runNode) {
-    super(project, id, runNode.getSimpleName());
+    super(project, id, name);
     this.runNode = runNode;
 
     this.registry = new Registry(getProject());
@@ -69,8 +71,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   protected void setResponsibleActor(Actor actor) {
-    setToDB(KEY_RESPONSIBLE_ACTOR, actor.getId());
     responsibleActor = actor;
+    setToDB(KEY_RESPONSIBLE_ACTOR, actor.getId());
   }
 
   public Registry getRegistry() {
@@ -79,7 +81,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
   @Override
   public void setName(String name) {
-    super.setName(runNode.rename(name));
+    super.setName(getRunNode().rename(name));
   }
 
   public boolean isRoot() {
@@ -88,7 +90,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
 
   @Override
   public Path getDirectoryPath() {
-    return runNode.getDirectoryPath();
+    return getRunNode().getDirectoryPath();
   }
 
   public RunNode getRunNode() {
@@ -96,8 +98,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   protected void setRunNode(RunNode node) {
-    setToDB(KEY_RUNNODE, node.getId());
     runNode = node;
+    setToDB(KEY_RUNNODE, node.getId());
   }
 
   public RunNode getParentRunNode() {
@@ -108,12 +110,12 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   protected void setParentRunNode(RunNode node) {
+    parentRunNode = node;
     setToDB(KEY_PARENT_RUNNODE, node.getId());
-    runNode = node;
   }
 
   public ActorGroup getActorGroup() {
-    if (actorGroup == null) {
+    ;if (actorGroup == null) {
       actorGroup = ActorGroup.getInstance(getProject(), getStringFromDB(KEY_CONDUCTOR));
     }
     return actorGroup;
@@ -143,10 +145,27 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
     setFinalizers(finalizers);
   }
 
+  public void setCallstack(JSONArray callstack) {
+    this.callstack = callstack;
+    setToDB(KEY_CALLSTACK, callstack.toString());
+  }
+
+  public JSONArray getCallstack() {
+    if (callstack == null) {
+      callstack = new JSONArray(getStringFromDB(KEY_CALLSTACK));
+    }
+    return callstack;
+  }
+
+  protected static String getCallName(ActorGroup group, String name) {
+    return group.getName() + "/" + name;
+  }
+
   public void finish() {
     if (! getState().isRunning()) {
       for (String actorId : getFinalizers()) {
         Actor finalizer = Actor.getInstance(getProject(), actorId);
+        finalizer.putVariablesByJson(getVariables().toString());
         finalizer.setResponsibleActor(getResponsibleActor());
         if (finalizer != null) {
           finalizer.start();
@@ -166,7 +185,10 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   public String getErrorNote() {
-    return getRunNode().getErrorNote();
+    if (getRunNode() != null) {
+      return getRunNode().getErrorNote();
+    }
+    return "";
   }
 
   protected void updateVariablesStore() {
@@ -217,26 +239,20 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
 
-  private HashMap<Object, Object> variablesWrapper = null;
-  public HashMap variables() {
-    if (variablesWrapper == null) {
-      variablesWrapper = new HashMap<Object, Object>() {
-        @Override
-        public Object get(Object key) {
-          return getVariable(key.toString());
-        }
-
-        @Override
-        public Object put(Object key, Object value) {
-          putVariable(key.toString(), value);
-          return value;
-        }
-      };
+  private final HashMap<Object, Object> variablesMapWrapper  = new HashMap<Object, Object>() {
+    @Override
+    public Object get(Object key) {
+      return getVariable(key.toString());
     }
 
-    return variablesWrapper;
-  }
-  public HashMap v() { return variables(); }
+    @Override
+    public Object put(Object key, Object value) {
+      putVariable(key.toString(), value);
+      return value;
+    }
+  };
+  public HashMap variables() { return variablesMapWrapper; }
+  public HashMap v() { return variablesMapWrapper; }
 
   public void updateRunNode(RunNode runNode) {
     setToDB(KEY_RUNNODE, runNode.getName());

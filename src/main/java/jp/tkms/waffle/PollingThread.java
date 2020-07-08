@@ -1,9 +1,9 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
 import java.util.HashMap;
@@ -22,15 +22,23 @@ public class PollingThread extends Thread {
   public void run() {
     InfoLogMessage.issue(host, "submitter started");
 
+    AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
+
     do {
       try { sleep(host.getPollingInterval() * 1000); } catch (InterruptedException e) { e.printStackTrace(); }
-      AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
+      if (! submitter.isConnected()) {
+        submitter.close();
+        submitter = AbstractSubmitter.getInstance(host).connect();
+        if (! submitter.isConnected()) {
+          WarnLogMessage.issue("Failed to connect to " + host.getName());
+          continue;
+        }
+      }
       if (Main.hibernateFlag) {
         submitter.hibernate();
         break;
       }
       submitter.pollingTask(host);
-      submitter.close();
       InfoLogMessage.issue(host, "was scanned");
       host = Host.getInstance(host.getId());
       System.gc();
@@ -40,6 +48,7 @@ public class PollingThread extends Thread {
       }
     } while (Job.getList(host).size() > 0);
 
+    submitter.close();
     threadMap.remove(host.getId());
 
     InfoLogMessage.issue(host, "submitter closed");

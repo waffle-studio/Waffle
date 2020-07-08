@@ -88,6 +88,14 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  public boolean isConnected() {
+    if (session != null) {
+      return session.isConnected();
+    }
+    return false;
+  }
+
+  @Override
   public String getRunDirectory(SimulatorRun run) {
     Host host = run.getActualHost();
     String pathString = host.getWorkBaseDirectory() + '/' + RUN_DIR + '/' + run.getId();
