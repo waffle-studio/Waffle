@@ -128,7 +128,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
           Lte.cardToggleButton(true),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", null, run.getVariables().toString(2))
+              Lte.formJsonEditorGroup("", null, "view", run.getVariables().toString(), null)
             )
           )
           , null, "collapsed-card", null);
@@ -137,10 +137,10 @@ public class RunComponent extends AbstractAccessControlledComponent {
           Lte.cardToggleButton(false),
           Lte.divRow(
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", "Parameters", run.getParameters().toString(2))
+              Lte.formJsonEditorGroup("", "Parameters", "view", run.getParameters().toString(), null)
             ),
             Lte.divCol(Lte.DivSize.F12,
-              Lte.readonlyTextAreaGroup("", "Results", run.getResults().toString(2))
+              Lte.formJsonEditorGroup("", "Results", "view", run.getResults().toString(), null)
             )
           )
           , null);

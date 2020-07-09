@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.Sql;
@@ -8,6 +9,7 @@ import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -92,14 +94,17 @@ public class Host extends DirectoryBaseData {
 
     initializeWorkDirectory();
 
-    try {
-      Files.list(getBaseDirectoryPath()).forEach(path -> {
-        if (Files.isDirectory(path)) {
-          list.add(getInstanceByName(path.getFileName().toString()));
-        }
-      });
-    } catch (IOException e) {
-      e.printStackTrace();
+    /*
+    Files.list(getBaseDirectoryPath()).forEach(path -> {
+      if (Files.isDirectory(path)) {
+        list.add(getInstanceByName(path.getFileName().toString()));
+      }
+    });
+     */
+    for (File file : getBaseDirectoryPath().toFile().listFiles()) {
+      if (file.isDirectory()) {
+        list.add(getInstanceByName(file.getName()));
+      }
     }
 
     return list;

@@ -37,11 +37,19 @@ public class Lte {
                             String additionalBodyClass) {
     String innerContent = "";
     if (title != null || tools != null) {
-      innerContent =
-        div("card-header",
+      if (tools != null && tools.indexOf("data-card-widget=\"collapse\"") > 0) {
+        innerContent = Html.element("div", new Attributes(value("class", "card-header"),
+            value("data-card-widget","collapse")),
           h3("card-title", title),
           div("card-tools", tools)
         );
+      } else {
+        innerContent =
+          div("card-header",
+            h3("card-title", title),
+            div("card-tools", tools)
+          );
+      }
     }
     innerContent += div(listBySpace("card-body", additionalBodyClass),
       removeNull(body)
@@ -108,6 +116,24 @@ public class Lte {
         new Attributes(
           value("class", "form-control"),
           value("data-editor", type),
+          value("name", name),
+          value("id", id)
+        )
+        , contents
+      )
+    );
+  }
+
+  public static String formJsonEditorGroup(String name, String label, String mode,
+                                           String contents, ArrayList<FormError> errors) {
+    String id = "input" + name;
+    return div("form-group",
+      (label != null ?
+        element("label", new Attributes(value("for", id)), label) : null),
+      element("textarea",
+        new Attributes(
+          value("class", "form-control"),
+          value("data-jsoneditor", mode),
           value("name", name),
           value("id", id)
         )

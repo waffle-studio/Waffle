@@ -16,6 +16,7 @@ import java.nio.file.attribute.FileTime;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 
 public class RunNode extends DirectoryBaseData {
@@ -26,7 +27,10 @@ public class RunNode extends DirectoryBaseData {
   public static final String KEY_NOTE_TXT = "note.txt";
   public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
   protected static final String KEY_TMP = ".tmp";
+  protected static final String KEY_SORT_INDEX = ".SORT_INDEX";
+
   Project project;
+  Long sortIndex;
 
   public RunNode() {
   }
@@ -34,6 +38,27 @@ public class RunNode extends DirectoryBaseData {
   public RunNode(Project project, Path path) {
     super(path);
     this.project = project;
+
+    Path sortIndexPath = path.resolve(KEY_SORT_INDEX);
+    if (Files.exists(sortIndexPath)) {
+      try {
+        sortIndex = Long.valueOf(getFileContents(sortIndexPath));
+      } catch (Exception e) {}
+    }
+    if (sortIndex == null) {
+      createNewFile(sortIndexPath);
+      sortIndex = Long.valueOf(0);
+      try {
+        sortIndex = Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli();
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+      updateFileContents(sortIndexPath, String.valueOf(sortIndex));
+    }
+  }
+
+  public Long getSortIndex() {
+    return sortIndex;
   }
 
   @Override
@@ -84,15 +109,17 @@ public class RunNode extends DirectoryBaseData {
 
   public ArrayList<RunNode> getList() {
     ArrayList<RunNode> list = new ArrayList<>();
-
+    /*
     try {
-      Files.list(getDirectoryPath()).sorted(Comparator.comparingLong(path -> {
+      Files.list(getDirectoryPath()).sorted(
+        Comparator.comparingLong(path -> {
         try {
           return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
         } catch (IOException e) {
           return 0;
         }
-      })).forEach(path -> {
+      })
+      ).forEach(path -> {
         if (Files.isDirectory(path)) {
           list.add(getInstanceByName(project, path.toAbsolutePath()));
         }
@@ -100,6 +127,15 @@ public class RunNode extends DirectoryBaseData {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
+     */
+
+    for (File file : getDirectoryPath().toFile().listFiles()) {
+      if (file.isDirectory()) {
+        list.add(getInstanceByName(project, file.toPath().toAbsolutePath()));
+      }
+    }
+
+    list.sort(Comparator.comparingLong(RunNode::getSortIndex).reversed());
 
     return list;
   }

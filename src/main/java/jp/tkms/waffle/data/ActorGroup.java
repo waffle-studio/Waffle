@@ -8,6 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,7 +67,12 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     }
 
     DataId dataId = DataId.getInstance(id);
-    return instanceMap.get(dataId.getId());
+    ActorGroup actorGroup = instanceMap.get(dataId.getId());
+    if (actorGroup != null) {
+      return actorGroup;
+    }
+
+    return getInstanceByName(project, dataId.getPath().getFileName().toString());
   }
 
   public static ActorGroup getInstanceByName(Project project, String name) {
@@ -99,14 +105,10 @@ public class ActorGroup extends ProjectData implements DataDirectory {
   public static ArrayList<ActorGroup> getList(Project project) {
     ArrayList<ActorGroup> simulatorList = new ArrayList<>();
 
-    try {
-      Files.list(getBaseDirectoryPath(project)).forEach(path -> {
-        if (Files.isDirectory(path)) {
-          simulatorList.add(getInstanceByName(project, path.getFileName().toString()));
-        }
-      });
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
+    for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
+      if (file.isDirectory()) {
+        simulatorList.add(getInstanceByName(project, file.getName()));
+      }
     }
 
     /*

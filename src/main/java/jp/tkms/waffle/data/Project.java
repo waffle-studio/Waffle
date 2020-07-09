@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -79,8 +80,9 @@ public class Project extends Data implements DataDirectory {
   public static ArrayList<Project> getList() {
     initializeWorkDirectory();
 
-    ArrayList<Project> projectList = new ArrayList<>();
+    ArrayList<Project> list = new ArrayList<>();
 
+    /*
     try {
       Files.list(getBaseDirectoryPath()).forEach(path -> {
         if (Files.isDirectory(path)) {
@@ -90,9 +92,15 @@ public class Project extends Data implements DataDirectory {
     } catch (IOException e) {
       e.printStackTrace();
     }
+     */
+    for (File file : getBaseDirectoryPath().toFile().listFiles()) {
+      if (file.isDirectory()) {
+        list.add(getInstanceByName(file.getName()));
+      }
+    }
 
 
-    return projectList;
+    return list;
   }
 
   public static Project create(String name) {

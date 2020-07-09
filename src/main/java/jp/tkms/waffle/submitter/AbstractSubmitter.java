@@ -110,6 +110,13 @@ abstract public class AbstractSubmitter {
       }
     }
 
+    try {
+      Path work = run.getWorkPath();
+      transferFile(work, Paths.get(getRunDirectory(run)).resolve(work.getFileName()).toString());
+    } catch (FailedToTransferFileException e) {
+      throw e;
+    }
+
     prepareSubmission(job);
 
     job.setState(State.Prepared);

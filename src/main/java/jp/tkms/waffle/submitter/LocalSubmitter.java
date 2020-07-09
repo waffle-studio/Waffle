@@ -4,6 +4,7 @@ import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import org.json.JSONObject;
 
@@ -41,7 +42,7 @@ public class LocalSubmitter extends AbstractSubmitter {
 
   @Override
   public String getWorkDirectory(SimulatorRun run) {
-    return run.getWorkPath().toString();
+    return getRunDirectory(run) + "/" + SimulatorRun.WORKING_DIR; // do refactor
   }
 
   @Override
@@ -85,7 +86,7 @@ public class LocalSubmitter extends AbstractSubmitter {
       }
 
     } catch (IOException e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
 
     return result;

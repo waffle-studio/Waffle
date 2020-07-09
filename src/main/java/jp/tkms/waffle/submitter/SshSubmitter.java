@@ -2,6 +2,7 @@ package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.util.SshChannel;
@@ -124,17 +125,7 @@ public class SshSubmitter extends AbstractSubmitter {
 
   @Override
   void prepareSubmission(Job job) {
-    SimulatorRun run = job.getRun();
-    try {
-      session.mkdir(getSimulatorBinDirectory(job), "/tmp");
-      if (true) {  // TODO: Check if the simulator has been updated
-        Path work = run.getWorkPath();
-        session.scp(work.toFile(), Paths.get(getRunDirectory(run)).resolve(work.getFileName()).toString(), "/tmp");
-      }
-    } catch (JSchException e) {
-      e.printStackTrace();
-    }
-    InfoLogMessage.issue(run, "was prepared");
+    InfoLogMessage.issue(job.getRun(), "was prepared");
   }
 
   @Override
