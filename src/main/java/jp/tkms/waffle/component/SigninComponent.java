@@ -17,7 +17,6 @@ import java.util.TreeMap;
 public class SigninComponent extends AbstractComponent {
   private Mode mode;
 
-  ;
   public SigninComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -53,6 +52,11 @@ public class SigninComponent extends AbstractComponent {
   private void renderSigninForm(ArrayList<Lte.FormError> errors) {
     new MainTemplate() {
       @Override
+      protected String renderPageSidebar() {
+        return "";
+      }
+
+      @Override
       protected ArrayList<Map.Entry<String, String>> pageNavigation() {
         return null;
       }
@@ -64,7 +68,7 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList("Signin"));
+        return new ArrayList<String>(Arrays.asList());
       }
 
       @Override

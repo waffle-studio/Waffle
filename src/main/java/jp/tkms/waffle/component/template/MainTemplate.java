@@ -4,7 +4,6 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
-import jp.tkms.waffle.component.updater.LogUpdater;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Job;
 
@@ -37,7 +36,7 @@ abstract public class MainTemplate extends AbstractTemplate {
         body("hold-transition",
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
-              randerPageNavigation()
+              renderPageNavigation()
             ),
             elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
               a(Constants.ROOT_PAGE, "brand-link navbar-light",
@@ -58,73 +57,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                       value("role", "menu"),
                       value("data-accordion", "false")
                     ),
-                    elementWithClass("li", "nav-item",
-                      a(ProjectsComponent.getUrl(), "nav-link", null,
-                        fasIcon("folder-open", "nav-icon"),
-                        p("Projects")
-                      )
-                    ),
-                    element("li",
-                      new Attributes(
-                        value("class", "nav-item"),
-                        value("style", "padding-left:1rem;"),
-                        value("id", "recently-accessed-project")
-                      ),
-                      a("", "nav-link", null,
-                        p("null")
-                      )
-                    ),
-                    elementWithClass("li", "nav-item",
-                      a(TemplatesComponent.getUrl(), "nav-link", null,
-                        fasIcon("layer-group", "nav-icon"),
-                        p("Templates")
-                      )
-                    ),
-                    elementWithClass("li", "nav-item",
-                      a(JobsComponent.getUrl(), "nav-link", null,
-                        fasIcon("running", "nav-icon"),
-                        p("Jobs", span("right badge badge-warning", new Attributes(value("id", "jobnum"))))
-                      )
-                    ),
-                    elementWithClass("li", "nav-item",
-                      a(HostsComponent.getUrl(), "nav-link", null,
-                        fasIcon("server", "nav-icon"),
-                        p("Hosts")
-                      )
-                    ),
-                    elementWithClass("li", "nav-item",
-                      a(LogsComponent.getUrl(), "nav-link", null,
-                        fasIcon("quote-left", "nav-icon"),
-                        p("Logs")
-                      )
-                    ),
-                    elementWithClass("li", "nav-header", "Status"),
-                    elementWithClass("li", "nav-item",
-                      Lte.disabledTextInput("info", null, "Screen reloaded")
-                    )
-                    ,
-                    elementWithClass("li", "nav-item",
-                      a(SystemComponent.getUrl("hibernate"), "nav-link", new Attributes(value("title", String.valueOf(Main.PID))),
-                        fasIcon("power-off", "nav-icon"),
-                        p("Hibernate")
-                      )
-                    )
-                    /*,
-                    elementWithClass("li", "nav-item",
-                        a(ProjectsComponent.getUrl(), "nav-link", null,
-                            faIcon("comment-alt", "nav-icon"),
-                            p("Logs")
-                        )
-                    ),
-                    elementWithClass("li", "nav-header",
-                        "TEST-header"
-                    ),
-                    elementWithClass("li", "nav-item",
-                        a("#", "nav-link", null,
-                            faIcon("envelope", "nav-icon"),
-                            p("TEST1")
-                        )
-                    )*/
+                    renderPageSidebar()
                   )
                 )
               )
@@ -142,7 +75,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     div("col-sm-6",
-                      randerPageBreadcrumb()
+                      renderPageBreadcrumb()
                     )
                   )
                 )
@@ -152,7 +85,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               )
             ),
             elementWithClass("footer", "main-footer", div("float-right d-none d-sm-block"),
-              element("strong", null, "Copyright &copy; 2019 S.T."),
+              element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
               a(SystemComponent.getUrl("update"), Lte.badge("secondary", null, "update"))
             )
           ),
@@ -255,11 +188,65 @@ abstract public class MainTemplate extends AbstractTemplate {
     );
   }
 
-  String randerPageNavigation() {
-    String innerContent = elementWithClass("li", "nav-item",
-        a("#", "nav-link", new Attributes(value("data-widget", "pushmenu")),
-          fasIcon("bars")
+  protected String renderPageSidebar() {
+    return
+      elementWithClass("li", "nav-item",
+        a(ProjectsComponent.getUrl(), "nav-link", null,
+          fasIcon("folder-open", "nav-icon"),
+          p("Projects")
         )
+      ) +
+      element("li",
+        new Attributes(
+          value("class", "nav-item"),
+          value("style", "padding-left:1rem;"),
+          value("id", "recently-accessed-project")
+        ),
+        a("", "nav-link", null,
+          p("null")
+        )
+      ) +
+      elementWithClass("li", "nav-item",
+        a(TemplatesComponent.getUrl(), "nav-link", null,
+          fasIcon("layer-group", "nav-icon"),
+          p("Templates")
+        )
+      ) +
+      elementWithClass("li", "nav-item",
+        a(JobsComponent.getUrl(), "nav-link", null,
+          fasIcon("running", "nav-icon"),
+          p("Jobs", span("right badge badge-warning", new Attributes(value("id", "jobnum"))))
+        )
+      ) +
+      elementWithClass("li", "nav-item",
+        a(HostsComponent.getUrl(), "nav-link", null,
+          fasIcon("server", "nav-icon"),
+          p("Hosts")
+        )
+      ) +
+      elementWithClass("li", "nav-item",
+        a(LogsComponent.getUrl(), "nav-link", null,
+          fasIcon("quote-left", "nav-icon"),
+          p("Logs")
+        )
+      ) +
+      elementWithClass("li", "nav-header", "Status") +
+      elementWithClass("li", "nav-item",
+        Lte.disabledTextInput("info", null, "Screen reloaded")
+      ) +
+      elementWithClass("li", "nav-item",
+        a(SystemComponent.getUrl("hibernate"), "nav-link", new Attributes(value("title", String.valueOf(Main.PID))),
+          fasIcon("power-off", "nav-icon"),
+          p("Hibernate")
+        )
+      );
+  }
+
+  String renderPageNavigation() {
+    String innerContent = elementWithClass("li", "nav-item",
+      a("#", "nav-link", new Attributes(value("data-widget", "pushmenu")),
+        fasIcon("bars")
+      )
     );
 
     if (pageNavigation() != null) {
@@ -273,7 +260,7 @@ abstract public class MainTemplate extends AbstractTemplate {
     return elementWithClass("ul", "navbar-nav", innerContent);
   }
 
-  String randerPageBreadcrumb() {
+  String renderPageBreadcrumb() {
     String innerContent = elementWithClass("li", "breadcrumb-item",
       a(Constants.ROOT_PAGE, null, null, fasIcon("home"))
     );
