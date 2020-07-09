@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.ResourceFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,14 +41,10 @@ public class ListenerTemplate extends DirectoryBaseData {
 
     initializeWorkDirectory();
 
-    try {
-      Files.list(getBaseDirectoryPath()).forEach(path -> {
-        if (Files.isDirectory(path)) {
-          listenerTemplates.add(new ListenerTemplate(path.getFileName().toString()));
-        }
-      });
-    } catch (IOException e) {
-      e.printStackTrace();
+    for (File file : getBaseDirectoryPath().toFile().listFiles()) {
+      if (file.isDirectory()) {
+        listenerTemplates.add(new ListenerTemplate(file.getName()));
+      }
     }
 
     return listenerTemplates;

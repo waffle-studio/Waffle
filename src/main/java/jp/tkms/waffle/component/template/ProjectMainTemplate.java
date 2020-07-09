@@ -19,9 +19,9 @@ public abstract class ProjectMainTemplate extends MainTemplate {
   @Override
   protected ArrayList<Map.Entry<String, String>> pageNavigation() {
     return new ArrayList<Map.Entry<String, String>>(Arrays.asList(
-      Map.entry(Html.element("strong", null, project.getName()), ProjectComponent.getUrl(project)),
-      Map.entry(TrialsComponent.TITLE, RunsComponent.getUrl(project)),
-      Map.entry(SimulatorComponent.TITLE, SimulatorsComponent.getUrl(project))
+      Map.entry(Html.element("strong", null, project.getName()) + " | ActorGroups", ProjectComponent.getUrl(project)),
+      Map.entry(SimulatorComponent.TITLE, SimulatorsComponent.getUrl(project)),
+      Map.entry(TrialsComponent.TITLE, RunsComponent.getUrl(project))
     ));
   }
 }

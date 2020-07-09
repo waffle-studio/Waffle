@@ -16,6 +16,7 @@ import java.util.Arrays;
 import static jp.tkms.waffle.component.template.Html.value;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "ActorGroup";
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
@@ -114,6 +115,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
+        return TITLE;
+      }
+
+      @Override
+      protected String pageSubTitle() {
         return conductor.getName();
       }
 
@@ -122,8 +128,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "Conductors",
-          conductor.getName()
+          "ActorGroups"
         ));
       }
 
@@ -180,7 +185,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             Html.a(getUrl(conductor, "prepare", Actor.getRootInstance(project)),
               Html.span("right badge badge-secondary", null, "run")
             ),
-            Lte.cardToggleButton(false),
+            null,
             Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
           ),
           Html.div(null,
@@ -194,7 +199,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_DEFAULT_VARIABLES, null, "json", conductor.getDefaultVariables().toString(2), null)
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, null, "tree", conductor.getDefaultVariables().toString(), null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
@@ -204,7 +209,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String mainScriptSyntaxError = RubyConductor.checkSyntax(conductor.getRepresentativeActorScriptPath());
         content +=
           Html.form(getUrl(conductor, "update-main-script"), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "Main Script",
+            Lte.card(Html.fasIcon("terminal") + "# (Main Script)",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -258,13 +263,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return Html.div(null,
       Html.div(null, "<b style='color:green;'>以下，主要コマンド仮表示</b>"),
       Html.element("div", new Html.Attributes(Html.value("style", "padding-left:1em;font-size:0.8em;")),
-        Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
-        Html.div(null, "hub.loadConductorTemplate(\"&lt;NAME&gt;\")"),
-        Html.div(null, "hub.loadListenerTemplate(\"&lt;NAME&gt;\")"),
-        Html.div(null, "hub.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
-        Html.div(null, "<b>[RUN(Simulation)]</b> = hub.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
-        Html.div(null, "<b>[RUN(Conductor)]</b> = hub.createConductorRun(\"&lt;NAME&gt;\")"),
+        //Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
+        Html.div(null, "instance.loadConductorTemplate(\"&lt;NAME&gt;\")"),
+        Html.div(null, "instance.loadListenerTemplate(\"&lt;NAME&gt;\")"),
+        Html.div(null, "instance.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
+        Html.div(null, "<b>[RUN(Simulation)]</b> = instance.createSimulatorRun(\"&lt;NAME&gt;\", \"&lt;HOST&gt;\")"),
+        //Html.div(null, "<b>[RUN(Conductor)]</b> = instance.createConductorRun(\"&lt;NAME&gt;\")"),
         Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
+        Html.div(null, "instance.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
         Html.div(null, "<b>[RUN(Simulation)]</b>.p[:&lt;NAME&gt;] = &lt;VALUE&gt;"),
         Html.div(null, "<b>[RUN(Simulation)]</b>.makeLocalShared(\"&lt;KEY&gt\", \"&lt;REMOTE_FILE&gt\");"),
         Html.div(null, "&lt;VALUE&gt = <b>[RUN(Simulation)]</b>.getResult(\"&lt;VALUE&gt\");")
@@ -276,12 +282,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return conductor.getName();
+        return TITLE;
       }
 
       @Override
       protected String pageSubTitle() {
-        return "Prepare";
+        return conductor.getName();
       }
 
       @Override
@@ -290,7 +296,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Conductors",
-          conductor.getName()
+          Html.a(ConductorComponent.getUrl(conductor), conductor.getName())
         ));
       }
 
@@ -300,17 +306,17 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "Properties",
+            Lte.card(Html.fasIcon("feather-alt") + "Prepare",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(conductor.getName() + '_' + LocalDateTime.now().toString()), null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "json", conductor.getDefaultVariables().toString(2), null)
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form",  conductor.getDefaultVariables().toString(), null)
                 )
               )
-              ,Lte.formSubmitButton("primary", "Run")
+              ,Lte.formSubmitButton("primary", "Run"), "card-info", null
             )
           );
 

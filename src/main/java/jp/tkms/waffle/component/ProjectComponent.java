@@ -111,28 +111,27 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "Conductors";
+        return "ActorGroups";
       }
 
       @Override
       protected String pageSubTitle() {
-        return "Add";
+        return "(new)";
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
-          Html.a(SimulatorsComponent.getUrl(project), "Conductors"),
-          "Add"));
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          "ActorGroups"));
       }
 
       @Override
       protected String pageContent() {
         return
           Html.form(getUrl(project, "add_conductor"), Html.Method.Post,
-            Lte.card("New Conductor", null,
+            Lte.card("New ActorGroup", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors),
@@ -150,13 +149,18 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
+        return TITLE;
+      }
+
+      @Override
+      protected String pageSubTitle() {
         return project.getName();
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"), project.getName()));
+          Html.a(ProjectsComponent.getUrl(), "Projects")));
       }
 
       @Override
@@ -171,10 +175,10 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
         ArrayList<ActorGroup> conductorList = ActorGroup.getList(project);
         if (conductorList.size() <= 0) {
-          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
+          content += Lte.card(Html.fasIcon("user-tie") + "ActorGroups",
             null,
             Html.a(getUrl(project, "add_conductor"), null, null,
-              Html.fasIcon("plus-square") + "Add new conductor"
+              Html.fasIcon("plus-square") + "Add ActorGroups"
             ),
             null
           );
@@ -202,7 +206,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               "};"
           );
 
-          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
+          content += Lte.card(Html.fasIcon("user-tie") + "ActorGroups",
             Html.a(getUrl(project, "add_conductor"),
               null, null, Html.fasIcon("plus-square")
             ),

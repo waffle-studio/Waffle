@@ -31,6 +31,8 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/icheck-bootstrap.min.css"),
           link("stylesheet", "/css/toastr.min.css"),
           link("stylesheet", "/css/custom.css"),
+          link("stylesheet", "/jsoneditor/jsoneditor.min.css"),
+          element("script", new Attributes(value("src", "/jsoneditor/jsoneditor.min.js"))),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
         body("hold-transition",
@@ -122,7 +124,6 @@ abstract public class MainTemplate extends AbstractTemplate {
               "    var editDiv = $('<div>', {\n" +
               "      position: 'absolute',\n" +
               "      width: '100%',\n" +
-              "      height: ((textarea.val().split('\\n').length + 3) * 1.5) + 'em',\n" +
               "      'class': textarea.attr('class')\n" +
               "    }).insertBefore(textarea);\n" +
               "    textarea.css('display', 'none');\n" +
@@ -132,7 +133,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "    editor.getSession().setValue(textarea.val());\n" +
               "    editor.getSession().setMode(\"ace/mode/\" + mode);\n" +
               "    editor.setTheme(\"ace/theme/textmate\");\n" +
-              "    editor.setOptions({enableBasicAutocompletion: true, enableSnippets: true, enableLiveAutocompletion: true});\n" +
+              "    editor.setOptions({enableBasicAutocompletion: true, enableSnippets: true, enableLiveAutocompletion: true, maxLines: Infinity});\n" +
               "ace.config.loadModule('ace/snippets/snippets', function () {\n" +
               "        var snippetManager = ace.require('ace/snippets').snippetManager; \n" +
               "        ace.config.loadModule('ace/snippets/ruby', function(m) {\n" +
@@ -140,24 +141,24 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                snippetManager.files.ruby = m;\n" +
               "                m.snippets = snippetManager.parseSnippetFile(m.snippetText);\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'hub.invokeListener(\"${1:listener name}\")', \n" +
-              "                    tabTrigger: 'hub.invokeListener' \n" +
+              "                    content: 'instance.invokeListener(\"${1:listener name}\")', \n" +
+              "                    tabTrigger: 'instance.invokeListener' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'hub.loadConductorTemplate(\"${1:conductor template name}\")', \n" +
-              "                    tabTrigger: 'hub.loadConductorTemplate' \n" +
+              "                    content: 'instance.loadConductorTemplate(\"${1:conductor template name}\")', \n" +
+              "                    tabTrigger: 'instance.loadConductorTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'hub.loadListenerTemplate(\"${1:listener template name}\")', \n" +
-              "                    tabTrigger: 'hub.loadListenerTemplate' \n" +
+              "                    content: 'instance.loadListenerTemplate(\"${1:listener template name}\")', \n" +
+              "                    tabTrigger: 'instance.loadListenerTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:r} = hub.createSimulatorRun(\"${2:simulator name}\", \"${3:host name}\")', \n" +
-              "                    tabTrigger: 'hub.createSimulatorRun' \n" +
+              "                    content: '${1:run} = instance.createSimulatorRun(\"${2:simulator name}\", \"${3:host name}\")', \n" +
+              "                    tabTrigger: 'instance.createSimulatorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:r} = hub.createConductorRun(\"${2:conductor name}\")', \n" +
-              "                    tabTrigger: 'hub.createConductorRun' \n" +
+              "                    content: '${1:run} = instance.createConductorRun(\"${2:conductor name}\")', \n" +
+              "                    tabTrigger: 'instance.createConductorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
               "                    content: 'addFinalizer(\"${1:listener name}\")', \n" +
@@ -179,6 +180,23 @@ abstract public class MainTemplate extends AbstractTemplate {
               "    // copy back to textarea on form submit...\n" +
               "    textarea.closest('form').submit(function() {\n" +
               "      textarea.val(editor.getSession().getValue());\n" +
+              "    })\n" +
+              "  });\n" +
+              "});"),
+          element("script",new Html.Attributes(Html.value("type", "text/javascript")),
+            "$(function() {\n" +
+              "  $('textarea[data-jsoneditor]').each(function() {\n" +
+              "    var textarea = $(this);\n" +
+              "    var mode = textarea.data('jsoneditor');\n" +
+              "    var textmode = (mode=='view'?'preview':'code');\n" +
+              "    var editDiv = $('<div>', {\n" +
+              "      width: '100%',\n" +
+              "    }).insertBefore(textarea);\n" +
+              "    textarea.css('display', 'none');\n" +
+              "    var editor = new JSONEditor(editDiv[0], {\"ace\":ace,\"language\":\"en\",\"statusBar\":false,\"navigationBar\":false,\"enableTransform\":false,\"enableSort\":false,\"search\": false,\"modes\":[mode,textmode]}, JSON.parse(textarea.val()));\n" +
+              "    // copy back to textarea on form submit...\n" +
+              "    textarea.closest('form').submit(function() {\n" +
+              "      textarea.val(editor.getText());\n" +
               "    })\n" +
               "  });\n" +
               "});"),

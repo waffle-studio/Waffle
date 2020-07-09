@@ -66,6 +66,11 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTitle() {
+        return "Host";
+      }
+
+      @Override
+      protected String pageSubTitle() {
         return host.getName();
       }
 
@@ -96,8 +101,8 @@ public class HostComponent extends AbstractAccessControlledComponent {
                 "Maximum number of jobs", "", host.getMaximumNumberOfJobs().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
-              Lte.formDataEditorGroup(KEY_ENVIRONMENTS, "Environments", "json", host.getEnvironments().toString(2), null),
-              Lte.formDataEditorGroup(KEY_PARAMETERS, "Parameters", "json", host.getParameters().toString(2), null)
+              Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", host.getEnvironments().toString(2), null),
+              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  host.getParameters().toString(2), null)
             )
             , Lte.formSubmitButton("success", "Update")
           )

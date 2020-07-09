@@ -12,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -101,14 +102,10 @@ public class Simulator extends ProjectData implements DataDirectory {
   public static ArrayList<Simulator> getList(Project project) {
     ArrayList<Simulator> simulatorList = new ArrayList<>();
 
-    try {
-      Files.list(getBaseDirectoryPath(project)).forEach(path -> {
-        if (Files.isDirectory(path)) {
-          simulatorList.add(getInstanceByName(project, path.getFileName().toString()));
-        }
-      });
-    } catch (IOException e) {
-      e.printStackTrace();
+    for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
+      if (file.isDirectory()) {
+        simulatorList.add(getInstanceByName(project, file.getName()));
+      }
     }
 
     /*

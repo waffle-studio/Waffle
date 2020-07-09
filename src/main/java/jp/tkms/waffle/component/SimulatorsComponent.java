@@ -68,7 +68,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return "Add";
+        return "(new)";
       }
 
       @Override
@@ -76,8 +76,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          "Add"));
+          Html.a(SimulatorsComponent.getUrl(project), "Simulators")));
       }
 
       @Override
@@ -87,9 +86,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
             Lte.card("New Simulator", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors),
-                Html.hr(),
-                Lte.formInputGroup("text", "sim_cmd", "Simulation command", "", null, errors)
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -101,7 +98,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
 
   private void addSimulator() {
     Simulator simulator = Simulator.create(project, request.queryParams("name"));
-    simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
+    simulator.setSimulatorCommand("");
     response.redirect(SimulatorComponent.getUrl(simulator));
   }
 
@@ -120,8 +117,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "Simulators"));
+          Html.a(ProjectComponent.getUrl(project), project.getName())));
       }
 
       @Override
@@ -130,7 +126,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
         if (simulatorList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl(project, "add"), null, null,
-              Html.fasIcon("plus-square") + "Add simulator"
+              Html.fasIcon("plus-square") + "Add Simulator"
             ),
             null
           );

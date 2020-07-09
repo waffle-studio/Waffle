@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -104,14 +105,10 @@ public class ConductorTemplate extends DirectoryBaseData {
 
     initializeWorkDirectory();
 
-    try {
-      Files.list(getBaseDirectoryPath()).forEach(path -> {
-        if (Files.isDirectory(path)) {
-          conductorTemplates.add(new ConductorTemplate(path.getFileName().toString()));
-        }
-      });
-    } catch (IOException e) {
-      e.printStackTrace();
+    for (File file : getBaseDirectoryPath().toFile().listFiles()) {
+      if (file.isDirectory()) {
+        conductorTemplates.add(new ConductorTemplate(file.getName()));
+      }
     }
 
     return conductorTemplates;

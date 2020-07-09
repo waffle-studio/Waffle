@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SimulatorComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "Simulators";
+  public static final String TITLE = "Simulator";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   private static final String KEY_UPDATE_PARAMETERS = "update-parameters";
   private static final String KEY_PARAMETERS = "parameters";
@@ -81,6 +81,11 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
+        return TITLE;
+      }
+
+      @Override
+      protected String pageSubTitle() {
         return simulator.getName();
       }
 
@@ -89,8 +94,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          simulator.getName()
+          Html.a(SimulatorsComponent.getUrl(project), "Simulators")
         ));
       }
 
@@ -108,6 +112,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               ),
               Html.div(null,
                 Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", simulator.getBinDirectory().toString()),
+                Lte.readonlyTextInput("Version ID", simulator.getVersionId()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", simulator.getSimulationCommand(), errors)
               ),
               Lte.formSubmitButton("success", "Update")
@@ -160,7 +165,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formDataEditorGroup(KEY_DEFAULT_PARAMETERS, null, "json", simulator.getDefaultParameters().toString(2), null)
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_PARAMETERS, null, "tree", simulator.getDefaultParameters().toString(), null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
@@ -215,7 +220,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           })
           , null, null, "p-0");
 
-        content += Lte.card(Html.fasIcon("file") + "Files in REMOTE",
+        content += Lte.card(Html.fasIcon("file") + "Files in Simulator Bin Directory",
           Lte.cardToggleButton(false),
           Lte.table("table-sm", new Lte.Table() {
             @Override
