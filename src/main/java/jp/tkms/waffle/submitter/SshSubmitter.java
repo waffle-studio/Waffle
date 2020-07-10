@@ -2,6 +2,8 @@ package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
+import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -97,35 +99,30 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getRunDirectory(SimulatorRun run) {
-    Host host = run.getActualHost();
-    String pathString = host.getWorkBaseDirectory() + '/' + RUN_DIR + '/' + run.getId();
+  public void close() {
+    session.disconnect();
+    if (tunnelSession != null) { tunnelSession.disconnect(); }
+  }
 
+  @Override
+  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
     try {
-      session.mkdir(pathString, "~/");
+      if (pathString.indexOf('~') == 0) {
+        pathString = pathString.replaceAll("^~", session.exec("echo $HOME", "~/").getStdout().replaceAll("\\r|\\n", ""));
+      }
     } catch (JSchException e) {
-      e.printStackTrace();
+      throw new FailedToControlRemoteException(e);
     }
-
-    return toAbsoluteHomePath(pathString);
+    return Paths.get(pathString);
   }
 
   @Override
-  public String getWorkDirectory(SimulatorRun run) {
-    return getRunDirectory(run) + "/" + SimulatorRun.WORKING_DIR; // do refactor
-  }
-
-  @Override
-  String getSimulatorBinDirectory(Job job) {
-    //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = job.getHost().getWorkBaseDirectory() + '/' + SIMULATOR_DIR + '/' + job.getRun().getSimulator().getVersionId();
-
-    return toAbsoluteHomePath(pathString);
-  }
-
-  @Override
-  void prepareSubmission(Job job) {
-    InfoLogMessage.issue(job.getRun(), "was prepared");
+  public void createDirectories(Path path) throws FailedToControlRemoteException {
+    try {
+      session.mkdir(path.toString(), "~/");
+    } catch (JSchException e) {
+      throw new FailedToControlRemoteException(e);
+    }
   }
 
   @Override
@@ -145,46 +142,49 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  boolean exists(String path) {
+  public void putText(Job job, Path path, String text) throws FailedToTransferFileException {
     try {
-      return session.exec("test -e \"" + path + "\"", "").getExitStatus() == 0;
-    } catch (JSchException e) {
-    }
-    return false;
-  }
-
-  @Override
-  void postProcess(Job job) {
-    try {
-      //session.rmdir(getRunDirectory(run), "/tmp");
-    } catch (Exception e) {
-      e.printStackTrace();
+      session.putText(text, path.toString(), getRunDirectory(job.getRun()).toString());
+    } catch (JSchException | FailedToControlRemoteException e) {
+      throw new FailedToTransferFileException(e);
     }
   }
 
   @Override
-  public void close() {
-    session.disconnect();
-    if (tunnelSession != null) { tunnelSession.disconnect(); }
-  }
-
-  @Override
-  public void putText(Job job, String path, String text) {
+  boolean exists(Path path) throws FailedToControlRemoteException {
     try {
-      session.putText(text, path, getRunDirectory(job.getRun()));
+      return session.exec("test -e \"" + path.toString() + "\"", "").getExitStatus() == 0;
     } catch (JSchException e) {
-      e.printStackTrace();
+      throw new FailedToControlRemoteException(e);
     }
   }
 
   @Override
-  public String getFileContents(SimulatorRun run, String path) {
+  public String getFileContents(SimulatorRun run, Path path) {
     try {
-      return session.getText(getContentsPath(run, path), "");
-    } catch (JSchException e) {
+      return session.getText(getContentsPath(run, path).toString(), "");
+    } catch (JSchException | FailedToControlRemoteException e) {
       e.printStackTrace();
     }
     return null;
+  }
+
+  @Override
+  public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException {
+    try {
+      session.scp(localPath.toFile(), remotePath.toString(), "/tmp");
+    } catch (JSchException e) {
+      throw new FailedToTransferFileException(e);
+    }
+  }
+
+  @Override
+  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+    try {
+      session.scp(remotePath.toString(), localPath.toFile(), "/tmp");
+    } catch (JSchException e) {
+      throw new FailedToTransferFileException(e);
+    }
   }
 
   @Override
@@ -196,34 +196,5 @@ public class SshSubmitter extends AbstractSubmitter {
     jsonObject.put("identity_pass", "");
     jsonObject.put("port", 22);
     return jsonObject;
-  }
-
-  @Override
-  public void transferFile(Path localPath, String remotePath) {
-    try {
-      session.scp(localPath.toFile(), remotePath, "/tmp");
-    } catch (JSchException e) {
-      WarnLogMessage.issue(e);
-    }
-  }
-
-  @Override
-  public void transferFile(String remotePath, Path localPath) {
-    try {
-      session.scp(remotePath, localPath.toFile(), "/tmp");
-    } catch (JSchException e) {
-      WarnLogMessage.issue(e);
-    }
-  }
-
-  protected String toAbsoluteHomePath(String pathString) {
-    try {
-      if (pathString.indexOf('~') == 0) {
-        pathString = pathString.replaceAll("^~", session.exec("echo $HOME", "~/").getStdout().replaceAll("\\r|\\n", ""));
-      }
-    } catch (JSchException e) {
-      e.printStackTrace();
-    }
-    return pathString;
   }
 }

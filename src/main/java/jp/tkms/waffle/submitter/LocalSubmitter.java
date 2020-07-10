@@ -3,6 +3,7 @@ package jp.tkms.waffle.submitter;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
@@ -26,46 +27,24 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getRunDirectory(SimulatorRun run) {
-    Host host = run.getActualHost();
-    String pathString = host.getWorkBaseDirectory() + File.separator
-      + RUN_DIR + File.separator + run.getId();
+  public void close() {
+  }
 
-    try {
-      Files.createDirectories(Paths.get(pathString + File.separator));
-    } catch (IOException e) {
-      e.printStackTrace();
+  @Override
+  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+    if (pathString.indexOf('~') == 0) {
+      pathString = pathString.replaceAll("^~", System.getProperty("user.home"));
     }
-
-    return toAbsoluteHomePath(pathString);
+    return Paths.get(pathString);
   }
 
   @Override
-  public String getWorkDirectory(SimulatorRun run) {
-    return getRunDirectory(run) + "/" + SimulatorRun.WORKING_DIR; // do refactor
-  }
-
-  @Override
-  String getSimulatorBinDirectory(Job job) {
-    //String pathString = host.getWorkBaseDirectory() + sep + SIMULATOR_DIR + sep+ run.getSimulator().getId() + sep + Simulator.KEY_REMOTE;
-    String pathString = job.getHost().getWorkBaseDirectory() + File.separator + SIMULATOR_DIR + File.separator + job.getRun().getSimulator().getVersionId();
-
-    return toAbsoluteHomePath(pathString);
-  }
-
-  @Override
-  void prepareSubmission(Job job) {
-    /*
-     * preparing a host's simulator working directory is not needed
-     *
+  public void createDirectories(Path path) throws FailedToControlRemoteException {
     try {
-      Files.createDirectories(Paths.get(getSimulatorBinDirectory(run)));
-      session.scp(run.getSimulator().getBinDirectoryLocation().toFile(), getSimulatorBinDirectory(run), "/tmp");
+      Files.createDirectories(path);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new FailedToControlRemoteException(e);
     }
-     */
-    InfoLogMessage.issue(job.getRun(), "was prepared");
   }
 
   @Override
@@ -93,75 +72,65 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  boolean exists(String path) {
-    return Files.exists(Paths.get(path));
+  boolean exists(Path path) {
+    return Files.exists(path);
   }
 
   @Override
-  void postProcess(Job job) {
-    try {
-      //deleteDirectory(getRunDirectory(run));
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  @Override
-  public void close() {
-
-  }
-
-  @Override
-  public void putText(Job job, String path, String text) {
+  public void putText(Job job, Path path, String text) throws FailedToTransferFileException {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
         new FileWriter(getRunDirectory(job.getRun()) + File.separator + path)
       ));
       pw.println(text);
       pw.close();
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException | FailedToControlRemoteException e) {
+      throw new FailedToTransferFileException(e);
     }
   }
 
   @Override
-  public String getFileContents(SimulatorRun run, String path){
-    return exec("cat " + getContentsPath(run, path));
+  public String getFileContents(SimulatorRun run, Path path) throws FailedToTransferFileException {
+    String result = null;
+    try {
+      result = exec("cat " + getContentsPath(run, path));
+    } catch (FailedToControlRemoteException e) {
+      throw new FailedToTransferFileException(e);
+    }
+    return result;
+  }
+
+  @Override
+  public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException {
+    try {
+      Files.createDirectories(remotePath.getParent());
+      if (Files.isDirectory(localPath)) {
+        transferDirectory(localPath.toFile(), remotePath.toFile());
+      } else {
+        Files.copy(localPath, remotePath);
+      }
+    } catch (IOException e) {
+      throw new FailedToTransferFileException(e);
+    }
+  }
+
+  @Override
+  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+    try {
+      Files.createDirectories(localPath.getParent());
+      if (Files.isDirectory(remotePath)) {
+        transferDirectory(remotePath.toFile(), localPath.toFile());
+      } else {
+        Files.copy(remotePath, localPath);
+      }
+    } catch (IOException e) {
+      throw new FailedToTransferFileException(e);
+    }
   }
 
   @Override
   public JSONObject getDefaultParameters(Host host) {
     return new JSONObject();
-  }
-
-  @Override
-  public void transferFile(Path localPath, String remotePath) throws FailedToTransferFileException {
-    try {
-      Path remote = Paths.get(remotePath);
-      Files.createDirectories(remote.getParent());
-      if (Files.isDirectory(localPath)) {
-        transferDirectory(localPath.toFile(), remote.toFile());
-      } else {
-        Files.copy(localPath, remote);
-      }
-    } catch (IOException e) {
-      throw new FailedToTransferFileException(e);
-    }
-  }
-
-  @Override
-  public void transferFile(String remotePath, Path localPath) throws FailedToTransferFileException {
-    try {
-      Path remote = Paths.get(remotePath);
-      Files.createDirectories(localPath.getParent());
-      if (Files.isDirectory(remote)) {
-        transferDirectory(remote.toFile(), localPath.toFile());
-      } else {
-        Files.copy(remote, localPath);
-      }
-    } catch (IOException e) {
-      throw new FailedToTransferFileException(e);
-    }
   }
 
   void transferDirectory(File src, File dest) throws IOException {
@@ -195,12 +164,5 @@ public class LocalSubmitter extends AbstractSubmitter {
       }
     }
     file.delete();
-  }
-
-  protected String toAbsoluteHomePath(String pathString) {
-    if (pathString.indexOf('~') == 0) {
-      pathString = pathString.replaceAll("^~", System.getProperty("user.home"));
-    }
-    return pathString;
   }
 }

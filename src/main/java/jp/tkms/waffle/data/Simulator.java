@@ -172,7 +172,7 @@ public class Simulator extends ProjectData implements DataDirectory {
           git.checkout().setName(KEY_MASTER).call();
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        ErrorLogMessage.issue(e);
       }
   }
 
@@ -204,9 +204,10 @@ public class Simulator extends ProjectData implements DataDirectory {
         git.log().setMaxCount(1).call().forEach(c -> c.getId());
       }
     } catch (GitAPIException | IOException e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
 
+    versionId = null;
     getVersionId();
   }
 

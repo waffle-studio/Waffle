@@ -4,7 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.data.exception.FailedToProcessScriptException;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.WaffleException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
@@ -31,22 +31,26 @@ abstract public class AbstractSubmitter {
 
   abstract public AbstractSubmitter connect(boolean retry);
   abstract public boolean isConnected();
-  abstract public String getRunDirectory(SimulatorRun run);
-  abstract public String getWorkDirectory(SimulatorRun run);
-  abstract String getSimulatorBinDirectory(Job job);
-  abstract void prepareSubmission(Job job);
-  abstract String exec(String command);
-  abstract boolean exists(String path);
-  abstract void postProcess(Job job);
   abstract public void close();
-  abstract public void putText(Job job, String path, String text);
-  abstract public String getFileContents(SimulatorRun run, String path);
+
   abstract public JSONObject getDefaultParameters(Host host);
-  abstract public void transferFile(Path localPath, String remotePath) throws FailedToTransferFileException;
-  abstract public void transferFile(String remotePath, Path localPath) throws FailedToTransferFileException;
+
+  abstract public Path parseHomePath(String pathString) throws FailedToControlRemoteException;
+
+  abstract public void createDirectories(Path path) throws FailedToControlRemoteException;
+  abstract boolean exists(Path path) throws FailedToControlRemoteException;
+  abstract String exec(String command) throws FailedToControlRemoteException;
+  abstract public void putText(Job job, Path path, String text) throws FailedToTransferFileException;
+  abstract public String getFileContents(SimulatorRun run, Path path) throws FailedToTransferFileException;
+  abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
+  abstract public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException;
 
   public AbstractSubmitter connect() {
     return connect(true);
+  }
+
+  public void putText(Job job, String pathString, String text) throws FailedToTransferFileException {
+    putText(job, Paths.get(pathString), text);
   }
 
   public static AbstractSubmitter getInstance(Host host) {
@@ -72,57 +76,69 @@ abstract public class AbstractSubmitter {
 
   public State update(Job job) {
     SimulatorRun run = job.getRun();
-    processXstat(job, exec(xstatCommand(job)));
+    try {
+      processXstat(job, exec(xstatCommand(job)));
+    } catch (FailedToControlRemoteException e) {
+      ErrorLogMessage.issue(e);
+    }
     return run.getState();
   }
 
   public void cancel(Job job) {
     if (! job.getJobId().equals("-1")) {
-      processXdel(job, exec(xdelCommand(job)));
+      try {
+        processXdel(job, exec(xdelCommand(job)));
+      } catch (FailedToControlRemoteException e) {
+        ErrorLogMessage.issue(e);
+        job.setState(State.Excepted);
+      }
     }
   }
 
   protected void prepareJob(Job job) throws WaffleException {
     SimulatorRun run = job.getRun();
-    run.setRemoteWorkingDirectoryLog(getRunDirectory(run));
+    run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
     run.getSimulator().updateVersionId();
 
     putText(job, BATCH_FILE, makeBatchFileText(job));
     putText(job, EXIT_STATUS_FILE, "-2");
 
-    try {
-      for (String extractorName : run.getSimulator().getExtractorNameList()) {
-        new RubyParameterExtractor().extract(this, run, extractorName);
-      }
-    } catch (Exception e) {
-      throw new FailedToProcessScriptException();
+    for (String extractorName : run.getSimulator().getExtractorNameList()) {
+      new RubyParameterExtractor().extract(this, run, extractorName);
     }
     putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    if (! exists(Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString())) {
+    if (! exists(getSimulatorBinDirectory(job).toAbsolutePath())) {
       Path binPath = run.getSimulator().getBinDirectory().toAbsolutePath();
-      try {
-        transferFile(binPath, Paths.get(getSimulatorBinDirectory(job)).toAbsolutePath().toString());
-      } catch (FailedToTransferFileException e) {
-        throw e;
-      }
+      transferFilesToRemote(binPath, getSimulatorBinDirectory(job).toAbsolutePath());
     }
 
-    try {
-      Path work = run.getWorkPath();
-      transferFile(work, Paths.get(getRunDirectory(run)).resolve(work.getFileName()).toString());
-    } catch (FailedToTransferFileException e) {
-      throw e;
-    }
-
-    prepareSubmission(job);
+    Path work = run.getWorkPath();
+    transferFilesToRemote(work, getRunDirectory(run).resolve(work.getFileName()));
 
     job.setState(State.Prepared);
   }
 
-  String makeBatchFileText(Job job) {
+  public Path getWorkDirectory(SimulatorRun run) throws FailedToControlRemoteException {
+    return getRunDirectory(run).resolve(SimulatorRun.WORKING_DIR);
+  }
+
+  public Path getRunDirectory(SimulatorRun run) throws FailedToControlRemoteException {
+    Host host = run.getActualHost();
+    Path path = parseHomePath(host.getWorkBaseDirectory()).resolve(RUN_DIR).resolve(run.getId());
+
+    createDirectories(path);
+
+    return path;
+  }
+
+  Path getSimulatorBinDirectory(Job job) throws FailedToControlRemoteException {
+    return parseHomePath(job.getHost().getWorkBaseDirectory()).resolve(SIMULATOR_DIR).resolve(job.getRun().getSimulator().getVersionId());
+  }
+
+  String makeBatchFileText(Job job) throws FailedToControlRemoteException {
     SimulatorRun run = job.getRun();
     JSONArray localSharedList = run.getLocalSharedList();
 
@@ -190,15 +206,15 @@ abstract public class AbstractSubmitter {
     return text;
   }
 
-  String xsubSubmitCommand(Job job) {
+  String xsubSubmitCommand(Job job) throws FailedToControlRemoteException {
     //return xsubCommand(job) + " -d '" + getRunDirectory(job.getRun()) + "' " + BATCH_FILE;
     return xsubCommand(job) + " " + BATCH_FILE;
   }
 
-  String xsubCommand(Job job) {
+  String xsubCommand(Job job) throws FailedToControlRemoteException {
     Host host = job.getHost();
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
-      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()) + "'; " +
+      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
@@ -238,23 +254,25 @@ abstract public class AbstractSubmitter {
         case "finished" :
           int exitStatus = -1;
           try {
-            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()) + (job.getHost().isLocal() ? File.separator : "/") + EXIT_STATUS_FILE).trim());
+            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()).resolve(EXIT_STATUS_FILE)).trim());
           } catch (Exception e) {
             job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
 
+          Path runDirectoryPath = getRunDirectory(job.getRun());
+
           try {
-            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDOUT_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+            transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDOUT_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
           } catch (Exception | Error e) {
-            //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
 
           try {
-            transferFile(Paths.get(getRunDirectory(job.getRun())).resolve(Constants.STDERR_FILE).toString(), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+            transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDERR_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
           } catch (Exception | Error e) {
-            //job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
 
@@ -290,7 +308,6 @@ abstract public class AbstractSubmitter {
           job.getRun().setExitStatus(exitStatus);
           job.remove();
 
-          postProcess(job);
           break;
       }
     } catch (Exception e) {
@@ -304,12 +321,11 @@ abstract public class AbstractSubmitter {
     job.remove();
   }
 
-  String getContentsPath(SimulatorRun run, String path) {
-    String separator = (run.getActualHost().isLocal() ? File.separator : "/");
-    if (path.indexOf(separator) == 0) {
+  Path getContentsPath(SimulatorRun run, Path path) throws FailedToControlRemoteException {
+    if (path.isAbsolute()) {
       return path;
     }
-    return getWorkDirectory(run) + separator + path;
+    return getWorkDirectory(run).resolve(path);
   }
 
   public static String getXsubBinDirectory(Host host) {
@@ -317,7 +333,7 @@ abstract public class AbstractSubmitter {
     return (host.getXsubDirectory().equals("") ? "": host.getXsubDirectory() + separator + "bin" + separator);
   }
 
-  public static JSONObject getXsubTemplate(Host host, boolean retry) throws RuntimeException {
+  public static JSONObject getXsubTemplate(Host host, boolean retry) throws RuntimeException, FailedToControlRemoteException {
     AbstractSubmitter submitter = getInstance(host).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +

@@ -3,9 +3,13 @@ package jp.tkms.waffle.submitter;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
+import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
@@ -67,24 +71,28 @@ public class AbciSubmitter extends SshSubmitter {
 
   private void submitQueue(UUID packId) {
     synchronized (objectLocker) {
-      putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
-      host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
-      String resultJson = exec(xsubSubmitCommand(packId));
-      for (Job job : queuedJobList.get(packId)) {
-        try {
-          processXsubSubmit(job, resultJson);
-        } catch (Exception e) {
-          WarnLogMessage.issue(e);
-          job.setState(State.Excepted);
+      try {
+        putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
+        host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
+        String resultJson = exec(xsubSubmitCommand(packId));
+        for (Job job : queuedJobList.get(packId)) {
+          try {
+            processXsubSubmit(job, resultJson);
+          } catch (Exception e) {
+            WarnLogMessage.issue(e);
+            job.setState(State.Excepted);
+          }
         }
+        queuedJobList.remove(packId);
+        packBatchTextList.remove(packId);
+        packWaitThreadMap.remove(packId);
+      } catch (FailedToTransferFileException | FailedToControlRemoteException e) {
+        ErrorLogMessage.issue(e);
       }
-      queuedJobList.remove(packId);
-      packBatchTextList.remove(packId);
-      packWaitThreadMap.remove(packId);
     }
   }
 
-  String xsubSubmitCommand(UUID packId) {
+  String xsubSubmitCommand(UUID packId) throws FailedToControlRemoteException {
     return xsubCommand(packId) + " " + PACK_BATCH_FILE;
   }
 
@@ -137,30 +145,27 @@ public class AbciSubmitter extends SshSubmitter {
     }
   }
 
-  public void putText(UUID packId, String path, String text) {
+  public void putText(UUID packId, String path, String text) throws FailedToTransferFileException {
     try {
-      session.putText(text, path, getWorkDirectory(packId));
-    } catch (JSchException e) {
-      e.printStackTrace();
+      session.putText(text, path, getWorkDirectory(packId).toString());
+    } catch (JSchException | FailedToControlRemoteException e) {
+      throw new FailedToTransferFileException(e);
     }
   }
 
-  String getWorkDirectory(UUID packId) {
-    String pathString = host.getWorkBaseDirectory() + '/'
-      + RUN_DIR + '/'
-      + "pack" + '/'
-      + packId.toString();
+  String getWorkDirectory(UUID packId) throws FailedToControlRemoteException {
+    Path path = parseHomePath(host.getWorkBaseDirectory()).resolve(RUN_DIR).resolve("pack").resolve(packId.toString());
 
     try {
-      session.mkdir(pathString, "~/");
+      session.mkdir(path.toString(), "~/");
     } catch (JSchException e) {
-      e.printStackTrace();
+      throw new FailedToControlRemoteException(e);
     }
 
-    return toAbsoluteHomePath(pathString);
+    return path.toString();
   }
 
-  String xsubCommand(UUID packId) {
+  String xsubCommand(UUID packId) throws FailedToControlRemoteException {
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
       "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(packId) + "'; " +
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
@@ -183,9 +188,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     try {
       Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+    } catch (InterruptedException e) { }
 
     ArrayList<Job> jobList = Job.getList(host);
 

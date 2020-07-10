@@ -18,6 +18,7 @@ import static spark.Spark.*;
 
 public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+  public static int port = 4567;
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
@@ -26,7 +27,6 @@ public class Main {
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
 
     System.out.println("PID: " + PID);
-    int port = 4567;
 
     if (args.length >= 1) {
       if (Integer.valueOf(args[0]) >= 1024) {
@@ -160,6 +160,7 @@ public class Main {
       command.add(javaBin);
       command.add("-jar");
       command.add(currentJar.getPath());
+      command.add(String.valueOf(port));
 
       if (updateFlag) {
         updateProcess();
