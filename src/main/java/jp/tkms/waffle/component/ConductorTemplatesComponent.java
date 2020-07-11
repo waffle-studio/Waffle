@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
@@ -9,6 +10,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 public class ConductorTemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ConductorTemplates";
@@ -147,13 +149,14 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (ConductorTemplate module : moduleList) {
-                list.add(new Lte.TableRow(
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(
                   Html.a(ConductorTemplateComponent.getUrl(module), null, null, module.getShortId()),
-                  module.getName())
-                );
+                  module.getName());
+                }));
               }
               return list;
             }

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
@@ -9,6 +10,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 public class ListenerTemplatesComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "ListenerTemplates";
@@ -147,13 +149,15 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (ListenerTemplate module : moduleList) {
-                list.add(new Lte.TableRow(
-                  Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getShortId()),
-                  module.getName())
-                );
+                list.add(Main.threadPool.submit(() -> {
+                    return new Lte.TableRow(
+                      Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getShortId()),
+                      module.getName());
+                  }
+                ));
               }
               return list;
             }

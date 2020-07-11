@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.exception.RunNotFoundException;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.State;
 
@@ -31,8 +33,10 @@ public class SimulatorRunNode extends RunNode {
 
   @Override
   public State getState() {
-    SimulatorRun run = SimulatorRun.getInstance(project, getId());
-    if (run == null) {
+    SimulatorRun run = null;
+    try {
+      run = SimulatorRun.getInstance(project, getId());
+    } catch (RunNotFoundException e) {
       return State.None;
     }
     return run.getState();

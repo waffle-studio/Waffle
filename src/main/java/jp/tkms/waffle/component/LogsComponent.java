@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
@@ -7,6 +8,7 @@ import jp.tkms.waffle.data.Log;
 import spark.Spark;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 public class LogsComponent extends AbstractAccessControlledComponent {
   private final int logBundleSize = 50;
@@ -100,15 +102,16 @@ public class LogsComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Log log : Log.getList(-1, logBundleSize)) {
-                list.add(new Lte.TableRow(
-                  log.getLevel().name(),
-                  log.getTimestamp(),
-                  convertMessage(log.getMessage().replace("<", "&lt;").replace(">", "&gt;"))
-                  )
-                );
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(
+                    log.getLevel().name(),
+                    log.getTimestamp(),
+                    convertMessage(log.getMessage().replace("<", "&lt;").replace(">", "&gt;"))
+                  );
+                }));
                 lastRowId[0] = log.getRowid();
               }
               return list;

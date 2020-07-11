@@ -1,12 +1,14 @@
 package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import spark.Spark;
 
 import java.nio.file.Files;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 public class RunComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -48,7 +51,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
-    run = SimulatorRun.getInstance(project, requestedId);
+    try {
+      run = SimulatorRun.getInstance(project, requestedId);
+    } catch (RunNotFoundException e) {
+      return;
+    }
 
     switch (mode) {
       case ReCheck:
@@ -101,24 +108,24 @@ public class RunComponent extends AbstractAccessControlledComponent {
               }
 
               @Override
-              public ArrayList<Lte.TableRow> tableRows() {
-                ArrayList<Lte.TableRow> list = new ArrayList<>();
-                list.add(new Lte.TableRow("Status", run.getState().getStatusBadge()));
+              public ArrayList<Future<Lte.TableRow>> tableRows() {
+                ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Status", run.getState().getStatusBadge());}));
                 if (run.getActorGroup() != null) {
-                  list.add(new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName())));
+                  list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
                 } else {
-                  list.add(new Lte.TableRow("Conductor", "No Conductor"));
+                  list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
                 }
-                list.add(new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName())));
-                list.add(new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName()))) );
-                list.add(new Lte.TableRow("Exit status", "" + run.getExitStatus()
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())));}));
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
-                  Lte.badge("secondary", null, "ReCheck")):"")));
-                list.add(new Lte.TableRow("Created at", run.getCreatedDateTime().toString()));
-                list.add(new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString()));
-                list.add(new Lte.TableRow("Finished at", run.getFinishedDateTime().toString()));
-                list.add(new Lte.TableRow("Remote Directory", Lte.readonlyTextInputWithCopyButton(null, run.getRemoteWorkingDirectoryLog(), true)));
+                  Lte.badge("secondary", null, "ReCheck")):""));}));
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Created at", run.getCreatedDateTime().toString());}));
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString());}));
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Finished at", run.getFinishedDateTime().toString());}));
+                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Remote Directory", Lte.readonlyTextInputWithCopyButton(null, run.getRemoteWorkingDirectoryLog(), true));}));
                 return list;
               }
             })

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
@@ -9,6 +10,7 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Future;
 
 public class SimulatorsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -145,13 +147,15 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Simulator simulator : simulatorList) {
-                list.add(new Lte.TableRow(
-                  Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
-                  simulator.getName())
-                );
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(
+                      Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
+                      simulator.getName());
+                  }
+                ));
               }
               return list;
             }

@@ -4,6 +4,7 @@ import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -145,7 +146,7 @@ public class SshSubmitter extends AbstractSubmitter {
   public void putText(Job job, Path path, String text) throws FailedToTransferFileException {
     try {
       session.putText(text, path.toString(), getRunDirectory(job.getRun()).toString());
-    } catch (JSchException | FailedToControlRemoteException e) {
+    } catch (JSchException | FailedToControlRemoteException | RunNotFoundException e) {
       throw new FailedToTransferFileException(e);
     }
   }

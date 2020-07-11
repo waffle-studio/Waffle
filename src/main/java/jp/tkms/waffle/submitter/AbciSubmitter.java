@@ -5,6 +5,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
@@ -86,7 +87,7 @@ public class AbciSubmitter extends SshSubmitter {
         queuedJobList.remove(packId);
         packBatchTextList.remove(packId);
         packWaitThreadMap.remove(packId);
-      } catch (FailedToTransferFileException | FailedToControlRemoteException e) {
+      } catch (FailedToTransferFileException | FailedToControlRemoteException | RunNotFoundException e) {
         ErrorLogMessage.issue(e);
       }
     }
@@ -97,7 +98,7 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   @Override
-  public void submit(Job job) {
+  public void submit(Job job) throws RunNotFoundException {
     UUID packId = null;
     PackWaitThread packWaitThread = null;
 
@@ -173,7 +174,7 @@ public class AbciSubmitter extends SshSubmitter {
 
   HashMap<UUID, String> updatedPackJson = new HashMap<>();
   @Override
-  public State update(Job job) {
+  public State update(Job job) throws RunNotFoundException {
     SimulatorRun run = job.getRun();
     UUID packId = jobPackMap.get(job);
     if (!updatedPackJson.containsKey(packId)) {
@@ -200,31 +201,39 @@ public class AbciSubmitter extends SshSubmitter {
     updatedPackJson.clear();
 
     for (Job job : jobList) {
-      SimulatorRun run = job.getRun();
-      switch (run.getState()) {
-        case Created:
-          if (createdJobList.size() <= maximumNumberOfJobs) {
-            createdJobList.add(job);
-          }
-          break;
-        case Prepared:
-          submittedCount++;
-          break;
-        case Submitted:
-        case Running:
-          State state = update(job);
-          if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
+      try {
+        switch (job.getState()) {
+          case Created:
+            if (createdJobList.size() <= maximumNumberOfJobs) {
+              job.getRun();
+              createdJobList.add(job);
+            }
+            break;
+          case Prepared:
             submittedCount++;
-          }
-          break;
-        case Finished:
-        case Failed:
-        case Excepted:
-        case Canceled:
-          job.remove();
-          break;
-        case Cancel:
+            break;
+          case Submitted:
+          case Running:
+            State state = update(job);
+            if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
+              submittedCount++;
+            }
+            break;
+          case Finished:
+          case Failed:
+          case Excepted:
+          case Canceled:
+            job.remove();
+            break;
+          case Cancel:
+            cancel(job);
+        }
+      } catch (RunNotFoundException e) {
+        try {
           cancel(job);
+        } catch (RunNotFoundException ex) { }
+        job.remove();
+        WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
       }
 
       if (Main.hibernateFlag) {

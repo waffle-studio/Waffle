@@ -1,18 +1,20 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
-import jp.tkms.waffle.data.Simulator;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class JobsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
@@ -46,7 +48,11 @@ public class JobsComponent extends AbstractAccessControlledComponent {
     if (mode == Mode.Cancel) {
       Job job = Job.getInstance(request.params("id"));
       if (job != null) {
-        job.cancel();
+        try {
+          job.cancel();
+        } catch (RunNotFoundException e) {
+          ErrorLogMessage.issue(e);
+        }
         response.redirect(getUrl());
       }
     } else {
@@ -91,29 +97,36 @@ public class JobsComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
-              for (Job job : Job.getList()) {
-                SimulatorRun run = job.getRun();
-                list.add(new Lte.TableRow(
-                  Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
-                  Html.a(
-                    ProjectComponent.getUrl(job.getProject()),
-                    job.getProject().getName()
-                  ),
-                  Html.a(
-                    SimulatorComponent.getUrl(run.getSimulator()),
-                    run.getSimulator().getName()
-                  ),
-                  Html.a(
-                    HostComponent.getUrl(job.getHost()),
-                    job.getHost().getName()
-                  ),
-                  job.getJobId(),
-                  Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
-                  Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
-                  ).setAttributes(new Html.Attributes(Html.value("id", job.getId() + "-jobrow")))
-                );
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              try {
+                for (Future<Job> jobFuture : Job.getList(0, 100)) {
+                  Job job = jobFuture.get();
+                  list.add(Main.threadPool.submit(() -> {
+                    SimulatorRun run = job.getRun();
+                    return new Lte.TableRow(
+                      Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
+                      Html.a(
+                        ProjectComponent.getUrl(job.getProject()),
+                        job.getProject().getName()
+                      ),
+                      Html.a(
+                        SimulatorComponent.getUrl(run.getSimulator()),
+                        run.getSimulator().getName()
+                      ),
+                      Html.a(
+                        HostComponent.getUrl(job.getHost()),
+                        job.getHost().getName()
+                      ),
+                      job.getJobId(),
+                      Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
+                      Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
+                    ).setAttributes(new Html.Attributes(Html.value("id", job.getId() + "-jobrow")));
+                  }));
+                }
+              } catch (InterruptedException | ExecutionException e) {
+                ErrorLogMessage.issue(e);
+                return null;
               }
               return list;
             }

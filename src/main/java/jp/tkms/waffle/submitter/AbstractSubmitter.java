@@ -6,6 +6,7 @@ import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.exception.WaffleException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
@@ -40,7 +41,7 @@ abstract public class AbstractSubmitter {
   abstract public void createDirectories(Path path) throws FailedToControlRemoteException;
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
   abstract String exec(String command) throws FailedToControlRemoteException;
-  abstract public void putText(Job job, Path path, String text) throws FailedToTransferFileException;
+  abstract public void putText(Job job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(SimulatorRun run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
   abstract public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException;
@@ -49,7 +50,7 @@ abstract public class AbstractSubmitter {
     return connect(true);
   }
 
-  public void putText(Job job, String pathString, String text) throws FailedToTransferFileException {
+  public void putText(Job job, String pathString, String text) throws FailedToTransferFileException, RunNotFoundException {
     putText(job, Paths.get(pathString), text);
   }
 
@@ -65,7 +66,7 @@ abstract public class AbstractSubmitter {
     return submitter;
   }
 
-  public void submit(Job job) {
+  public void submit(Job job) throws RunNotFoundException {
     try {
       processXsubSubmit(job, exec(xsubSubmitCommand(job)));
     } catch (Exception e) {
@@ -74,7 +75,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public State update(Job job) {
+  public State update(Job job) throws RunNotFoundException {
     SimulatorRun run = job.getRun();
     try {
       processXstat(job, exec(xstatCommand(job)));
@@ -84,7 +85,7 @@ abstract public class AbstractSubmitter {
     return run.getState();
   }
 
-  public void cancel(Job job) {
+  public void cancel(Job job) throws RunNotFoundException {
     if (! job.getJobId().equals("-1")) {
       try {
         processXdel(job, exec(xdelCommand(job)));
@@ -134,11 +135,11 @@ abstract public class AbstractSubmitter {
     return path;
   }
 
-  Path getSimulatorBinDirectory(Job job) throws FailedToControlRemoteException {
+  Path getSimulatorBinDirectory(Job job) throws FailedToControlRemoteException, RunNotFoundException {
     return parseHomePath(job.getHost().getWorkBaseDirectory()).resolve(SIMULATOR_DIR).resolve(job.getRun().getSimulator().getVersionId());
   }
 
-  String makeBatchFileText(Job job) throws FailedToControlRemoteException {
+  String makeBatchFileText(Job job) throws FailedToControlRemoteException, RunNotFoundException {
     SimulatorRun run = job.getRun();
     JSONArray localSharedList = run.getLocalSharedList();
 
@@ -187,7 +188,7 @@ abstract public class AbstractSubmitter {
     return "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi\n";
   }
 
-  String makeArgumentFileText(Job job) {
+  String makeArgumentFileText(Job job) throws RunNotFoundException {
     String text = "";
     for (Object o : job.getRun().getArguments()) {
       text += o.toString() + "\n";
@@ -195,7 +196,7 @@ abstract public class AbstractSubmitter {
     return text;
   }
 
-  String makeEnvironmentCommandText(Job job) {
+  String makeEnvironmentCommandText(Job job) throws RunNotFoundException {
     String text = "";
     for (Map.Entry<String, Object> entry : job.getHost().getEnvironments().toMap().entrySet()) {
       text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
@@ -206,12 +207,12 @@ abstract public class AbstractSubmitter {
     return text;
   }
 
-  String xsubSubmitCommand(Job job) throws FailedToControlRemoteException {
+  String xsubSubmitCommand(Job job) throws FailedToControlRemoteException, RunNotFoundException {
     //return xsubCommand(job) + " -d '" + getRunDirectory(job.getRun()) + "' " + BATCH_FILE;
     return xsubCommand(job) + " " + BATCH_FILE;
   }
 
-  String xsubCommand(Job job) throws FailedToControlRemoteException {
+  String xsubCommand(Job job) throws FailedToControlRemoteException, RunNotFoundException {
     Host host = job.getHost();
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
       "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
@@ -242,7 +243,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  void processXstat(Job job, String json) {
+  void processXstat(Job job, String json) throws RunNotFoundException {
     InfoLogMessage.issue(job.getRun(), "will be checked");
     JSONObject object = new JSONObject(json);
     try {
@@ -312,11 +313,11 @@ abstract public class AbstractSubmitter {
       }
     } catch (Exception e) {
       job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
   }
 
-  void processXdel(Job job, String json) {
+  void processXdel(Job job, String json) throws RunNotFoundException {
     job.setState(State.Canceled);
     job.remove();
   }
@@ -364,13 +365,12 @@ abstract public class AbstractSubmitter {
     int submittedCount = 0;
 
     for (Job job : jobList) {
-      SimulatorRun run = job.getRun();
-
-      if (run != null) {
+      try {
         switch (job.getState()) {
           case Created:
           case Prepared:
             if (queuedJobList.size() < maximumNumberOfJobs) {
+              job.getRun();
               queuedJobList.add(job);
             }
             break;
@@ -393,8 +393,10 @@ abstract public class AbstractSubmitter {
           case Canceled:
             job.remove();
         }
-      } else {
-        cancel(job);
+      } catch (RunNotFoundException e) {
+        try {
+          cancel(job);
+        } catch (RunNotFoundException ex) { }
         job.remove();
         WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
       }
@@ -416,7 +418,9 @@ abstract public class AbstractSubmitter {
         }
       } catch (Exception e) {
         WarnLogMessage.issue(e);
-        job.setState(State.Excepted);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
       }
     }
   }

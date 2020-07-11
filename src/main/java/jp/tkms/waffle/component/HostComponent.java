@@ -102,7 +102,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
               Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", host.getEnvironments().toString(2), null),
-              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  host.getParameters().toString(2), null)
+              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  host.getParametersWithoutXsubParameter().toString(2), null)
             )
             , Lte.formSubmitButton("success", "Update")
           )

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
@@ -9,6 +10,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.Future;
 
 public class RunsComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Runs";
@@ -159,24 +161,28 @@ public class RunsComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (RunNode child : runNode.getList()) {
                 if (child instanceof SimulatorRunNode) {
-                  list.add(new Lte.TableRow(
-                      new Lte.TableValue(null, Html.fasIcon("circle")),
-                      new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, child.getUuid()), null, null, child.getSimpleName())),
-                      new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
-                      new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
-                    )
+                  list.add(Main.threadPool.submit(() ->{
+                      return new Lte.TableRow(
+                        new Lte.TableValue(null, Html.fasIcon("circle")),
+                        new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, child.getUuid()), null, null, child.getSimpleName())),
+                        new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
+                        new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
+                      );
+                    })
                   );
                 } else {
-                  list.add(new Lte.TableRow(
-                    new Lte.TableValue(null,  (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
-                    new Lte.TableValue(null, Html.a(getUrl(project, child), null, null, child.getSimpleName())),
-                    new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
-                    new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
-                    )
+                  list.add(Main.threadPool.submit(() -> {
+                      return new Lte.TableRow(
+                        new Lte.TableValue(null, (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
+                        new Lte.TableValue(null, Html.a(getUrl(project, child), null, null, child.getSimpleName())),
+                        new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
+                        new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
+                      );
+                    })
                   );
                 }
               }

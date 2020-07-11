@@ -1,15 +1,18 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import spark.Spark;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class SimulatorComponent extends AbstractAccessControlledComponent {
@@ -181,14 +184,16 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               List<String> nameList = simulator.getExtractorNameList();
               if (nameList != null) {
                 for (String extractorName : nameList) {
-                  list.add(new Lte.TableRow(
-                    Html.a(ParameterExtractorComponent.getUrl(simulator, extractorName), null, null, extractorName))
-                  );
+                  list.add(Main.threadPool.submit(() -> {
+                    return new Lte.TableRow(
+                        Html.a(ParameterExtractorComponent.getUrl(simulator, extractorName), null, null, extractorName));
+                    }
+                  ));
                 }
               }
               return list;
@@ -205,14 +210,16 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               List<String> nameList = simulator.getCollectorNameList();
               if (nameList != null) {
                 for (String collectorName : nameList) {
-                  list.add(new Lte.TableRow(
-                    Html.a(ResultCollectorComponent.getUrl(simulator, collectorName), null, null, collectorName))
-                  );
+                  list.add(Main.threadPool.submit(() -> {
+                      return new Lte.TableRow(
+                        Html.a(ResultCollectorComponent.getUrl(simulator, collectorName), null, null, collectorName));
+                    }
+                  ));
                 }
               }
               return list;
@@ -229,12 +236,13 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (File child : simulator.getBinDirectory().toFile().listFiles()) {
-                list.add(new Lte.TableRow(
-                  child.getName())
-                );
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(child.getName());
+                  }
+                ));
               }
               return list;
             }
@@ -272,10 +280,14 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
-        SimulatorRun latestRun = simulator.getLatestTestRun();
+        SimulatorRun latestRun = null;
+        try {
+          latestRun = simulator.getLatestTestRun();
+        } catch (RunNotFoundException e) { }
 
         if (latestRun != null) {
 
+          SimulatorRun finalLatestRun = latestRun;
           content += Lte.card(Html.fasIcon("poll-h") + "Latest Run", null,
             Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
@@ -288,13 +300,15 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               }
 
               @Override
-              public ArrayList<Lte.TableRow> tableRows() {
-                ArrayList<Lte.TableRow> list = new ArrayList<>();
-                list.add(new Lte.TableRow(
-                  Html.a(RunComponent.getUrl(project, latestRun.getUuid()), latestRun.getShortId()),
-                  (latestRun.getHost() == null ? "NotFound" : latestRun.getHost().getName()),
-                  Html.spanWithId(latestRun.getId() + "-badge", latestRun.getState().getStatusBadge())
-                ));
+              public ArrayList<Future<Lte.TableRow>> tableRows() {
+                ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(
+                    Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getShortId()),
+                    (finalLatestRun.getHost() == null ? "NotFound" : finalLatestRun.getHost().getName()),
+                    Html.spanWithId(finalLatestRun.getId() + "-badge", finalLatestRun.getState().getStatusBadge())
+                  );
+                }));
                 return list;
               }
             })

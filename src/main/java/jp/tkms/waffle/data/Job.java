@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 
@@ -13,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 public class Job extends Data {
   private static final String TABLE_NAME = "job";
@@ -69,17 +72,43 @@ public class Job extends Data {
     return job[0];
   }
 
-  public static ArrayList<Job> getList() {
-    ArrayList<Job> list = new ArrayList<>();
+  public static ArrayList<Future<Job>> getList() {
+    ArrayList<Future<Job>> list = new ArrayList<>();
 
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
         while (resultSet.next()) {
-          list.add(new Job(
-            UUID.fromString(resultSet.getString("id"))
-          ));
+          String id = resultSet.getString("id");
+          list.add(
+            Main.threadPool.submit(() -> {
+                return new Job(UUID.fromString(id));
+              }
+            )
+          );
+        }
+      }
+    });
+
+    return list;
+  }
+
+  public static ArrayList<Future<Job>> getList(int offset, int limit) {
+    ArrayList<Future<Job>> list = new ArrayList<>();
+
+    handleDatabase(new Job(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + " limit " + offset + "," + limit + ";");
+        while (resultSet.next()) {
+          String id = resultSet.getString("id");
+          list.add(
+            Main.threadPool.submit(() -> {
+                return new Job(UUID.fromString(id));
+              }
+            )
+          );
         }
       }
     });
@@ -151,7 +180,7 @@ public class Job extends Data {
     getInstance(run.getId()); //load cache
   }
 
-  public void cancel() {
+  public void cancel() throws RunNotFoundException {
     if (getRun().isRunning()) {
       setState(State.Cancel);
     }
@@ -170,13 +199,13 @@ public class Job extends Data {
     instanceMap.remove(getId());
   }
 
-  public void setJobId(String jobId) {
+  public void setJobId(String jobId) throws RunNotFoundException {
     setToDB(KEY_JOB_ID, jobId);
     this.jobId = jobId;
     getRun().setJobId(jobId);
   }
 
-  public void setState(State state) {
+  public void setState(State state) throws RunNotFoundException {
     setToDB(KEY_STATE, state.ordinal());
     this.state = state;
     if (getRun() != null) {
@@ -219,7 +248,7 @@ public class Job extends Data {
     return host;
   }
 
-  public SimulatorRun getRun() {
+  public SimulatorRun getRun() throws RunNotFoundException {
     if (run == null) {
       run = SimulatorRun.getInstance(getProject(), getId());
     }

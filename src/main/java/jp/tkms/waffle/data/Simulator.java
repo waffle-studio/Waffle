@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
@@ -441,7 +442,7 @@ public class Simulator extends ProjectData implements DataDirectory {
     return run;
   }
 
-  public SimulatorRun getLatestTestRun() {
+  public SimulatorRun getLatestTestRun() throws RunNotFoundException {
     return SimulatorRun.getInstance(getProject(), getStringFromProperty(KEY_TESTRUN));
   }
 

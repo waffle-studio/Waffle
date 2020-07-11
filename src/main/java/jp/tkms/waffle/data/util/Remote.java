@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
@@ -20,7 +21,7 @@ public class Remote {
   public String getFileContents(String path) {
     String content = "";
     try {
-      content =  submitter.getFileContents(run, path);
+      content =  submitter.getFileContents(run, Paths.get(path));
     } catch (Exception | Error e) {
       WarnLogMessage.issue(run, e);
     }
@@ -30,8 +31,8 @@ public class Remote {
   public void pull(String path) {
     try {
       Path local = run.getWorkPath().resolve(path);
-      submitter.transferFile(Paths.get(submitter.getWorkDirectory(run)).resolve(path).toString(), local);
-    } catch (FailedToTransferFileException e) {
+      submitter.transferFilesFromRemote(submitter.getWorkDirectory(run).resolve(path), local);
+    } catch (FailedToTransferFileException | FailedToControlRemoteException e) {
       WarnLogMessage.issue(run, e);
     }
   }

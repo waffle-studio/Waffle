@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
@@ -133,7 +134,7 @@ public class Host extends DirectoryBaseData {
       setXsubTemplate(jsonObject);
       setParameters(getParameters());
       setState(HostState.Viable);
-    } catch (RuntimeException e) {
+    } catch (RuntimeException | FailedToControlRemoteException e) {
       setState(HostState.Unviable);
     }
   }

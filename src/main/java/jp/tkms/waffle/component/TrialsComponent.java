@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
@@ -11,6 +12,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.Future;
 
 public class TrialsComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Runs";
@@ -137,15 +139,17 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Actor run : Actor.getList(project, TrialsComponent.this.conductorRun)) {
-                list.add(new Lte.TableRow(
-                  Html.a(getUrl(project, run), null, null, run.getShortId()),
-                  run.getName(),
-                  Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
-                  )
-                );
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(
+                      Html.a(getUrl(project, run), null, null, run.getShortId()),
+                      run.getName(),
+                      Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
+                    );
+                  }
+                ));
               }
               return list;
             }
@@ -166,16 +170,18 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
             }
 
             @Override
-            public ArrayList<Lte.TableRow> tableRows() {
-              ArrayList<Lte.TableRow> list = new ArrayList<>();
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (SimulatorRun run : SimulatorRun.getList(project, conductorRun)) {
-                list.add(new Lte.TableRow(
-                  Html.a(RunComponent.getUrl(project, run.getUuid()), run.getShortId()),
-                  run.getName(),
-                  run.getSimulator().getName(),
-                  (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())),
-                  Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
-                ));
+                list.add(Main.threadPool.submit(() -> {
+                  return new Lte.TableRow(
+                    Html.a(RunComponent.getUrl(project, run.getUuid()), run.getShortId()),
+                    run.getName(),
+                    run.getSimulator().getName(),
+                    (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())),
+                    Html.spanWithId(run.getId() + "-badge", run.getState().getStatusBadge())
+                  );
+                }));
               }
               return list;
             }

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
@@ -8,6 +9,7 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Future;
 
 import static jp.tkms.waffle.component.template.Html.*;
 
@@ -220,8 +222,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               }
 
               @Override
-              public ArrayList<Lte.TableRow> tableRows() {
-                ArrayList<Lte.TableRow> list = new ArrayList<>();
+              public ArrayList<Future<Lte.TableRow>> tableRows() {
+                ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
                 for (ActorGroup conductor : ActorGroup.getList(project)) {
                   int runningCount = 0;
                   for (Actor notFinished : notFinishedList) {
@@ -230,21 +232,23 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                     }
                   }
 
-                  list.add(new Lte.TableRow(
-                    new Lte.TableValue("",
-                      Html.a(ConductorComponent.getUrl(conductor),
-                        null, null, conductor.getShortId())),
-                    new Lte.TableValue("", conductor.getName()),
-                    new Lte.TableValue("text-align:right;",
-                      Html.span(null, null,
-                        Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
-                        Html.a(ConductorComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
-                          Html.span("right badge badge-secondary", null, "run")
-                        ),
-                        Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + runningCount + ")")
-                      )
-                    )
-                  ));
+                  int finalRunningCount = runningCount;
+                  list.add(Main.threadPool.submit(() -> {
+                    return new Lte.TableRow(
+                      new Lte.TableValue("",
+                        Html.a(ConductorComponent.getUrl(conductor),
+                          null, null, conductor.getShortId())),
+                      new Lte.TableValue("", conductor.getName()),
+                      new Lte.TableValue("text-align:right;",
+                        Html.span(null, null,
+                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
+                          Html.a(ConductorComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
+                            Html.span("right badge badge-secondary", null, "run")
+                          ),
+                          Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + finalRunningCount + ")")
+                        )
+                      ));
+                  } ));
                 }
                 return list;
               }

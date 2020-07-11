@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.Sql;
@@ -66,7 +67,7 @@ public class SimulatorRun extends AbstractRun {
     this.state = state;
   }
 
-  public static SimulatorRun getInstance(Project project, String id) {
+  public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     final SimulatorRun[] run = {null};
 
     handleDatabase(new SimulatorRun(project), new Handler() {
@@ -100,6 +101,10 @@ public class SimulatorRun extends AbstractRun {
         }
       }
     });
+
+    if (run[0] == null) {
+      throw new RunNotFoundException();
+    }
 
     return run[0];
   }

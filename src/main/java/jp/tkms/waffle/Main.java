@@ -12,6 +12,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import static spark.Spark.*;
@@ -22,6 +24,7 @@ public class Main {
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
+  public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
 
   public static void main(String[] args) {
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");

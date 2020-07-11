@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import org.json.JSONObject;
@@ -77,7 +78,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(Job job, Path path, String text) throws FailedToTransferFileException {
+  public void putText(Job job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
         new FileWriter(getRunDirectory(job.getRun()) + File.separator + path)
