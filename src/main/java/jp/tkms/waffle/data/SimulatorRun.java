@@ -70,37 +70,39 @@ public class SimulatorRun extends AbstractRun {
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     final SimulatorRun[] run = {null};
 
-    handleDatabase(new SimulatorRun(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
-          KEY_ID,
-          KEY_NAME,
-          KEY_CONDUCTOR,
-          KEY_PARENT,
-          KEY_SIMULATOR,
-          KEY_HOST,
-          KEY_STATE,
-          KEY_RUNNODE
-        ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
-        while (resultSet.next()) {
-          RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
-          if (runNode == null) {
-            new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
-          } else {
-            run[0] = new SimulatorRun(
-              project,
-              UUID.fromString(resultSet.getString(KEY_ID)),
-              resultSet.getString(KEY_NAME),
-              resultSet.getString(KEY_SIMULATOR),
-              resultSet.getString(KEY_HOST),
-              State.valueOf(resultSet.getInt(KEY_STATE)),
-              runNode
-            );
+    if (id != null && !"".equals(id)) {
+      handleDatabase(new SimulatorRun(project), new Handler() {
+        @Override
+        void handling(Database db) throws SQLException {
+          ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
+            KEY_ID,
+            KEY_NAME,
+            KEY_CONDUCTOR,
+            KEY_PARENT,
+            KEY_SIMULATOR,
+            KEY_HOST,
+            KEY_STATE,
+            KEY_RUNNODE
+          ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
+          while (resultSet.next()) {
+            RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
+            if (runNode == null) {
+              new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
+            } else {
+              run[0] = new SimulatorRun(
+                project,
+                UUID.fromString(resultSet.getString(KEY_ID)),
+                resultSet.getString(KEY_NAME),
+                resultSet.getString(KEY_SIMULATOR),
+                resultSet.getString(KEY_HOST),
+                State.valueOf(resultSet.getInt(KEY_STATE)),
+                runNode
+              );
+            }
           }
         }
-      }
-    });
+      });
+    }
 
     if (run[0] == null) {
       throw new RunNotFoundException();
