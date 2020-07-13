@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 
 public class RunNode extends DirectoryBaseData {
   public static final String KEY_EXPECTED_NAME = "expected_name";
@@ -29,8 +30,13 @@ public class RunNode extends DirectoryBaseData {
   protected static final String KEY_TMP = ".tmp";
   protected static final String KEY_SORT_INDEX = ".SORT_INDEX";
 
+  private static final HashMap<String, RunNode> instanceMap = new HashMap<>();
+
   Project project;
   Long sortIndex;
+  String note;
+  String simpleName;
+  State state;
 
   public RunNode() {
   }
@@ -76,7 +82,10 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public String getSimpleName() {
-    return getDirectoryPath().getFileName().toString();
+    if (simpleName == null) {
+      simpleName = getDirectoryPath().getFileName().toString();
+    }
+    return simpleName;
   }
 
   public static Path getBaseDirectoryPath(Project project) {
@@ -85,14 +94,27 @@ public class RunNode extends DirectoryBaseData {
 
   public static RunNode getInstanceByName(Project project, Path path) {
     Path instancePath = getBaseDirectoryPath(project).resolve(path);
+    RunNode runNode = null;
     if (Files.exists(instancePath.resolve(ParallelRunNode.KEY_PARALLEL))) {
-      return new ParallelRunNode(project, getBaseDirectoryPath(project).resolve(path));
+      runNode = instanceMap.get(instancePath.toString());
+      if (runNode == null) {
+        runNode = new ParallelRunNode(project, getBaseDirectoryPath(project).resolve(path));
+        instanceMap.put(instancePath.toString(), runNode);
+      }
     } else if (Files.exists(instancePath.resolve(SimulatorRunNode.KEY_SIMULATOR))) {
-      return new SimulatorRunNode(project, getBaseDirectoryPath(project).resolve(path));
+      runNode = instanceMap.get(instancePath.toString());
+      if (runNode == null) {
+        runNode = new SimulatorRunNode(project, getBaseDirectoryPath(project).resolve(path));
+        instanceMap.put(instancePath.toString(), runNode);
+      }
     } else if (Files.exists(instancePath)) {
-      return new InclusiveRunNode(project, getBaseDirectoryPath(project).resolve(path));
+      runNode = instanceMap.get(instancePath.toString());
+      if (runNode == null) {
+        runNode = new InclusiveRunNode(project, getBaseDirectoryPath(project).resolve(path));
+        instanceMap.put(instancePath.toString(), runNode);
+      }
     }
-    return null;
+    return runNode;
   }
 
   public static RunNode getRootInstance(Project project) {
@@ -243,6 +265,7 @@ public class RunNode extends DirectoryBaseData {
       nextName = name + '_' + count++;
     }
     replace(path.getParent().resolve(nextName));
+    simpleName = null;
     return nextName;
   }
 
@@ -265,10 +288,14 @@ public class RunNode extends DirectoryBaseData {
   public void setNote(String text) {
     createNewFile(KEY_NOTE_TXT);
     updateFileContents(KEY_NOTE_TXT, text);
+    note = text;
   }
 
   public String getNote() {
-    return getFileContents(KEY_NOTE_TXT);
+    if (note == null) {
+      note = getFileContents(KEY_NOTE_TXT);
+    }
+    return note;
   }
 
   public void appendErrorNote(String note) {
@@ -287,7 +314,6 @@ public class RunNode extends DirectoryBaseData {
         if (num > 0) {
           num -= 1;
         }
-        ;
         setToProperty(prev.name(), num);
       }
 
@@ -302,10 +328,18 @@ public class RunNode extends DirectoryBaseData {
       getParent().propagateState(prev, next);
     }
 
-    setToProperty(KEY_STATE, next.ordinal());
+    setState(next);
+  }
+
+  private void setState(State state) {
+    this.state = state;
+    setToProperty(KEY_STATE, state.ordinal());
   }
 
   public State getState() {
-    return State.valueOf(getIntFromProperty(KEY_STATE, State.None.ordinal()));
+    if (state == null) {
+      state = State.valueOf(getIntFromProperty(KEY_STATE, State.None.ordinal()));
+    }
+    return state;
   }
 }

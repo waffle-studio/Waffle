@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class Job extends Data {
@@ -61,7 +62,7 @@ public class Job extends Data {
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
           job[0] = new Job(
-            UUID.fromString(resultSet.getString("id"))
+            UUID.fromString(resultSet.getString(KEY_ID))
           );
         }
       }
@@ -72,43 +73,23 @@ public class Job extends Data {
     return job[0];
   }
 
-  public static ArrayList<Future<Job>> getList() {
-    ArrayList<Future<Job>> list = new ArrayList<>();
+  public static ArrayList<Job> getList() {
+    ArrayList<Job> list = new ArrayList<>();
 
     handleDatabase(new Job(), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
         ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
         while (resultSet.next()) {
-          String id = resultSet.getString("id");
-          list.add(
-            Main.threadPool.submit(() -> {
-                return new Job(UUID.fromString(id));
-              }
-            )
-          );
-        }
-      }
-    });
-
-    return list;
-  }
-
-  public static ArrayList<Future<Job>> getList(int offset, int limit) {
-    ArrayList<Future<Job>> list = new ArrayList<>();
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + " limit " + offset + "," + limit + ";");
-        while (resultSet.next()) {
-          String id = resultSet.getString("id");
-          list.add(
-            Main.threadPool.submit(() -> {
-                return new Job(UUID.fromString(id));
-              }
-            )
-          );
+          String id = resultSet.getString(KEY_ID);
+          Job job = instanceMap.get(id);
+          if (job != null) {
+            list.add(job);
+            continue;
+          }
+          job = new Job(UUID.fromString(id));
+          instanceMap.put(id, job);
+          list.add(job);
         }
       }
     });
@@ -127,9 +108,15 @@ public class Job extends Data {
         statement.setString(1, host.getId());
         ResultSet resultSet = statement.executeQuery();
         while (resultSet.next()) {
-          list.add(new Job(
-            UUID.fromString(resultSet.getString("id"))
-          ));
+          String id = resultSet.getString(KEY_ID);
+          Job job = instanceMap.get(id);
+          if (job != null) {
+            list.add(job);
+            continue;
+          }
+          job = new Job(UUID.fromString(id));
+          instanceMap.put(id, job);
+          list.add(job);
         }
       }
     });

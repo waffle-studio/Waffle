@@ -30,15 +30,4 @@ public class SimulatorRunNode extends RunNode {
   public void updateState(State prev, State next) {
     propagateState(prev, next);
   }
-
-  @Override
-  public State getState() {
-    SimulatorRun run = null;
-    try {
-      run = SimulatorRun.getInstance(project, getId());
-    } catch (RunNotFoundException e) {
-      return State.None;
-    }
-    return run.getState();
-  }
 }

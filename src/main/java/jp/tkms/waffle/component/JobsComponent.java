@@ -99,34 +99,28 @@ public class JobsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              try {
-                for (Future<Job> jobFuture : Job.getList(0, 100)) {
-                  Job job = jobFuture.get();
-                  list.add(Main.threadPool.submit(() -> {
-                    SimulatorRun run = job.getRun();
-                    return new Lte.TableRow(
-                      Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
-                      Html.a(
-                        ProjectComponent.getUrl(job.getProject()),
-                        job.getProject().getName()
-                      ),
-                      Html.a(
-                        SimulatorComponent.getUrl(run.getSimulator()),
-                        run.getSimulator().getName()
-                      ),
-                      Html.a(
-                        HostComponent.getUrl(job.getHost()),
-                        job.getHost().getName()
-                      ),
-                      job.getJobId(),
-                      Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
-                      Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
-                    ).setAttributes(new Html.Attributes(Html.value("id", job.getId() + "-jobrow")));
-                  }));
-                }
-              } catch (InterruptedException | ExecutionException e) {
-                ErrorLogMessage.issue(e);
-                return null;
+              for (Job job : Job.getList()) {
+                list.add(Main.threadPool.submit(() -> {
+                  SimulatorRun run = job.getRun();
+                  return new Lte.TableRow(
+                    Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
+                    Html.a(
+                      ProjectComponent.getUrl(job.getProject()),
+                      job.getProject().getName()
+                    ),
+                    Html.a(
+                      SimulatorComponent.getUrl(run.getSimulator()),
+                      run.getSimulator().getName()
+                    ),
+                    Html.a(
+                      HostComponent.getUrl(job.getHost()),
+                      job.getHost().getName()
+                    ),
+                    job.getJobId(),
+                    Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
+                    Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
+                  ).setAttributes(new Html.Attributes(Html.value("id", job.getId() + "-jobrow")));
+                }));
               }
               return list;
             }
