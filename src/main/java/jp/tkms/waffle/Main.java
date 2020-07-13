@@ -3,6 +3,9 @@ package jp.tkms.waffle;
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
 import jp.tkms.waffle.data.DataId;
+import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
@@ -10,8 +13,9 @@ import spark.Spark;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
@@ -107,6 +111,28 @@ public class Main {
 
     new SystemUpdater(null);
 
+
+    new Thread(){
+      @Override
+      public void run() {
+        try {
+          WatchService watchService = FileSystems.getDefault().newWatchService();
+          Host.getBaseDirectoryPath().resolve("LOCAL").register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.OVERFLOW);
+          Host.getBaseDirectoryPath().resolve("local").register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.OVERFLOW);
+          WatchKey watchKey = null;
+          while ((watchKey = watchService.take()) != null) {
+            for (WatchEvent<?> event : watchKey.pollEvents()) {
+              InfoLogMessage.issue(event.kind().name() + " : " + ((Path)watchKey.watchable()).resolve(event.context().toString()));
+            }
+            watchKey.reset();
+          }
+        } catch (IOException | InterruptedException e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+    }.start();
+
+
     return;
   }
 
@@ -137,6 +163,11 @@ public class Main {
       }
     }.start();
     return;
+  }
+
+  private static HashMap<Path, Runnable> fileChangedEventHandlerMap = new HashMap<>();
+  public static void registerFileChangeEvent(Path path, Runnable function) {
+    fileChangedEventHandlerMap.put(path, function);
   }
 
   public static void restart() {
