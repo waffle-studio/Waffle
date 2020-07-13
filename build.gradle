@@ -36,6 +36,7 @@ repositories {
 ext {
 	git = org.ajoberstar.grgit.Grgit.open(file('.'))
 	describedCommit = git.describe().toString().trim()
+	buildVersion = describedCommit + (describedCommit.matches(".*-[0-9]+-g[0-9a-f]{7}") ? "-SNAPSHOT" : "") + (git.status().isClean() ? "" : "+dirty")
 }
 
 dependencies {
@@ -56,22 +57,13 @@ dependencies {
 mainClassName = 'jp.tkms.waffle.Main'
 applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"]
 
-version = describedCommit +
-		(describedCommit.matches(".*-[0-9]+-g[0-9a-f]{7}") ? "-SNAPSHOT" : "") +
-		(git.status().isClean() ? "" : "+dirty")
-
-task showVersion {
-	doLast {
-		println version
-	}
-}
 
 processResources {
 	doFirst {
 		filesMatching("version.txt") {
-			filter(ReplaceTokens, tokens: ['build_version': version])
+			filter(ReplaceTokens, tokens: ['build_version': buildVersion])
 		}
-		println "version -> ${version}"
+		println "version -> ${buildVersion}"
 	}
 }
 
