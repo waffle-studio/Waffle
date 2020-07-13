@@ -401,10 +401,7 @@ abstract public class AbstractSubmitter {
         WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
       }
 
-      //TODO: do refactoring
-      if (Main.hibernateFlag) {
-        break;
-      }
+      if (Main.hibernateFlag) { break; }
     }
 
     for (Job job : queuedJobList) {
@@ -423,6 +420,8 @@ abstract public class AbstractSubmitter {
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
       }
+
+      if (Main.hibernateFlag) { break; }
     }
   }
 

@@ -11,10 +11,12 @@ buildscript {
 	}
 	dependencies {
 		classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+		classpath 'org.ajoberstar:grgit:1.7.2'
 	}
 }
 
 
+import org.apache.tools.ant.filters.ReplaceTokens
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
@@ -29,6 +31,11 @@ repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
 		mavenCentral()
+}
+
+ext {
+	git = org.ajoberstar.grgit.Grgit.open(file('.'))
+	describedCommit = git.describe().toString().trim()
 }
 
 dependencies {
@@ -48,3 +55,23 @@ dependencies {
 //targetCompatibility = '1.11'
 mainClassName = 'jp.tkms.waffle.Main'
 applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"]
+
+version = describedCommit +
+		(describedCommit.matches(".*-[0-9]+-g[0-9a-f]{7}") ? "-SNAPSHOT" : "") +
+		(git.status().isClean() ? "" : "+dirty")
+
+task showVersion {
+	doLast {
+		println version
+	}
+}
+
+processResources {
+	doFirst {
+		filesMatching("version.txt") {
+			filter(ReplaceTokens, tokens: ['build_version': version])
+		}
+		println "version -> ${version}"
+	}
+}
+

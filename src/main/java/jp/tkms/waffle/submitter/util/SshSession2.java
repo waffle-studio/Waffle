@@ -117,11 +117,7 @@ public class SshSession2 {
   public void disconnect() {
     try {
       session.close();
-    } catch (TransportException e) {
-      e.printStackTrace();
-    } catch (ConnectionException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
+    } catch (TransportException | ConnectionException e) {
       e.printStackTrace();
     }
     try {

@@ -88,7 +88,7 @@ abstract public class MainTemplate extends AbstractTemplate {
             ),
             elementWithClass("footer", "main-footer", div("float-right d-none d-sm-block"),
               element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
-              a(SystemComponent.getUrl("update"), Lte.badge("secondary", null, "update"))
+              a(SystemComponent.getUrl("update"), Lte.badge("secondary", null, "update (" + Main.VERSION + ")"))
             )
           ),
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),

@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.updater.SystemUpdater;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import spark.Spark;
@@ -12,6 +13,9 @@ import spark.Spark;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
@@ -22,6 +26,7 @@ import static spark.Spark.*;
 
 public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+  public static final String VERSION = getVersionId();
   public static int port = 4567;
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
@@ -262,4 +267,11 @@ public class Main {
     }
   }
 
+  private static String getVersionId() {
+    String version = ResourceFile.getContents("/version.txt");
+    if ("".equals(version)) {
+      return "?";
+    }
+    return version;
+  }
 }
