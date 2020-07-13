@@ -96,7 +96,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Job job) throws WaffleException {
+  protected void prepareJob(Job job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     SimulatorRun run = job.getRun();
     run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
@@ -356,7 +356,7 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
-  public void pollingTask(Host host) {
+  public void pollingTask(Host host) throws FailedToControlRemoteException {
     ArrayList<Job> jobList = Job.getList(host);
 
     int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
@@ -416,11 +416,12 @@ abstract public class AbstractSubmitter {
           submit(job);
           submittedCount++;
         }
-      } catch (Exception e) {
+      } catch (WaffleException e) {
         WarnLogMessage.issue(e);
         try {
           job.setState(State.Excepted);
         } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
       }
     }
   }

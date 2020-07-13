@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -8,6 +9,7 @@ import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
+import org.bouncycastle.tsp.TSPUtil;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -46,6 +48,15 @@ public class Host extends DirectoryBaseData {
 
   public Host(String name) {
     super(getBaseDirectoryPath().resolve(name));
+    Main.registerFileChangeEventListener(getBaseDirectoryPath().resolve(name), () -> {
+      workBaseDirectory = null;
+      xsubDirectory = null;
+      pollingInterval = null;
+      maximumNumberOfJobs = null;
+      parameters = null;
+      xsubTemplate = null;
+      reloadPropertyStore();
+    });
   }
 
   @Override

@@ -179,39 +179,49 @@ abstract public class Data {
 
   private JSONObject propertyStore = null;
   private JSONObject getPropertyStore() {
-    if (propertyStore == null) {
-      Path storePath = getPropertyStorePath();
-      String json = "{}";
-      if (Files.exists(storePath)) {
-        try {
-          json = new String(Files.readAllBytes(storePath));
-        } catch (IOException e) {
-          e.printStackTrace();
+    synchronized (this) {
+      if (propertyStore == null) {
+        Path storePath = getPropertyStorePath();
+        String json = "{}";
+        if (Files.exists(storePath)) {
+          try {
+            json = new String(Files.readAllBytes(storePath));
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
         }
+        propertyStore = new JSONObject(json);
       }
-      propertyStore = new JSONObject(json);
     }
     return propertyStore;
   }
 
+  protected void reloadPropertyStore() {
+    synchronized (this) {
+      propertyStore = null;
+    }
+  }
+
   private void updatePropertyStore() {
-    if (propertyStore != null) {
-      Path directoryPath = getPropertyStorePath().getParent();
-      if (! Files.exists(directoryPath)) {
+    synchronized (this) {
+      if (propertyStore != null) {
+        Path directoryPath = getPropertyStorePath().getParent();
+        if (!Files.exists(directoryPath)) {
+          try {
+            Files.createDirectories(directoryPath);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+
+        Path storePath = getPropertyStorePath();
         try {
-          Files.createDirectories(directoryPath);
+          FileWriter filewriter = new FileWriter(storePath.toFile());
+          filewriter.write(propertyStore.toString(2));
+          filewriter.close();
         } catch (IOException e) {
           e.printStackTrace();
         }
-      }
-
-      Path storePath = getPropertyStorePath();
-      try {
-        FileWriter filewriter = new FileWriter(storePath.toFile());
-        filewriter.write(propertyStore.toString(2));
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
       }
     }
   }

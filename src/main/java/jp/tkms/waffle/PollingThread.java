@@ -2,6 +2,7 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
+import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
@@ -38,9 +39,15 @@ public class PollingThread extends Thread {
         submitter.hibernate();
         break;
       }
-      submitter.pollingTask(host);
+      try {
+        submitter.pollingTask(host);
+      } catch (FailedToControlRemoteException e) {
+        submitter.close();
+        WarnLogMessage.issue(host, "was scanned with error");
+        continue;
+      }
       InfoLogMessage.issue(host, "was scanned");
-      host = Host.getInstance(host.getId());
+      //host = Host.getInstance(host.getId());
       System.gc();
       if (Main.hibernateFlag) {
         submitter.hibernate();

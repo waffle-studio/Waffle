@@ -2,11 +2,9 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
-import jp.tkms.waffle.data.DataId;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
-import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import spark.Spark;
@@ -29,6 +27,8 @@ public class Main {
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
   public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
+  private static WatchService fileWatchService = null;
+  private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
 
   public static void main(String[] args) {
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
@@ -64,6 +64,31 @@ public class Main {
         return;
       }
     });
+
+    try {
+      fileWatchService = FileSystems.getDefault().newWatchService();
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    new Thread(){
+      @Override
+      public void run() {
+        try {
+          WatchKey watchKey = null;
+          while ((watchKey = fileWatchService.take()) != null) {
+            for (WatchEvent<?> event : watchKey.pollEvents()) {
+              Runnable runnable = fileChangedEventListenerMap.get((Path)watchKey.watchable());
+              if (runnable != null) {
+                runnable.run();
+              }
+            }
+            watchKey.reset();
+          }
+        } catch (InterruptedException e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+    }.start();
 
     staticFiles.location("/static");
 
@@ -111,28 +136,6 @@ public class Main {
 
     new SystemUpdater(null);
 
-
-    new Thread(){
-      @Override
-      public void run() {
-        try {
-          WatchService watchService = FileSystems.getDefault().newWatchService();
-          Host.getBaseDirectoryPath().resolve("LOCAL").register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.OVERFLOW);
-          Host.getBaseDirectoryPath().resolve("local").register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.OVERFLOW);
-          WatchKey watchKey = null;
-          while ((watchKey = watchService.take()) != null) {
-            for (WatchEvent<?> event : watchKey.pollEvents()) {
-              InfoLogMessage.issue(event.kind().name() + " : " + ((Path)watchKey.watchable()).resolve(event.context().toString()));
-            }
-            watchKey.reset();
-          }
-        } catch (IOException | InterruptedException e) {
-          ErrorLogMessage.issue(e);
-        }
-      }
-    }.start();
-
-
     return;
   }
 
@@ -165,9 +168,13 @@ public class Main {
     return;
   }
 
-  private static HashMap<Path, Runnable> fileChangedEventHandlerMap = new HashMap<>();
-  public static void registerFileChangeEvent(Path path, Runnable function) {
-    fileChangedEventHandlerMap.put(path, function);
+  public static void registerFileChangeEventListener(Path path, Runnable function) {
+    fileChangedEventListenerMap.put(path, function);
+    try {
+      path.register(fileWatchService, StandardWatchEventKinds.ENTRY_MODIFY);
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
   }
 
   public static void restart() {
@@ -180,8 +187,7 @@ public class Main {
     restart();
   }
 
-  public static void restartProcess()
-  {
+  public static void restartProcess() {
     try {
       final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
       final File currentJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
