@@ -158,6 +158,9 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory {
   }
 
   protected static String getCallName(ActorGroup group, String name) {
+    if (group == null) {
+      return "?/?";
+    }
     return group.getName() + "/" + name;
   }
 
