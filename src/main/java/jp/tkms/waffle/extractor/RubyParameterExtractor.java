@@ -10,6 +10,7 @@ import org.jruby.RubySystemCallError;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
+import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 
 public class RubyParameterExtractor extends AbstractParameterExtractor {
@@ -29,7 +30,7 @@ public class RubyParameterExtractor extends AbstractParameterExtractor {
           container.terminate();
           WarnLogMessage.issue(e);
         }
-      } catch (SystemCallError e) {
+      } catch (SystemCallError | LoadError e) {
         failed = true;
         WarnLogMessage.issue(e);
         try { Thread.sleep(1000); } catch (InterruptedException ex) { }

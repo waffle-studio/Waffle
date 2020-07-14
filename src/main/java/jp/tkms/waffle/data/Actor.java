@@ -11,6 +11,7 @@ import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
+import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 import org.json.JSONArray;
 
@@ -472,7 +473,7 @@ public class Actor extends AbstractRun {
           getRunNode().appendErrorNote(e.getMessage());
         }
         container.terminate();
-      } catch (SystemCallError e) {
+      } catch (SystemCallError | LoadError e) {
         failed = true;
         WarnLogMessage.issue(e);
         try { Thread.sleep(1000); } catch (InterruptedException ex) { }
@@ -557,7 +558,7 @@ public class Actor extends AbstractRun {
             WarnLogMessage.issue(e);
           }
           container.terminate();
-        } catch (SystemCallError e) {
+        } catch (SystemCallError | LoadError e) {
           failed = true;
           WarnLogMessage.issue(e);
           try { Thread.sleep(1000); } catch (InterruptedException ex) { }
@@ -579,7 +580,7 @@ public class Actor extends AbstractRun {
             WarnLogMessage.issue(e);
           }
           container.terminate();
-        } catch (SystemCallError e) {
+        } catch (SystemCallError | LoadError e) {
           failed = true;
           WarnLogMessage.issue(e);
           try { Thread.sleep(1000); } catch (InterruptedException ex) { }
