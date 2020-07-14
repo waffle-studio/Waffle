@@ -11,6 +11,7 @@ import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
+import org.jruby.exceptions.SystemCallError;
 import org.json.JSONArray;
 
 import java.nio.file.Path;
@@ -452,21 +453,31 @@ public class Actor extends AbstractRun {
   }
 
   public void processMessage(AbstractRun caller) {
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    try {
-      container.runScriptlet(RubyConductor.getInitScript());
-      container.runScriptlet(RubyConductor.getConductorTemplateScript());
-    } catch (EvalFailedException e) {
-      ErrorLogMessage.issue(e);
-    }
-    try {
-      container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
-      container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
-    } catch (Exception e) {
-      WarnLogMessage.issue(e);
-      getRunNode().appendErrorNote(e.getMessage());
-    }
-    container.terminate();
+    boolean failed;
+    do {
+      failed = false;
+      try {
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+        try {
+          container.runScriptlet(RubyConductor.getInitScript());
+          container.runScriptlet(RubyConductor.getConductorTemplateScript());
+        } catch (EvalFailedException e) {
+          ErrorLogMessage.issue(e);
+        }
+        try {
+          container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
+        } catch (Exception e) {
+          WarnLogMessage.issue(e);
+          getRunNode().appendErrorNote(e.getMessage());
+        }
+        container.terminate();
+      } catch (SystemCallError e) {
+        failed = true;
+        WarnLogMessage.issue(e);
+        try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+      }
+    } while (failed);
   }
 
   private ConductorTemplate conductorTemplate = null;
@@ -531,29 +542,49 @@ public class Actor extends AbstractRun {
   protected void commit() {
     //TODO: do refactor
     if (conductorTemplate != null) {
-      String script = conductorTemplate.getMainScript();
-      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-      try {
-        container.runScriptlet(RubyConductor.getInitScript());
-        container.runScriptlet(RubyConductor.getListenerTemplateScript());
-        container.runScriptlet(script);
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", this, conductorTemplate);
-      } catch (EvalFailedException e) {
-        WarnLogMessage.issue(e);
-      }
-      container.terminate();
+      boolean failed;
+      do {
+        failed = false;
+        try {
+          String script = conductorTemplate.getMainScript();
+          ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+          try {
+            container.runScriptlet(RubyConductor.getInitScript());
+            container.runScriptlet(RubyConductor.getListenerTemplateScript());
+            container.runScriptlet(script);
+            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", this, conductorTemplate);
+          } catch (EvalFailedException e) {
+            WarnLogMessage.issue(e);
+          }
+          container.terminate();
+        } catch (SystemCallError e) {
+          failed = true;
+          WarnLogMessage.issue(e);
+          try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+        }
+      } while (failed);
     } else if (listenerTemplate != null) {
-      String script = listenerTemplate.getScript();
-      ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-      try {
-        container.runScriptlet(RubyConductor.getInitScript());
-        container.runScriptlet(RubyConductor.getListenerTemplateScript());
-        container.runScriptlet(script);
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", this, this);
-      } catch (EvalFailedException e) {
-        WarnLogMessage.issue(e);
-      }
-      container.terminate();
+      boolean failed;
+      do {
+        failed = false;
+        try {
+          String script = listenerTemplate.getScript();
+          ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+          try {
+            container.runScriptlet(RubyConductor.getInitScript());
+            container.runScriptlet(RubyConductor.getListenerTemplateScript());
+            container.runScriptlet(script);
+            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", this, this);
+          } catch (EvalFailedException e) {
+            WarnLogMessage.issue(e);
+          }
+          container.terminate();
+        } catch (SystemCallError e) {
+          failed = true;
+          WarnLogMessage.issue(e);
+          try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+        }
+      } while (failed);
     }
 
     if (transactionRunList.size() > 1) {

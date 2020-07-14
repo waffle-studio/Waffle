@@ -68,6 +68,9 @@ abstract public class AbstractSubmitter {
 
   public void submit(Job job) throws RunNotFoundException {
     try {
+      if (job.getState().equals(State.Created)) {
+        prepareJob(job);
+      }
       processXsubSubmit(job, exec(xsubSubmitCommand(job)));
     } catch (Exception e) {
       WarnLogMessage.issue(e);
@@ -255,7 +258,7 @@ abstract public class AbstractSubmitter {
         case "finished" :
           int exitStatus = -1;
           try {
-            exitStatus = Integer.valueOf(getFileContents(job.getRun(), getRunDirectory(job.getRun()).resolve(EXIT_STATUS_FILE)).trim());
+            exitStatus = Integer.parseInt(getFileContents(job.getRun(), getRunDirectory(job.getRun()).resolve(EXIT_STATUS_FILE)).trim());
           } catch (Exception e) {
             job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
@@ -361,6 +364,7 @@ abstract public class AbstractSubmitter {
 
     int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
 
+    ArrayList<Job> submittedJobList = new ArrayList<>();
     ArrayList<Job> queuedJobList = new ArrayList<>();
     int submittedCount = 0;
 
@@ -376,13 +380,8 @@ abstract public class AbstractSubmitter {
             break;
           case Submitted:
           case Running:
-            State state = update(job);
-            if (!(State.Finished.equals(state)
-              || State.Failed.equals(state)
-              || State.Excepted.equals(state)
-              || State.Canceled.equals(state))) {
-              submittedCount++;
-            }
+            submittedJobList.add(job);
+            submittedCount++;
             break;
           case Cancel:
             cancel(job);
@@ -404,7 +403,34 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
     }
 
+    for (Job job : submittedJobList) {
+      if (Main.hibernateFlag) { break; }
+
+      try {
+        switch (update(job)) {
+          case Finished:
+          case Failed:
+          case Excepted:
+          case Canceled:
+            if (! queuedJobList.isEmpty()) {
+              Job nextJob = queuedJobList.remove(0);
+              submit(nextJob);
+            } else {
+              submittedCount -= 1;
+            }
+        }
+      } catch (WaffleException e) {
+        WarnLogMessage.issue(e);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
+      }
+    }
+
     for (Job job : queuedJobList) {
+      if (Main.hibernateFlag) { break; }
+
       try {
         if (job.getState().equals(State.Created)) {
           prepareJob(job);
@@ -420,8 +446,6 @@ abstract public class AbstractSubmitter {
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
       }
-
-      if (Main.hibernateFlag) { break; }
     }
   }
 

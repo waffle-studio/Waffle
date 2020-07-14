@@ -12,11 +12,18 @@ import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.keyprovider.FileKeyProvider;
+import net.schmizz.sshj.userauth.keyprovider.KeyFormat;
+import net.schmizz.sshj.userauth.keyprovider.KeyProviderUtil;
 import net.schmizz.sshj.userauth.keyprovider.OpenSSHKeyFile;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
 import net.schmizz.sshj.xfer.FileSystemFile;
+import net.schmizz.sshj.xfer.InMemorySourceFile;
+import net.schmizz.sshj.xfer.LocalSourceFile;
+import org.bouncycastle.jcajce.provider.util.SecretKeyUtil;
+import org.bouncycastle.pqc.jcajce.provider.util.KeyUtil;
 
 import java.io.*;
+import java.nio.channels.ScatteringByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,6 +36,8 @@ public class SshSession2 {
   private final String DEFAULT_PRIVKEY_FILE = System.getProperty("user.home") + "/.ssh/id_rsa";
   protected SSHClient sshClient;
   protected Session session;
+  SFTPClient sftpClient;
+
   protected String username;
   protected String host;
   protected int port;
@@ -40,20 +49,24 @@ public class SshSession2 {
   }
 
   public boolean isConnected() {
-    if (session != null) {
-      return session.isOpen();
+    if (sshClient != null) {
+      return sshClient.isConnected();
     }
     return false;
   }
 
   public void addIdentity(String privKey) {
-    fileKeyProvider = new OpenSSHKeyFile();
-    fileKeyProvider.init(Paths.get(privKey).toFile());
+    addIdentity(privKey, null);
   }
 
   public void addIdentity(String privKey, String pass) {
     fileKeyProvider = new OpenSSHKeyFile();
-    fileKeyProvider.init(Paths.get(privKey).toFile(), PasswordUtils.createOneOff(pass.toCharArray()));
+    File privKeyFile = Paths.get(privKey.replaceFirst("^~", System.getProperty("user.home"))).toFile();
+    if (pass == null) {
+      fileKeyProvider.init(privKeyFile);
+    } else {
+      fileKeyProvider.init(privKeyFile, PasswordUtils.createOneOff(pass.toCharArray()));
+    }
   }
 
   public void setSession(String username , String host, int port) {
@@ -90,7 +103,11 @@ public class SshSession2 {
         } else {
           sshClient.connectVia(tunnel.newDirectConnection(host, port));
         }
-        session = sshClient.startSession();
+        if (fileKeyProvider == null) {
+          sshClient.authPublickey(username);
+        } else {
+          sshClient.authPublickey(username, fileKeyProvider);
+        }
         connected = true;
       } catch (IOException e) {
         if (!retry) {
@@ -115,86 +132,94 @@ public class SshSession2 {
   }
 
   public void disconnect() {
-    try {
-      session.close();
-    } catch (TransportException | ConnectionException e) {
-      e.printStackTrace();
+    if (sftpClient != null) {
+      try {
+        sftpClient.close();
+      } catch (IOException e) {
+      }
     }
-    try {
-      sshClient.close();
-    } catch (IOException e) {
-      e.printStackTrace();
+    if (sshClient != null) {
+      try {
+        sshClient.close();
+      } catch (IOException e) {
+      }
     }
   }
 
   public SshChannel2 exec(String command, String workDir) throws IOException {
+    session = sshClient.startSession();
     String submittingCommand = "cd " + workDir + " && " + command;
     Session.Command channel = session.exec("sh -c '" +  submittingCommand.replaceAll("'", "'\\\\''") + "'\n");
     channel.join();
+    session.close();
     return new SshChannel2(channel);
   }
 
   public boolean mkdir(String path, String workDir) throws IOException {
     Session.Command channel = exec("mkdir -p " + path, workDir).toCommand();
-
     return (channel.getExitStatus() == 0);
   }
 
   public boolean rmdir(String path, String workDir) throws IOException {
     Session.Command channel = exec("rm -rf " + path, workDir).toCommand();
-
     return (channel.getExitStatus() == 0);
   }
 
   public String getText(String path, String workDir) throws IOException {
-    Session.Command channel = exec("cat " + path, workDir).toCommand();
-
-    BufferedInputStream outStream = new BufferedInputStream(channel.getInputStream());
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    byte[] buf = new byte[1024];
-    while (true) {
-      int len = outStream.read(buf);
-      if (len <= 0) {
-        break;
-      }
-      outputStream.write(buf, 0, len);
-    }
-
-    return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+    return exec("cat " + path, workDir).getStdout();
   }
 
   public void putText(String text, String path, String workDir) throws IOException {
-    SFTPClient sftpClient = sshClient.newSFTPClient();
-    RemoteFile file = sftpClient.open(workDir.concat("/").concat(path));
-    file.write(0, text.getBytes(), 0, text.getBytes().length);
-    file.close();
-    sftpClient.close();
+    if (sftpClient == null) {
+      sftpClient = sshClient.newSFTPClient();
+    }
+    InMemorySourceFile sourceFile = new InMemorySourceFile() {
+      @Override
+      public String getName() {
+        return "file";
+      }
+
+      @Override
+      public long getLength() {
+        return text.getBytes().length;
+      }
+
+      @Override
+      public InputStream getInputStream() throws IOException {
+        return new ByteArrayInputStream(text.getBytes());
+      }
+    };
+    sftpClient.put(sourceFile, workDir.concat("/").concat(path));
     return;
   }
 
-  public synchronized void scp(String remote, File local, String workDir) throws IOException {
-    SFTPClient sftpClient = sshClient.newSFTPClient();
-    transferFiles(workDir.concat("/").concat(remote), local.toPath(), sftpClient);
-    sftpClient.close();
+  public synchronized void scp(String remote, File local) throws IOException {
+    if (sftpClient == null) {
+      sftpClient = sshClient.newSFTPClient();
+    }
+    transferFiles(remote, local.toPath(), sftpClient);
   }
 
-  public synchronized void scp(File local, String remote, String workDir) throws IOException {
-    SFTPClient sftpClient = sshClient.newSFTPClient();
-    transferFiles(local, workDir.concat("/").concat(remote), sftpClient);
-    sftpClient.close();
+  public synchronized void scp(File local, String remote) throws IOException {
+    if (sftpClient == null) {
+      sftpClient = sshClient.newSFTPClient();
+    }
+    transferFiles(local, remote, sftpClient);
   }
 
   private static void transferFiles(String remotePath, Path localPath, SFTPClient clientChannel) throws IOException {
-    String name = Paths.get(remotePath).getFileName().toString();
-    if(clientChannel.stat(remotePath).getType() == FileMode.Type.DIRECTORY){
-      Files.createDirectories(localPath.resolve(name));
+    try {
+      String name = Paths.get(remotePath).getFileName().toString();
+      if (clientChannel.stat(remotePath).getType() == FileMode.Type.DIRECTORY) {
+        Files.createDirectories(localPath.resolve(name));
 
-      for(RemoteResourceInfo entry: clientChannel.ls(remotePath)){
-        transferFiles(entry.getName(), localPath.resolve(name), clientChannel);
+        for (RemoteResourceInfo entry : clientChannel.ls(remotePath)) {
+          transferFiles(entry.getName(), localPath.resolve(name), clientChannel);
+        }
+      } else {
+        transferFile(remotePath, localPath, clientChannel);
       }
-    } else {
-      transferFile(remotePath, localPath.resolve(name), clientChannel);
-    }
+    }catch (Exception e) {e.printStackTrace();}
   }
 
   private static void transferFile(String remotePath, Path localPath, SFTPClient clientChannel) throws IOException {
@@ -202,13 +227,12 @@ public class SshSession2 {
   }
 
   private static void transferFiles(File localFile, String destPath, SFTPClient clientChannel) throws IOException, FileNotFoundException {
-    System.out.println(localFile + "   --->>>  " + destPath);
-    if(localFile.isDirectory()){
-      clientChannel.mkdir(localFile.getName());
+    //System.out.println(localFile + "   --->>>  " + destPath);
+    if (localFile.isDirectory()) {
+      clientChannel.mkdir(destPath);
 
-      destPath = destPath + "/" + localFile.getName();
-
-      for(File file: localFile.listFiles()){
+      for (File file : localFile.listFiles()) {
+        destPath = destPath + "/" + file.getName();
         transferFiles(file, destPath, clientChannel);
       }
     } else {

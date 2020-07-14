@@ -65,12 +65,11 @@ public class SshSubmitter2 extends AbstractSubmitter {
         JSONObject object = host.getParametersWithoutXsubParameter().getJSONObject("tunnel");
         tunnelSession = new SshSession2();
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
-        if (identityPass.equals("")) {
+        if (object.getString("identity_pass").equals("")) {
           tunnelSession.addIdentity(object.getString("identity_file"));
         } else {
           tunnelSession.addIdentity(object.getString("identity_file"), object.getString("identity_pass"));
         }
-        tunnelSession.connect(retry);
       }
 
       session = new SshSession2();
@@ -175,7 +174,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
   @Override
   public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException {
     try {
-      session.scp(localPath.toFile(), remotePath.toString(), "/tmp");
+      session.scp(localPath.toFile(), remotePath.toString());
     } catch (IOException e) {
       throw new FailedToTransferFileException(e);
     }
@@ -184,7 +183,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
   @Override
   public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
     try {
-      session.scp(remotePath.toString(), localPath.toFile(), "/tmp");
+      session.scp(remotePath.toString(), localPath.toFile());
     } catch (IOException e) {
       throw new FailedToTransferFileException(e);
     }
