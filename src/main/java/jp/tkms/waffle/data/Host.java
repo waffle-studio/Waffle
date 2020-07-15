@@ -12,16 +12,19 @@ import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.bouncycastle.tsp.TSPUtil;
 import org.json.JSONObject;
 
+import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
 public class Host extends DirectoryBaseData {
   private static final String TABLE_NAME = "host";
@@ -33,14 +36,18 @@ public class Host extends DirectoryBaseData {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_OS = "os";
+  private static final String KEY_ENCRYPT_KEY = "encrypt_key";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_STATE = "state";
   private static final String KEY_ENVIRONMENTS = "environments";
+  private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
+  private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
 
   private static final HashMap<String, Host> instanceMap = new HashMap<>();
 
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
+  private SecretKeySpec encryptKey = null;
   private Integer pollingInterval = null;
   private Integer maximumNumberOfJobs = null;
   private JSONObject parameters = null;
@@ -53,7 +60,7 @@ public class Host extends DirectoryBaseData {
       xsubDirectory = null;
       pollingInterval = null;
       maximumNumberOfJobs = null;
-      parameters = null;
+      //parameters = null;
       xsubTemplate = null;
       reloadPropertyStore();
     });
@@ -191,6 +198,44 @@ public class Host extends DirectoryBaseData {
     this.xsubDirectory = xsubDirectory;
   }
 
+  private SecretKeySpec getEncryptKey() {
+    if (encryptKey == null) {
+      String encryptKeyText = getStringFromProperty(KEY_ENCRYPT_KEY);
+      if (encryptKeyText == null || encryptKeyText.length() != 16) {
+        encryptKeyText = UUID.randomUUID().toString().replace("-","").substring(16, 32);
+        setToProperty(KEY_ENCRYPT_KEY, encryptKeyText);
+      }
+      encryptKey = new SecretKeySpec(encryptKeyText.getBytes(), "AES");
+    }
+    return encryptKey;
+  }
+
+  public String encryptText(String text) {
+    if (text != null) {
+      try {
+        Cipher encrypter = Cipher.getInstance(ENCRYPT_ALGORITHM);
+        encrypter.init(Cipher.ENCRYPT_MODE, getEncryptKey(), IV_PARAMETER_SPEC);
+        byte[] byteToken = encrypter.doFinal(text.getBytes());
+        return new String(Base64.getEncoder().encode(byteToken));
+      } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+      }
+    }
+    return "";
+  }
+
+  public String decryptText(String text) {
+    if (text != null) {
+      try {
+        Cipher decrypter = Cipher.getInstance(ENCRYPT_ALGORITHM);
+        decrypter.init(Cipher.DECRYPT_MODE, getEncryptKey(), IV_PARAMETER_SPEC);
+        byte[] byteToken = Base64.getDecoder().decode(text);
+        return new String(decrypter.doFinal(byteToken));
+      } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+      }
+    }
+    return "";
+  }
+
   /*
   public String getOs() {
     if (os == null) {
@@ -240,13 +285,35 @@ public class Host extends DirectoryBaseData {
     return jsonObject;
   }
 
-  public JSONObject getParametersWithoutXsubParameter() {
+  public JSONObject getParametersWithDefaultParameters() {
     JSONObject parameters = AbstractSubmitter.getParameters(this);
     JSONObject jsonObject = getParameters();
     for (String key : jsonObject.keySet()) {
       parameters.put(key, jsonObject.get(key));
     }
     return parameters;
+  }
+
+  public JSONObject getParametersWithDefaultParametersFiltered() {
+    JSONObject parameters = AbstractSubmitter.getParameters(this);
+    JSONObject jsonObject = getParameters();
+    for (String key : jsonObject.keySet()) {
+      if (! key.startsWith(".")) {
+        parameters.put(key, jsonObject.get(key));
+      }
+    }
+    return parameters;
+  }
+
+  public JSONObject getFilteredParameters() {
+    JSONObject jsonObject = new JSONObject();
+    JSONObject parameters = getParameters();
+    for (String key : parameters.keySet()) {
+      if (key.startsWith(".")) {
+        jsonObject.put(key, parameters.get(key));
+      }
+    }
+    return jsonObject;
   }
 
   public JSONObject getParameters() {
@@ -277,6 +344,11 @@ public class Host extends DirectoryBaseData {
   }
 
   public void setParameters(JSONObject jsonObject) {
+    JSONObject filteredParameters = getFilteredParameters();
+    for (String key : filteredParameters.keySet()) {
+        jsonObject.put(key, filteredParameters.get(key));
+    }
+
     updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON,  jsonObject.toString(2));
     this.parameters = null;
   }

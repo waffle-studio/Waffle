@@ -1,15 +1,12 @@
 package jp.tkms.waffle.submitter;
 
-import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
-import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshChannel2;
-import jp.tkms.waffle.submitter.util.SshSession;
 import jp.tkms.waffle.submitter.util.SshSession2;
 import org.json.JSONObject;
 
@@ -38,7 +35,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
       int port = 22;
       boolean useTunnel = false;
 
-      for (Map.Entry<String, Object> entry : host.getParametersWithoutXsubParameter().toMap().entrySet()) {
+      for (Map.Entry<String, Object> entry : host.getParametersWithDefaultParameters().toMap().entrySet()) {
         switch (entry.getKey()) {
           case "host" :
             hostName = entry.getValue().toString();
@@ -62,7 +59,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
       }
 
       if (useTunnel) {
-        JSONObject object = host.getParametersWithoutXsubParameter().getJSONObject("tunnel");
+        JSONObject object = host.getParametersWithDefaultParameters().getJSONObject("tunnel");
         tunnelSession = new SshSession2();
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
         if (object.getString("identity_pass").equals("")) {

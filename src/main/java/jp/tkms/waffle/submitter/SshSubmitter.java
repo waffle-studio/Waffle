@@ -5,9 +5,6 @@ import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
-import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
 import org.json.JSONObject;
@@ -17,6 +14,8 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
+  private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
+  private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
   Host host;
   SshSession session;
@@ -36,7 +35,8 @@ public class SshSubmitter extends AbstractSubmitter {
       int port = 22;
       boolean useTunnel = false;
 
-      for (Map.Entry<String, Object> entry : host.getParametersWithoutXsubParameter().toMap().entrySet()) {
+      JSONObject parameters = host.getParametersWithDefaultParameters();
+      for (Map.Entry<String, Object> entry : parameters.toMap().entrySet()) {
         switch (entry.getKey()) {
           case "host" :
             hostName = entry.getValue().toString();
@@ -48,7 +48,13 @@ public class SshSubmitter extends AbstractSubmitter {
             identityFile = entry.getValue().toString();
             break;
           case "identity_pass" :
-            identityPass = entry.getValue().toString();
+            if (entry.getValue().toString().equals(ENCRYPTED_MARK)) {
+              identityPass = host.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS));
+            } else {
+              host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, host.encryptText(entry.getValue().toString()));
+              identityPass = entry.getValue().toString();
+              host.setParameter("identity_pass", ENCRYPTED_MARK);
+            }
             break;
           case "port" :
             port = Integer.parseInt(entry.getValue().toString());
@@ -60,18 +66,30 @@ public class SshSubmitter extends AbstractSubmitter {
       }
 
       if (useTunnel) {
-        JSONObject object = host.getParametersWithoutXsubParameter().getJSONObject("tunnel");
+        JSONObject object = host.getParametersWithDefaultParameters().getJSONObject("tunnel");
         tunnelSession = new SshSession();
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
-        if (identityPass.equals("")) {
+        String tunnelIdentityPass = object.getString("identity_pass");
+        if (tunnelIdentityPass == null) {
+          tunnelIdentityPass = "";
+        } else {
+          if (tunnelIdentityPass.equals(ENCRYPTED_MARK)) {
+            tunnelIdentityPass = host.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1"));
+          } else {
+            host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", host.encryptText(tunnelIdentityPass));
+            object.put("identity_pass", ENCRYPTED_MARK);
+          }
+        }
+        if (tunnelIdentityPass.equals("")) {
           tunnelSession.addIdentity(object.getString("identity_file"));
         } else {
-          tunnelSession.addIdentity(object.getString("identity_file"), object.getString("identity_pass"));
+          tunnelSession.addIdentity(object.getString("identity_file"), tunnelIdentityPass);
         }
         tunnelSession.setConfig("StrictHostKeyChecking", "no");
         tunnelSession.connect(retry);
         port = tunnelSession.setPortForwardingL(hostName, port);
         hostName = "127.0.0.1";
+        host.setParameter("tunnel", object);
       }
 
       session = new SshSession();
