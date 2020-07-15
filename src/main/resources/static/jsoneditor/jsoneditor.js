@@ -25,7 +25,7 @@
  *
  * @author  Jos de Jong, <wjosdejong@gmail.com>
  * @version 9.0.3
- * @date    2020-07-09
+ * @date    2020-07-15
  */
 
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -51380,6 +51380,13 @@ treemode._onKeyDown = function (event) {
   var shiftKey = event.shiftKey;
   var handled = false;
   var currentTarget = this.focusTarget;
+
+  if (keynum === 27) {
+    // Tab or Shift+Tab
+    setTimeout(function () {
+      currentTarget.blur();
+    }, 0);
+  }
 
   if (keynum === 9) {
     // Tab or Shift+Tab

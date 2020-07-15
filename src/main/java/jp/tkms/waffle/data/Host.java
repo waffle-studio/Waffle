@@ -56,13 +56,15 @@ public class Host extends DirectoryBaseData {
   public Host(String name) {
     super(getBaseDirectoryPath().resolve(name));
     Main.registerFileChangeEventListener(getBaseDirectoryPath().resolve(name), () -> {
-      workBaseDirectory = null;
-      xsubDirectory = null;
-      pollingInterval = null;
-      maximumNumberOfJobs = null;
-      //parameters = null;
-      xsubTemplate = null;
-      reloadPropertyStore();
+      synchronized (this) {
+        workBaseDirectory = null;
+        xsubDirectory = null;
+        pollingInterval = null;
+        maximumNumberOfJobs = null;
+        parameters = null;
+        xsubTemplate = null;
+        reloadPropertyStore();
+      }
     });
   }
 
@@ -146,7 +148,7 @@ public class Host extends DirectoryBaseData {
     return getInstanceByName(name);
   }
 
-  public synchronized void update() {
+  public void update() {
     try {
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
       setXsubTemplate(jsonObject);
@@ -175,39 +177,49 @@ public class Host extends DirectoryBaseData {
   }
 
   public String getWorkBaseDirectory() {
-    if (workBaseDirectory == null) {
-      workBaseDirectory = getStringFromProperty(KEY_WORKBASE);
+    synchronized (this) {
+      if (workBaseDirectory == null) {
+        workBaseDirectory = getStringFromProperty(KEY_WORKBASE);
+      }
+      return workBaseDirectory;
     }
-    return workBaseDirectory;
   }
 
   public void setWorkBaseDirectory(String workBaseDirectory) {
-    setToProperty(KEY_WORKBASE, workBaseDirectory);
-    this.workBaseDirectory = workBaseDirectory;
+    synchronized (this) {
+      setToProperty(KEY_WORKBASE, workBaseDirectory);
+      this.workBaseDirectory = workBaseDirectory;
+    }
   }
 
   public String getXsubDirectory() {
-    if (xsubDirectory == null) {
-      xsubDirectory = getStringFromProperty(KEY_XSUB);
+    synchronized (this) {
+      if (xsubDirectory == null) {
+        xsubDirectory = getStringFromProperty(KEY_XSUB);
+      }
+      return xsubDirectory;
     }
-    return xsubDirectory;
   }
 
   public void setXsubDirectory(String xsubDirectory) {
-    setToProperty(KEY_XSUB, xsubDirectory);
-    this.xsubDirectory = xsubDirectory;
+    synchronized (this) {
+      setToProperty(KEY_XSUB, xsubDirectory);
+      this.xsubDirectory = xsubDirectory;
+    }
   }
 
   private SecretKeySpec getEncryptKey() {
-    if (encryptKey == null) {
-      String encryptKeyText = getStringFromProperty(KEY_ENCRYPT_KEY);
-      if (encryptKeyText == null || encryptKeyText.length() != 16) {
-        encryptKeyText = UUID.randomUUID().toString().replace("-","").substring(16, 32);
-        setToProperty(KEY_ENCRYPT_KEY, encryptKeyText);
+    synchronized (this) {
+      if (encryptKey == null) {
+        String encryptKeyText = getStringFromProperty(KEY_ENCRYPT_KEY);
+        if (encryptKeyText == null || encryptKeyText.length() != 16) {
+          encryptKeyText = UUID.randomUUID().toString().replace("-", "").substring(16, 32);
+          setToProperty(KEY_ENCRYPT_KEY, encryptKeyText);
+        }
+        encryptKey = new SecretKeySpec(encryptKeyText.getBytes(), "AES");
       }
-      encryptKey = new SecretKeySpec(encryptKeyText.getBytes(), "AES");
+      return encryptKey;
     }
-    return encryptKey;
   }
 
   public String encryptText(String text) {
@@ -254,27 +266,35 @@ public class Host extends DirectoryBaseData {
    */
 
   public Integer getPollingInterval() {
-    if (pollingInterval == null) {
-      pollingInterval = getIntFromProperty(KEY_POLLING);
+    synchronized (this) {
+      if (pollingInterval == null) {
+        pollingInterval = getIntFromProperty(KEY_POLLING);
+      }
+      return pollingInterval;
     }
-    return pollingInterval;
   }
 
   public void setPollingInterval(Integer pollingInterval) {
-    setToProperty(KEY_POLLING, pollingInterval);
-    this.pollingInterval = pollingInterval;
+    synchronized (this) {
+      setToProperty(KEY_POLLING, pollingInterval);
+      this.pollingInterval = pollingInterval;
+    }
   }
 
   public Integer getMaximumNumberOfJobs() {
-    if (maximumNumberOfJobs == null) {
-      maximumNumberOfJobs = getIntFromProperty(KEY_MAX_JOBS);
+    synchronized (this) {
+      if (maximumNumberOfJobs == null) {
+        maximumNumberOfJobs = getIntFromProperty(KEY_MAX_JOBS);
+      }
+      return maximumNumberOfJobs;
     }
-    return maximumNumberOfJobs;
   }
 
   public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
-    setToProperty(KEY_MAX_JOBS, maximumNumberOfJobs);
-    this.maximumNumberOfJobs = maximumNumberOfJobs;
+    synchronized (this) {
+      setToProperty(KEY_MAX_JOBS, maximumNumberOfJobs);
+      this.maximumNumberOfJobs = maximumNumberOfJobs;
+    }
   }
 
   public JSONObject getXsubParameters() {
@@ -317,26 +337,29 @@ public class Host extends DirectoryBaseData {
   }
 
   public JSONObject getParameters() {
-    if (parameters == null) {
-      String json = getFileContents(KEY_PARAMETERS + Constants.EXT_JSON);
-      if (json.equals("")) {
-        json = "{}";
-        createNewFile(KEY_PARAMETERS + Constants.EXT_JSON);
-        updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, json);
-      }
-      parameters = getXsubParametersTemplate();
-      try {
-        JSONObject jsonObject = AbstractSubmitter.getInstance(this).getDefaultParameters(this);
-        for (String key : jsonObject.toMap().keySet()) {
-          parameters.put(key, jsonObject.getJSONObject(key));
+    synchronized (this) {
+      if (parameters == null) {
+        String json = getFileContents(KEY_PARAMETERS + Constants.EXT_JSON);
+        if (json.equals("")) {
+          json = "{}";
+          createNewFile(KEY_PARAMETERS + Constants.EXT_JSON);
+          updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, json);
         }
-      } catch (Exception e) {}
-      JSONObject jsonObject = new JSONObject(json);
-      for (String key : jsonObject.keySet()) {
-        parameters.put(key, jsonObject.get(key));
+        parameters = getXsubParametersTemplate();
+        try {
+          JSONObject jsonObject = AbstractSubmitter.getInstance(this).getDefaultParameters(this);
+          for (String key : jsonObject.toMap().keySet()) {
+            parameters.put(key, jsonObject.getJSONObject(key));
+          }
+        } catch (Exception e) {
+        }
+        JSONObject jsonObject = new JSONObject(json);
+        for (String key : jsonObject.keySet()) {
+          parameters.put(key, jsonObject.get(key));
+        }
       }
+      return new JSONObject(parameters.toString());
     }
-    return new JSONObject(parameters.toString());
   }
 
   public Object getParameter(String key) {
@@ -344,13 +367,15 @@ public class Host extends DirectoryBaseData {
   }
 
   public void setParameters(JSONObject jsonObject) {
-    JSONObject filteredParameters = getFilteredParameters();
-    for (String key : filteredParameters.keySet()) {
+    synchronized (this) {
+      JSONObject filteredParameters = getFilteredParameters();
+      for (String key : filteredParameters.keySet()) {
         jsonObject.put(key, filteredParameters.get(key));
-    }
+      }
 
-    updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON,  jsonObject.toString(2));
-    this.parameters = null;
+      updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, jsonObject.toString(2));
+      this.parameters = null;
+    }
   }
 
   public void setParameters(String json) {
@@ -362,30 +387,40 @@ public class Host extends DirectoryBaseData {
   }
 
   public Object setParameter(String key, Object value) {
-    getParameters();
-    parameters.put(key, value);
-    setParameters(parameters);
-    return value;
+    synchronized (this) {
+      JSONObject jsonObject = getParameters();
+      jsonObject.put(key, value);
+      setParameters(jsonObject);
+      return value;
+    }
   }
 
   public JSONObject getEnvironments() {
-    return getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
+    synchronized (this) {
+      return getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
+    }
   }
 
   public void setEnvironments(JSONObject jsonObject) {
-    setToProperty(KEY_ENVIRONMENTS, jsonObject);
+    synchronized (this) {
+      setToProperty(KEY_ENVIRONMENTS, jsonObject);
+    }
   }
 
   public JSONObject getXsubTemplate() {
-    if (xsubTemplate == null) {
-      xsubTemplate = new JSONObject(getStringFromProperty(KEY_XSUB_TEMPLATE, "{}"));
+    synchronized (this) {
+      if (xsubTemplate == null) {
+        xsubTemplate = new JSONObject(getStringFromProperty(KEY_XSUB_TEMPLATE, "{}"));
+      }
+      return xsubTemplate;
     }
-    return xsubTemplate;
   }
 
   public void setXsubTemplate(JSONObject jsonObject) {
-    this.xsubTemplate = jsonObject;
-    setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
+    synchronized (this) {
+      this.xsubTemplate = jsonObject;
+      setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
+    }
   }
 
   public JSONObject getXsubParametersTemplate() {
@@ -396,7 +431,8 @@ public class Host extends DirectoryBaseData {
       for (String key : object.toMap().keySet()) {
         jsonObject.put(key, object.getJSONObject(key).get("default"));
       }
-    } catch (Exception e) {}
+    } catch (Exception e) {
+    }
 
     return jsonObject;
   }
