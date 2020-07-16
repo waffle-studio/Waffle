@@ -2,6 +2,7 @@ package jp.tkms.waffle.submitter.util;
 
 import com.jcraft.jsch.*;
 import jp.tkms.waffle.data.log.WarnLogMessage;
+import org.jruby.RubyProcess;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -12,13 +13,16 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.concurrent.Semaphore;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class SshSession {
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
   private final String DEFAULT_PRIVKEY_FILE = System.getProperty("user.home") + "/.ssh/id_rsa";
   protected JSch jsch;
   protected Session session;
-  Semaphore channelSemaphore = new Semaphore(5);
+  Semaphore channelSemaphore = new Semaphore(4);
 
   public SshSession() throws JSchException {
     this.jsch = new JSch();
@@ -87,6 +91,9 @@ public class SshSession {
   }
 
   public void disconnect() {
+    if (channelSftp != null && channelSftp.isConnected()) {
+      channelSftp.disconnect();
+    }
     session.disconnect();
   }
 
@@ -130,10 +137,35 @@ public class SshSession {
     return channel;
   }
 
-  public boolean mkdir(String path, String workDir) throws JSchException {
-    SshChannel channel = exec("mkdir -p " + path, workDir);
-
-    return (channel.getExitStatus() == 0);
+  public boolean mkdir(Path path) throws JSchException {
+    return processSftp(channelSftp -> {
+      try {
+        channelSftp.stat(path.getParent().toString());
+      } catch (SftpException e) {
+        if (e.getMessage().startsWith("2:")) {
+          try {
+            mkdir(path.getParent());
+          } catch (JSchException ex) {
+            WarnLogMessage.issue(e);
+            return false;
+          }
+        }
+      }
+      try {
+        channelSftp.stat(path.toString());
+        return true;
+      } catch (SftpException e) {
+        if (e.getMessage().startsWith("2:")) {
+          try {
+            channelSftp.mkdir(path.toString());
+          } catch (SftpException ex) {
+            WarnLogMessage.issue(ex);
+            return false;
+          }
+        }
+      }
+      return true;
+    });
   }
 
   public boolean rmdir(String path, String workDir) throws JSchException {
@@ -149,125 +181,90 @@ public class SshSession {
   }
 
   public boolean putText(String text, String path, String workDir) throws JSchException {
-    ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
-    boolean result = false;
-    do {
+    return processSftp(channelSftp -> {
       try {
-        channelSftp.connect();
-        try {
-          channelSftp.cd(workDir);
-          channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
-          result = true;
-        } catch (SftpException e) {
-          e.printStackTrace();
-        }finally {
-          channelSftp.disconnect();
-          channelSemaphore.release();
-        }
-      } catch (JSchException e) {
-        if (e.getMessage().equals("channel is not opened.")) {
-          channelSemaphore.release();
-          WarnLogMessage.issue("Retry to open channel after 1 sec.");
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ex) {
-            WarnLogMessage.issue(e);
-          }
-          channelSftp = (ChannelSftp) openChannel("sftp");
-        } else {
-          throw e;
-        }
+        channelSftp.cd(workDir);
+        channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
+      } catch (SftpException e) {
+        WarnLogMessage.issue(e);
+        return false;
       }
-    } while (!result);
-    return result;
+      return true;
+    });
   }
 
   public synchronized boolean scp(String remote, File local, String workDir) throws JSchException {
-    ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
-    boolean result = false;
-    do {
+    return processSftp(channelSftp -> {
       try {
-        channelSftp.connect();
-        try {
-          channelSftp.cd(workDir);
-          if(channelSftp.stat(remote).isDir()) {
-            Files.createDirectories(local.toPath());
-            for (Object o : channelSftp.ls(remote)) {
-              ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) o;
-              transferFiles(entry.getFilename(), local.toPath(), channelSftp);
-            }
-          } else {
-            Files.createDirectories(local.toPath().getParent());
-            transferFile(remote, local.toPath(), channelSftp);
+        channelSftp.cd(workDir);
+        if(channelSftp.stat(remote).isDir()) {
+          Files.createDirectories(local.toPath());
+          for (Object o : channelSftp.ls(remote)) {
+            ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) o;
+            transferFiles(entry.getFilename(), local.toPath(), channelSftp);
           }
-        } catch (Exception e) {
-          WarnLogMessage.issue(e);
-        } finally {
-          channelSftp.disconnect();
-          channelSemaphore.release();
-        }
-        result = true;
-      } catch (JSchException e) {
-        if (e.getMessage().equals("channel is not opened.")) {
-          channelSemaphore.release();
-          WarnLogMessage.issue("Retry to open channel after 1 sec.");
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ex) {
-            WarnLogMessage.issue(e);
-          }
-          channelSftp = (ChannelSftp) openChannel("sftp");
         } else {
-          throw e;
+          Files.createDirectories(local.toPath().getParent());
+          transferFile(remote, local.toPath(), channelSftp);
         }
+      } catch (Exception e) {
+        WarnLogMessage.issue(e);
+        return false;
       }
-    } while (!result);
-    return result;
+      return true;
+    });
   }
 
   public synchronized boolean scp(File local, String dest, String workDir) throws JSchException {
-    ChannelSftp channelSftp = (ChannelSftp) openChannel("sftp");
-    boolean result = false;
-    do {
+    return processSftp(channelSftp -> {
       try {
-        channelSftp.connect();
-        try {
-          channelSftp.cd(workDir);
-          if (local.isDirectory()) {
-            //try {
-            //channelSftp.mkdir(dest);
-            mkdir(dest, "~/");
-            //} catch (SftpException e) {}
-            channelSftp.cd(dest);
-            for(File file: local.listFiles()){
-              transferFiles(file, dest, channelSftp);
-            }
-          } else {
-            transferFile(local, dest, channelSftp);
+        channelSftp.cd(workDir);
+        if (local.isDirectory()) {
+          mkdir(Paths.get(dest));
+          channelSftp.cd(dest);
+          for(File file: local.listFiles()){
+            transferFiles(file, dest, channelSftp);
           }
-        } catch (Exception e) {
-          WarnLogMessage.issue(e);
-        } finally {
-          channelSftp.disconnect();
-          channelSemaphore.release();
-        }
-        result = true;
-      } catch (JSchException e) {
-        if (e.getMessage().equals("channel is not opened.")) {
-          channelSemaphore.release();
-          WarnLogMessage.issue("Retry to open channel after 1 sec.");
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ex) {
-            ex.printStackTrace();
-          }
-          channelSftp = (ChannelSftp) openChannel("sftp");
         } else {
-          throw e;
+          transferFile(local, dest, channelSftp);
         }
+      } catch (Exception e) {
+        WarnLogMessage.issue(e);
+        return false;
       }
-    } while (!result);
-    return result;
+      return true;
+    });
+  }
+
+  private ChannelSftp channelSftp;
+  final Object sftpLocker = new Object();
+  private boolean processSftp(Function<ChannelSftp, Boolean> process) throws JSchException {
+    synchronized (sftpLocker) {
+      boolean result = false;
+      boolean failed;
+      do {
+        failed = false;
+
+        try {
+          if (channelSftp == null || channelSftp.isClosed()) {
+            channelSftp = (ChannelSftp) session.openChannel("sftp");
+            channelSftp.connect();
+          }
+
+          result = process.apply(channelSftp);
+        } catch (JSchException e) {
+          if (e.getMessage().equals("channel is not opened.")) {
+            failed = true;
+            channelSftp = null;
+            WarnLogMessage.issue("Retry to open channel after 1 sec.");
+            try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+          } else {
+            throw e;
+          }
+        }
+      } while (failed);
+      return result;
+    }
   }
 
   private static void transferFiles(String remotePath, Path localPath, ChannelSftp clientChannel) throws SftpException, IOException {

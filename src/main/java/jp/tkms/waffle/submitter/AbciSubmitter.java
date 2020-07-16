@@ -157,11 +157,7 @@ public class AbciSubmitter extends SshSubmitter {
   String getWorkDirectory(UUID packId) throws FailedToControlRemoteException {
     Path path = parseHomePath(host.getWorkBaseDirectory()).resolve(RUN_DIR).resolve("pack").resolve(packId.toString());
 
-    try {
-      session.mkdir(path.toString(), "~/");
-    } catch (JSchException e) {
-      throw new FailedToControlRemoteException(e);
-    }
+    createDirectories(path);
 
     return path.toString();
   }
