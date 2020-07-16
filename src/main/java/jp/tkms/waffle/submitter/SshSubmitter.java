@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
+import org.jruby.RubyProcess;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ public class SshSubmitter extends AbstractSubmitter {
   Host host;
   SshSession session;
   SshSession tunnelSession;
+  String home = null;
 
   public SshSubmitter(Host host) {
     this.host = host;
@@ -125,12 +127,15 @@ public class SshSubmitter extends AbstractSubmitter {
 
   @Override
   public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
-    try {
-      if (pathString.indexOf('~') == 0) {
-        pathString = pathString.replaceAll("^~", session.exec("echo $HOME", "~/").getStdout().replaceAll("\\r|\\n", ""));
+    if (pathString.indexOf('~') == 0) {
+      if (home == null) {
+        try {
+          home = session.exec("echo -n $HOME", "~/").getStdout().replaceAll("\\r|\\n", "");
+        } catch (JSchException e) {
+          throw new FailedToControlRemoteException(e);
+        }
       }
-    } catch (JSchException e) {
-      throw new FailedToControlRemoteException(e);
+      pathString = pathString.replaceAll("^~", home);
     }
     return Paths.get(pathString);
   }
@@ -138,7 +143,7 @@ public class SshSubmitter extends AbstractSubmitter {
   @Override
   public void createDirectories(Path path) throws FailedToControlRemoteException {
     try {
-      session.mkdir(path.toString(), "~/");
+      session.mkdir(path);
     } catch (JSchException e) {
       throw new FailedToControlRemoteException(e);
     }
