@@ -36,6 +36,10 @@ public class Main {
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
 
   public static void main(String[] args) {
+    //NOTE: for https://bugs.openjdk.java.net/browse/JDK-8246714
+    URLConnection.setDefaultUseCaches("classloader", false);
+    URLConnection.setDefaultUseCaches("jar", false);
+
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
 
     System.out.println("PID: " + PID);

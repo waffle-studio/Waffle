@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.Remote;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.util.RubyScript;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
@@ -16,33 +17,15 @@ import org.jruby.exceptions.SystemCallError;
 public class RubyResultCollector extends AbstractResultCollector {
   @Override
   public void collect(AbstractSubmitter submitter, SimulatorRun run, String collectorName) {
-    /*
-    try {
-      String json = submitter.getFileContents(run, collector.getContents().replaceAll("[\n\r\t]", ""));
-      run.putResultsByJson(json);
-    } catch (Exception e) { e.printStackTrace(); }
-     */
-    boolean failed;
-    do {
-      failed = false;
+    RubyScript.process((container) -> {
       try {
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-        try {
-          container.runScriptlet(getInitScript(run));
-          container.runScriptlet(run.getSimulator().getCollectorScript(collectorName));
-          Remote remote = new Remote(run, submitter);
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_result_collect", run, remote);
-          container.terminate();
-        } catch (EvalFailedException e) {
-          container.terminate();
-          BrowserMessage.addMessage("toastr.error('result_collect: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
-        }
-      } catch (SystemCallError | LoadError e) {
-        failed = true;
+        container.runScriptlet(run.getSimulator().getCollectorScript(collectorName));
+        Remote remote = new Remote(run, submitter);
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_result_collect", run, remote);
+      } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);
-        try { Thread.sleep(1000); } catch (InterruptedException ex) { }
       }
-    } while (failed);
+    });
   }
 
   @Override

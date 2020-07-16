@@ -4,6 +4,7 @@ import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.data.util.RubyScript;
 import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import org.jruby.Ruby;
@@ -454,31 +455,16 @@ public class Actor extends AbstractRun {
   }
 
   public void processMessage(AbstractRun caller) {
-    boolean failed;
-    do {
-      failed = false;
+    RubyScript.process((container) -> {
       try {
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-        try {
-          container.runScriptlet(RubyConductor.getInitScript());
-          container.runScriptlet(RubyConductor.getConductorTemplateScript());
-        } catch (EvalFailedException e) {
-          ErrorLogMessage.issue(e);
-        }
-        try {
-          container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
-        } catch (Exception e) {
-          WarnLogMessage.issue(e);
-          getRunNode().appendErrorNote(e.getMessage());
-        }
-        container.terminate();
-      } catch (SystemCallError | LoadError e) {
-        failed = true;
+        container.runScriptlet(RubyConductor.getConductorTemplateScript());
+        container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
+      } catch (Exception e) {
         WarnLogMessage.issue(e);
-        try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+        getRunNode().appendErrorNote(e.getMessage());
       }
-    } while (failed);
+    });
   }
 
   private ConductorTemplate conductorTemplate = null;
@@ -543,49 +529,29 @@ public class Actor extends AbstractRun {
   protected void commit() {
     //TODO: do refactor
     if (conductorTemplate != null) {
-      boolean failed;
-      do {
-        failed = false;
+      RubyScript.process((container) -> {
+        String script = listenerTemplate.getScript();
         try {
-          String script = conductorTemplate.getMainScript();
-          ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-          try {
-            container.runScriptlet(RubyConductor.getInitScript());
-            container.runScriptlet(RubyConductor.getListenerTemplateScript());
-            container.runScriptlet(script);
-            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", this, conductorTemplate);
-          } catch (EvalFailedException e) {
-            WarnLogMessage.issue(e);
-          }
-          container.terminate();
-        } catch (SystemCallError | LoadError e) {
-          failed = true;
+          container.runScriptlet(RubyConductor.getListenerTemplateScript());
+          container.runScriptlet(script);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", this, conductorTemplate);
+        } catch (Exception e) {
           WarnLogMessage.issue(e);
-          try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+          getRunNode().appendErrorNote(e.getMessage());
         }
-      } while (failed);
+      });
     } else if (listenerTemplate != null) {
-      boolean failed;
-      do {
-        failed = false;
+      RubyScript.process((container) -> {
+        String script = listenerTemplate.getScript();
         try {
-          String script = listenerTemplate.getScript();
-          ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-          try {
-            container.runScriptlet(RubyConductor.getInitScript());
-            container.runScriptlet(RubyConductor.getListenerTemplateScript());
-            container.runScriptlet(script);
-            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", this, this);
-          } catch (EvalFailedException e) {
-            WarnLogMessage.issue(e);
-          }
-          container.terminate();
-        } catch (SystemCallError | LoadError e) {
-          failed = true;
+          container.runScriptlet(RubyConductor.getListenerTemplateScript());
+          container.runScriptlet(script);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", this, this);
+        } catch (Exception e) {
           WarnLogMessage.issue(e);
-          try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+          getRunNode().appendErrorNote(e.getMessage());
         }
-      } while (failed);
+      });
     }
 
     if (transactionRunList.size() > 1) {
