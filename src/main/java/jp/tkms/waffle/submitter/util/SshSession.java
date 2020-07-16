@@ -142,7 +142,7 @@ public class SshSession {
       try {
         channelSftp.stat(path.getParent().toString());
       } catch (SftpException e) {
-        if (e.getMessage().startsWith("2:")) {
+        if (e.getMessage().startsWith("No such file")) {
           try {
             mkdir(path.getParent());
           } catch (JSchException ex) {
@@ -155,7 +155,7 @@ public class SshSession {
         channelSftp.stat(path.toString());
         return true;
       } catch (SftpException e) {
-        if (e.getMessage().startsWith("2:")) {
+        if (e.getMessage().startsWith("No such file")) {
           try {
             channelSftp.mkdir(path.toString());
           } catch (SftpException ex) {
