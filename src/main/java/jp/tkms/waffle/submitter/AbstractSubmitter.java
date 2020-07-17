@@ -29,6 +29,15 @@ abstract public class AbstractSubmitter {
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
+  private int pollingInterval = 5;
+
+  public int getPollingInterval() {
+    return pollingInterval;
+  }
+
+  public void skepPolling() {
+    pollingInterval = 0;
+  }
 
   abstract public AbstractSubmitter connect(boolean retry);
   abstract public boolean isConnected();
@@ -59,7 +68,7 @@ abstract public class AbstractSubmitter {
     if (host.isLocal()) {
       submitter = new LocalSubmitter();
     } else if (host.getName().equals("ABCI")) {
-      submitter = new AbciSubmitter(host);
+      submitter = new AbciSubmitter2(host);
     } else {
       submitter = new SshSubmitter(host);
     }
@@ -211,7 +220,6 @@ abstract public class AbstractSubmitter {
   }
 
   String xsubSubmitCommand(Job job) throws FailedToControlRemoteException, RunNotFoundException {
-    //return xsubCommand(job) + " -d '" + getRunDirectory(job.getRun()) + "' " + BATCH_FILE;
     return xsubCommand(job) + " " + BATCH_FILE;
   }
 
@@ -360,28 +368,36 @@ abstract public class AbstractSubmitter {
   }
 
   public void pollingTask(Host host) throws FailedToControlRemoteException {
+    pollingInterval = host.getPollingInterval();
     ArrayList<Job> jobList = Job.getList(host);
 
-    int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
+    int maximumNumberOfJobs = getMaximumNumberOfJobs(host);
 
+    ArrayList<Job> createdJobList = new ArrayList<>();
+    ArrayList<Job> preparedJobList = new ArrayList<>();
     ArrayList<Job> submittedJobList = new ArrayList<>();
-    ArrayList<Job> queuedJobList = new ArrayList<>();
-    int submittedCount = 0;
+    ArrayList<Job> runningJobList = new ArrayList<>();
 
     for (Job job : jobList) {
       try {
         switch (job.getState()) {
           case Created:
+            if ((createdJobList.size() + preparedJobList.size()) < maximumNumberOfJobs) {
+              job.getRun(); // check exists
+              createdJobList.add(job);
+            }
+            break;
           case Prepared:
-            if (queuedJobList.size() < maximumNumberOfJobs) {
-              job.getRun();
-              queuedJobList.add(job);
+            if ((createdJobList.size() + preparedJobList.size()) < maximumNumberOfJobs) {
+              job.getRun(); // check exists
+              preparedJobList.add(job);
             }
             break;
           case Submitted:
-          case Running:
             submittedJobList.add(job);
-            submittedCount++;
+            break;
+          case Running:
+            runningJobList.add(job);
             break;
           case Cancel:
             cancel(job);
@@ -402,6 +418,21 @@ abstract public class AbstractSubmitter {
 
       if (Main.hibernateFlag) { break; }
     }
+
+    processJobLists(host, createdJobList, preparedJobList, submittedJobList, runningJobList);
+  }
+
+  public int getMaximumNumberOfJobs(Host host) {
+    return host.getMaximumNumberOfJobs();
+  }
+
+  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList) throws FailedToControlRemoteException {
+    int maximumNumberOfJobs = getMaximumNumberOfJobs(host);
+    int submittedCount = submittedJobList.size() + runningJobList.size();
+    submittedJobList.addAll(runningJobList);
+    ArrayList<Job> queuedJobList = new ArrayList<>();
+    queuedJobList.addAll(preparedJobList);
+    queuedJobList.addAll(createdJobList);
 
     for (Job job : submittedJobList) {
       if (Main.hibernateFlag) { break; }

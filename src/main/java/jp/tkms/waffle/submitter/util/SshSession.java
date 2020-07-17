@@ -1,6 +1,7 @@
 package jp.tkms.waffle.submitter.util;
 
 import com.jcraft.jsch.*;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import org.jruby.RubyProcess;
 
@@ -23,6 +24,9 @@ public class SshSession {
   protected JSch jsch;
   protected Session session;
   Semaphore channelSemaphore = new Semaphore(4);
+  String username;
+  String host;
+  int port;
 
   public SshSession() throws JSchException {
     this.jsch = new JSch();
@@ -53,16 +57,10 @@ public class SshSession {
     jsch.addIdentity(privKey, pass);
   }
 
-  public void setSession(Session session) {
-    this.session = session;
-  }
-
   public void setSession(String username , String host, int port) throws JSchException {
-    setSession(jsch.getSession(username, host, port));
-  }
-
-  public void setConfig(String key, String value) {
-    session.setConfig(key, value);
+    this.username = username;
+    this.host = host;
+    this.port = port;
   }
 
   public void connect(boolean retry) throws JSchException {
@@ -70,9 +68,19 @@ public class SshSession {
     int waitTime = 10;
     do {
       try {
+        session = jsch.getSession(username, host, port);
+        session.setConfig("StrictHostKeyChecking", "no");
         session.connect();
         connected = true;
       } catch (JSchException e) {
+        if (Main.hibernateFlag) {
+          return;
+        }
+
+        if (e.getMessage().toLowerCase().equals("userauth fail")) {
+          throw e;
+        }
+
         if (!retry) {
           WarnLogMessage.issue(e.getMessage());
           throw e;
@@ -121,6 +129,7 @@ public class SshSession {
         if (e.getMessage().equals("channel is not opened.")) {
           failed = true;
           channelSemaphore.release();
+
           WarnLogMessage.issue("Retry to open channel after 1 sec.");
           try {
             Thread.sleep(1000);

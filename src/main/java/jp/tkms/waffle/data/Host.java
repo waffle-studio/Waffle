@@ -243,6 +243,7 @@ public class Host extends DirectoryBaseData {
         byte[] byteToken = Base64.getDecoder().decode(text);
         return new String(decrypter.doFinal(byteToken));
       } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+        e.printStackTrace();
       }
     }
     return "";

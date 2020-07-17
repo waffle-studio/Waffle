@@ -23,7 +23,7 @@ public class RunStatusUpdater extends AbstractUpdater {
       Html.divWithId("template-Created-badge",
         State.Created.getStatusBadge()
       ),
-      Html.divWithId("template-Queued-badge",
+      Html.divWithId("template-Prepared-badge",
         State.Prepared.getStatusBadge()
       ),
       Html.divWithId("template-Submitted-badge",

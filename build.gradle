@@ -67,3 +67,4 @@ processResources {
 	}
 }
 
+processResources.outputs.upToDateWhen { false }

@@ -53,9 +53,11 @@ public class SshSubmitter extends AbstractSubmitter {
             if (entry.getValue().toString().equals(ENCRYPTED_MARK)) {
               identityPass = host.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS));
             } else {
-              host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, host.encryptText(entry.getValue().toString()));
-              identityPass = entry.getValue().toString();
-              host.setParameter("identity_pass", ENCRYPTED_MARK);
+              if (!entry.getValue().toString().equals("")) {
+                host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, host.encryptText(entry.getValue().toString()));
+                identityPass = entry.getValue().toString();
+                host.setParameter("identity_pass", ENCRYPTED_MARK);
+              }
             }
             break;
           case "port" :
@@ -78,8 +80,10 @@ public class SshSubmitter extends AbstractSubmitter {
           if (tunnelIdentityPass.equals(ENCRYPTED_MARK)) {
             tunnelIdentityPass = host.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1"));
           } else {
-            host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", host.encryptText(tunnelIdentityPass));
-            object.put("identity_pass", ENCRYPTED_MARK);
+            if (! tunnelIdentityPass.equals("")) {
+              host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", host.encryptText(tunnelIdentityPass));
+              object.put("identity_pass", ENCRYPTED_MARK);
+            }
           }
         }
         if (tunnelIdentityPass.equals("")) {
@@ -87,7 +91,6 @@ public class SshSubmitter extends AbstractSubmitter {
         } else {
           tunnelSession.addIdentity(object.getString("identity_file"), tunnelIdentityPass);
         }
-        tunnelSession.setConfig("StrictHostKeyChecking", "no");
         tunnelSession.connect(retry);
         port = tunnelSession.setPortForwardingL(hostName, port);
         hostName = "127.0.0.1";
@@ -101,7 +104,6 @@ public class SshSubmitter extends AbstractSubmitter {
       } else {
         session.addIdentity(identityFile, identityPass);
       }
-      session.setConfig("StrictHostKeyChecking", "no");
       session.connect(retry);
     } catch (Exception e) {
       e.printStackTrace();
