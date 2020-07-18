@@ -101,7 +101,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "var loadBrowserMessage = function() {" +
               "simpleget('" + BrowserMessageComponent.getUrl("") + "' + cid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
-              "setTimeout(loadBrowserMessage, 2000);" +
+              "setTimeout(loadBrowserMessage, 5000);" +
               "var updateJobNum = function(n) {" +
               "if (n > 0) {" +
               "document.getElementById('jobnum').style.display = 'inline-block';" +
