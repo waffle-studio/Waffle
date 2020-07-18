@@ -118,7 +118,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
   @Override
   public void createDirectories(Path path) throws FailedToControlRemoteException {
     try {
-      session.mkdir(path.toString(), "~/");
+      session.mkdir(path);
     } catch (IOException e) {
       throw new FailedToControlRemoteException(e);
     }

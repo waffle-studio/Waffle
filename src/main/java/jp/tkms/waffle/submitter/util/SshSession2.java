@@ -1,14 +1,13 @@
 package jp.tkms.waffle.submitter.util;
 
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.direct.DirectConnection;
 import net.schmizz.sshj.connection.channel.direct.Session;
-import net.schmizz.sshj.sftp.FileMode;
-import net.schmizz.sshj.sftp.RemoteFile;
-import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import net.schmizz.sshj.sftp.SFTPClient;
+import net.schmizz.sshj.sftp.*;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.keyprovider.FileKeyProvider;
@@ -155,9 +154,36 @@ public class SshSession2 {
     return new SshChannel2(channel);
   }
 
-  public boolean mkdir(String path, String workDir) throws IOException {
-    Session.Command channel = exec("mkdir -p " + path, workDir).toCommand();
-    return (channel.getExitStatus() == 0);
+  public boolean mkdir(Path path) throws IOException {
+    if (sftpClient == null) {
+      sftpClient = sshClient.newSFTPClient();
+    }
+    try {
+      sftpClient.stat(path.getParent().toString());
+    } catch (SFTPException e) {
+      if (e.getMessage().startsWith("No such file")) {
+        try {
+          mkdir(path.getParent());
+        } catch (IOException ex) {
+          WarnLogMessage.issue(e);
+          return false;
+        }
+      }
+    }
+    try {
+      sftpClient.stat(path.toString());
+      return true;
+    } catch (SFTPException e) {
+      if (e.getMessage().startsWith("No such file")) {
+        try {
+          sftpClient.mkdir(path.toString());
+        } catch (IOException ex) {
+          WarnLogMessage.issue(ex);
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   public boolean rmdir(String path, String workDir) throws IOException {
@@ -226,10 +252,10 @@ public class SshSession2 {
     clientChannel.get(remotePath, new FileSystemFile(localPath.toString()));
   }
 
-  private static void transferFiles(File localFile, String destPath, SFTPClient clientChannel) throws IOException, FileNotFoundException {
+  private void transferFiles(File localFile, String destPath, SFTPClient clientChannel) throws IOException, FileNotFoundException {
     //System.out.println(localFile + "   --->>>  " + destPath);
     if (localFile.isDirectory()) {
-      clientChannel.mkdir(destPath);
+      mkdir(Paths.get(destPath));
 
       for (File file : localFile.listFiles()) {
         destPath = destPath + "/" + file.getName();
