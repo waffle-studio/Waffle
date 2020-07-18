@@ -78,8 +78,16 @@ public class AbciSubmitter2 extends SshSubmitter {
   }
 
   @Override
-  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList) throws FailedToControlRemoteException {
+  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
     updatedPackJson.clear();
+
+    HashSet<String> cancelJobIdSet = new HashSet<>();
+    for (Job job : cancelJobList) {
+      cancelJobIdSet.add(job.getJobId());
+      try {
+        job.setState(State.Canceled);
+      } catch (RunNotFoundException e) { }
+    }
 
     submittedJobList.addAll(runningJobList);
     HashSet<String> jobIdSet = new HashSet<>();
@@ -105,6 +113,15 @@ public class AbciSubmitter2 extends SshSubmitter {
       }
     }
 
+    for (Job job : cancelJobList) {
+      String jobId = job.getJobId();
+      if (cancelJobIdSet.contains(jobId) && jobIdSet.contains(jobId)) {
+        try {
+          cancel(job);
+        } catch (RunNotFoundException e) { }
+        cancelJobIdSet.remove(jobId);
+      }
+    }
 
     ArrayList<Job> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);

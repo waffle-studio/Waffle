@@ -29,7 +29,13 @@ abstract public class AbstractSubmitter {
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
+
   private int pollingInterval = 5;
+  private ArrayList<Job> createdJobList = new ArrayList<>();
+  private ArrayList<Job> preparedJobList = new ArrayList<>();
+  private ArrayList<Job> submittedJobList = new ArrayList<>();
+  private ArrayList<Job> runningJobList = new ArrayList<>();
+  private ArrayList<Job> cancelJobList = new ArrayList<>();
 
   public int getPollingInterval() {
     return pollingInterval;
@@ -98,6 +104,7 @@ abstract public class AbstractSubmitter {
   }
 
   public void cancel(Job job) throws RunNotFoundException {
+    job.setState(State.Canceled);
     if (! job.getJobId().equals("-1")) {
       try {
         processXdel(job, exec(xdelCommand(job)));
@@ -329,8 +336,7 @@ abstract public class AbstractSubmitter {
   }
 
   void processXdel(Job job, String json) throws RunNotFoundException {
-    job.setState(State.Canceled);
-    job.remove();
+    // nothing to do
   }
 
   Path getContentsPath(SimulatorRun run, Path path) throws FailedToControlRemoteException {
@@ -373,10 +379,11 @@ abstract public class AbstractSubmitter {
 
     int maximumNumberOfJobs = getMaximumNumberOfJobs(host);
 
-    ArrayList<Job> createdJobList = new ArrayList<>();
-    ArrayList<Job> preparedJobList = new ArrayList<>();
-    ArrayList<Job> submittedJobList = new ArrayList<>();
-    ArrayList<Job> runningJobList = new ArrayList<>();
+    createdJobList.clear();
+    preparedJobList.clear();
+    submittedJobList.clear();
+    runningJobList.clear();
+    cancelJobList.clear();
 
     for (Job job : jobList) {
       try {
@@ -400,7 +407,7 @@ abstract public class AbstractSubmitter {
             runningJobList.add(job);
             break;
           case Cancel:
-            cancel(job);
+            cancelJobList.add(job);
             break;
           case Finished:
           case Failed:
@@ -419,20 +426,28 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
     }
 
-    processJobLists(host, createdJobList, preparedJobList, submittedJobList, runningJobList);
+    processJobLists(host, createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
   }
 
   public int getMaximumNumberOfJobs(Host host) {
     return host.getMaximumNumberOfJobs();
   }
 
-  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList) throws FailedToControlRemoteException {
+  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
     int maximumNumberOfJobs = getMaximumNumberOfJobs(host);
     int submittedCount = submittedJobList.size() + runningJobList.size();
     submittedJobList.addAll(runningJobList);
     ArrayList<Job> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
+
+    for (Job job : cancelJobList) {
+      try {
+        cancel(job);
+      } catch (RunNotFoundException e) {
+        job.remove();
+      }
+    }
 
     for (Job job : submittedJobList) {
       if (Main.hibernateFlag) { break; }
