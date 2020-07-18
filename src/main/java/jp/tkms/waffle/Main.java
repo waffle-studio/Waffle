@@ -2,9 +2,7 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
-import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
@@ -13,13 +11,11 @@ import spark.Spark;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static spark.Spark.*;
@@ -34,6 +30,9 @@ public class Main {
   public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
+  private static Thread fileWatcherThread;
+  private static Thread pollingThreadWakerThread;
+  private static Thread gcInvokerThread;
 
   public static void main(String[] args) {
     //NOTE: for https://bugs.openjdk.java.net/browse/JDK-8246714
@@ -79,12 +78,12 @@ public class Main {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    new Thread(){
+    fileWatcherThread = new Thread(){
       @Override
       public void run() {
         try {
           WatchKey watchKey = null;
-          while ((watchKey = fileWatchService.take()) != null) {
+          while (!hibernateFlag && (watchKey = fileWatchService.take()) != null) {
             for (WatchEvent<?> event : watchKey.pollEvents()) {
               Runnable runnable = fileChangedEventListenerMap.get((Path)watchKey.watchable());
               if (runnable != null) {
@@ -94,20 +93,17 @@ public class Main {
             watchKey.reset();
           }
         } catch (InterruptedException e) {
-          ErrorLogMessage.issue(e);
+          return;
         }
       }
-    }.start();
+    };
+    fileWatcherThread.start();
 
     staticFiles.location("/static");
 
     ErrorComponent.register();
 
     redirect.get("/", Constants.ROOT_PAGE);
-
-    after(((request, response) -> {
-      PollingThread.startup();
-    }));
 
     BrowserMessageComponent.register();
 
@@ -122,22 +118,37 @@ public class Main {
     SystemComponent.register();
     SigninComponent.register();
 
-    PollingThread.startup();
+    pollingThreadWakerThread =  new Thread() {
+      @Override
+      public void run() {
+        while (!hibernateFlag) {
+          PollingThread.startup();
+          try {
+            currentThread().sleep(5000);
+          } catch (InterruptedException e) {
+            return;
+          }
+        }
+        return;
+      }
+    };
+    pollingThreadWakerThread.start();
 
-    new Thread(){
+    gcInvokerThread = new Thread(){
       @Override
       public void run() {
         while (!hibernateFlag) {
           try {
             currentThread().sleep(60000);
           } catch (InterruptedException e) {
-            e.printStackTrace();
+            return;
           }
           System.gc();
         }
         return;
       }
-    }.start();
+    };
+    gcInvokerThread.start();
 
     ScriptingContainer scriptingContainer = new ScriptingContainer(LocalContextScope.THREADSAFE);
     scriptingContainer.runScriptlet("print \"\"");
@@ -159,21 +170,25 @@ public class Main {
         System.out.println("System will hibernate");
         hibernateFlag = true;
         PollingThread.waitForShutdown();
-        System.out.println("System hibernated");
+        Spark.awaitStop();
+
         try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-        Spark.stop();
+          threadPool.shutdown();
+          fileWatcherThread.interrupt();
+          pollingThreadWakerThread.interrupt();
+          gcInvokerThread.interrupt();
+        } catch (Throwable e) {}
+
         if (restartFlag) {
           restartProcess();
-        } else {
-          System.exit(0);
         }
+
+        System.out.println("System hibernated");
+        System.exit(0);
         return;
       }
     }.start();
+
     return;
   }
 
@@ -223,7 +238,6 @@ public class Main {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    System.exit(0);
   }
 
   public static void updateProcess() {
