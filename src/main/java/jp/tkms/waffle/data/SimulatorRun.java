@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
@@ -285,7 +286,9 @@ public class SimulatorRun extends AbstractRun {
       this.state = state;
       new RunStatusUpdater(this);
 
-      finish();
+      Main.threadPool.execute(() -> {
+        finish();
+      });
     }
   }
 
@@ -539,6 +542,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void start() {
+    putVariablesByJson(getParentActor().getVariables().toString());
     isStarted = true;
     Job.addRun(this);
   }

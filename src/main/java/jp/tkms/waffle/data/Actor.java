@@ -559,7 +559,6 @@ public class Actor extends AbstractRun {
     }
 
     for (AbstractRun createdRun : transactionRunList) {
-      createdRun.putVariablesByJson(getVariables().toString());
       if (! createdRun.isStarted()) {
         createdRun.start();
       }

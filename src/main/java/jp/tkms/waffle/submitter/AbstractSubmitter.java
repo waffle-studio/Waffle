@@ -278,6 +278,7 @@ abstract public class AbstractSubmitter {
             job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
             WarnLogMessage.issue(e);
           }
+          job.getRun().setExitStatus(exitStatus);
 
           Path runDirectoryPath = getRunDirectory(job.getRun());
 
@@ -323,8 +324,6 @@ abstract public class AbstractSubmitter {
           } else {
             job.setState(State.Failed);
           }
-
-          job.getRun().setExitStatus(exitStatus);
           job.remove();
 
           break;
