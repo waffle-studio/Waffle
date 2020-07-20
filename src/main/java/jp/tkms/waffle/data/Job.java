@@ -124,6 +124,24 @@ public class Job extends Data {
     return list;
   }
 
+  public static boolean hasJob(Host host) {
+    final boolean[] result = {false};
+    handleDatabase(new Job(), new Handler() {
+      @Override
+      void handling(Database db) throws SQLException {
+        PreparedStatement statement
+          = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=? limit 1;");
+        statement.setString(1, host.getId());
+        ResultSet resultSet = statement.executeQuery();
+        while (resultSet.next()) {
+          result[0] = true;
+        }
+      }
+    });
+
+    return result[0];
+  }
+
   public static int getNum() {
     final int[] num = {0};
 

@@ -11,7 +11,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.concurrent.Semaphore;
 
 public class Database implements AutoCloseable {
   static Logger logger = LoggerFactory.getLogger("Database");
@@ -21,11 +24,26 @@ public class Database implements AutoCloseable {
   static final String KEY_VALUE = "value";
 
   private static boolean initialized = false;
+  private Semaphore semaphore;
   private Connection connection;
   private String url;
   private static Properties properties;
 
+  private static HashMap<String, Semaphore> semaphoreMap = new HashMap<>();
+
+
   private Database(String url) throws SQLException {
+    semaphore = semaphoreMap.get(url);
+    if (semaphore == null) {
+      semaphore = new Semaphore(1);
+      semaphoreMap.put(url, semaphore);
+    }
+    try {
+      semaphore.acquire();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     this.url = url;
     this.connection = DriverManager.getConnection(url, properties);
     connection.setAutoCommit(false);
@@ -81,6 +99,7 @@ public class Database implements AutoCloseable {
 
   public void close() throws SQLException {
     connection.close();
+    semaphore.release();
   }
 
   public int getVersion(String tag) {

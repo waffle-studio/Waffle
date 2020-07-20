@@ -253,7 +253,13 @@ abstract public class AbstractSubmitter {
     try {
       JSONObject object = new JSONObject(json);
       String jobId = object.getString("job_id");
-      job.setJobId(jobId);
+      Main.threadPool.submit(() -> {
+        try {
+          job.setJobId(jobId);
+        } catch (RunNotFoundException e) {
+          ErrorLogMessage.issue(e);
+        }
+      });
       job.setState(State.Submitted);
       InfoLogMessage.issue(job.getRun(), "was submitted");
     } catch (Exception e) {

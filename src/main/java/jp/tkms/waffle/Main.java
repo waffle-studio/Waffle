@@ -174,6 +174,7 @@ public class Main {
 
         try {
           threadPool.shutdown();
+          threadPool.awaitTermination(7, TimeUnit.DAYS);
           fileWatcherThread.interrupt();
           pollingThreadWakerThread.interrupt();
           gcInvokerThread.interrupt();

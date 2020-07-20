@@ -71,7 +71,7 @@ public class PollingThread extends Thread {
     if (!Main.hibernateFlag) {
       for (Host host : Host.getList()) {
         if (host.getState().equals(HostState.Viable)) {
-          if (!threadMap.containsKey(host.getId()) && Job.getList(host).size() > 0) {
+          if (!threadMap.containsKey(host.getId()) && Job.hasJob(host)) {
             host.update();
             if (host.getState().equals(HostState.Viable)) {
               PollingThread pollingThread = new PollingThread(host);
