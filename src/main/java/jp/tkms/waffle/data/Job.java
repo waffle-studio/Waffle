@@ -18,171 +18,46 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class Job extends Data {
-  private static final String TABLE_NAME = "job";
-  private static final String KEY_PROJECT = "project";
-  private static final String KEY_HOST = "host";
-  private static final String KEY_JOB_ID = "job_id";
-  private static final String KEY_STATE = "state";
-  private static final String KEY_ERROR_COUNT = "error_count";
-
-  private static final HashMap<String, Job> instanceMap = new HashMap<>();
-
-  private Project project = null;
-  private Host host = null;
-  private SimulatorRun run = null;
-  private String jobId = null;
+public class Job {
+  private UUID id = null;
+  private String projectName = null;
+  private String hostName = null;
   private State state = null;
-  private Integer errorCount = null;
+  private String jobId = "";
+  private int errorCount = 0;
 
-  public Job(UUID id) {
-    super(id, "");
+  public Job(UUID id, Project project, Host host, State state) {
+    this.id = id;
   }
 
-  public Job() { }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public UUID getId() {
+    return id;
   }
 
   public static Job getInstance(String id) {
-    final Job[] job = {null};
-
-    job[0] = instanceMap.get(id);
-    if (job[0] != null) {
-      return job[0];
-    }
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select id from " + TABLE_NAME + " where id=?;");
-        statement.setString(1, id);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          job[0] = new Job(
-            UUID.fromString(resultSet.getString(KEY_ID))
-          );
-        }
-      }
-    });
-
-    instanceMap.put(id, job[0]);
-
-    return job[0];
+    return Main.jobStore.getJob(UUID.fromString(id));
   }
 
   public static ArrayList<Job> getList() {
-    ArrayList<Job> list = new ArrayList<>();
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          String id = resultSet.getString(KEY_ID);
-          Job job = instanceMap.get(id);
-          if (job != null) {
-            list.add(job);
-            continue;
-          }
-          job = new Job(UUID.fromString(id));
-          instanceMap.put(id, job);
-          list.add(job);
-        }
-      }
-    });
-
-    return list;
+    return new ArrayList<>(Main.jobStore.getList());
   }
 
   public static ArrayList<Job> getList(Host host) {
-    ArrayList<Job> list = new ArrayList<>();
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=?;");
-        statement.setString(1, host.getId());
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          String id = resultSet.getString(KEY_ID);
-          Job job = instanceMap.get(id);
-          if (job != null) {
-            list.add(job);
-            continue;
-          }
-          job = new Job(UUID.fromString(id));
-          instanceMap.put(id, job);
-          list.add(job);
-        }
-      }
-    });
-
-    return list;
+    return new ArrayList<>(Main.jobStore.getList(host));
   }
 
   public static boolean hasJob(Host host) {
-    final boolean[] result = {false};
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("select id from " + TABLE_NAME + " where " + KEY_HOST + "=? limit 1;");
-        statement.setString(1, host.getId());
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-          result[0] = true;
-        }
-      }
-    });
-
-    return result[0];
+    return getList(host).size() > 0;
   }
 
   public static int getNum() {
-    final int[] num = {0};
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select count(*) as num from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          num[0] = resultSet.getInt("num");
-        }
-      }
-    });
-
-    return num[0];
+    return getList().size();
   }
 
   public static void addRun(SimulatorRun run) {
-    String hostId = run.getHost().getId();
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet
-          = new Sql.Select(db, TABLE_NAME, "count(*) as count").where(Sql.Value.equal(KEY_ID, run.getId())).executeQuery();
-        int count = 0;
-        while (resultSet.next()) {
-          count = resultSet.getInt("count");
-        }
-        if (count <= 0) {
-          new Sql.Insert(db, TABLE_NAME,
-            Sql.Value.equal(KEY_ID, run.getId()),
-            Sql.Value.equal(KEY_PROJECT, run.getProject().getId()),
-            Sql.Value.equal(KEY_HOST, hostId),
-            Sql.Value.equal(KEY_STATE, run.getState().ordinal())
-            ).execute();
-        }
-      }
-    });
+    Job job = new Job(run.getUuid(), run.getProject(), run.getHost(), run.getState());
+    Main.jobStore.register(job);
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
-
-    getInstance(run.getId()); //load cache
   }
 
   public void cancel() throws RunNotFoundException {
@@ -192,26 +67,15 @@ public class Job extends Data {
   }
 
   public void remove() {
-
-    handleDatabase(new Job(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        new Sql.Delete(db, getTableName()).where(Sql.Value.equal(KEY_ID, getId())).execute();
-      }
-    });
+    Main.jobStore.remove(id);
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
-
-    instanceMap.remove(getId());
   }
 
   public void setJobId(String jobId) throws RunNotFoundException {
-    setToDB(KEY_JOB_ID, jobId);
     this.jobId = jobId;
-    getRun().setJobId(jobId);
   }
 
   public void setState(State state) throws RunNotFoundException {
-    setToDB(KEY_STATE, state.ordinal());
     this.state = state;
     if (getRun() != null) {
       getRun().setState(state);
@@ -219,99 +83,30 @@ public class Job extends Data {
   }
 
   public void incrementErrorCount() {
-    if (
-      handleDatabase(new Job(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("update " + getTableName() + " set " + KEY_ERROR_COUNT + "=" + KEY_ERROR_COUNT + " +1 where id=?;");
-          statement.setString(1, getId());
-          statement.execute();
-        }
-      })
-    ) {
-      errorCount = null;
-    }
-  }
-
-  public Path getLocation() {
-    Path path = Paths.get( TABLE_NAME + File.separator + name + '_' + shortId );
-    return path;
+    errorCount += 1;
   }
 
   public Project getProject() {
-    if (project == null) {
-      project = Project.getInstance(getStringFromDB(KEY_PROJECT));
-    }
-    return project;
+    return Project.getInstanceByName(projectName);
   }
 
   public Host getHost() {
-    if (host == null) {
-      host = Host.getInstance(getStringFromDB(KEY_HOST));
-    }
-    return host;
+    return Host.getInstanceByName(hostName);
   }
 
   public SimulatorRun getRun() throws RunNotFoundException {
-    if (run == null) {
-      run = SimulatorRun.getInstance(getProject(), getId());
-    }
-    return run;
+    return SimulatorRun.getInstance(getProject(), id.toString());
   }
 
   public String getJobId() {
-    if (jobId == null) {
-      jobId = getStringFromDB(KEY_JOB_ID);
-    }
     return jobId;
   }
 
   public State getState() {
-    if (state == null) {
-      state = State.valueOf(getIntFromDB(KEY_STATE));
-    }
     return state;
   }
 
   public int getErrorCount() {
-    if (errorCount == null) {
-      errorCount = Integer.valueOf(getStringFromDB(KEY_ERROR_COUNT));
-    }
     return errorCount;
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(id," +
-                KEY_PROJECT + "," +
-                KEY_HOST + "," +
-                KEY_JOB_ID + " default ''," +
-                KEY_ERROR_COUNT + " default 0," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          },
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              new Sql.AlterTable(db, TABLE_NAME, Sql.AlterTable.withDefault(KEY_STATE, String.valueOf(State.Created.ordinal()))).execute();
-            }
-          }
-        ));
-      }
-    };
   }
 }

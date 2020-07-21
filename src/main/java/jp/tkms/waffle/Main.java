@@ -2,6 +2,7 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
+import jp.tkms.waffle.data.JobStore;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.LocalContextScope;
@@ -28,6 +29,7 @@ public class Main {
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
   public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
+  public static JobStore jobStore = null;
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
   private static Thread fileWatcherThread;
@@ -72,6 +74,12 @@ public class Main {
         return;
       }
     });
+
+    try {
+      jobStore = JobStore.load();
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
 
     try {
       fileWatchService = FileSystems.getDefault().newWatchService();
@@ -179,6 +187,12 @@ public class Main {
           pollingThreadWakerThread.interrupt();
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
+
+        try {
+          jobStore.save();
+        } catch (IOException e) {
+          ErrorLogMessage.issue(e);
+        }
 
         if (restartFlag) {
           restartProcess();
