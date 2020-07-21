@@ -19,19 +19,32 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class Job {
-  private UUID id = null;
+  private String id = null;
   private String projectName = null;
   private String hostName = null;
   private State state = null;
   private String jobId = "";
   private int errorCount = 0;
 
+  public Job() {}
+
   public Job(UUID id, Project project, Host host, State state) {
-    this.id = id;
+    this.id = id.toString();
+    this.projectName = project.getName();
+    this.hostName = host.getName();
+    this.state = state;
   }
 
-  public UUID getId() {
+  public String getId() {
     return id;
+  }
+
+  public UUID getUuid() {
+    return UUID.fromString(id);
+  }
+
+  public String getShortId() {
+    return id.replaceFirst("-.*$", "");
   }
 
   public static Job getInstance(String id) {
@@ -95,7 +108,7 @@ public class Job {
   }
 
   public SimulatorRun getRun() throws RunNotFoundException {
-    return SimulatorRun.getInstance(getProject(), id.toString());
+    return SimulatorRun.getInstance(getProject(), id);
   }
 
   public String getJobId() {

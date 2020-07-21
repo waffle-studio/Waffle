@@ -17,7 +17,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class JobStore {
-  private HashMap<UUID, Job> jobMap;
+  private HashMap<String, Job> jobMap;
   private HashMap<String, ArrayList<Job>> hostJobListMap;
 
   public JobStore() {
@@ -51,12 +51,12 @@ public class JobStore {
     getList(job.getHost()).add(job);
   }
 
-  public void remove(UUID id) {
+  public void remove(String id) {
     if (id == null) {
       return;
     }
     Job removedJob = jobMap.remove(id);
-    if (removedJob == null) {
+    if (removedJob != null) {
       getList(removedJob.getHost()).remove(removedJob);
     }
   }

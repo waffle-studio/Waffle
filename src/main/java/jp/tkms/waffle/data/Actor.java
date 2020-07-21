@@ -15,6 +15,7 @@ import org.jruby.embed.ScriptingContainer;
 import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -275,6 +276,7 @@ public class Actor extends AbstractRun {
 
     JSONArray finalCallstack = callstack;
     RunNode finalRunNode = runNode;
+    JSONObject parentVariables = parent.getVariables();
     handleDatabase(new Actor(project), new Handler() {
       @Override
       void handling(Database db) throws SQLException {
@@ -284,7 +286,7 @@ public class Actor extends AbstractRun {
           Sql.Value.equal( KEY_PARENT, parent.getId() ),
           Sql.Value.equal( KEY_RESPONSIBLE_ACTOR, parent.getId() ),
           Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
-          Sql.Value.equal( KEY_VARIABLES, parent.getVariables().toString() ),
+          Sql.Value.equal( KEY_VARIABLES, parentVariables.toString() ),
           Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
           Sql.Value.equal( KEY_RUNNODE, finalRunNode.getId()),
           Sql.Value.equal( KEY_ACTOR, actorName),
@@ -373,11 +375,13 @@ public class Actor extends AbstractRun {
     };
     thread.start();
     if (!async) {
+      System.out.println("22222");
       try {
         thread.join();
       } catch (InterruptedException e) {
         ErrorLogMessage.issue(e);
       }
+      System.out.println("22222");
     }
   }
 
