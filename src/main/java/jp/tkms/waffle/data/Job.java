@@ -22,17 +22,15 @@ public class Job {
   private String id = null;
   private String projectName = null;
   private String hostName = null;
-  private State state = null;
   private String jobId = "";
   private int errorCount = 0;
 
   public Job() {}
 
-  public Job(UUID id, Project project, Host host, State state) {
+  public Job(UUID id, Project project, Host host) {
     this.id = id.toString();
     this.projectName = project.getName();
     this.hostName = host.getName();
-    this.state = state;
   }
 
   public String getId() {
@@ -68,7 +66,7 @@ public class Job {
   }
 
   public static void addRun(SimulatorRun run) {
-    Job job = new Job(run.getUuid(), run.getProject(), run.getHost(), run.getState());
+    Job job = new Job(run.getUuid(), run.getProject(), run.getHost());
     Main.jobStore.register(job);
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
@@ -89,9 +87,9 @@ public class Job {
   }
 
   public void setState(State state) throws RunNotFoundException {
-    this.state = state;
-    if (getRun() != null) {
-      getRun().setState(state);
+    SimulatorRun run = getRun();
+    if (run != null) {
+      run.setState(state);
     }
   }
 
@@ -115,8 +113,8 @@ public class Job {
     return jobId;
   }
 
-  public State getState() {
-    return state;
+  public State getState() throws RunNotFoundException {
+    return getRun().getState();
   }
 
   public int getErrorCount() {

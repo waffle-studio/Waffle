@@ -189,7 +189,7 @@ public class SshSession {
     return channel.getStdout();
   }
 
-  public boolean putText(String text, String path, String workDir) throws JSchException {
+  public synchronized boolean putText(String text, String path, String workDir) throws JSchException {
     return processSftp(channelSftp -> {
       try {
         channelSftp.cd(workDir);

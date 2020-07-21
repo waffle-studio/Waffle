@@ -56,20 +56,26 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray localSharedList;
 
+  private static final HashMap<String, SimulatorRun> instanceMap = new HashMap<>();
+
   private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
     this(parent.getProject(), runNode.getUuid(),"",
-      simulator.getId(), host.getId(), State.Created, runNode);
+      simulator.getId(), host.getId(), runNode);
   }
 
-  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, State state, RunNode runNode) {
+  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, RunNode runNode) {
     super(project, id, name, runNode);
     this.simulator = simulator;
     this.host = host;
-    this.state = state;
   }
 
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     final SimulatorRun[] run = {null};
+
+    run[0] = instanceMap.get(id);
+    if (run[0] != null)  {
+      return run[0];
+    }
 
     if (id != null && !"".equals(id)) {
       handleDatabase(new SimulatorRun(project), new Handler() {
@@ -82,7 +88,6 @@ public class SimulatorRun extends AbstractRun {
             KEY_PARENT,
             KEY_SIMULATOR,
             KEY_HOST,
-            KEY_STATE,
             KEY_RUNNODE
           ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
           while (resultSet.next()) {
@@ -96,7 +101,6 @@ public class SimulatorRun extends AbstractRun {
                 resultSet.getString(KEY_NAME),
                 resultSet.getString(KEY_SIMULATOR),
                 resultSet.getString(KEY_HOST),
-                State.valueOf(resultSet.getInt(KEY_STATE)),
                 runNode
               );
             }
@@ -108,6 +112,8 @@ public class SimulatorRun extends AbstractRun {
     if (run[0] == null) {
       throw new RunNotFoundException();
     }
+
+    instanceMap.put(id, run[0]);
 
     return run[0];
   }
@@ -128,6 +134,9 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public State getState() {
+    if (state == null) {
+      state = State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
+    }
     return state;
   }
 
@@ -148,15 +157,21 @@ public class SimulatorRun extends AbstractRun {
         ).where(Sql.Value.equal(KEY_PARENT, parent.getId()))
           .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
         while (resultSet.next()) {
-          list.add(new SimulatorRun(
+          SimulatorRun run = instanceMap.get(resultSet.getString(KEY_ID));
+          if (run != null) {
+            list.add(run);
+            continue;
+          }
+          run = new SimulatorRun(
             project,
             UUID.fromString(resultSet.getString(KEY_ID)),
             resultSet.getString(KEY_NAME),
             resultSet.getString(KEY_SIMULATOR),
             resultSet.getString(KEY_HOST),
-            State.valueOf(resultSet.getInt(KEY_STATE)),
             RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE))
-          ));
+          );
+          instanceMap.put(run.getId(), run);
+          list.add(run);
         }
       }
     });
@@ -186,6 +201,7 @@ public class SimulatorRun extends AbstractRun {
 
   public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
     SimulatorRun run = new SimulatorRun(parent, simulator, host, runNode);
+    instanceMap.put(run.getId(), run);
     ActorGroup conductor = parent.getActorGroup();
     String conductorId = (conductor == null ? "" : conductor.getId());
     String simulatorId = run.getSimulator().getId();
@@ -265,7 +281,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void setState(State state) {
-    if (!this.state.equals(state)) {
+    if (!this.getState().equals(state)) {
       switch (state) {
         case Finished:
         case Failed:
@@ -277,18 +293,18 @@ public class SimulatorRun extends AbstractRun {
           setToProperty(KEY_SUBMITTED_AT, ZonedDateTime.now().toEpochSecond());
       }
 
+      State prev = getState();
+      this.state = state;
+      setToProperty(KEY_STATE, state.ordinal());
+
       try {
-        ((SimulatorRunNode) getRunNode()).updateState(this.state, state);
+        ((SimulatorRunNode) getRunNode()).updateState(prev, state);
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }
-      setToDB(KEY_STATE, state.ordinal());
-      this.state = state;
       new RunStatusUpdater(this);
 
-      Main.threadPool.execute(() -> {
-        finish();
-      });
+      finish();
     }
   }
 
@@ -534,6 +550,7 @@ public class SimulatorRun extends AbstractRun {
 
   @Override
   public boolean isRunning() {
+    State state = getState();
     return (state.equals(State.Created)
       || state.equals(State.Prepared)
       || state.equals(State.Submitted)

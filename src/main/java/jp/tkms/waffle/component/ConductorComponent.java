@@ -141,6 +141,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         Actor lastConductorRun = Actor.getLastInstance(project, conductor);
 
         // TODO: do refactoring
+        /*
         ArrayList<Actor> notFinishedList = new ArrayList<>();
         for (Actor notFinished : Actor.getNotFinishedList(project)) {
           if (!notFinished.isRoot()) {
@@ -155,6 +156,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             runningCount += 1;
           }
         }
+         */
+        int runningCount = 0;
 
 
         if (lastConductorRun != null && ! lastConductorRun.getErrorNote().equals("")) {

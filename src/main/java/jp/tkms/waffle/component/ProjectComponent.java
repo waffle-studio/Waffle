@@ -226,11 +226,13 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
                 for (ActorGroup conductor : ActorGroup.getList(project)) {
                   int runningCount = 0;
+                  /*
                   for (Actor notFinished : notFinishedList) {
                     if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {
                       runningCount += 1;
                     }
                   }
+                   */
 
                   int finalRunningCount = runningCount;
                   list.add(Main.threadPool.submit(() -> {

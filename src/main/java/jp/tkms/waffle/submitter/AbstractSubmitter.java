@@ -22,6 +22,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
@@ -30,6 +34,7 @@ abstract public class AbstractSubmitter {
   protected static final String ARGUMENTS_FILE = "arguments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
+  protected static ExecutorService threadPool = Executors.newFixedThreadPool(4);
   private int pollingInterval = 5;
   private ArrayList<Job> createdJobList = new ArrayList<>();
   private ArrayList<Job> preparedJobList = new ArrayList<>();
@@ -86,7 +91,8 @@ abstract public class AbstractSubmitter {
       if (job.getState().equals(State.Created)) {
         prepareJob(job);
       }
-      processXsubSubmit(job, exec(xsubSubmitCommand(job)));
+      String execstr =  exec(xsubSubmitCommand(job));
+      processXsubSubmit(job, execstr);
     } catch (Exception e) {
       WarnLogMessage.issue(e);
       job.setState(State.Excepted);
@@ -448,6 +454,25 @@ abstract public class AbstractSubmitter {
       }
     }
 
+    ArrayList<Future> futureList = new ArrayList<>();
+    for (Job job : createdJobList) {
+      futureList.add(threadPool.submit(() -> {
+        try {
+          prepareJob(job);
+        } catch (WaffleException e) {
+          WarnLogMessage.issue(e);
+        }
+      }));
+    }
+
+    for (Future future : futureList) {
+      try {
+        future.get();
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
     for (Job job : submittedJobList) {
       if (Main.hibernateFlag) { break; }
 
@@ -477,9 +502,6 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
 
       try {
-        if (job.getState().equals(State.Created)) {
-          prepareJob(job);
-        }
         if (submittedCount < maximumNumberOfJobs) {
           submit(job);
           submittedCount++;

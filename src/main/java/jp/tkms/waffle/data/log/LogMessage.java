@@ -4,8 +4,12 @@ import jp.tkms.waffle.data.Log;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class LogMessage extends Throwable {
+  public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
+
   String message;
 
   public LogMessage(String message) {
@@ -18,7 +22,9 @@ public class LogMessage extends Throwable {
   }
 
   public void printMessage() {
-    Log.create(this);
+    threadPool.submit(() -> {
+      Log.create(this);
+    });
   }
 
   public static String getStackTrace(Throwable e) {

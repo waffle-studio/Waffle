@@ -249,6 +249,8 @@ public class Actor extends AbstractRun {
       }
     });
 
+    System.out.println(list.size());
+
     return list;
   }
 
@@ -375,13 +377,11 @@ public class Actor extends AbstractRun {
     };
     thread.start();
     if (!async) {
-      System.out.println("22222");
       try {
         thread.join();
       } catch (InterruptedException e) {
         ErrorLogMessage.issue(e);
       }
-      System.out.println("22222");
     }
   }
 
