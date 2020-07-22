@@ -50,6 +50,7 @@ dependencies {
 	compile 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
 	compile 'com.hierynomus:sshj:0.29.0'
 	compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.24.0'
+	compile group: 'org.ehcache', name: 'ehcache', version: '3.8.1'
 }
 
 // Define the main class for the application
