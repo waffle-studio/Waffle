@@ -9,12 +9,15 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BrowserMessage extends Data {
   private static final String TABLE_NAME = "browser_message";
   private static final String KEY_MESSAGE = "message";
   private static final String KEY_ROWID = "rowid";
   private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
+
+  private static ConcurrentLinkedQueue<Log> logQueue = new ConcurrentLinkedQueue<>();
 
   private int rowId;
   private String message = null;

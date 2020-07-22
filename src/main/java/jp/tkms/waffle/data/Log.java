@@ -8,93 +8,76 @@ import jp.tkms.waffle.data.log.LogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.Sql;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import static jp.tkms.waffle.data.AbstractRun.KEY_TIMESTAMP_CREATE;
-
-public class Log extends Data {
+public class Log {
   protected static final String TABLE_NAME = "log";
+  private static final String KEY_ID = "id";
   private static final String KEY_LEVEL = "level";
   private static final String KEY_MESSAGE = "message";
+  private static final String KEY_TIMESTAMP = "timestamp";
 
-  private int rowid = -1;
+  private static ExecutorService loggerThread = Executors.newSingleThreadExecutor();
+  private static final Object objectLocker = new Object();
+  private static Long nextId = 0L;
+
+  private long timestamp = 0;
+  private long id = -1;
   private Level level = null;
   private String message = null;
 
-
-  public Log() {
-    super();
-  }
-
-  public Log(UUID id, String name, Level level, String message) {
-    super(id, name);
+  private Log(long id, long timestamp, Level level, String message) {
+    this.id = id;
+    this.timestamp = timestamp;
     this.level = level;
     this.message = message;
   }
 
-  public Log(UUID id, String name, Level level, String message, int rowid) {
-    this(id, name, level, message);
-    this.rowid = rowid;
+  private Log(Level level, String message) {
+    this(getNextId(), (System.currentTimeMillis() / 1000L), level, message);
   }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public static long getNextId() {
+    synchronized (nextId) {
+      return nextId++;
+    }
   }
 
-  public static Log getInstance(String id) {
-    final Log[] log = {null};
-
-    handleDatabase(new Log(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_LEVEL, KEY_MESSAGE, KEY_ROWID).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
-        while (resultSet.next()) {
-          log[0] = new Log(
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            Level.valueOf(resultSet.getInt(KEY_LEVEL)),
-            resultSet.getString(KEY_MESSAGE),
-            resultSet.getInt(KEY_ROWID)
-          );
-        }
-      }
-    });
-
-    return log[0];
-  }
-
-  public static ArrayList<Log> getList(int from, int limit) {
+  public static ArrayList<Log> getDescList(int from, int limit) {
     ArrayList<Log> logs = new ArrayList<>();
 
-    handleDatabase(new Log(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        Sql.Select select = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_LEVEL, KEY_MESSAGE, KEY_ROWID);
+    synchronized (objectLocker) {
+      try {
+        Database db = getDatabase();
+        tryCreateTable(db);
+        Sql.Select select = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_LEVEL, KEY_MESSAGE, KEY_TIMESTAMP);
         if (from >= 0) {
-          select.where(Sql.Value.lessThan(KEY_ROWID, from));
+          select.where(Sql.Value.lessThan(KEY_ID, from));
         }
-        select.orderBy(KEY_ROWID, true);
+        select.orderBy(KEY_ID, true);
         select.limit(limit);
         ResultSet resultSet = select.executeQuery();
         while (resultSet.next()) {
           logs.add(new Log(
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
+            resultSet.getLong(KEY_ID),
+            resultSet.getLong(KEY_TIMESTAMP),
             Level.valueOf(resultSet.getInt(KEY_LEVEL)),
-            resultSet.getString(KEY_MESSAGE),
-            resultSet.getInt(KEY_ROWID)
+            resultSet.getString(KEY_MESSAGE)
           ));
         }
+        db.close();
+      } catch (SQLException e) {
+        ErrorLogMessage.issue(e);
       }
-    });
+    }
 
     return logs;
   }
@@ -102,18 +85,25 @@ public class Log extends Data {
   public static Log create(Level level, String message) {
     System.err.println('[' + level.name() + "] " + message);
 
-    Log log = new Log(UUID.randomUUID(), "", level, message);
+    Log log = new Log(level, message);
 
-    handleDatabase(new Log(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
+    loggerThread.submit(() -> {
+      synchronized (objectLocker) {
+        try {
+          Database db = getDatabase();
+          tryCreateTable(db);
           new Sql.Insert(db, TABLE_NAME,
-            Sql.Value.equal(KEY_ID, log.getId()),
-            Sql.Value.equal(KEY_LEVEL, level.ordinal()),
-            Sql.Value.equal(KEY_MESSAGE, message)
+            Sql.Value.equal(KEY_LEVEL, log.level.ordinal()),
+            Sql.Value.equal(KEY_MESSAGE, log.message),
+            Sql.Value.equal(KEY_TIMESTAMP, log.timestamp),
+            Sql.Value.equal(KEY_ID, log.id)
           ).execute();
+          db.close();
+        } catch (SQLException e) {
+          ErrorLogMessage.issue(e);
         }
-      });
+      }
+    });
 
     new LogUpdater(log);
 
@@ -131,40 +121,20 @@ public class Log extends Data {
     return create(Level.Debug, log.getMessage());
   }
 
-  public Path getDirectoryPath() {
-    return getWaffleDirectoryPath().resolve(Constants.LOG);
+  public static Path getDirectoryPath() {
+    return Constants.WORK_DIR.resolve(Constants.LOG);
   }
 
-  @Override
-  protected Database getDatabase() {
-    return Database.getDatabase(Paths.get(getDirectoryPath() + File.separator + Constants.LOG_DB_NAME));
+  private static Database getDatabase() {
+    return Database.getDatabase(getDirectoryPath().resolve(Constants.LOG_DB_NAME));
   }
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              new Sql.Create(db, TABLE_NAME,
-                KEY_ID,
-                Sql.Create.withDefault(KEY_NAME, "''"),
-                Sql.Create.withDefault(KEY_LEVEL, "0"),
-                Sql.Create.withDefault(KEY_MESSAGE, "''"),
-                Sql.Create.timestamp(KEY_TIMESTAMP_CREATE)).execute();
-            }
-          }
-        ));
-      }
-    };
+  private static void tryCreateTable(Database db) throws SQLException {
+    new Sql.Create(db, TABLE_NAME,
+      Sql.Create.withDefault(KEY_ID, "-1"),
+      Sql.Create.withDefault(KEY_LEVEL, "0"),
+      Sql.Create.withDefault(KEY_MESSAGE, "''"),
+      Sql.Create.withDefault(KEY_TIMESTAMP, "0")).execute();
   }
 
   public Level getLevel() {
@@ -176,11 +146,12 @@ public class Log extends Data {
   }
 
   public String getTimestamp() {
-    return getStringFromDB(KEY_TIMESTAMP_CREATE);
+    return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp),
+      TimeZone.getDefault().toZoneId()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
   }
 
-  public int getRowid() {
-    return rowid;
+  public long getId() {
+    return id;
   }
 
   public enum Level {

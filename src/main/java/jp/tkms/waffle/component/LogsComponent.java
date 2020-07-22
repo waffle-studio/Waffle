@@ -56,7 +56,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
   private void renderOldLog(int from) {
     String body = "";
 
-    for (Log log : Log.getList(from, logBundleSize)) {
+    for (Log log : Log.getDescList(from, logBundleSize)) {
       body += Html.element("tr", null,
         Html.element("td", null, log.getLevel().name() ),
         Html.element("td", null, log.getTimestamp() ),
@@ -87,7 +87,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        final int[] lastRowId = {0};
+        final long[] lastRowId = {0};
         Lte.Table table;
         return
           Lte.card(null, null,
@@ -104,7 +104,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Log log : Log.getList(-1, logBundleSize)) {
+              for (Log log : Log.getDescList(-1, logBundleSize)) {
                 list.add(Main.threadPool.submit(() -> {
                   return new Lte.TableRow(
                     log.getLevel().name(),
@@ -112,7 +112,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
                     convertMessage(log.getMessage().replace("<", "&lt;").replace(">", "&gt;"))
                   );
                 }));
-                lastRowId[0] = log.getRowid();
+                lastRowId[0] = log.getId();
               }
               return list;
             }
