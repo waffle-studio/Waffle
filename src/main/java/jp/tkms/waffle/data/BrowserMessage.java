@@ -6,135 +6,65 @@ import jp.tkms.waffle.data.util.Sql;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class BrowserMessage extends Data {
-  private static final String TABLE_NAME = "browser_message";
-  private static final String KEY_MESSAGE = "message";
-  private static final String KEY_ROWID = "rowid";
-  private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
+public class BrowserMessage {
+  private static ConcurrentLinkedQueue<BrowserMessage> messageQueue = new ConcurrentLinkedQueue<>();
+  private static Long nextId = 0L;
 
-  private static ConcurrentLinkedQueue<Log> logQueue = new ConcurrentLinkedQueue<>();
+  private long rowId;
+  private long timestamp;
+  private String message;
 
-  private int rowId;
-  private String message = null;
-
-  public BrowserMessage(UUID id, int rowId, String message) {
-    super(id, "");
-    this.rowId = rowId;
+  public BrowserMessage(String message) {
+    this.rowId = getNextRowId();
+    this.timestamp = System.currentTimeMillis();
     this.message = message;
   }
 
-  public BrowserMessage() { }
+  public static long getNextRowId() {
+    synchronized (nextId) {
+      return nextId++;
+    }
+  }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public static long getCurrentRowId() {
+    synchronized (nextId) {
+      return nextId;
+    }
+  }
+
+  public static ArrayList<BrowserMessage> getList(Long currentRowId) {
+    Queue<BrowserMessage> queue = new LinkedList<>(messageQueue);
+
+    while (queue.size() > 0 && queue.peek().rowId <= currentRowId) {
+      queue.poll();
+    }
+
+    return new ArrayList<>(queue);
   }
 
   public static ArrayList<BrowserMessage> getList(String currentRowId) {
-    ArrayList<BrowserMessage> list = new ArrayList<>();
-
-    try {
-      handleDatabase(new BrowserMessage(), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
-            KEY_ID, KEY_MESSAGE, KEY_ROWID
-          ).where(Sql.Value.greeterThan(KEY_ROWID, currentRowId)).executeQuery();
-          while (resultSet.next()) {
-            list.add(new BrowserMessage(
-              UUID.fromString(resultSet.getString(KEY_ID)),
-              resultSet.getInt(KEY_ROWID),
-              resultSet.getString(KEY_MESSAGE)
-            ));
-          }
-        }
-      });
-    } catch (Exception e) {}
-
-    return list;
+    return getList(Long.valueOf(currentRowId));
   }
 
-  public static void removeExpired(Database db) throws SQLException {
-    db.execute("delete from " + TABLE_NAME
-      + " where " + KEY_TIMESTAMP_CREATE + " < datetime('now', '-5 seconds');");
-    db.commit();
+  public static void removeExpired() {
+    while (messageQueue.size() > 0 && (messageQueue.peek().timestamp + 5000) < System.currentTimeMillis()) {
+      messageQueue.poll();
+    }
   }
 
   public static void addMessage(String message) {
-    handleDatabase(new BrowserMessage(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        removeExpired(db);
-
-        new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal( KEY_ID, UUID.randomUUID().toString() ),
-          Sql.Value.equal( KEY_MESSAGE, "try{" + message + "}catch(e){}" )
-        ).execute();
-      }
-    });
+    removeExpired();
+    messageQueue.add(new BrowserMessage("try{" + message + "}catch(e){}"));
   }
 
-  public static int getCurrentRowId() {
-    final int[] currentRowId = {-1};
-    handleDatabase(new BrowserMessage(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, "max(rowid) as cid").executeQuery();
-        while (resultSet.next()) {
-            currentRowId[0] = resultSet.getInt("cid");
-        }
-      }
-    });
-    return currentRowId[0];
-  }
-
-  public int getRowId() {
+  public long getRowId() {
     return rowId;
   }
 
   public String getMessage() {
     return message;
-  }
-
-  public void remove() {
-    handleDatabase(new BrowserMessage(), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement
-          = db.preparedStatement("delete from " + getTableName() + " where id=?;");
-        statement.setString(1, getId());
-        statement.execute();
-      }
-    });
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(id," +
-                KEY_MESSAGE+ "," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
   }
 }
