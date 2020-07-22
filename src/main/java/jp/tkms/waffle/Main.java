@@ -178,14 +178,17 @@ public class Main {
         System.out.println("System will hibernate");
         hibernateFlag = true;
         PollingThread.waitForShutdown();
-        Spark.awaitStop();
 
         try {
-          threadPool.shutdown();
-          threadPool.awaitTermination(7, TimeUnit.DAYS);
           fileWatcherThread.interrupt();
           pollingThreadWakerThread.interrupt();
           gcInvokerThread.interrupt();
+        } catch (Throwable e) {}
+
+        Spark.awaitStop();
+        try {
+          threadPool.shutdown();
+          threadPool.awaitTermination(7, TimeUnit.DAYS);
         } catch (Throwable e) {}
 
         try {

@@ -55,8 +55,8 @@ public class Log {
     ArrayList<Log> logs = new ArrayList<>();
 
     synchronized (objectLocker) {
+      Database db = getDatabase();
       try {
-        Database db = getDatabase();
         tryCreateTable(db);
         Sql.Select select = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_LEVEL, KEY_MESSAGE, KEY_TIMESTAMP);
         if (from >= 0) {
@@ -73,9 +73,14 @@ public class Log {
             resultSet.getString(KEY_MESSAGE)
           ));
         }
-        db.close();
       } catch (SQLException e) {
         ErrorLogMessage.issue(e);
+      } finally {
+        try {
+          db.close();
+        } catch (SQLException e) {
+          ErrorLogMessage.issue(e);
+        }
       }
     }
 
@@ -89,8 +94,8 @@ public class Log {
 
     loggerThread.submit(() -> {
       synchronized (objectLocker) {
+        Database db = getDatabase();
         try {
-          Database db = getDatabase();
           tryCreateTable(db);
           new Sql.Insert(db, TABLE_NAME,
             Sql.Value.equal(KEY_LEVEL, log.level.ordinal()),
@@ -98,9 +103,15 @@ public class Log {
             Sql.Value.equal(KEY_TIMESTAMP, log.timestamp),
             Sql.Value.equal(KEY_ID, log.id)
           ).execute();
-          db.close();
+          db.commit();
         } catch (SQLException e) {
           ErrorLogMessage.issue(e);
+        } finally {
+          try {
+            db.close();
+          } catch (SQLException e) {
+            ErrorLogMessage.issue(e);
+          }
         }
       }
     });
