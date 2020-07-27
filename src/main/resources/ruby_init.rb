@@ -161,21 +161,26 @@ def exec_result_collect(run, remote)
     end
 end
 
-class Actor < Java::jp.tkms.waffle.data.Actor
-    def initialize(instance)
-        super(instance)
-        @store = get_store(getRegistry, instance.id)
-        @template_argument =  get_template_argument(getRegistry, instance.id)
+class ActorWrapper
+    def initialize(actor)
+        @instance = actor
+        @store = get_store(@instance.getRegistry, @instance.id)
+        @template_argument =  get_template_argument(@instance.getRegistry, @instance.id)
     end
 
     def close
     #TODO: check with depth
-        getRegistry.set(".S:" + getId, Marshal.dump(@store))
-        getRegistry.set(".TA:" + getId, Marshal.dump(@template_argument))
-        commit
-        getRegistry.set(".S:" + getId, Marshal.dump(@store))
-        getRegistry.set(".TA:" + getId, Marshal.dump(@template_argument))
+        @instance.getRegistry.set(".S:" + @instance.getId, Marshal.dump(@store))
+        @instance.getRegistry.set(".TA:" + @instance.getId, Marshal.dump(@template_argument))
+        @instance.commit
+        @instance.getRegistry.set(".S:" + @instance.getId, Marshal.dump(@store))
+        @instance.getRegistry.set(".TA:" + @instance.getId, Marshal.dump(@template_argument))
     end
+
+    def createSimulatorRun(name, hostName)
+        @instance.createSimulatorRun(name, hostName)
+    end
+
 
     def loadConductorTemplate(name)
         super
@@ -198,7 +203,7 @@ end
 
 def exec_actor_script(instance, caller)
     result = true
-    local_instance = Actor.new(instance)
+    local_instance = ActorWrapper.new(instance)
     result = actor_script(local_instance, caller)
     local_instance.close
     return result

@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
@@ -19,13 +20,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Simulator extends ProjectData implements DataDirectory {
+public class Simulator extends ProjectData implements DataDirectory, PropertyFile {
   public static final String KEY_SIMULATOR = "simulator";
   public static final String KEY_EXTRACTOR = "extractor";
   public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
@@ -42,23 +40,20 @@ public class Simulator extends ProjectData implements DataDirectory {
 
   private static final HashMap<String, Simulator> instanceMap = new HashMap<>();
 
+  private String name = null;
   private String simulationCommand = null;
   private String defaultParameters = null;
   private String versionId = null;
 
-  private static final Object gitObjectLocker = new Object();
-
-  public Simulator(Project project, UUID id, String name) {
-    super(project, id, name);
-  }
-
-  public Simulator(Project project) {
+  public Simulator(Project project, String name) {
     super(project);
+    this.name = name;
+    instanceMap.put(name, this);
+    initialise();
   }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public String getName() {
+    return name;
   }
 
   public static Path getBaseDirectoryPath(Project project) {
@@ -66,38 +61,23 @@ public class Simulator extends ProjectData implements DataDirectory {
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_SIMULATOR + Constants.EXT_JSON);
   }
 
-  public static Simulator getInstance(Project project, String id) {
-    DataId dataId = DataId.getInstance(id);
-    Simulator simulator = instanceMap.get(dataId.getId());
-    if (simulator != null) {
+  public static Simulator getInstance(Project project, String name) {
+    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+      Simulator simulator = instanceMap.get(name);
+      if (simulator == null) {
+        simulator = new Simulator(project, name);
+      }
       return simulator;
     }
-    return getInstanceByName(project, dataId.getPath().getFileName().toString());
-  }
-
-  public static Simulator getInstanceByName(Project project, String name) {
-    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
-    Simulator simulator = instanceMap.get(dataId.getId());
-    if (simulator != null) {
-      return simulator;
-    }
-
-    if (simulator == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-      simulator = create(project, name);
-    }
-
-    return simulator;
+    return null;
   }
 
   public static Simulator find(Project project, String key) {
-    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
-      return getInstance(project, key);
-    }
-    return getInstanceByName(project, key);
+    return getInstance(project, key);
   }
 
   public static ArrayList<Simulator> getList(Project project) {
@@ -105,81 +85,86 @@ public class Simulator extends ProjectData implements DataDirectory {
 
     for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
       if (file.isDirectory()) {
-        simulatorList.add(getInstanceByName(project, file.getName()));
+        simulatorList.add(getInstance(project, file.getName()));
       }
     }
-
-    /*
-    handleDatabase(new Simulator(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          simulatorList.add(new Simulator(
-            project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name"))
-          );
-        }
-      }
-    });
-    */
 
     return simulatorList;
   }
 
   public static Simulator create(Project project, String name) {
-    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath(project).resolve(name));
-    Simulator simulator = new Simulator(project, dataId.getUuid(), name);
+    name = FileName.removeRestrictedCharacters(name);
 
-    try {
-      Files.createDirectories(simulator.getDirectoryPath());
-      Files.createDirectories(simulator.getBinDirectory());
-    } catch (IOException e) {
-      e.printStackTrace();
+    Simulator simulator = getInstance(project, name);
+    if (simulator == null) {
+      simulator = new Simulator(project, name);
     }
-
-    if (simulator.getSimulationCommand() == null) {
-      simulator.setSimulatorCommand("");
-    }
-
-    if (simulator.getExtractorNameList() == null) {
-      simulator.createExtractor(KEY_COMMAND_ARGUMENTS);
-      simulator.updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("/default_parameter_extractor.rb"));
-    }
-
-    if (simulator.getCollectorNameList() == null) {
-      simulator.createCollector(KEY_OUTPUT_JSON);
-      simulator.updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
-    }
-
-    if (! Files.exists(simulator.getDirectoryPath().resolve(".git"))) {
-      simulator.initializeGit();
-    }
-
-    instanceMap.put(dataId.getId(), simulator);
 
     return simulator;
   }
 
-  private void initializeGit() {
-      try {
-        synchronized (gitObjectLocker) {
-          Git git = Git.init().setDirectory(getDirectoryPath().toFile()).call();
-          git.add().addFilepattern(".").call();
-          git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
-          git.branchCreate().setName(KEY_REMOTE).call();
-          git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
-          git.checkout().setName(KEY_MASTER).call();
+  private void initialise() {
+    try {
+      Files.createDirectories(getDirectoryPath());
+      Files.createDirectories(getBinDirectory());
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    if (getSimulationCommand() == null) {
+      setSimulatorCommand("");
+    }
+
+    if (getExtractorNameList() == null) {
+      createExtractor(KEY_COMMAND_ARGUMENTS);
+      updateExtractorScript(KEY_COMMAND_ARGUMENTS, ResourceFile.getContents("/default_parameter_extractor.rb"));
+    }
+
+    if (getCollectorNameList() == null) {
+      createCollector(KEY_OUTPUT_JSON);
+      updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
+    }
+
+    if (! Files.exists(getDirectoryPath().resolve(".git"))) {
+      initializeGit();
+    }
+  }
+
+  private String initializeGit() {
+    try {
+      synchronized (this) {
+        Path gitPath = getDirectoryPath().resolve(".git");
+        if (Files.exists(gitPath)) {
+          deleteDirectory(gitPath.toFile());
         }
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+        Git git = Git.init().setDirectory(getDirectoryPath().toFile()).call();
+        git.add().addFilepattern(".").call();
+        git.commit().setMessage("Initial").setAuthor("waffle", "waffle@tkms.jp").call();
+        git.branchCreate().setName(KEY_REMOTE).call();
+        git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
+        RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
+        versionId = commit.getId().getName();
+        git.checkout().setName(KEY_MASTER).call();
       }
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
+    return versionId;
+  }
+
+  private void deleteDirectory(File file) {
+    File[] contents = file.listFiles();
+    if (contents != null) {
+      for (File f : contents) {
+        deleteDirectory(f);
+      }
+    }
+    file.delete();
   }
 
   public synchronized void updateVersionId() {
     try{
-      synchronized (gitObjectLocker) {
+      synchronized (this) {
         Git git = Git.open(getDirectoryPath().toFile());
         git.add().addFilepattern(".").call();
 
@@ -206,6 +191,8 @@ public class Simulator extends ProjectData implements DataDirectory {
       }
     } catch (GitAPIException | IOException e) {
       ErrorLogMessage.issue(e);
+
+      initializeGit();
     }
 
     versionId = null;
@@ -215,7 +202,7 @@ public class Simulator extends ProjectData implements DataDirectory {
   public String getVersionId() {
     if (versionId == null) {
       try{
-        synchronized (gitObjectLocker) {
+        synchronized (this) {
           if (!Files.exists(getDirectoryPath().resolve(".git"))) {
             initializeGit();
           }
@@ -228,6 +215,8 @@ public class Simulator extends ProjectData implements DataDirectory {
         }
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
+
+        versionId = initializeGit();
       }
     }
     return versionId;
@@ -431,11 +420,7 @@ public class Simulator extends ProjectData implements DataDirectory {
     if (runNode == null) {
       runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
     }
-    Actor baseRun = Actor.getInstanceByName(getProject(), baseRunName);
-    if (baseRun == null) {
-      baseRun = Actor.create(runNode, Actor.getRootInstance(getProject()), null);
-    }
-    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), baseRun, this, host);
+    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), Actor.getRootInstance(getProject()), this, host);
     setToProperty(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();
@@ -446,31 +431,13 @@ public class Simulator extends ProjectData implements DataDirectory {
     return SimulatorRun.getInstance(getProject(), getStringFromProperty(KEY_TESTRUN));
   }
 
+  JSONObject propertyStoreCache = null;
   @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-    new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_TESTRUN + " default ''," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-     */
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }

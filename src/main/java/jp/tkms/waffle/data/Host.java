@@ -5,11 +5,9 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.HostState;
-import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
-import org.bouncycastle.tsp.TSPUtil;
 import org.json.JSONObject;
 
 import javax.crypto.*;
@@ -22,11 +20,9 @@ import java.nio.file.Path;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
 
-public class Host extends DirectoryBaseData {
+public class Host implements DataDirectory, PropertyFile {
   private static final String TABLE_NAME = "host";
   private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
   private static final String KEY_LOCAL = "LOCAL";
@@ -45,6 +41,7 @@ public class Host extends DirectoryBaseData {
 
   private static final HashMap<String, Host> instanceMap = new HashMap<>();
 
+  private String name;
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
   private SecretKeySpec encryptKey = null;
@@ -54,7 +51,11 @@ public class Host extends DirectoryBaseData {
   private JSONObject xsubTemplate = null;
 
   public Host(String name) {
-    super(getBaseDirectoryPath().resolve(name));
+    this.name = name;
+    instanceMap.put(name, this);
+
+    initialize();
+
     Main.registerFileChangeEventListener(getBaseDirectoryPath().resolve(name), () -> {
       synchronized (this) {
         workBaseDirectory = null;
@@ -68,67 +69,55 @@ public class Host extends DirectoryBaseData {
     });
   }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public String getName() {
+    return name;
   }
 
-  public static Host getInstance(String id) {
-    return getInstanceByName(getName(id));
-  }
-
-  public static Host getInstanceByName(String name) {
-    if (name == null) {
-      return null;
-    }
-
-    DataId dataId = DataId.getInstance(Host.class, getBaseDirectoryPath().resolve(name));
-    Host host = instanceMap.get(dataId.getId());
-    if (host != null) {
+  public static Host getInstance(String name) {
+    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath().resolve(name))) {
+      Host host = instanceMap.get(name);
+      if (host == null) {
+        host = new Host(name);
+      }
       return host;
     }
-
-    if (Files.exists(getBaseDirectoryPath().resolve(name))) {
-      host = new Host(name);
-
-      if (host.getState() == null) { host.setState(HostState.Unviable); }
-      if (host.getXsubDirectory() == null) { host.setXsubDirectory(""); }
-      if (host.getWorkBaseDirectory() == null) { host.setWorkBaseDirectory("/tmp/waffle"); }
-      if (host.getMaximumNumberOfJobs() == null) { host.setMaximumNumberOfJobs(1); }
-      if (host.getPollingInterval() == null) { host.setPollingInterval(10); }
-    }
-
-    instanceMap.put(dataId.getId(), host);
-
-    return host;
+    return null;
   }
 
   public static Host find(String key) {
-    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
-      return getInstance(key);
-    }
-    return getInstanceByName(key);
+    return getInstance(key);
   }
 
   public static ArrayList<Host> getList() {
-    ArrayList<Host> list = new ArrayList<>();
-
     initializeWorkDirectory();
 
-    /*
-    Files.list(getBaseDirectoryPath()).forEach(path -> {
-      if (Files.isDirectory(path)) {
-        list.add(getInstanceByName(path.getFileName().toString()));
-      }
-    });
-     */
+    ArrayList<Host> list = new ArrayList<>();
+
     for (File file : getBaseDirectoryPath().toFile().listFiles()) {
       if (file.isDirectory()) {
-        list.add(getInstanceByName(file.getName()));
+        list.add(getInstance(file.getName()));
       }
     }
 
     return list;
+  }
+
+  public void initialize() {
+    initializeWorkDirectory();
+
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    if (getState() == null) { setState(HostState.Unviable); }
+    if (getXsubDirectory() == null) { setXsubDirectory(""); }
+    if (getWorkBaseDirectory() == null) { setWorkBaseDirectory("/tmp/waffle"); }
+    if (getMaximumNumberOfJobs() == null) { setMaximumNumberOfJobs(1); }
+    if (getPollingInterval() == null) { setPollingInterval(10); }
   }
 
   public static ArrayList<Host> getViableList() {
@@ -144,8 +133,16 @@ public class Host extends DirectoryBaseData {
   }
 
   public static Host create(String name) {
-    createDirectories(getBaseDirectoryPath().resolve(name));
-    return getInstanceByName(name);
+    Data.initializeWorkDirectory();
+
+    name = FileName.removeRestrictedCharacters(name);
+
+    Host host = getInstance(name);
+    if (host == null) {
+      host = new Host(name);
+    }
+
+    return host;
   }
 
   public void update() {
@@ -438,34 +435,6 @@ public class Host extends DirectoryBaseData {
     return jsonObject;
   }
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-    new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              new Sql.Create(db, tableName(),
-                KEY_ID,
-                Sql.Create.withDefault(KEY_XSUB_TEMPLATE, "'{}'"),
-                Sql.Create.withDefault(KEY_STATE, String.valueOf(HostState.Unviable.ordinal()))).execute();
-            }
-          }
-        ));
-      }
-    };
-     */
-  }
-
   public static Path getBaseDirectoryPath() {
     return Data.getWaffleDirectoryPath().resolve(Constants.HOST);
   }
@@ -475,8 +444,19 @@ public class Host extends DirectoryBaseData {
     return getBaseDirectoryPath().resolve(name);
   }
 
+
+  JSONObject propertyStoreCache = null;
   @Override
-  protected Path getPropertyStorePath() {
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
+  }
+
+  @Override
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(Constants.HOST + Constants.EXT_JSON);
   }
 

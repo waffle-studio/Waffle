@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -12,12 +13,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
 
-public class ActorGroup extends ProjectData implements DataDirectory {
+public class ActorGroup extends ProjectData implements DataDirectory, PropertyFile {
   protected static final String TABLE_NAME = "conductor";
   protected static final String KEY_CONDUCTOR = "conductor";
   private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
@@ -30,12 +28,9 @@ public class ActorGroup extends ProjectData implements DataDirectory {
 
   private static final HashMap<String, ActorGroup> instanceMap = new HashMap<>();
 
+  private String name = null;
   private String conductorType = null;
   private String defaultVariables = null;
-
-  public ActorGroup(Project project) {
-    super(project);
-  }
 
   public static ArrayList<String> getConductorNameList() {
     return new ArrayList<>(Arrays.asList(
@@ -43,17 +38,19 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     ));
   }
 
-  public ActorGroup(Project project, UUID id, String name) {
-    super(project, id, name);
+  public ActorGroup(Project project, String name) {
+    super(project);
+    this.name = name;
+    instanceMap.put(name, this);
+    initialise();
+  }
+
+  public String getName() {
+    return name;
   }
 
   @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
-
-  @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_CONDUCTOR + Constants.EXT_JSON);
   }
 
@@ -61,45 +58,19 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     return project.getDirectoryPath().resolve(KEY_CONDUCTOR);
   }
 
-  public static ActorGroup getInstance(Project project, String id) {
-    if ("".equals(id) || id == null) {
-      return null;
-    }
-
-    DataId dataId = DataId.getInstance(id);
-    ActorGroup actorGroup = instanceMap.get(dataId.getId());
-    if (actorGroup != null) {
+  public static ActorGroup getInstance(Project project, String name) {
+    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+      ActorGroup actorGroup = instanceMap.get(name);
+      if (actorGroup == null) {
+        actorGroup = new ActorGroup(project, name);
+      }
       return actorGroup;
     }
-
-    return getInstanceByName(project, dataId.getPath().getFileName().toString());
-  }
-
-  public static ActorGroup getInstanceByName(Project project, String name) {
-
-    if ("".equals(name) || name == null) {
-      return null;
-    }
-
-    DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
-
-    ActorGroup actorGroup = instanceMap.get(dataId.getId());
-    if (actorGroup != null) {
-      return actorGroup;
-    }
-
-    if (actorGroup == null && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-      actorGroup = create(project, name);
-    }
-
-    return actorGroup;
+    return null;
   }
 
   public static ActorGroup find(Project project, String key) {
-    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
-      return getInstance(project, key);
-    }
-    return getInstanceByName(project, key);
+    return getInstance(project, key);
   }
 
   public static ArrayList<ActorGroup> getList(Project project) {
@@ -107,85 +78,48 @@ public class ActorGroup extends ProjectData implements DataDirectory {
 
     for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
       if (file.isDirectory()) {
-        simulatorList.add(getInstanceByName(project, file.getName()));
+        simulatorList.add(getInstance(project, file.getName()));
       }
     }
-
-    /*
-    handleDatabase(new Conductor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select id,name from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          simulatorList.add(new Conductor(
-            project,
-            UUID.fromString(resultSet.getString("id")),
-            resultSet.getString("name"))
-          );
-        }
-      }
-    });
-     */
 
     return simulatorList;
   }
 
   public static ActorGroup create(Project project, String name) {
-    DataId dataId = DataId.getInstance(ActorGroup.class, getBaseDirectoryPath(project).resolve(name));
-    ActorGroup actorGroup = new ActorGroup(project, dataId.getUuid(), name);
-    /*
-    if (
-      handleDatabase(new ActorGroup(project), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into " + TABLE_NAME + "(id,name," +
-            KEY_CONDUCTOR_TYPE + ","
-            + KEY_SCRIPT + ") values(?,?,?,?);");
-          statement.setString(1, conductor.getId());
-          statement.setString(2, conductor.getName());
-          statement.setString(3, RubyConductor.class.getCanonicalName());
-          statement.setString(4, "");
-          statement.execute();
-        }
-      })
-    ) {
-      try {
-        Files.createDirectories(conductor.getDirectoryPath());
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-     */
+    name = FileName.removeRestrictedCharacters(name);
 
+    ActorGroup actorGroup = getInstance(project, name);
+    if (actorGroup == null) {
+      actorGroup = new ActorGroup(project, name);
+    }
+
+    return actorGroup;
+  }
+
+  private void initialise() {
     try {
-      Files.createDirectories(actorGroup.getDirectoryPath());
+      Files.createDirectories(getDirectoryPath());
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
 
-    if (! Files.exists(actorGroup.getRepresentativeActorScriptPath())) {
-      actorGroup.updateRepresentativeActorScript(null);
+    if (! Files.exists(getRepresentativeActorScriptPath())) {
+      updateRepresentativeActorScript(null);
     }
-    //abstractConductor.prepareConductor(conductor);
 
-    if (! Files.exists(actorGroup.getDirectoryPath().resolve(KEY_ACTOR))) {
+    if (! Files.exists(getDirectoryPath().resolve(KEY_ACTOR))) {
       try {
-        Files.createDirectories(actorGroup.getDirectoryPath().resolve(KEY_ACTOR));
+        Files.createDirectories(getDirectoryPath().resolve(KEY_ACTOR));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
     }
 
     try {
-      actorGroup.getArrayFromProperty(KEY_ACTOR);
+      getArrayFromProperty(KEY_ACTOR);
     } catch (Exception e) {
-      actorGroup.putNewArrayToProperty(KEY_ACTOR);
+      putNewArrayToProperty(KEY_ACTOR);
     }
-
-    instanceMap.put(dataId.getId(), actorGroup);
-
-    return actorGroup;
   }
 
   @Override
@@ -209,7 +143,7 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     return getFileContents(getActorScriptPath(name));
   }
 
-  public List<String> getActor1NameList() {
+  public List<String> getActorNameList() {
     List<String> list = null;
     try {
       JSONArray array = getArrayFromProperty(KEY_ACTOR);
@@ -221,6 +155,11 @@ public class ActorGroup extends ProjectData implements DataDirectory {
       }
     } catch (JSONException e) {
     }
+
+    if (list == null) {
+      return new ArrayList<>();
+    }
+
     return list;
   }
 
@@ -290,30 +229,13 @@ public class ActorGroup extends ProjectData implements DataDirectory {
     return true;
   }
 
+  JSONObject propertyStoreCache = null;
   @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /* new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(" +
-                "id,name," + KEY_SCRIPT + "," + KEY_CONDUCTOR_TYPE + "," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-     */
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }

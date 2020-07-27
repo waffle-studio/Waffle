@@ -18,7 +18,7 @@ public class WarnLogMessage extends LogMessage {
   }
 
   public static void issue(SimulatorRun run, Throwable e) {
-    new WarnLogMessage("Run(" + run.getProject().getId() + "/" + run.getId() + ") " + getStackTrace(e)).printMessage();
+    new WarnLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + getStackTrace(e)).printMessage();
   }
 
   public static void issue(WaffleException e) {
@@ -26,7 +26,7 @@ public class WarnLogMessage extends LogMessage {
   }
 
   public static void issue(SimulatorRun run, String message) {
-    new WarnLogMessage("Run(" + run.getProject().getId() + "/" + run.getId() + ") " + message).printMessage();
+    new WarnLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + message).printMessage();
   }
 
   public static void issue(Host host, String message) {

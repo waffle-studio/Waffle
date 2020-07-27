@@ -22,6 +22,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_RUN = "run";
   private static final String KEY_HOST = "host";
+  private static final String KEY_SIMULATOR = "host";
 
   private Mode mode;
 
@@ -49,7 +50,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(Simulator simulator) {
     return "/simulator/"
-      + (simulator == null ? ":project/:id" : simulator.getProject().getId() + '/' + simulator.getId());
+      + (simulator == null ? ":project/:" + KEY_SIMULATOR : simulator.getProject().getName() + '/' + simulator.getName());
   }
 
   public static String getUrl(Simulator simulator, String mode) {
@@ -59,7 +60,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   @Override
   public void controller() {
     project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params("id"));
+    simulator = Simulator.getInstance(project, request.params(KEY_SIMULATOR));
 
     switch (mode) {
       case Update:
@@ -304,7 +305,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
                 list.add(Main.threadPool.submit(() -> {
                   return new Lte.TableRow(
-                    Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getShortId()),
+                    Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getName()),
                     (finalLatestRun.getHost() == null ? "NotFound" : finalLatestRun.getHost().getName()),
                     Html.spanWithId(finalLatestRun.getId() + "-badge", finalLatestRun.getState().getStatusBadge())
                   );

@@ -1,40 +1,36 @@
 package jp.tkms.waffle.data;
 
-import jp.tkms.waffle.data.util.KeyValue;
+import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ValueType;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
-public class Registry extends ProjectData implements Map<Object, Object> {
-  protected static final String TABLE_NAME = "registry";
+public class Registry extends ProjectData implements Map<Object, Object>, DataDirectory {
+  protected static final String KEY_REGISTRY = "registry";
   private static final String KEY_VALUE = "value";
 
   public Registry(Project project) {
-    super(project, UUID.randomUUID(), "");
-  }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+    super(project);
   }
 
   public static ArrayList<KeyValue> getList(Project project) {
     ArrayList<KeyValue> keyValueList = new ArrayList<>();
 
-    handleDatabase(new Registry(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = db.executeQuery("select name,value from " + TABLE_NAME + ";");
-        while (resultSet.next()) {
-          keyValueList.add(
-            new KeyValue(resultSet.getString(KEY_NAME), resultSet.getString(KEY_VALUE))
-          );
+    for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
+      if (file.isFile()) {
+        try {
+          keyValueList.add(new KeyValue(file.getName(), Files.readString(file.toPath())));
+        } catch (IOException e) {
+          ErrorLogMessage.issue(e);
         }
       }
-    });
+    }
 
     return keyValueList;
   }
@@ -44,32 +40,29 @@ public class Registry extends ProjectData implements Map<Object, Object> {
   }
 
   static Object get(Project project, String key, ValueType type, Object defaultValue) {
-    final Object[] result = {null};
+    Object result = null;
 
-    handleDatabase(new Registry(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("select " + KEY_VALUE + " from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
-        statement.setString(1, key);
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
+    Path path = getBaseDirectoryPath(project).resolve(key);
+    if (Files.exists(path)) {
+      synchronized (project) {
+        try {
           if (ValueType.Integer.equals(type)) {
-            result[0] = resultSet.getInt(KEY_VALUE);
+            result = Integer.valueOf(Files.readString(path));
           } else if (ValueType.Double.equals(type)) {
-            result[0] = resultSet.getDouble(KEY_VALUE);
+            result = Double.valueOf(Files.readString(path));
           } else if (ValueType.Boolean.equals(type)) {
-            result[0] = resultSet.getBoolean(KEY_VALUE);
+            result = Boolean.valueOf(Files.readString(path));
           } else if (ValueType.String.equals(type)) {
-            result[0] = resultSet.getString(KEY_VALUE);
+            result = Files.readString(path);
           } else {
-            result[0] = resultSet.getObject(KEY_VALUE);
+            result = Files.readAllBytes(path);
           }
-          break;
+        } catch (IOException e) {
         }
       }
-    });
+    }
 
-    return (result[0] == null ? defaultValue : result[0]);
+    return (result == null ? defaultValue : result);
   }
 
   public Object get(String key) {
@@ -81,28 +74,26 @@ public class Registry extends ProjectData implements Map<Object, Object> {
   }
 
   static void set(Project project, String key, Object value) {
-    handleDatabase(new Registry(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        PreparedStatement statement = db.preparedStatement("delete from " + TABLE_NAME + " where " + KEY_NAME + "=?;");
-        statement.setString(1, key);
-        statement.execute();
-        if (value != null) {
-          statement = db.preparedStatement("insert into " + TABLE_NAME + "(name,value) values(?,?);");
-          statement.setString(1, key);
-          if (value instanceof Integer) {
-            statement.setInt(2, (Integer) value);
-          } else if (value instanceof Double || value instanceof Float) {
-            statement.setDouble(2, (Double) value);
-          } else if (value instanceof Boolean) {
-            statement.setBoolean(2, (Boolean) value);
-          } else {
-            statement.setString(2, value.toString());
+    if (value != null) {
+      synchronized (project) {
+        Path path = getBaseDirectoryPath(project).resolve(key);
+        if (!Files.exists(path)) {
+          try {
+            Files.createDirectories(path.getParent());
+            path.toFile().createNewFile();
+          } catch (IOException e) {
+            ErrorLogMessage.issue(e);
           }
-          statement.execute();
+        }
+        try {
+          FileWriter filewriter = new FileWriter(path.toFile());
+          filewriter.write(value.toString());
+          filewriter.close();
+        } catch (IOException e) {
+          ErrorLogMessage.issue(e);
         }
       }
-    });
+    }
   }
 
   public void set(String key, Object value) {
@@ -139,31 +130,6 @@ public class Registry extends ProjectData implements Map<Object, Object> {
 
   public Boolean getBoolean(String key, Boolean defaultValue) {
     return getBoolean(getProject(), key, defaultValue);
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(" +
-                KEY_NAME + "," + KEY_VALUE + "," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
   }
 
   @Override
@@ -229,5 +195,20 @@ public class Registry extends ProjectData implements Map<Object, Object> {
 
   public Object obj() {
     return new Object();
+  }
+
+  @Override
+  public Path getDirectoryPath() {
+    return getBaseDirectoryPath(getProject());
+  }
+
+  public static Path getBaseDirectoryPath(Project project) {
+    return project.getDirectoryPath().resolve(Constants.DOT_INTERNAL).resolve(KEY_REGISTRY);
+  }
+
+  public static class KeyValue extends AbstractMap.SimpleEntry<String, String> {
+    public KeyValue(String key, String value) {
+      super(key, value);
+    }
   }
 }

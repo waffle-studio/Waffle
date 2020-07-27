@@ -9,20 +9,17 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class JobStore {
-  private HashMap<String, Job> jobMap;
-  private HashMap<String, ArrayList<Job>> hostJobListMap;
+  private LinkedHashMap<String, Job> jobMap;
+  private LinkedHashMap<String, ArrayList<Job>> hostJobListMap;
 
   public JobStore() {
-    jobMap = new HashMap<>();
-    hostJobListMap = new HashMap<>();
+    jobMap = new LinkedHashMap<>();
+    hostJobListMap = new LinkedHashMap<>();
   }
 
   public Job getJob(UUID id) {
@@ -47,27 +44,33 @@ public class JobStore {
   }
 
   public void register(Job job) {
-    jobMap.put(job.getId(), job);
-    getList(job.getHost()).add(job);
+    synchronized (jobMap) {
+      jobMap.put(job.getId(), job);
+      getList(job.getHost()).add(job);
+    }
   }
 
   public void remove(String id) {
     if (id == null) {
       return;
     }
-    Job removedJob = jobMap.remove(id);
-    if (removedJob != null) {
-      getList(removedJob.getHost()).remove(removedJob);
+    synchronized (jobMap) {
+      Job removedJob = jobMap.remove(id);
+      if (removedJob != null) {
+        getList(removedJob.getHost()).remove(removedJob);
+      }
     }
   }
 
   public void save() throws IOException {
-    GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(getFilePath().toFile()));;
-    Kryo kryo = new Kryo();
-    Output output = new Output(outputStream);
-    kryo.writeObject(output, this);
-    output.flush();
-    output.close();
+    synchronized (jobMap) {
+      GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(getFilePath().toFile()));
+      Kryo kryo = new Kryo();
+      Output output = new Output(outputStream);
+      kryo.writeObject(output, this);
+      output.flush();
+      output.close();
+    }
   }
 
   public static JobStore load() {

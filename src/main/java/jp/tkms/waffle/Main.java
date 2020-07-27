@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.updater.SystemUpdater;
 import jp.tkms.waffle.data.JobStore;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.util.RubyScript;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import spark.Spark;
@@ -158,11 +159,11 @@ public class Main {
     };
     gcInvokerThread.start();
 
-    ScriptingContainer scriptingContainer = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    scriptingContainer.runScriptlet("print \"\"");
-    scriptingContainer.terminate();
+    RubyScript.process(scriptingContainer -> {
+      scriptingContainer.runScriptlet("print \"\"");
+    });
 
-    new SystemUpdater(null);
+    //new SystemUpdater(null);
 
     return;
   }

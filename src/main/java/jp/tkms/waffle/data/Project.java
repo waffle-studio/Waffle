@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.AbstractConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.util.FileName;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,103 +17,55 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class Project extends Data implements DataDirectory {
+public class Project implements DataDirectory {
   protected static final String TABLE_NAME = "project";
-
   private static final HashMap<String, Project> instanceMap = new HashMap<>();
 
-  public Project(UUID id, String name) {
-    super(id, name);
+  protected String name;
+
+  public Project(String name) {
+    this.name = name;
+    instanceMap.put(this.name, this);
     initialize();
   }
 
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
+  public String getName() {
+    return name;
   }
 
-  public Project() { }
-
-  public static Project getInstance(String id) {
-    initializeWorkDirectory();
-
-    DataId dataId = DataId.getInstance(id);
-    if (dataId != null) {
-      Project project = instanceMap.get(dataId.getId());
-      if (project != null) {
-        project.initialize();
-        return project;
-      } else {
-        project = new Project(dataId.getUuid(), dataId.getPath().getFileName().toString()) ;
-        instanceMap.put(project.getId(), project);
-        project.initialize();
-        return project;
+  public static Project getInstance(String name) {
+    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath().resolve(name))) {
+      Project project = instanceMap.get(name);
+      if (project == null) {
+        project = new Project(name);
       }
+      return project;
     }
-
     return null;
   }
 
-  public static Project getInstanceByName(String name) {
-    if (name == null) {
-      return null;
-    }
-
-    DataId dataId = DataId.getInstance(Project.class, getDirectoryPath(name));
-
-    Project project = instanceMap.get(dataId.getId());
-    if (project != null) {
-      return project;
-    }
-
-    project = getInstance(dataId.getId());
-    if (project != null) {
-      return project;
-    }
-
-    if (project == null && Files.exists(getBaseDirectoryPath().resolve(name))) {
-      project = create(name);
-    }
-
-    return project;
-  }
-
   public static ArrayList<Project> getList() {
-    initializeWorkDirectory();
+    Data.initializeWorkDirectory();
 
     ArrayList<Project> list = new ArrayList<>();
 
-    /*
-    try {
-      Files.list(getBaseDirectoryPath()).forEach(path -> {
-        if (Files.isDirectory(path)) {
-          projectList.add(getInstanceByName(path.getFileName().toString()));
-        }
-      });
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-     */
     for (File file : getBaseDirectoryPath().toFile().listFiles()) {
       if (file.isDirectory()) {
-        list.add(getInstanceByName(file.getName()));
+        list.add(getInstance(file.getName()));
       }
     }
-
 
     return list;
   }
 
   public static Project create(String name) {
-    initializeWorkDirectory();
+    Data.initializeWorkDirectory();
 
-    Project project = new Project(DataId.getInstance(Project.class, getDirectoryPath(name)).getUuid(), name);
-    instanceMap.put(project.getId(), project);
+    name = FileName.removeRestrictedCharacters(name);
 
-    try {
-      Files.createDirectories(project.getDirectoryPath());
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
+    Project project = getInstance(name);
+    if (project == null) {
+      project = new Project(name);
     }
 
     return project;
@@ -131,71 +84,9 @@ public class Project extends Data implements DataDirectory {
     return getBaseDirectoryPath().resolve(name);
   }
 
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return null;
-    /*
-      new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<Updater.UpdateTask> updateTasks() {
-        return new ArrayList<Updater.UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              db.execute("create table " + TABLE_NAME + "(id,name,location," +
-                "timestamp_create timestamp default (DATETIME('now','localtime'))" +
-                ");");
-            }
-          }
-        ));
-      }
-    };
-     */
-  }
-
-  /*
-  private static class ProjectInitializer extends ProjectData {
-    public ProjectInitializer(Project project) {
-      super(project);
-    }
-
-    boolean init() {
-      return handleDatabase(this, new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          PreparedStatement statement
-            = db.preparedStatement("insert into system(name,value) values('id',?);");
-          statement.setString(1, getProject().getId());
-          statement.execute();
-
-          statement = db.preparedStatement("insert into system(name,value) values('name',?);");
-          statement.setString(1, getProject().getName());
-          statement.execute();
-
-          db.execute("insert into system(name,value)" +
-            " values('timestamp_create',(DATETIME('now','localtime')));");
-        }
-      });
-    }
-
-    @Override
-    protected String getTableName() {
-      return null;
-    }
-
-    @Override
-    protected Updater getDatabaseUpdater() { return null; }
-  }
-   */
-
-  @Override
   public void initialize() {
-    super.initialize();
+    Data.initializeWorkDirectory();
+
     if (! Files.exists(getDirectoryPath())) {
       try {
         Files.createDirectories(getDirectoryPath());

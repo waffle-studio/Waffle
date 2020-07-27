@@ -28,4 +28,5 @@ public class Constants {
   public static final String EXT_RUBY = ".rb";
   public static final String STDOUT_FILE = "stdout.txt";
   public static final String STDERR_FILE = "stderr.txt";
+  public static final String DOT_INTERNAL = ".internal";
 }

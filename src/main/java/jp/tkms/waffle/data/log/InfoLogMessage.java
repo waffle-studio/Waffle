@@ -13,7 +13,7 @@ public class InfoLogMessage extends LogMessage {
   }
 
   public static void issue(SimulatorRun run, String message) {
-    new InfoLogMessage("Run(" + run.getProject().getId() + "/" + run.getId() + ") " + message).printMessage();
+    new InfoLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + message).printMessage();
   }
 
   public static void issue(Host host, String message) {

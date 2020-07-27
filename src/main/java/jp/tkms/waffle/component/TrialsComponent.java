@@ -15,6 +15,11 @@ import java.util.Collections;
 import java.util.concurrent.Future;
 
 public class TrialsComponent extends AbstractAccessControlledComponent {
+  @Override
+  public void controller() {
+
+  }
+  /*
   public static final String TITLE = "Runs";
   private Mode mode;
 
@@ -34,11 +39,11 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + Actor.ROOT_NAME);
+    return "/trials/" + (project == null ? ":project/:id" : project.getName() + "/" + Actor.ROOT_NAME);
   }
 
   public static String getUrl(Project project, Actor conductorRun) {
-    return "/trials/" + (project == null ? ":project/:id" : project.getId() + "/" + conductorRun.getId());
+    return "/trials/" + (project == null ? ":project/:id" : project.getName() + "/" + conductorRun.getId());
   }
 
   public static String getUrl(Project project, Actor conductorRun, String mode) {
@@ -194,4 +199,5 @@ public class TrialsComponent extends AbstractAccessControlledComponent {
   }
 
   public enum Mode {Default}
+   */
 }

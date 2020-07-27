@@ -38,14 +38,14 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
     SimulatorsComponent.register();
     SimulatorComponent.register();
-    TrialsComponent.register();
-    ConductorComponent.register();
+    //TrialsComponent.register();
+    ActorGroupComponent.register();
     RunsComponent.register();
     RunComponent.register();
   }
 
   public static String getUrl(Project project) {
-    return "/project/" + (project == null ? ":id" : project.getId());
+    return "/project/" + (project == null ? ":id" : project.getName());
   }
 
   public static String getUrl(Project project, String mode) {
@@ -167,7 +167,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getId() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
+        String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getName() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
         content += Lte.divRow(
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
             Html.a(RunsComponent.getUrl(project), "Runs"), ""),
@@ -238,16 +238,16 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                   list.add(Main.threadPool.submit(() -> {
                     return new Lte.TableRow(
                       new Lte.TableValue("",
-                        Html.a(ConductorComponent.getUrl(conductor),
-                          null, null, conductor.getShortId())),
+                        Html.a(ActorGroupComponent.getUrl(conductor),
+                          null, null, conductor.getName())),
                       new Lte.TableValue("", conductor.getName()),
                       new Lte.TableValue("text-align:right;",
                         Html.span(null, null,
-                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getId()))),
-                          Html.a(ConductorComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
+                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getName()))),
+                          Html.a(ActorGroupComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
                             Html.span("right badge badge-secondary", null, "run")
                           ),
-                          Html.javascript("updateConductorJobNum('" + conductor.getId() + "'," + finalRunningCount + ")")
+                          Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + finalRunningCount + ")")
                         )
                       ));
                   } ));
@@ -272,6 +272,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     String type = request.queryParams("type");
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
     ActorGroup conductor = ActorGroup.create(project, name);
-    response.redirect(ConductorComponent.getUrl(conductor));
+    response.redirect(ActorGroupComponent.getUrl(conductor));
   }
 }

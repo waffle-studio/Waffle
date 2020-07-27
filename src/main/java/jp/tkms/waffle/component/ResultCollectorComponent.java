@@ -38,13 +38,13 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
   public static String getStaticUrl(Simulator simulator, String mode) {
     return "/result_collector-" + mode + "/"
-      + (simulator == null ? ":project/:simulator" : simulator.getProject().getId() + "/" + simulator.getId());
+      + (simulator == null ? ":project/:simulator" : simulator.getProject().getName() + "/" + simulator.getName());
   }
 
   public static String getUrl(Simulator simulator, String name) {
     return "/result_collector/"
       + (name == null ? ":project/:simulator/:name"
-      : simulator.getProject().getId() + '/' + simulator.getId() + '/' +  name);
+      : simulator.getProject().getName() + '/' + simulator.getName() + '/' +  name);
   }
 
   public static String getUrl(Simulator simulator, String name, String mode) {
@@ -89,9 +89,9 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
+          Html.a(SimulatorComponent.getUrl(simulator), simulator.getName()),
           "Result Collector",
           collectorName
         ));
@@ -146,9 +146,9 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getShortId()),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getShortId()),
+          Html.a(SimulatorComponent.getUrl(simulator), simulator.getName()),
           "Result Collector",
           "Add"
         ));

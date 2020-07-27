@@ -1,76 +1,64 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.RubyScript;
-import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import org.jruby.Ruby;
-import org.jruby.embed.EvalFailedException;
-import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.PathType;
-import org.jruby.embed.ScriptingContainer;
-import org.jruby.exceptions.LoadError;
-import org.jruby.exceptions.SystemCallError;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Actor extends AbstractRun {
+public class Actor extends AbstractRun implements InternalHashedData {
   protected static final String TABLE_NAME = "conductor_run";
   public static final String ROOT_NAME = "ROOT";
   public static final String KEY_ACTOR = "actor";
+  public static final String KEY_ACTIVE_RUN = "active_run";
+  public static final UUID ROOT_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
+  private static final HashMap<String, Actor> instanceMap = new HashMap<>();
+
+  private final Object messageProcessorLocker = new Object();
   private String actorName;
+  private HashSet<String> activeRunSet = new HashSet<>();
 
-  public Actor(Project project, UUID id, String name, RunNode runNode, String actorName) {
-    super(project, id, name, runNode);
-    this.actorName = actorName;
+  public Actor(Project project, UUID id) {
+    super(project, id, InternalHashedData.getDataDirectory(project, Actor.class.getName(), id));
+
+    for (Object runId : new JSONArray(getStringFromProperty(KEY_ACTIVE_RUN, "[]")).toList()) {
+      activeRunSet.add(runId.toString());
+    }
   }
 
+  /*
   public Actor(Actor actor) {
     super(actor.getProject(), actor.getUuid(), actor.getName(), actor.getRunNode());
     this.actorName = actor.actorName;
   }
-
-  protected Actor(Project project) {
-    super(project);
-  }
-
-  @Override
-  protected String getTableName() {
-    return TABLE_NAME;
-  }
+   */
 
   public static Actor getInstance(Project project, String id) {
-    final Actor[] conductorRun = {null};
+    Actor actor = null;
 
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
-        while (resultSet.next()) {
-          conductorRun[0] = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-        }
-      }
-    });
+    getRootInstance(project);
 
-    return conductorRun[0];
+    actor = instanceMap.get(id);
+    if (actor == null)  {
+      actor = new Actor(project, UUID.fromString(id));
+    }
+
+    return actor;
   }
 
+  /*
   public static Actor getInstanceByName(Project project, String name) {
     final Actor[] conductorRun = {null};
 
@@ -97,8 +85,16 @@ public class Actor extends AbstractRun {
 
     return conductorRun[0];
   }
+   */
 
   public static Actor getRootInstance(Project project) {
+    Actor actor = instanceMap.get(ROOT_UUID);
+    if (actor == null) {
+      actor = create(ROOT_UUID, RunNode.getRootInstance(project), null, null, null);
+    }
+    return actor;
+
+    /*
     final Actor[] conductorRun = {null};
 
     handleDatabase(new Actor(project), new Handler() {
@@ -118,15 +114,17 @@ public class Actor extends AbstractRun {
     });
 
     return conductorRun[0];
+     */
   }
 
   public static Actor find(Project project, String key) {
-    if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
+    //if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(project, key);
-    }
-    return getInstanceByName(project, key);
+    //}
+    //return getInstanceByName(project, key);
   }
 
+  /*
   public static ArrayList<Actor> getList(Project project, Actor parent) {
     ArrayList<Actor> list = new ArrayList<>();
 
@@ -254,14 +252,15 @@ public class Actor extends AbstractRun {
     return list;
   }
 
-  public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
-    Project project = parent.getProject();
-    String conductorId = (actorGroup == null ? "" : actorGroup.getId());
-    String conductorName = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName());
-    String name = conductorName + " : " + LocalDateTime.now().toString();
+   */
+  private static Actor create(UUID id, RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
+    Project project = runNode.getProject();
+    String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
+    String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
+      + " : " + LocalDateTime.now().toString();
 
     String callname = getCallName(actorGroup, actorName);
-    JSONArray callstack = parent.getCallstack();
+    JSONArray callstack = (parent == null ? new JSONArray() :parent.getCallstack());
     if (callstack.toList().contains(callname)) {
       Actor parentActor = parent;
       while (parentActor != null && ! callname.equals(getCallName(parentActor.getActorGroup(), parentActor.getActorName()))) {
@@ -274,30 +273,24 @@ public class Actor extends AbstractRun {
     }
     callstack.put(callname);
 
-    Actor conductorRun = new Actor(project, UUID.randomUUID(), name, runNode, actorName);
+    Actor actor = new Actor(project, id);
 
-    JSONArray finalCallstack = callstack;
-    RunNode finalRunNode = runNode;
-    JSONObject parentVariables = parent.getVariables();
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal( KEY_ID, conductorRun.getId() ),
-          Sql.Value.equal( KEY_NAME, conductorRun.getName() ),
-          Sql.Value.equal( KEY_PARENT, parent.getId() ),
-          Sql.Value.equal( KEY_RESPONSIBLE_ACTOR, parent.getId() ),
-          Sql.Value.equal( KEY_CONDUCTOR, conductorId ),
-          Sql.Value.equal( KEY_VARIABLES, parentVariables.toString() ),
-          Sql.Value.equal( KEY_STATE, State.Created.ordinal() ),
-          Sql.Value.equal( KEY_RUNNODE, finalRunNode.getId()),
-          Sql.Value.equal( KEY_ACTOR, actorName),
-          Sql.Value.equal( KEY_CALLSTACK, finalCallstack.toString())
-        ).execute();
-      }
-    });
+    if (parent != null) {
+      actor.setToProperty( KEY_PARENT, parent.getId() );
+      actor.setToProperty( KEY_RESPONSIBLE_ACTOR, parent.getId() );
+      actor.setToProperty( KEY_VARIABLES, parent.getVariables().toString() );
+    }
+    actor.setToProperty( KEY_ACTOR_GROUP, actorGroupName );
+    actor.setToProperty( KEY_STATE, State.Created.ordinal() );
+    actor.setToProperty( KEY_RUNNODE, runNode.getId());
+    actor.setToProperty( KEY_ACTOR, actorName);
+    actor.setToProperty( KEY_CALLSTACK, callstack.toString());
 
-    return conductorRun;
+    return actor;
+  }
+
+  public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
+    return create(UUID.randomUUID(), runNode, parent, actorGroup, actorName);
   }
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup) {
@@ -305,22 +298,26 @@ public class Actor extends AbstractRun {
   }
 
   public ArrayList<Actor> getChildActorRunList() {
-    return getChildList(getProject(), this);
+    //return getChildList(getProject(), this);
+    return new ArrayList<>();
   }
 
   public boolean hasRunningChildSimulationRun() {
-    return SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
+    return true; //SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
   }
 
   public State getState() {
-    return State.valueOf(getIntFromDB(KEY_STATE));
+    return State.valueOf(getIntFromProperty(KEY_STATE, 0));
   }
 
   public void setState(State state) {
-    setToDB(KEY_STATE, state.ordinal());
+    setToProperty(KEY_STATE, state.ordinal());
   }
 
   public String getActorName() {
+    if (actorName == null) {
+      actorName = getStringFromProperty(KEY_ACTOR);
+    }
     return actorName;
   }
 
@@ -339,11 +336,14 @@ public class Actor extends AbstractRun {
     return false;
   }
 
-  public void start() {
-    start(false);
+  public void start(AbstractRun caller) {
+    start(caller, false);
   }
 
-  public void start(boolean async) {
+  public void start(AbstractRun caller, boolean async) {
+
+    super.start();
+
     /*
     StackTraceElement[] ste = new Throwable().getStackTrace();
     System.out.println("vvvvvvvvvvvvvvvv");
@@ -358,15 +358,29 @@ public class Actor extends AbstractRun {
     setState(State.Running);
     if (!isRoot()) {
       getResponsibleActor().setState(State.Running);
+      getResponsibleActor().registerActiveRun(this);
     }
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
     //abstractConductor.start(this, async);
 
+    Actor thisInstance = this;
     Thread thread = new Thread() {
       @Override
       public void run() {
         super.run();
-        processMessage(null); //?????
+        //processMessage(null); //?????
+        if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
+          RubyScript.process((container) -> {
+            try {
+              container.runScriptlet(RubyConductor.getConductorTemplateScript());
+              container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
+              container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", thisInstance, caller);
+            } catch (Exception e) {
+              WarnLogMessage.issue(e);
+              getRunNode().appendErrorNote(e.getMessage());
+            }
+          });
+        }
 
         if (! isRunning()) {
           setState(jp.tkms.waffle.data.util.State.Finished);
@@ -385,15 +399,14 @@ public class Actor extends AbstractRun {
     }
   }
 
+  /*
   public void update() {
     if (!isRoot()) {
       //eventHandler(conductorRun, run);
       if (! isRunning()) {
-        /*
-        if (! run.getState().equals(State.Finished)) { // TOD: check!!!
-          setState(State.Failed);
-        }
-         */
+        //if (! run.getState().equals(State.Finished)) { // TOD: check!!!
+        //  setState(State.Failed);
+        //}
 
         if (! getState().equals(State.Finished)) {
           setState(State.Finished);
@@ -402,15 +415,16 @@ public class Actor extends AbstractRun {
       }
 
       //TODO: do refactor
-      if (getActorGroup() != null) {
-        int runningCount = 0;
-        for (Actor notFinished : Actor.getNotFinishedList(getProject()) ) {
-          if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(getActorGroup().getId())) {
-            runningCount += 1;
-          }
-        }
-        BrowserMessage.addMessage("updateConductorJobNum('" + getActorGroup().getId() + "'," + runningCount + ")");
-      }
+      //if (getActorGroup() != null) {
+      //  int runningCount = 0;
+      //  for (Actor notFinished : Actor.getNotFinishedList(getProject()) ) {
+      //    if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getName().equals(getActorGroup().getName())) {
+      //      runningCount += 1;
+      //    }
+      //  }
+      //  BrowserMessage.addMessage("updateConductorJobNum('" + getActorGroup().getName() + "'," + runningCount + ")");
+      //}
+
     }
   }
 
@@ -451,25 +465,69 @@ public class Actor extends AbstractRun {
     };
   }
 
+   */
+
   private Path getActorScriptPath() {
-    if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(actorName)) {
+    if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(getActorName())) {
       return getActorGroup().getRepresentativeActorScriptPath();
     }
-    return getActorGroup().getActorScriptPath(actorName);
+    return getActorGroup().getActorScriptPath(getActorName());
   }
 
-  public void processMessage(AbstractRun caller) {
-    RubyScript.process((container) -> {
-      try {
-        container.runScriptlet(RubyConductor.getConductorTemplateScript());
-        container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
-      } catch (Exception e) {
-        WarnLogMessage.issue(e);
-        getRunNode().appendErrorNote(e.getMessage());
-      }
-    });
+  public void registerActiveRun(AbstractRun run) {
+    activeRunSet.add(run.getId());
+    setToProperty(KEY_ACTIVE_RUN, (new JSONArray().put(activeRunSet)).toString());
   }
+
+  private void removeActiveRun(AbstractRun run) {
+    activeRunSet.remove(run.getId());
+    setToProperty(KEY_ACTIVE_RUN, (new JSONArray().put(activeRunSet)).toString());
+  }
+
+  public void postMessage(AbstractRun caller, String eventName) {
+    if (!caller.isRunning()) {
+      removeActiveRun(caller);
+    }
+
+    //processMessage(caller);
+    if (activeRunSet.size() <= 0) {
+      setState(State.Finished);
+      finish();
+    }
+  }
+
+  /*
+  public void processMessage(AbstractRun caller) {
+    if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
+      if ("#".equals(getActorName())) {
+        try {
+          createSimulatorRun("sleep", "LOCAL").start();
+        }catch (Throwable e) {
+          System.out.println("VVVVVVVVVVVVVVVVVVVV");
+          e.printStackTrace();
+          System.out.println("^^^^^^^^^^^^^^^^^^^");
+        }
+      }else {
+        RubyScript.process((container) -> {
+          try {
+            container.runScriptlet(RubyConductor.getConductorTemplateScript());
+            container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
+            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
+          } catch (Exception e) {
+            WarnLogMessage.issue(e);
+            getRunNode().appendErrorNote(e.getMessage());
+          }
+        });
+      }
+    }
+
+    if (activeRunSet.size() <= 0) {
+      setState(State.Finished);
+      finish();
+    }
+  }
+
+   */
 
   private ConductorTemplate conductorTemplate = null;
   private ListenerTemplate listenerTemplate = null;
@@ -569,5 +627,22 @@ public class Actor extends AbstractRun {
     }
 
     transactionRunList.clear();;
+  }
+
+  /*
+  @Override
+  public Path getDirectoryPath() {
+    return InternalHashedData.getHashedDirectoryPath(getProject(), getInternalDataGroup(), getUuid());
+  }
+   */
+
+  @Override
+  public String getInternalDataGroup() {
+    return Actor.class.getName();
+  }
+
+  @Override
+  public Path getPropertyStorePath() {
+    return getDirectoryPath().resolve(KEY_ACTOR + Constants.EXT_JSON);
   }
 }

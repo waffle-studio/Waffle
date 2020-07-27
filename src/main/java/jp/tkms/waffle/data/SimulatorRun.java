@@ -1,12 +1,10 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
-import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,8 +13,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -41,10 +37,6 @@ public class SimulatorRun extends AbstractRun {
   public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
   private static final String KEY_ACTUAL_HOST = "actual_host";
 
-  protected SimulatorRun(Project project) {
-    super(project);
-  }
-
   private String simulator;
   private String host;
   private State state;
@@ -58,77 +50,67 @@ public class SimulatorRun extends AbstractRun {
 
   private static final HashMap<String, SimulatorRun> instanceMap = new HashMap<>();
 
+  /*
   private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
     this(parent.getProject(), runNode.getUuid(),"",
-      simulator.getId(), host.getId(), runNode);
+      simulator.getName(), host.getName(), runNode);
   }
 
-  private SimulatorRun(Project project, UUID id, String name, String simulator, String host, RunNode runNode) {
-    super(project, id, name, runNode);
+  private SimulatorRun(Project project, Path path) {
+    super(project, id, name);
+    instanceMap.put(id, run[0]);
     this.simulator = simulator;
     this.host = host;
   }
+   */
+
+  private SimulatorRun(Project project, UUID id, Path path) {
+    super(project, id, path);
+    instanceMap.put(getId(), this);
+  }
+
+/*
+  @Override
+  public Path getDirectoryPath() {
+    return getRunNode().getDirectoryPath();
+  }
+ */
 
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
-    final SimulatorRun[] run = {null};
+    SimulatorRun run = null;
 
-    run[0] = instanceMap.get(id);
-    if (run[0] != null)  {
-      return run[0];
+    run = instanceMap.get(id);
+    if (run != null)  {
+      return run;
     }
 
-    if (id != null && !"".equals(id)) {
-      handleDatabase(new SimulatorRun(project), new Handler() {
-        @Override
-        void handling(Database db) throws SQLException {
-          ResultSet resultSet = new Sql.Select(db, TABLE_NAME,
-            KEY_ID,
-            KEY_NAME,
-            KEY_CONDUCTOR,
-            KEY_PARENT,
-            KEY_SIMULATOR,
-            KEY_HOST,
-            KEY_RUNNODE
-          ).where(Sql.Value.equal(KEY_ID, id)).executeQuery();
-          while (resultSet.next()) {
-            RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
-            if (runNode == null) {
-              new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
-            } else {
-              run[0] = new SimulatorRun(
-                project,
-                UUID.fromString(resultSet.getString(KEY_ID)),
-                resultSet.getString(KEY_NAME),
-                resultSet.getString(KEY_SIMULATOR),
-                resultSet.getString(KEY_HOST),
-                runNode
-              );
-            }
-          }
-        }
-      });
+    RunNode runNode = RunNode.getInstance(project, id);
+
+    if (runNode != null && runNode instanceof SimulatorRunNode) {
+      run = new SimulatorRun(project, runNode.getUuid(), runNode.getDirectoryPath());
     }
 
-    if (run[0] == null) {
+    if (run == null) {
       throw new RunNotFoundException();
     }
 
-    instanceMap.put(id, run[0]);
-
-    return run[0];
+    return run;
   }
 
   public Host getHost() {
+    if (host == null) {
+      host = getStringFromProperty(KEY_HOST);
+    }
     return Host.getInstance(host);
   }
 
   public Host getActualHost() {
-    return Host.getInstanceByName(getStringFromProperty(KEY_ACTUAL_HOST, getHost().getName()));
+    return Host.getInstance(getStringFromProperty(KEY_ACTUAL_HOST, getHost().getName()));
   }
 
   public Simulator getSimulator() {
     if (simulator == null) {
-      simulator = getStringFromDB(KEY_SIMULATOR);
+      simulator = getStringFromProperty(KEY_SIMULATOR);
     }
     return Simulator.getInstance(getProject(), simulator);
   }
@@ -140,6 +122,7 @@ public class SimulatorRun extends AbstractRun {
     return state;
   }
 
+  /*
   public static ArrayList<SimulatorRun> getList(Project project, Actor parent) {
     ArrayList<SimulatorRun> list = new ArrayList<>();
 
@@ -198,14 +181,15 @@ public class SimulatorRun extends AbstractRun {
 
     return count[0];
   }
+   */
 
   public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
-    SimulatorRun run = new SimulatorRun(parent, simulator, host, runNode);
-    instanceMap.put(run.getId(), run);
+    SimulatorRun run = new SimulatorRun(parent.getProject(), runNode.getUuid(), runNode.getDirectoryPath());
+
     ActorGroup conductor = parent.getActorGroup();
-    String conductorId = (conductor == null ? "" : conductor.getId());
-    String simulatorId = run.getSimulator().getId();
-    String hostId = run.getHost().getId();
+    String actorGroupName = (conductor == null ? "" : conductor.getName());
+    String simulatorName = simulator.getName();
+    String hostName = host.getName();
     JSONArray callstack = parent.getCallstack();
     callstack.put("##");
 
@@ -220,23 +204,15 @@ public class SimulatorRun extends AbstractRun {
     }
      */
 
-    handleDatabase(new SimulatorRun(parent.getProject()), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        new Sql.Insert(db, TABLE_NAME,
-          Sql.Value.equal(KEY_ID, run.getId()),
-          Sql.Value.equal(KEY_CONDUCTOR, conductorId),
-          Sql.Value.equal(KEY_PARENT, parent.getId()),
-          Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, parent.getId()),
-          Sql.Value.equal(KEY_SIMULATOR, simulatorId),
-          Sql.Value.equal(KEY_HOST, hostId),
-          Sql.Value.equal(KEY_STATE, run.getState().ordinal()),
-          Sql.Value.equal(KEY_VARIABLES, parent.getVariables().toString()),
-          Sql.Value.equal(KEY_RUNNODE, runNode.getId()),
-          Sql.Value.equal( KEY_CALLSTACK, callstack.toString())
-        ).execute();
-      }
-    });
+    run.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
+    run.setToProperty(KEY_PARENT, parent.getId());
+    run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
+    run.setToProperty(KEY_SIMULATOR, simulatorName);
+    run.setToProperty(KEY_HOST, hostName);
+    run.setToProperty(KEY_STATE, run.getState().ordinal());
+    run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+    run.setToProperty(KEY_RUNNODE, runNode.getId());
+    run.setToProperty(KEY_CALLSTACK, callstack.toString());
 
     run.setExitStatus(-1);
     run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());
@@ -267,7 +243,7 @@ public class SimulatorRun extends AbstractRun {
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_RUN + Constants.EXT_JSON);
   }
 
@@ -304,7 +280,9 @@ public class SimulatorRun extends AbstractRun {
       }
       new RunStatusUpdater(this);
 
-      finish();
+      if (!isRunning()) {
+        finish();
+      }
     }
   }
 
@@ -318,7 +296,7 @@ public class SimulatorRun extends AbstractRun {
 
   public int getRestartCount() {
     if (restartCount == null) {
-      restartCount = Integer.valueOf(getStringFromDB(KEY_RESTART_COUNT));
+      restartCount = getIntFromProperty(KEY_RESTART_COUNT, 0);
     }
     return restartCount;
   }
@@ -559,13 +537,14 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public void start() {
+    super.start();
     putVariablesByJson(getParentActor().getVariables().toString());
     isStarted = true;
     Job.addRun(this);
   }
 
   public void restart() {
-    setToDB(KEY_RESTART_COUNT, getRestartCount() +1);
+    setToProperty(KEY_RESTART_COUNT, getRestartCount() +1);
     setExitStatus(-1);
     setState(State.Created);
     Job.addRun(this);
@@ -633,7 +612,6 @@ public class SimulatorRun extends AbstractRun {
       submitter.close();
     } catch (Exception e) {}
   }
-   */
 
   @Override
   protected String getTableName() {
@@ -680,6 +658,7 @@ public class SimulatorRun extends AbstractRun {
       }
     };
   }
+   */
 
   public HashMap<Object, Object> environmentsWrapper = null;
   public HashMap environments() {

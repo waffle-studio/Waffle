@@ -142,10 +142,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
           Lte.table("table-condensed", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
+              return null;
             }
 
             @Override
@@ -154,8 +151,8 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
               for (Project project : Project.getList()) {
                 list.add(Main.threadPool.submit(() -> {
                     return new Lte.TableRow(
-                      Html.a(ProjectComponent.getUrl(project), null, null, project.getShortId()),
-                      project.getName());
+                      Html.a(ProjectComponent.getUrl(project), null, null, project.getName())
+                    );
                   }
                 ));
               }

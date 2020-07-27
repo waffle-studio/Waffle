@@ -33,7 +33,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/simulators/" + (project == null ? ":project" : project.getId());
+    return "/simulators/" + (project == null ? ":project" : project.getName());
   }
 
   public static String getUrl(Project project, String mode) {
@@ -141,7 +141,6 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
               return list;
             }
@@ -152,8 +151,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
               for (Simulator simulator : simulatorList) {
                 list.add(Main.threadPool.submit(() -> {
                   return new Lte.TableRow(
-                      Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getShortId()),
-                      simulator.getName());
+                      Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getName()));
                   }
                 ));
               }

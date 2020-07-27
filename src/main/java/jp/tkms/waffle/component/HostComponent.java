@@ -119,7 +119,6 @@ public class HostComponent extends AbstractAccessControlledComponent {
 
   private ArrayList<Lte.TableValue> getProjectTableHeader() {
     ArrayList<Lte.TableValue> list = new ArrayList<>();
-    list.add(new Lte.TableValue("width:8em;", "ID"));
     list.add(new Lte.TableValue("", "Name"));
     return list;
   }
@@ -128,8 +127,8 @@ public class HostComponent extends AbstractAccessControlledComponent {
     ArrayList<Lte.TableRow> list = new ArrayList<>();
     for (Project project : Project.getList()) {
       list.add(new Lte.TableRow(
-        Html.a("", null, null, project.getShortId()),
-        project.getName())
+        Html.a("", null, null, project.getName())
+        )
       );
     }
     return list;

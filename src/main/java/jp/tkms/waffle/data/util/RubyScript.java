@@ -12,12 +12,24 @@ import org.jruby.exceptions.SystemCallError;
 import java.util.function.Consumer;
 
 public class RubyScript {
+  private static Integer runningCount = 0;
+
+  public static boolean hasRunning() {
+    synchronized (runningCount) {
+      return (runningCount > 0);
+    }
+  }
+
   public static void process(Consumer<ScriptingContainer> process) {
     boolean failed;
     do {
+      synchronized (runningCount) {
+        runningCount += 1;
+      }
       failed = false;
+      ScriptingContainer container = null;
       try {
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+        container = new ScriptingContainer(LocalContextScope.THREADSAFE);
         try {
           container.runScriptlet(RubyConductor.getInitScript());
           process.accept(container);
@@ -25,6 +37,7 @@ public class RubyScript {
           ErrorLogMessage.issue(e);
         }
         container.terminate();
+        container = null;
       } catch (SystemCallError | LoadError e) {
         failed = true;
         if (! e.getMessage().matches("Unknown error")) {
@@ -32,6 +45,13 @@ public class RubyScript {
         }
         WarnLogMessage.issue(e);
         try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+      } finally {
+        if (container != null) {
+          container.terminate();
+        }
+        synchronized (runningCount) {
+          runningCount -= 1;
+        }
       }
     } while (failed);
   }

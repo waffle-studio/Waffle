@@ -143,7 +143,6 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
               return list;
             }
@@ -154,8 +153,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
               for (ListenerTemplate module : moduleList) {
                 list.add(Main.threadPool.submit(() -> {
                     return new Lte.TableRow(
-                      Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getShortId()),
-                      module.getName());
+                      Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getName()));
                   }
                 ));
               }

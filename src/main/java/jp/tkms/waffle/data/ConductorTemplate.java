@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.ResourceFile;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,16 +14,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class ConductorTemplate extends DirectoryBaseData {
+public class ConductorTemplate implements DataDirectory, PropertyFile {
   protected static final String KEY_CONDUCTOR_TEMPLATE = "conductor_template";
   private static final String KEY_LISTENER = "listener";
   private static final String KEY_ARGUMENTS = "arguments";
   private static final String KEY_FUNCTIONS = "functionss";
 
+  private String name;
   private String arguments = null;
 
   public ConductorTemplate(String name) {
-    super(getBaseDirectoryPath().resolve(name));
+    this.name = name;
+  }
+
+  public String getName() {
+    return name;
   }
 
   public static ConductorTemplate getInstance(String name) {
@@ -70,7 +76,7 @@ public class ConductorTemplate extends DirectoryBaseData {
     return conductor[0];
   }
 
-  public static ConductorTemplate getInstanceByName(String name) {
+  public static ConductorTemplate getInstance(String name) {
     final ConductorTemplate[] conductor = {null};
 
     handleDatabase(new ConductorTemplate(), new Handler() {
@@ -95,7 +101,7 @@ public class ConductorTemplate extends DirectoryBaseData {
     if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
       return getInstance(key);
     }
-    return getInstanceByName(key);
+    return getInstance(key);
   }
   dd
    */
@@ -103,7 +109,7 @@ public class ConductorTemplate extends DirectoryBaseData {
   public static ArrayList<ConductorTemplate> getList() {
     ArrayList<ConductorTemplate> conductorTemplates = new ArrayList<>();
 
-    initializeWorkDirectory();
+    Data.initializeWorkDirectory();
 
     for (File file : getBaseDirectoryPath().toFile().listFiles()) {
       if (file.isDirectory()) {
@@ -142,7 +148,7 @@ public class ConductorTemplate extends DirectoryBaseData {
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_CONDUCTOR_TEMPLATE + Constants.EXT_JSON);
   }
 
@@ -222,5 +228,15 @@ public class ConductorTemplate extends DirectoryBaseData {
 
   public void updateMainScript(String script) {
     updateFileContents(getMainScriptPath(), script);
+  }
+
+  JSONObject propertyStoreCache = null;
+  @Override
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }

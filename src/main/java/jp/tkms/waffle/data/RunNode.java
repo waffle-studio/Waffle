@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.State;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,14 +14,9 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.*;
 
-public class RunNode extends DirectoryBaseData {
+public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkData {
   public static final String KEY_EXPECTED_NAME = "expected_name";
   public static final String KEY_PROPERTY = "property";
   public static final String KEY_RUN = "run";
@@ -33,17 +29,28 @@ public class RunNode extends DirectoryBaseData {
   private static final HashMap<String, RunNode> instanceMap = new HashMap<>();
 
   Project project;
+  Path path;
+  UUID id;
   Long sortIndex;
   String note;
   String simpleName;
   State state;
 
-  public RunNode() {
+  public RunNode(Project project, Path path) {
+    this.project = project;
+    this.id = UUID.fromString(getDataId(path));
+    this.path = getDataDirectory(id);
+
+    instanceMap.put(path.toString(), this);
+
+    initialize();
   }
 
-  public RunNode(Project project, Path path) {
-    super(path);
-    this.project = project;
+  public String getName() {
+    return path.getFileName().toString();
+  }
+
+  public void initialize() {
 
     Path sortIndexPath = path.resolve(KEY_SORT_INDEX);
     if (Files.exists(sortIndexPath)) {
@@ -63,22 +70,35 @@ public class RunNode extends DirectoryBaseData {
     }
   }
 
+  public String getId() {
+    return id.toString();
+  }
+
+  public UUID getUuid() {
+    return id;
+  }
+
   public Long getSortIndex() {
     return sortIndex;
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_PROPERTY + Constants.EXT_JSON);
   }
 
   @Override
   public Path getDirectoryPath() {
-    return getDirectoryPath(getId()).toAbsolutePath();
+    return path.toAbsolutePath();
   }
 
   public Project getProject() {
     return project;
+  }
+
+  @Override
+  public String getInternalDataGroup() {
+    return RunNode.class.getName();
   }
 
   public String getSimpleName() {
@@ -99,30 +119,32 @@ public class RunNode extends DirectoryBaseData {
       runNode = instanceMap.get(instancePath.toString());
       if (runNode == null) {
         runNode = new ParallelRunNode(project, getBaseDirectoryPath(project).resolve(path));
-        instanceMap.put(instancePath.toString(), runNode);
       }
     } else if (Files.exists(instancePath.resolve(SimulatorRunNode.KEY_SIMULATOR))) {
       runNode = instanceMap.get(instancePath.toString());
       if (runNode == null) {
         runNode = new SimulatorRunNode(project, getBaseDirectoryPath(project).resolve(path));
-        instanceMap.put(instancePath.toString(), runNode);
       }
     } else if (Files.exists(instancePath)) {
       runNode = instanceMap.get(instancePath.toString());
       if (runNode == null) {
         runNode = new InclusiveRunNode(project, getBaseDirectoryPath(project).resolve(path));
-        instanceMap.put(instancePath.toString(), runNode);
       }
     }
     return runNode;
   }
 
   public static RunNode getRootInstance(Project project) {
-    return new InclusiveRunNode(project, getBaseDirectoryPath(project));
+    Path path = getBaseDirectoryPath(project);
+    RunNode runNode = getInstanceByName(project, path);
+    if (runNode == null) {
+      runNode = new InclusiveRunNode(project, path);
+    }
+    return runNode;
   }
 
   public static RunNode getInstance(Project project, String id) {
-    Path path = getDirectoryPath(id);
+    Path path = InternalHashedLinkData.getDataPath(project, RunNode.class.getName(), id);
     if (path == null) {
       return null;
     }
@@ -143,7 +165,7 @@ public class RunNode extends DirectoryBaseData {
       })
       ).forEach(path -> {
         if (Files.isDirectory(path)) {
-          list.add(getInstanceByName(project, path.toAbsolutePath()));
+          list.add(getInstance(project, path.toAbsolutePath()));
         }
       });
     } catch (IOException e) {
@@ -190,12 +212,12 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public InclusiveRunNode createInclusiveRunNode(String name) {
-   Path path = getDirectoryPath().resolve(generateUniqueName(name));
+    Path path = getDirectoryPath().resolve(generateUniqueName(name));
     try {
       Files.createDirectories(path);
-      resetUuid(path);
+      InternalHashedLinkData.resetDataId(path);
     } catch (IOException e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
     return new InclusiveRunNode(project, path);
   }
@@ -204,9 +226,9 @@ public class RunNode extends DirectoryBaseData {
     Path path = getDirectoryPath().resolve(generateUniqueName(name));
     try {
       Files.createDirectories(path);
-      resetUuid(path);
+      InternalHashedLinkData.resetDataId(path);
     } catch (IOException e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
     return new ParallelRunNode(project, path);
   }
@@ -215,7 +237,7 @@ public class RunNode extends DirectoryBaseData {
     Path path = getDirectoryPath().resolve(generateUniqueName(name));
     try {
       Files.createDirectories(path);
-      resetUuid(path);
+      InternalHashedLinkData.resetDataId(path);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -269,6 +291,28 @@ public class RunNode extends DirectoryBaseData {
     return nextName;
   }
 
+  public void replace(Path path) {
+    int count = 1;
+    while (Files.exists(path)) {
+      path = path.getParent().resolve(path.getFileName().toString() + '_' + count++);
+      //name = (name.length() > 0 ? "_" : "") + UUID.randomUUID().toString().replaceFirst("-.*$", "");
+    }
+    Path localPath = Constants.WORK_DIR.relativize(path.toAbsolutePath());
+    String id = getId();
+
+    if (Files.exists(getDirectoryPath())) {
+      try {
+        Files.move(getDirectoryPath(), path);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    InternalHashedLinkData.updateDataPath(getProject(), getInternalDataGroup(), id, localPath);
+    this.path = path;
+    instanceMap.remove(this.path.toString());
+  }
+
   public String rename(String name) {
     return rename(name, true);
   }
@@ -299,8 +343,10 @@ public class RunNode extends DirectoryBaseData {
   }
 
   public void appendErrorNote(String note) {
-    createNewFile(KEY_ERROR_NOTE_TXT);
-    updateFileContents(KEY_ERROR_NOTE_TXT, getErrorNote().concat(note).concat("\n"));
+    if (note != null) {
+      createNewFile(KEY_ERROR_NOTE_TXT);
+      updateFileContents(KEY_ERROR_NOTE_TXT, getErrorNote().concat(note).concat("\n"));
+    }
   }
 
   public String getErrorNote() {
@@ -341,5 +387,15 @@ public class RunNode extends DirectoryBaseData {
       state = State.valueOf(getIntFromProperty(KEY_STATE, State.None.ordinal()));
     }
     return state;
+  }
+
+  JSONObject propertyStoreCache = null;
+  @Override
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }

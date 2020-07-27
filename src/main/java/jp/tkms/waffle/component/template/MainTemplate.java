@@ -6,6 +6,7 @@ import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.AbstractUpdater;
 import jp.tkms.waffle.data.BrowserMessage;
 import jp.tkms.waffle.data.Job;
+import jp.tkms.waffle.data.util.RubyScript;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -38,7 +39,8 @@ abstract public class MainTemplate extends AbstractTemplate {
         body("hold-transition",
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
-              renderPageNavigation()
+              renderPageNavigation(),
+              renderPageRightNavigation()
             ),
             elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
               a(Constants.ROOT_PAGE, "brand-link navbar-light",
@@ -278,6 +280,18 @@ abstract public class MainTemplate extends AbstractTemplate {
     return elementWithClass("ul", "navbar-nav", innerContent);
   }
 
+  String renderPageRightNavigation() {
+    String innerContent = "";
+
+    if (pageRightNavigation() != null) {
+      for (String value : pageRightNavigation()) {
+        innerContent += elementWithClass("li", "nav-item", value);
+      }
+    }
+
+    return elementWithClass("ul", "navbar-nav ml-auto", innerContent);
+  }
+
   String renderPageBreadcrumb() {
     String innerContent = elementWithClass("li", "breadcrumb-item",
       a(Constants.ROOT_PAGE, null, null, fasIcon("home"))
@@ -291,6 +305,13 @@ abstract public class MainTemplate extends AbstractTemplate {
     }
 
     return elementWithClass("ol", "breadcrumb float-sm-right", innerContent);
+  }
+
+  protected ArrayList<String> pageRightNavigation() {
+    ArrayList<String> nav = new ArrayList<String>();
+    nav.add(Html.spanWithId("ruby-running-status", Lte.formSubmitButton("danger",Html.fasIcon("spinner", "fa-pulse") + "Script Running"),
+      Html.javascript("var rubyRunningStatus=function(status){if(status){document.getElementById('ruby-running-status').style.display='inline';}else{document.getElementById('ruby-running-status').style.display='none';}};rubyRunningStatus(" + (RubyScript.hasRunning()?"true":"false") + ");")));
+    return nav;
   }
 
   protected abstract ArrayList<Map.Entry<String, String>> pageNavigation();

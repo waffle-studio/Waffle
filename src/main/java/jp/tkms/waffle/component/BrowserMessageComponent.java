@@ -1,6 +1,7 @@
 package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.data.BrowserMessage;
+import jp.tkms.waffle.data.util.RubyScript;
 import spark.Spark;
 
 public class BrowserMessageComponent extends AbstractAccessControlledComponent {
@@ -17,7 +18,7 @@ public class BrowserMessageComponent extends AbstractAccessControlledComponent {
   @Override
   public void controller() {
 
-    String result = "void(0);";
+    String result = "try{rubyRunningStatus(" + (RubyScript.hasRunning() ? "true" : "false") + ");}catch(e){}";
     response.body(result);
 
     String browserId = request.params(KEY_CURRENT_ROWID);

@@ -13,7 +13,7 @@ import java.nio.file.Path;
 public class RubyConductor extends CycleConductor {
   @Override
   protected void preProcess(Actor actor) {
-    actor.processMessage(null);
+    //actor.processMessage(null);
   }
 
   @Override

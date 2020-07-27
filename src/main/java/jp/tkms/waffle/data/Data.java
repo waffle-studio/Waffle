@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
-abstract public class Data {
+abstract public class Data implements PropertyFile {
   public static final String KEY_ROWID = "rowid";
   public static final String KEY_ID = "id";
   public static final String KEY_NAME = "name";
@@ -173,182 +173,6 @@ abstract public class Data {
     }
   }
 
-  protected Path getPropertyStorePath() {
-    return Paths.get("waffle.json");
-  }
-
-  private JSONObject propertyStore = null;
-  private JSONObject getPropertyStore() {
-    synchronized (this) {
-      if (propertyStore == null) {
-        Path storePath = getPropertyStorePath();
-        String json = "{}";
-        if (Files.exists(storePath)) {
-          try {
-            json = new String(Files.readAllBytes(storePath));
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-        }
-        propertyStore = new JSONObject(json);
-      }
-    }
-    return propertyStore;
-  }
-
-  protected void reloadPropertyStore() {
-    synchronized (this) {
-      propertyStore = null;
-    }
-  }
-
-  private void updatePropertyStore() {
-    synchronized (this) {
-      if (propertyStore != null) {
-        Path directoryPath = getPropertyStorePath().getParent();
-        if (!Files.exists(directoryPath)) {
-          try {
-            Files.createDirectories(directoryPath);
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-        }
-
-        Path storePath = getPropertyStorePath();
-        try {
-          FileWriter filewriter = new FileWriter(storePath.toFile());
-          filewriter.write(propertyStore.toString(2));
-          filewriter.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }
-    }
-  }
-
-  protected String getStringFromProperty(String key) {
-    try {
-      return getPropertyStore().getString(key);
-    } catch (Exception e) {}
-    return null;
-  }
-
-  protected String getStringFromProperty(String key, String defaultValue) {
-    String value = getStringFromProperty(key);
-    if (value == null) {
-      value = defaultValue;
-      if (value != null) {
-        setToProperty(key, defaultValue);
-      }
-    }
-    return value;
-  }
-
-  protected Integer getIntFromProperty(String key) {
-    try {
-      return getPropertyStore().getInt(key);
-    } catch (Exception e) {}
-    return null;
-  }
-
-  protected Integer getIntFromProperty(String key, Integer defaultValue) {
-    Integer value = getIntFromProperty(key);
-    if (value == null) {
-      value = defaultValue;
-      if (value != null) {
-        setToProperty(key, defaultValue);
-      }
-    }
-    return value;
-  }
-
-  protected Long getLongFromProperty(String key) {
-    try {
-      return getPropertyStore().getLong(key);
-    } catch (Exception e) {}
-    return null;
-  }
-
-  protected JSONObject getJSONObjectFromProperty(String key) {
-    try {
-      return getPropertyStore().getJSONObject(key);
-    } catch (Exception e) {}
-    return null;
-  }
-
-  protected JSONObject getJSONObjectFromProperty(String key, JSONObject defaultValue) {
-    JSONObject value = getJSONObjectFromProperty(key);
-    if (value == null) {
-      value = defaultValue;
-      if (value != null) {
-        setToProperty(key, defaultValue);
-      }
-    }
-    return value;
-  }
-
-  protected JSONArray getArrayFromProperty(String key) {
-    return getPropertyStore().getJSONArray(key);
-  }
-
-  protected void setToProperty(String key, String value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
-  }
-
-  protected void setToProperty(String key, int value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
-  }
-
-  protected void setToProperty(String key, long value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
-  }
-
-  protected void setToProperty(String key, JSONObject value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
-  }
-
-  protected void setToProperty(String key, JSONArray value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
-  }
-
-  protected void putNewArrayToProperty(String key) {
-    getPropertyStore().put(key, new ArrayList<>());
-    updatePropertyStore();
-  }
-
-  protected void putToArrayOfProperty(String key, String value) {
-    JSONArray array = null;
-    boolean isContain = false;
-    try {
-      array = getPropertyStore().getJSONArray(key);
-      isContain = array.toList().contains(value);
-    } catch (Exception e) {}
-    if (array == null) {
-      getPropertyStore().put(key, new ArrayList<>());
-      array = getPropertyStore().getJSONArray(key);
-    }
-    if (! isContain) {
-      array.put(value);
-    }
-    updatePropertyStore();
-  }
-
-  protected void removeFromArrayOfProperty(String key, String value) {
-    try {
-      JSONArray array = getPropertyStore().getJSONArray(key);
-      int index = array.toList().indexOf(value);
-      if (index >= 0) {
-        array.remove(index);
-      }
-    } catch (Exception e) {}
-    updatePropertyStore();
-  }
-
   public static void initializeWorkDirectory() {
     createDirectories(Constants.WORK_DIR);
     createDirectories(Project.getBaseDirectoryPath());
@@ -453,5 +277,15 @@ abstract public class Data {
         e.printStackTrace();
       }
     }
+  }
+
+  JSONObject propertyStoreCache = null;
+  @Override
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }

@@ -2,27 +2,17 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
-import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class Job {
   private String id = null;
   private String projectName = null;
   private String hostName = null;
   private String jobId = "";
+  private State state = null;
   private int errorCount = 0;
 
   public Job() {}
@@ -87,6 +77,7 @@ public class Job {
   }
 
   public void setState(State state) throws RunNotFoundException {
+    this.state = state;
     SimulatorRun run = getRun();
     if (run != null) {
       run.setState(state);
@@ -98,11 +89,11 @@ public class Job {
   }
 
   public Project getProject() {
-    return Project.getInstanceByName(projectName);
+    return Project.getInstance(projectName);
   }
 
   public Host getHost() {
-    return Host.getInstanceByName(hostName);
+    return Host.getInstance(hostName);
   }
 
   public SimulatorRun getRun() throws RunNotFoundException {
@@ -113,8 +104,15 @@ public class Job {
     return jobId;
   }
 
+  public State getState(boolean disableCache) throws RunNotFoundException {
+    if (disableCache || state == null) {
+      state = getRun().getState();
+    }
+    return state;
+  }
+
   public State getState() throws RunNotFoundException {
-    return getRun().getState();
+    return getState(false);
   }
 
   public int getErrorCount() {

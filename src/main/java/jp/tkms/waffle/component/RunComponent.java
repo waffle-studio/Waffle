@@ -39,11 +39,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project, UUID runId) {
-    return "/run/" + (project == null ? ":project/:id" : project.getId() + "/" + runId.toString());
+    return "/run/" + (project == null ? ":project/:id" : project.getName() + "/" + runId.toString());
   }
 
   public static String getUrl(Project project, SimulatorRun run, String mode) {
-    return "/run/" + (project == null ? ":project/:id/" + mode : project.getId() + "/" + run.getId() + "/" + mode);
+    return "/run/" + (project == null ? ":project/:id/" + mode : project.getName() + "/" + run.getId() + "/" + mode);
   }
 
   @Override
@@ -112,7 +112,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
                 list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Status", run.getState().getStatusBadge());}));
                 if (run.getActorGroup() != null) {
-                  list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
+                  list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ActorGroupComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
                 } else {
                   list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
                 }

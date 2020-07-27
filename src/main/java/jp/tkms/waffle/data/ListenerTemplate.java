@@ -1,7 +1,9 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,16 +11,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-public class ListenerTemplate extends DirectoryBaseData {
+public class ListenerTemplate implements DataDirectory, PropertyFile {
   protected static final String KEY_LISTENER_TEMPLATE = "listener_template";
   private static final String KEY_LISTENER = "listener";
   //private static final String KEY_ARGUMENTS = "arguments";
   //private static final String KEY_FUNCTIONS = "functions";
 
+  private String name;
   private String arguments = null;
 
   public ListenerTemplate(String name) {
-    super(getBaseDirectoryPath().resolve(name));
+    this.name = name;
+  }
+
+  public String getName() {
+    return name;
   }
 
   public static ListenerTemplate getInstance(String name) {
@@ -39,7 +46,7 @@ public class ListenerTemplate extends DirectoryBaseData {
   public static ArrayList<ListenerTemplate> getList() {
     ArrayList<ListenerTemplate> listenerTemplates = new ArrayList<>();
 
-    initializeWorkDirectory();
+    Data.initializeWorkDirectory();
 
     for (File file : getBaseDirectoryPath().toFile().listFiles()) {
       if (file.isDirectory()) {
@@ -51,7 +58,11 @@ public class ListenerTemplate extends DirectoryBaseData {
   }
 
   public static ListenerTemplate create(String name) {
-    createDirectories(getBaseDirectoryPath().resolve(name));
+    try {
+      Files.createDirectories(getBaseDirectoryPath().resolve(name));
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
     return new ListenerTemplate(name);
   }
 
@@ -60,7 +71,7 @@ public class ListenerTemplate extends DirectoryBaseData {
   }
 
   @Override
-  protected Path getPropertyStorePath() {
+  public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(KEY_LISTENER_TEMPLATE + Constants.EXT_JSON);
   }
 
@@ -83,5 +94,15 @@ public class ListenerTemplate extends DirectoryBaseData {
 
   public void updateScript(String script) {
     updateFileContents(getScriptPath(), script);
+  }
+
+  JSONObject propertyStoreCache = null;
+  @Override
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }

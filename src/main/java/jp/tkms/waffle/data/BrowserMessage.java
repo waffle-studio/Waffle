@@ -50,7 +50,7 @@ public class BrowserMessage {
   }
 
   public static void removeExpired() {
-    while (messageQueue.size() > 0 && (messageQueue.peek().timestamp + 5000) < System.currentTimeMillis()) {
+    while (messageQueue.size() > 0 && (messageQueue.peek().timestamp + 10000) < System.currentTimeMillis()) {
       messageQueue.poll();
     }
   }

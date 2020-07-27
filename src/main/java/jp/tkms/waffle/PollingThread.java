@@ -62,7 +62,7 @@ public class PollingThread extends Thread {
     if (submitter != null && submitter.isConnected()) {
       submitter.close();
     }
-    threadMap.remove(host.getId());
+    threadMap.remove(host.getName());
 
     InfoLogMessage.issue(host, "submitter closed");
   }
@@ -71,11 +71,11 @@ public class PollingThread extends Thread {
     if (!Main.hibernateFlag) {
       for (Host host : Host.getList()) {
         if (host.getState().equals(HostState.Viable)) {
-          if (!threadMap.containsKey(host.getId()) && Job.hasJob(host)) {
+          if (!threadMap.containsKey(host.getName()) && Job.hasJob(host)) {
             host.update();
             if (host.getState().equals(HostState.Viable)) {
               PollingThread pollingThread = new PollingThread(host);
-              threadMap.put(host.getId(), pollingThread);
+              threadMap.put(host.getName(), pollingThread);
               pollingThread.start();
             }
           }

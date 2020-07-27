@@ -134,7 +134,6 @@ public class HostsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("width:8em;", "Job"));
               list.add(new Lte.TableValue("width:2em;", ""));
@@ -147,8 +146,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
               for (Host host : Host.getList()) {
                 list.add(Main.threadPool.submit(() -> {
                   return new Lte.TableRow(
-                    Html.a(HostComponent.getUrl(host), null, null,  host.getShortId()),
-                    host.getName(),
+                    Html.a(HostComponent.getUrl(host), null, null,  host.getName()),
                     String.valueOf(Job.getList(host).size()),
                     host.getState().getStatusBadge()
                   );

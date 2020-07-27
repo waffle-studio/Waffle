@@ -62,6 +62,11 @@ public class SigninComponent extends AbstractComponent {
       }
 
       @Override
+      protected ArrayList<String> pageRightNavigation() {
+        return null;
+      }
+
+      @Override
       protected String pageTitle() {
         return "Signin";
       }

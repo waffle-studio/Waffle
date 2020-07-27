@@ -37,11 +37,11 @@ public class RunsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/runs/" + (project == null ? ":project/:id" : project.getId() + "/" + ROOT_NAME);
+    return "/runs/" + (project == null ? ":project/:id" : project.getName() + "/" + ROOT_NAME);
   }
 
   public static String getUrl(Project project, RunNode node) {
-    return "/runs/" + (project == null ? ":project/:id" : project.getId() + "/" + node.getId());
+    return "/runs/" + (project == null ? ":project/:id" : project.getName() + "/" + node.getId());
   }
 
   public static String getUrl(Project project, RunNode node, Mode mode) {
