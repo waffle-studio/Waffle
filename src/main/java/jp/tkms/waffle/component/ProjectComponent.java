@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -53,7 +54,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   @Override
-  public void controller() {
+  public void controller() throws ProjectNotFoundException {
     Mode mode = this.mode;
 
     requestedId = request.params("id");
@@ -85,7 +86,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     }
   }
 
-  private void renderProjectNotFound() {
+  private void renderProjectNotFound() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -109,7 +110,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  private void renderConductorAddForm(ArrayList<Lte.FormError> errors) {
+  private void renderConductorAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -147,7 +148,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  private void renderProject() {
+  private void renderProject() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {

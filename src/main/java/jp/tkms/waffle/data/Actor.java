@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.data.util.RubyScript;
+import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.State;
 import org.jruby.Ruby;
 import org.jruby.embed.PathType;
@@ -32,6 +33,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
   public Actor(Project project, UUID id) {
     super(project, id, InternalHashedData.getDataDirectory(project, Actor.class.getName(), id));
+    instanceMap.put(id.toString(), this);
 
     for (Object runId : new JSONArray(getStringFromProperty(KEY_ACTIVE_RUN, "[]")).toList()) {
       activeRunSet.add(runId.toString());
@@ -297,14 +299,16 @@ public class Actor extends AbstractRun implements InternalHashedData {
     return create(runNode, parent, actorGroup, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
+  /*
   public ArrayList<Actor> getChildActorRunList() {
     //return getChildList(getProject(), this);
     return new ArrayList<>();
   }
 
-  public boolean hasRunningChildSimulationRun() {
-    return true; //SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
+  public boolean hasRunningChildRun() {
+    return !activeRunSet.isEmpty(); //SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
   }
+   */
 
   public State getState() {
     return State.valueOf(getIntFromProperty(KEY_STATE, 0));
@@ -323,6 +327,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
   @Override
   public boolean isRunning() {
+    /*
     if (hasRunningChildSimulationRun()) {
       return true;
     }
@@ -334,6 +339,8 @@ public class Actor extends AbstractRun implements InternalHashedData {
     }
 
     return false;
+     */
+    return !activeRunSet.isEmpty();
   }
 
   public void start(AbstractRun caller) {
@@ -476,12 +483,24 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
   public void registerActiveRun(AbstractRun run) {
     activeRunSet.add(run.getId());
-    setToProperty(KEY_ACTIVE_RUN, (new JSONArray().put(activeRunSet)).toString());
+    JSONArray jsonArray = new JSONArray();
+    for (String id : activeRunSet) {
+      jsonArray.put(id);
+    }
+    setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
+
+    setState(isRunning() ? State.Running : State.Finished);
   }
 
-  private void removeActiveRun(AbstractRun run) {
+  public void removeActiveRun(AbstractRun run) {
     activeRunSet.remove(run.getId());
-    setToProperty(KEY_ACTIVE_RUN, (new JSONArray().put(activeRunSet)).toString());
+    JSONArray jsonArray = new JSONArray();
+    for (String id : activeRunSet) {
+      jsonArray.put(id);
+    }
+    setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
+
+    setState(isRunning() ? State.Running : State.Finished);
   }
 
   public void postMessage(AbstractRun caller, String eventName) {
@@ -585,6 +604,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
     SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, host);
     transactionRunList.add(createdRun);
+
     return createdRun;
   }
 

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
@@ -16,7 +17,7 @@ abstract public class AbstractComponent implements Route {
   public static void register() {
   }
 
-  abstract public void controller();
+  abstract public void controller() throws ProjectNotFoundException;
 
   @Override
   public Object handle(Request request, Response response) throws Exception {

@@ -8,6 +8,7 @@ import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import spark.Spark;
 
@@ -47,7 +48,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   @Override
-  public void controller() {
+  public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
@@ -67,7 +68,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     renderRun();
   }
 
-  private void renderRun() {
+  private void renderRun() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {

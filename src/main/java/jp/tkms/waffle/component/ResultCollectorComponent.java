@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import jp.tkms.waffle.data.util.ResourceFile;
 import spark.Spark;
 
@@ -52,7 +53,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   }
 
   @Override
-  public void controller() {
+  public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
     simulator = Simulator.getInstance(project, request.params("simulator"));
 
@@ -78,7 +79,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
     }
   }
 
-  private void renderParameterExtractor() {
+  private void renderParameterExtractor() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -130,7 +131,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
     }.render(this);
   }
 
-  private void renderAddParameterExtractorForm() {
+  private void renderAddParameterExtractorForm() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {

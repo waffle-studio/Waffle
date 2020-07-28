@@ -5,6 +5,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import jp.tkms.waffle.data.util.FileName;
 import spark.Spark;
 
@@ -63,7 +64,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
   }
 
   @Override
-  public void controller() {
+  public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
 
     actorGroup = ActorGroup.getInstance(project, request.params("id"));
@@ -111,7 +112,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
     }
   }
 
-  private void renderConductor() {
+  private void renderConductor() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -284,7 +285,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
     );
   }
 
-  private void renderPrepareForm() {
+  private void renderPrepareForm() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {

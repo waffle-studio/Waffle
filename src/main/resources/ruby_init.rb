@@ -177,10 +177,21 @@ class ActorWrapper
         @instance.getRegistry.set(".TA:" + @instance.getId, Marshal.dump(@template_argument))
     end
 
+    def id
+        @instance.id
+    end
+
     def createSimulatorRun(name, hostName)
         @instance.createSimulatorRun(name, hostName)
     end
 
+    def addFinalizer(name)
+        @instance.addFinalizer(name)
+    end
+
+    def v
+        @instance.v
+    end
 
     def loadConductorTemplate(name)
         super

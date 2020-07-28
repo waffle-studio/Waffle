@@ -103,8 +103,6 @@ public class Host implements DataDirectory, PropertyFile {
   }
 
   public void initialize() {
-    initializeWorkDirectory();
-
     if (! Files.exists(getDirectoryPath())) {
       try {
         Files.createDirectories(getDirectoryPath());
@@ -112,6 +110,8 @@ public class Host implements DataDirectory, PropertyFile {
         ErrorLogMessage.issue(e);
       }
     }
+
+    initializeWorkDirectory();
 
     if (getState() == null) { setState(HostState.Unviable); }
     if (getXsubDirectory() == null) { setXsubDirectory(""); }

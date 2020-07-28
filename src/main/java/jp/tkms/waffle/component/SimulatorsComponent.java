@@ -6,6 +6,7 @@ import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.Simulator;
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   @Override
-  public void controller() {
+  public void controller() throws ProjectNotFoundException {
     requestedId = request.params("project");
     project = Project.getInstance(requestedId);
 
@@ -61,7 +62,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
     }
   }
 
-  private void renderAddForm(ArrayList<Lte.FormError> errors) {
+  private void renderAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -108,7 +109,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
     return new ArrayList<>();
   }
 
-  private void renderSimulatorList() {
+  private void renderSimulatorList() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {

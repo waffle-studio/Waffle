@@ -2,6 +2,7 @@ package jp.tkms.waffle.component;
 
 import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.UserSession;
+import jp.tkms.waffle.data.exception.ProjectNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
@@ -18,10 +19,14 @@ abstract public class AbstractAccessControlledComponent extends AbstractComponen
     String sessionId = request.cookie(UserSession.KEY_SESSION_ID);
     sessionId = (sessionId == null ? "" : sessionId);
 
-    if (UserSession.isContains(sessionId)) {
-      controller();
-    } else {
-      response.redirect(SigninComponent.getUrl());
+    try {
+      if (UserSession.isContains(sessionId)) {
+        controller();
+      } else {
+        response.redirect(SigninComponent.getUrl());
+      }
+    } catch (ProjectNotFoundException e) {
+
     }
 
 

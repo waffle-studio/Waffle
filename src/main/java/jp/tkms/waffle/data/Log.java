@@ -157,7 +157,7 @@ public class Log {
   }
 
   public String getTimestamp() {
-    return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp),
+    return LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp),
       TimeZone.getDefault().toZoneId()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
   }
 
