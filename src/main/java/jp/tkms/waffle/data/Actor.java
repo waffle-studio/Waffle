@@ -90,7 +90,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
    */
 
   public static Actor getRootInstance(Project project) {
-    Actor actor = instanceMap.get(ROOT_UUID);
+    Actor actor = instanceMap.get(ROOT_UUID.toString());
     if (actor == null) {
       actor = create(ROOT_UUID, RunNode.getRootInstance(project), null, null, null);
     }
@@ -273,6 +273,30 @@ public class Actor extends AbstractRun implements InternalHashedData {
         runNode = parentActor.getRunNode();
       }
     }
+    /*
+
+    if (callstack.toList().contains(callname)) {
+      Actor parentActor = parent;
+      while (parentActor != null) {
+        List list = parentActor.getCallstack().toList();
+        int index = list.indexOf(callname);
+
+        if (index < 0 || index >= (list.size() -1)) {
+          break;
+        }
+
+        parentActor = parentActor.getParentActor();
+      }
+      if (parentActor != null) {
+        JSONArray modifiedCallstack = parentActor.getCallstack();
+        if (!modifiedCallstack.toList().isEmpty() && modifiedCallstack.get(modifiedCallstack.length() -1).equals(callname)) {
+          modifiedCallstack.remove(modifiedCallstack.length() -1);
+        }
+        callstack = parentActor.getCallstack();
+        runNode = parentActor.getRunNode();
+      }
+    }
+     */
     callstack.put(callname);
 
     Actor actor = new Actor(project, id);
@@ -288,7 +312,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
     actor.setToProperty( KEY_ACTOR, actorName);
     actor.setToProperty( KEY_CALLSTACK, callstack.toString());
 
-    return actor;
+    return getInstance(project, id.toString());
   }
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {

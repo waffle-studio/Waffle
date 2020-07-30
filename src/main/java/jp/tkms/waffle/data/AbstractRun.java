@@ -178,7 +178,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     if (callstack == null) {
       callstack = new JSONArray(getStringFromProperty(KEY_CALLSTACK, "[]"));
     }
-    return callstack;
+    return new JSONArray(callstack.toString());
   }
 
   protected static String getCallName(ActorGroup group, String name) {
