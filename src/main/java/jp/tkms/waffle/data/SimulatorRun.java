@@ -5,7 +5,9 @@ import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
+import org.ehcache.Cache;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -48,7 +50,8 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray localSharedList;
 
-  private static final HashMap<String, SimulatorRun> instanceMap = new HashMap<>();
+  private static final Cache<String, SimulatorRun> instanceCache = new InstanceCache<SimulatorRun>(SimulatorRun.class, 500).getCacheStore();
+  //private static final HashMap<String, SimulatorRun> instanceMap = new HashMap<>();
 
   /*
   private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
@@ -66,7 +69,7 @@ public class SimulatorRun extends AbstractRun {
 
   private SimulatorRun(Project project, UUID id, Path path) {
     super(project, id, path);
-    instanceMap.put(getId(), this);
+    instanceCache.put(getId(), this);
   }
 
 /*
@@ -79,7 +82,7 @@ public class SimulatorRun extends AbstractRun {
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     SimulatorRun run = null;
 
-    run = instanceMap.get(id);
+    run = instanceCache.get(id);
     if (run != null)  {
       return run;
     }

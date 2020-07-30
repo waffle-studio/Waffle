@@ -3,7 +3,9 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
+import org.ehcache.Cache;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -26,7 +28,8 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
   protected static final String KEY_TMP = ".tmp";
   protected static final String KEY_SORT_INDEX = ".SORT_INDEX";
 
-  private static final HashMap<String, RunNode> instanceMap = new HashMap<>();
+  private static final Cache<String, RunNode> instanceCache = new InstanceCache<RunNode>(RunNode.class, 1000).getCacheStore();
+  //private static final HashMap<String, RunNode> instanceMap = new HashMap<>();
 
   Project project;
   Path path;
@@ -41,7 +44,7 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
     this.id = UUID.fromString(getDataId(path));
     this.path = getDataDirectory(id);
 
-    instanceMap.put(path.toString(), this);
+    instanceCache.put(path.toString(), this);
 
     initialize();
   }
@@ -116,17 +119,17 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
     Path instancePath = getBaseDirectoryPath(project).resolve(path);
     RunNode runNode = null;
     if (Files.exists(instancePath.resolve(ParallelRunNode.KEY_PARALLEL))) {
-      runNode = instanceMap.get(instancePath.toString());
+      runNode = instanceCache.get(instancePath.toString());
       if (runNode == null) {
         runNode = new ParallelRunNode(project, getBaseDirectoryPath(project).resolve(path));
       }
     } else if (Files.exists(instancePath.resolve(SimulatorRunNode.KEY_SIMULATOR))) {
-      runNode = instanceMap.get(instancePath.toString());
+      runNode = instanceCache.get(instancePath.toString());
       if (runNode == null) {
         runNode = new SimulatorRunNode(project, getBaseDirectoryPath(project).resolve(path));
       }
     } else if (Files.exists(instancePath)) {
-      runNode = instanceMap.get(instancePath.toString());
+      runNode = instanceCache.get(instancePath.toString());
       if (runNode == null) {
         runNode = new InclusiveRunNode(project, getBaseDirectoryPath(project).resolve(path));
       }
@@ -310,7 +313,7 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
 
     InternalHashedLinkData.updateDataPath(getProject(), getInternalDataGroup(), id, localPath);
     this.path = path;
-    instanceMap.remove(this.path.toString());
+    instanceCache.remove(this.path.toString());
   }
 
   public String rename(String name) {

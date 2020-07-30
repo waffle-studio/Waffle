@@ -15,6 +15,7 @@ import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -269,7 +270,13 @@ abstract public class AbstractSubmitter {
 
   void processXstat(Job job, String json) throws RunNotFoundException {
     InfoLogMessage.issue(job.getRun(), "will be checked");
-    JSONObject object = new JSONObject(json);
+    JSONObject object = null;
+    try {
+      object = new JSONObject(json);
+    } catch (JSONException e) {
+      WarnLogMessage.issue(e.getMessage() + json);
+      return;
+    }
     try {
       String status = object.getString("status");
       switch (status) {

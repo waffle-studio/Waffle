@@ -4,10 +4,9 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
-import jp.tkms.waffle.data.util.HostState;
-import jp.tkms.waffle.data.util.RubyScript;
-import jp.tkms.waffle.data.util.Sql;
-import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.data.util.*;
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.jruby.Ruby;
 import org.jruby.embed.PathType;
 import org.json.JSONArray;
@@ -25,7 +24,8 @@ public class Actor extends AbstractRun implements InternalHashedData {
   public static final String KEY_ACTIVE_RUN = "active_run";
   public static final UUID ROOT_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-  private static final HashMap<String, Actor> instanceMap = new HashMap<>();
+  private static final Cache<String, Actor> instanceCache = new InstanceCache<Actor>(Actor.class, 500).getCacheStore();
+  //private static final HashMap<String, Actor> instanceMap = new HashMap<>();
 
   private final Object messageProcessorLocker = new Object();
   private String actorName;
@@ -33,7 +33,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
   public Actor(Project project, UUID id) {
     super(project, id, InternalHashedData.getDataDirectory(project, Actor.class.getName(), id));
-    instanceMap.put(id.toString(), this);
+    instanceCache.put(id.toString(), this);
 
     for (Object runId : new JSONArray(getStringFromProperty(KEY_ACTIVE_RUN, "[]")).toList()) {
       activeRunSet.add(runId.toString());
@@ -50,9 +50,9 @@ public class Actor extends AbstractRun implements InternalHashedData {
   public static Actor getInstance(Project project, String id) {
     Actor actor = null;
 
-    getRootInstance(project);
+    if ( !ROOT_UUID.toString().equals(id)) { getRootInstance(project); }
 
-    actor = instanceMap.get(id);
+    actor = instanceCache.get(id);
     if (actor == null)  {
       actor = new Actor(project, UUID.fromString(id));
     }
@@ -90,7 +90,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
    */
 
   public static Actor getRootInstance(Project project) {
-    Actor actor = instanceMap.get(ROOT_UUID.toString());
+    Actor actor = instanceCache.get(ROOT_UUID.toString());
     if (actor == null) {
       actor = create(ROOT_UUID, RunNode.getRootInstance(project), null, null, null);
     }
