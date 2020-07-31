@@ -37,8 +37,10 @@ public class Actor extends AbstractRun implements InternalHashedData {
     super(project, id, InternalHashedData.getDataDirectory(project, Actor.class.getName(), id));
     instanceCache.put(id.toString(), this);
 
-    for (Object runId : new JSONArray(getStringFromProperty(KEY_ACTIVE_RUN, "[]")).toList()) {
-      activeRunSet.add(runId.toString());
+    synchronized (activeRunSet) {
+      for (Object runId : new JSONArray(getStringFromProperty(KEY_ACTIVE_RUN, "[]")).toList()) {
+        activeRunSet.add(runId.toString());
+      }
     }
   }
 
@@ -366,7 +368,9 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
     return false;
      */
-    return !activeRunSet.isEmpty();
+    synchronized (activeRunSet) {
+      return !activeRunSet.isEmpty();
+    }
   }
 
   public void start(AbstractRun caller) {
@@ -510,23 +514,27 @@ public class Actor extends AbstractRun implements InternalHashedData {
   }
 
   public void registerActiveRun(AbstractRun run) {
-    activeRunSet.add(run.getId());
-    JSONArray jsonArray = new JSONArray();
-    for (String id : activeRunSet) {
-      jsonArray.put(id);
+    synchronized (activeRunSet) {
+      activeRunSet.add(run.getId());
+      JSONArray jsonArray = new JSONArray();
+      for (String id : activeRunSet) {
+        jsonArray.put(id);
+      }
+      setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
     }
-    setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
 
     setState(isRunning() ? State.Running : State.Finished);
   }
 
   public void removeActiveRun(AbstractRun run) {
-    activeRunSet.remove(run.getId());
-    JSONArray jsonArray = new JSONArray();
-    for (String id : activeRunSet) {
-      jsonArray.put(id);
+    synchronized (activeRunSet) {
+      activeRunSet.remove(run.getId());
+      JSONArray jsonArray = new JSONArray();
+      for (String id : activeRunSet) {
+        jsonArray.put(id);
+      }
+      setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
     }
-    setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
 
     setState(isRunning() ? State.Running : State.Finished);
   }
@@ -538,7 +546,11 @@ public class Actor extends AbstractRun implements InternalHashedData {
       }
 
       //processMessage(caller);
-      if (activeRunSet.size() <= 0 && !isProcessing) {
+      int activeRunSetSize = 0;
+      synchronized (activeRunSet) {
+        activeRunSetSize = activeRunSet.size();
+      }
+      if (activeRunSetSize <= 0 && !isProcessing) {
         setState(State.Finished);
         finish();
       }
