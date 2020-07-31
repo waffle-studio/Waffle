@@ -146,6 +146,7 @@ abstract public class AbstractSubmitter {
     transferFilesToRemote(work, getRunDirectory(run).resolve(work.getFileName()));
 
     job.setState(State.Prepared);
+    InfoLogMessage.issue(job.getRun(), "was prepared");
   }
 
   public Path getWorkDirectory(SimulatorRun run) throws FailedToControlRemoteException {
@@ -275,6 +276,7 @@ abstract public class AbstractSubmitter {
       object = new JSONObject(json);
     } catch (JSONException e) {
       WarnLogMessage.issue(e.getMessage() + json);
+      job.setState(State.Excepted);
       return;
     }
     try {

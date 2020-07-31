@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -63,6 +64,7 @@ public class JobStore {
   }
 
   public void save() throws IOException {
+    InfoLogMessage.issue("Waiting for the job store to release");
     synchronized (jobMap) {
       GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(getFilePath().toFile()));
       Kryo kryo = new Kryo();
@@ -70,6 +72,7 @@ public class JobStore {
       kryo.writeObject(output, this);
       output.flush();
       output.close();
+      InfoLogMessage.issue("The snapshot of job store saved");
     }
   }
 

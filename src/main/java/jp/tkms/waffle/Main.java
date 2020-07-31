@@ -186,6 +186,7 @@ public class Main {
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
 
+        Spark.stop();
         Spark.awaitStop();
         try {
           threadPool.shutdown();

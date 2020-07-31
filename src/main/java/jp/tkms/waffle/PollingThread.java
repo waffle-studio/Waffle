@@ -3,17 +3,22 @@ package jp.tkms.waffle;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 
 public class PollingThread extends Thread {
-  private static Map<String, PollingThread> threadMap = new HashMap<>();
+  private static final Map<String, PollingThread> threadMap = new HashMap<>();
+  private static final HashSet<Host> runningSubmitterSet = new HashSet<>();
 
   private Host host;
 
@@ -33,11 +38,15 @@ public class PollingThread extends Thread {
         break;
       }
       try { sleep(submitter.getPollingInterval() * 1000); } catch (InterruptedException e) { e.printStackTrace(); }
+      synchronized (runningSubmitterSet) {
+        runningSubmitterSet.add(host);
+      }
       if (submitter == null || !submitter.isConnected()) {
         if (submitter != null) {
           submitter.close();
         }
         try {
+          InfoLogMessage.issue(host, "will be scanned");
           submitter = AbstractSubmitter.getInstance(host).connect();
         } catch (Exception e) {
           WarnLogMessage.issue(e);
@@ -57,6 +66,16 @@ public class PollingThread extends Thread {
         continue;
       }
       InfoLogMessage.issue(host, "was scanned");
+      synchronized (runningSubmitterSet) {
+        runningSubmitterSet.remove(host);
+        if (runningSubmitterSet.isEmpty()) {
+          try {
+            Main.jobStore.save();
+          } catch (IOException e) {
+            ErrorLogMessage.issue(e);
+          }
+        }
+      }
     } while (Job.getList(host).size() > 0);
 
     if (submitter != null && submitter.isConnected()) {

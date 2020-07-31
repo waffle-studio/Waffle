@@ -20,7 +20,8 @@ public interface PropertyFile {
 
   private JSONObject getPropertyStore() {
     synchronized (this) {
-      if (getPropertyStoreCache() == null) {
+      JSONObject cache = getPropertyStoreCache();
+      if (cache == null) {
         Path storePath = getPropertyStorePath();
         String json = "{}";
         if (Files.exists(storePath)) {
@@ -31,13 +32,14 @@ public interface PropertyFile {
           }
         }
         try {
-          setPropertyStoreCache(new JSONObject(json));
+          setPropertyStoreCache(cache = new JSONObject(json));
         }catch (Exception e) {
           System.err.println(json);
+          cache = new JSONObject("{}");
         }
       }
+      return cache;
     }
-    return getPropertyStoreCache();
   }
 
   default void reloadPropertyStore() {

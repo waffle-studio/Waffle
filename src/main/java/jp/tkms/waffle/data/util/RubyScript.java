@@ -3,16 +3,22 @@ package jp.tkms.waffle.data.util;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
+import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
 import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 
+import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class RubyScript {
   private static Integer runningCount = 0;
+  private static ConcurrentLinkedDeque<ScriptingContainer> containersQueue = new ConcurrentLinkedDeque<>();
+  private static ConcurrentLinkedDeque<Long> containersTimestampQueue = new ConcurrentLinkedDeque<>();
 
   public static boolean hasRunning() {
     synchronized (runningCount) {
@@ -20,7 +26,34 @@ public class RubyScript {
     }
   }
 
-  public static void process(Consumer<ScriptingContainer> process) {
+  private static ScriptingContainer getScriptingContainer() {
+    ScriptingContainer scriptingContainer = containersQueue.pollLast();
+    containersTimestampQueue.pollLast();
+    if (scriptingContainer != null) {
+      return scriptingContainer;
+    }
+    return new ScriptingContainer(LocalContextScope.THREADSAFE);
+  }
+
+  private static void releaseScriptingContainer(ScriptingContainer scriptingContainer) {
+    scriptingContainer.clear();
+    containersQueue.offerLast(scriptingContainer);
+    containersTimestampQueue.offerLast(System.currentTimeMillis());
+
+    if (containersTimestampQueue.size() > 1) {
+      while (containersTimestampQueue.peekFirst() + 30000 < System.currentTimeMillis()) {
+        ScriptingContainer container = containersQueue.pollFirst();
+        containersTimestampQueue.pollFirst();
+        container.terminate();
+        try {
+          container.finalize();
+        } catch (Throwable throwable) {
+        }
+      }
+    }
+  }
+
+  public static void processOld(Consumer<ScriptingContainer> process) {
     boolean failed;
     do {
       synchronized (runningCount) {
@@ -49,6 +82,38 @@ public class RubyScript {
         if (container != null) {
           container.terminate();
         }
+        synchronized (runningCount) {
+          runningCount -= 1;
+        }
+      }
+    } while (failed);
+  }
+
+  public static void process(Consumer<ScriptingContainer> process) {
+    boolean failed;
+    do {
+      synchronized (runningCount) {
+        runningCount += 1;
+      }
+      failed = false;
+      ScriptingContainer container = null;
+      try {
+        container = getScriptingContainer();
+        try {
+          container.runScriptlet(RubyConductor.getInitScript());
+          process.accept(container);
+        } catch (EvalFailedException e) {
+          ErrorLogMessage.issue(e);
+        }
+      } catch (SystemCallError | LoadError e) {
+        failed = true;
+        if (! e.getMessage().matches("Unknown error")) {
+          failed = false;
+        }
+        WarnLogMessage.issue(e);
+        try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+      } finally {
+        releaseScriptingContainer(container);
         synchronized (runningCount) {
           runningCount -= 1;
         }

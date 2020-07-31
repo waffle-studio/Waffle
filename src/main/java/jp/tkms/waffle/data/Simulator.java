@@ -4,12 +4,14 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.jruby.RubyProcess;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -44,6 +46,7 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   private String simulationCommand = null;
   private String defaultParameters = null;
   private String versionId = null;
+  private long lastGitCheckTimestamp = 0;
 
   public Simulator(Project project, String name) {
     super(project);
@@ -131,8 +134,8 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   }
 
   private String initializeGit() {
-    try {
-      synchronized (this) {
+    synchronized (this) {
+      try {
         Path gitPath = getDirectoryPath().resolve(".git");
         if (Files.exists(gitPath)) {
           deleteDirectory(gitPath.toFile());
@@ -145,11 +148,12 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
         RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
         versionId = commit.getId().getName();
         git.checkout().setName(KEY_MASTER).call();
+        git.close();
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
       }
-    } catch (Exception e) {
-      ErrorLogMessage.issue(e);
+      return versionId;
     }
-    return versionId;
   }
 
   private void deleteDirectory(File file) {
@@ -163,8 +167,12 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public synchronized void updateVersionId() {
-    try{
-      synchronized (this) {
+    if (lastGitCheckTimestamp + 2000 > System.currentTimeMillis()) {
+      lastGitCheckTimestamp = System.currentTimeMillis();
+      return;
+    }
+    synchronized (this) {
+      try{
         Git git = Git.open(getDirectoryPath().toFile());
         git.add().addFilepattern(".").call();
 
@@ -185,24 +193,26 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
             git.checkout().setName(KEY_REMOTE).call();
             git.merge().include(git.getRepository().findRef(KEY_MASTER)).setMessage("Merge master").call();
             git.checkout().setName(KEY_MASTER).call();
+
+            versionId = null;
           }
+          git.log().setMaxCount(1).call().forEach(c -> c.getId());
         }
-        git.log().setMaxCount(1).call().forEach(c -> c.getId());
+        git.close();
+      } catch (GitAPIException | IOException e) {
+        ErrorLogMessage.issue(e);
+
+        initializeGit();
       }
-    } catch (GitAPIException | IOException e) {
-      ErrorLogMessage.issue(e);
-
-      initializeGit();
+      getVersionId();
+      lastGitCheckTimestamp = System.currentTimeMillis();
     }
-
-    versionId = null;
-    getVersionId();
   }
 
   public String getVersionId() {
-    if (versionId == null) {
-      try{
-        synchronized (this) {
+    synchronized (this) {
+      if (versionId == null) {
+        try{
           if (!Files.exists(getDirectoryPath().resolve(".git"))) {
             initializeGit();
           }
@@ -212,14 +222,15 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
           RevCommit commit = git.log().setMaxCount(1).call().iterator().next();
           versionId = commit.getId().getName();
           git.checkout().setName(KEY_MASTER).call();
-        }
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+          git.close();
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
 
-        versionId = initializeGit();
+          versionId = initializeGit();
+        }
       }
+      return versionId;
     }
-    return versionId;
   }
 
   @Override

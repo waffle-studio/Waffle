@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.*;
 import org.ehcache.Cache;
@@ -30,6 +31,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
   private final Object messageProcessorLocker = new Object();
   private String actorName;
   private HashSet<String> activeRunSet = new HashSet<>();
+  private boolean isProcessing = false;
 
   public Actor(Project project, UUID id) {
     super(project, id, InternalHashedData.getDataDirectory(project, Actor.class.getName(), id));
@@ -399,6 +401,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
       @Override
       public void run() {
         super.run();
+        isProcessing = true;
         //processMessage(null); //?????
         if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
           RubyScript.process((container) -> {
@@ -412,6 +415,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
             }
           });
         }
+        isProcessing = false;
 
         if (! isRunning()) {
           setState(jp.tkms.waffle.data.util.State.Finished);
@@ -528,14 +532,16 @@ public class Actor extends AbstractRun implements InternalHashedData {
   }
 
   public void postMessage(AbstractRun caller, String eventName) {
-    if (!caller.isRunning()) {
-      removeActiveRun(caller);
-    }
+    synchronized (this) {
+      if (!caller.isRunning()) {
+        removeActiveRun(caller);
+      }
 
-    //processMessage(caller);
-    if (activeRunSet.size() <= 0) {
-      setState(State.Finished);
-      finish();
+      //processMessage(caller);
+      if (activeRunSet.size() <= 0 && !isProcessing) {
+        setState(State.Finished);
+        finish();
+      }
     }
   }
 
