@@ -111,22 +111,22 @@ public class RunComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Status", run.getState().getStatusBadge());}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Status", run.getState().getStatusBadge());}));
                 if (run.getActorGroup() != null) {
-                  list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ActorGroupComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
+                  list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ActorGroupComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
                 } else {
-                  list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
+                  list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
                 }
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())));}));
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + run.getExitStatus()
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())));}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),
                   Lte.badge("secondary", null, "ReCheck")):""));}));
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Created at", run.getCreatedDateTime().toString());}));
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString());}));
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Finished at", run.getFinishedDateTime().toString());}));
-                list.add(Main.threadPool.submit(() -> { return new Lte.TableRow("Remote Directory", Lte.readonlyTextInputWithCopyButton(null, run.getRemoteWorkingDirectoryLog(), true));}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Created at", run.getCreatedDateTime().toString());}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Submitted at", run.getSubmittedDateTime().toString());}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Finished at", run.getFinishedDateTime().toString());}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Remote Directory", Lte.readonlyTextInputWithCopyButton(null, run.getRemoteWorkingDirectoryLog(), true));}));
                 return list;
               }
             })

@@ -150,7 +150,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Simulator simulator : simulatorList) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                       Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getName()));
                   }

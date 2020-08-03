@@ -282,13 +282,17 @@ public class Lte {
     try {
       ArrayList<Future<String>> list = new ArrayList<>();
       for (Future<TableRow> futureRow : table.tableRows()) {
-        list.add(Main.threadPool.submit(() -> {
-          TableRow row = futureRow.get();
-          StringBuilder rowValue = new StringBuilder();
-          for (TableValue value : row) {
-            rowValue.append(element("td", new Attributes(value("style", value.style)), value.value));
+        list.add(Main.interfaceThreadPool.submit(() -> {
+          try {
+            TableRow row = futureRow.get();
+            StringBuilder rowValue = new StringBuilder();
+            for (TableValue value : row) {
+              rowValue.append(element("td", new Attributes(value("style", value.style)), value.value));
+            }
+            return element("tr", row.attributes, rowValue.toString());
+          } catch (NullPointerException e) {
+            return "";
           }
-          return element("tr", row.attributes, rowValue.toString());
         }));
       }
       for (Future<String> row : list) {

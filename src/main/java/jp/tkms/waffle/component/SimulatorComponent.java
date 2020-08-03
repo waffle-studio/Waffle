@@ -191,7 +191,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               List<String> nameList = simulator.getExtractorNameList();
               if (nameList != null) {
                 for (String extractorName : nameList) {
-                  list.add(Main.threadPool.submit(() -> {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                         Html.a(ParameterExtractorComponent.getUrl(simulator, extractorName), null, null, extractorName));
                     }
@@ -217,7 +217,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               List<String> nameList = simulator.getCollectorNameList();
               if (nameList != null) {
                 for (String collectorName : nameList) {
-                  list.add(Main.threadPool.submit(() -> {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
                       return new Lte.TableRow(
                         Html.a(ResultCollectorComponent.getUrl(simulator, collectorName), null, null, collectorName));
                     }
@@ -241,7 +241,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (File child : simulator.getBinDirectory().toFile().listFiles()) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(child.getName());
                   }
                 ));
@@ -304,7 +304,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getName()),
                     (finalLatestRun.getHost() == null ? "NotFound" : finalLatestRun.getHost().getName()),

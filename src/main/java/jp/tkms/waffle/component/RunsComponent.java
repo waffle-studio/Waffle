@@ -167,7 +167,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (RunNode child : runNode.getList()) {
                 if (child instanceof SimulatorRunNode) {
-                  list.add(Main.threadPool.submit(() ->{
+                  list.add(Main.interfaceThreadPool.submit(() ->{
                       return new Lte.TableRow(
                         new Lte.TableValue(null, Html.fasIcon("circle")),
                         new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, child.getUuid()), null, null, child.getSimpleName())),
@@ -177,7 +177,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
                     })
                   );
                 } else {
-                  list.add(Main.threadPool.submit(() -> {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
                       return new Lte.TableRow(
                         new Lte.TableValue(null, (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
                         new Lte.TableValue(null, Html.a(getUrl(project, child), null, null, child.getSimpleName())),

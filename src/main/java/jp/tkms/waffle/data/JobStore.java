@@ -24,24 +24,32 @@ public class JobStore {
   }
 
   public Job getJob(UUID id) {
-    return jobMap.get(id);
+    synchronized (jobMap) {
+      return jobMap.get(id);
+    }
   }
 
-  public Collection<Job> getList() {
-    return jobMap.values();
+  public ArrayList<Job> getList() {
+    synchronized (jobMap) {
+      return new ArrayList<>(jobMap.values());
+    }
   }
 
   public ArrayList<Job> getList(Host host) {
-    ArrayList list = hostJobListMap.get(host.getName());
-    if (list == null) {
-      list = new ArrayList();
-      hostJobListMap.put(host.getName(), list);
+    synchronized (jobMap) {
+      ArrayList list = hostJobListMap.get(host.getName());
+      if (list == null) {
+        list = new ArrayList();
+        hostJobListMap.put(host.getName(), list);
+      }
+      return list;
     }
-    return list;
   }
 
   public boolean contains(UUID id) {
-    return jobMap.containsKey(id);
+    synchronized (jobMap) {
+      return jobMap.containsKey(id);
+    }
   }
 
   public void register(Job job) {

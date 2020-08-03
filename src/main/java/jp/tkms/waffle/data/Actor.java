@@ -52,16 +52,20 @@ public class Actor extends AbstractRun implements InternalHashedData {
    */
 
   public static Actor getInstance(Project project, String id) {
-    Actor actor = null;
+    synchronized (instanceCache) {
+      Actor actor = null;
 
-    if ( !ROOT_UUID.toString().equals(id)) { getRootInstance(project); }
+      if (!ROOT_UUID.toString().equals(id)) {
+        getRootInstance(project);
+      }
 
-    actor = instanceCache.get(id);
-    if (actor == null)  {
-      actor = new Actor(project, UUID.fromString(id));
+      actor = instanceCache.get(id);
+      if (actor == null) {
+        actor = new Actor(project, UUID.fromString(id));
+      }
+
+      return actor;
     }
-
-    return actor;
   }
 
   /*
@@ -94,11 +98,13 @@ public class Actor extends AbstractRun implements InternalHashedData {
    */
 
   public static Actor getRootInstance(Project project) {
-    Actor actor = instanceCache.get(ROOT_UUID.toString());
-    if (actor == null) {
-      actor = create(ROOT_UUID, RunNode.getRootInstance(project), null, null, null);
+    synchronized (instanceCache) {
+      Actor actor = instanceCache.get(ROOT_UUID.toString());
+      if (actor == null) {
+        actor = create(ROOT_UUID, RunNode.getRootInstance(project), null, null, null);
+      }
+      return actor;
     }
-    return actor;
 
     /*
     final Actor[] conductorRun = {null};
@@ -260,23 +266,24 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
    */
   private static Actor create(UUID id, RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
-    Project project = runNode.getProject();
-    String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
-    String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
-      + " : " + LocalDateTime.now().toString();
+    synchronized (instanceCache) {
+      Project project = runNode.getProject();
+      String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
+      String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
+        + " : " + LocalDateTime.now().toString();
 
-    String callname = getCallName(actorGroup, actorName);
-    JSONArray callstack = (parent == null ? new JSONArray() :parent.getCallstack());
-    if (callstack.toList().contains(callname)) {
-      Actor parentActor = parent;
-      while (parentActor != null && ! callname.equals(getCallName(parentActor.getActorGroup(), parentActor.getActorName()))) {
-        parentActor = parentActor.getParentActor();
+      String callname = getCallName(actorGroup, actorName);
+      JSONArray callstack = (parent == null ? new JSONArray() : parent.getCallstack());
+      if (callstack.toList().contains(callname)) {
+        Actor parentActor = parent;
+        while (parentActor != null && !callname.equals(getCallName(parentActor.getActorGroup(), parentActor.getActorName()))) {
+          parentActor = parentActor.getParentActor();
+        }
+        if (parentActor != null) {
+          callstack = parentActor.getCallstack();
+          runNode = parentActor.getRunNode();
+        }
       }
-      if (parentActor != null) {
-        callstack = parentActor.getCallstack();
-        runNode = parentActor.getRunNode();
-      }
-    }
     /*
 
     if (callstack.toList().contains(callname)) {
@@ -301,22 +308,23 @@ public class Actor extends AbstractRun implements InternalHashedData {
       }
     }
      */
-    callstack.put(callname);
+      callstack.put(callname);
 
-    Actor actor = new Actor(project, id);
+      Actor actor = new Actor(project, id);
 
-    if (parent != null) {
-      actor.setToProperty( KEY_PARENT, parent.getId() );
-      actor.setToProperty( KEY_RESPONSIBLE_ACTOR, parent.getId() );
-      actor.setToProperty( KEY_VARIABLES, parent.getVariables().toString() );
+      if (parent != null) {
+        actor.setToProperty(KEY_PARENT, parent.getId());
+        actor.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
+        actor.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+      }
+      actor.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
+      actor.setToProperty(KEY_STATE, State.Created.ordinal());
+      actor.setToProperty(KEY_RUNNODE, runNode.getId());
+      actor.setToProperty(KEY_ACTOR, actorName);
+      actor.setToProperty(KEY_CALLSTACK, callstack.toString());
+
+      return getInstance(project, id.toString());
     }
-    actor.setToProperty( KEY_ACTOR_GROUP, actorGroupName );
-    actor.setToProperty( KEY_STATE, State.Created.ordinal() );
-    actor.setToProperty( KEY_RUNNODE, runNode.getId());
-    actor.setToProperty( KEY_ACTOR, actorName);
-    actor.setToProperty( KEY_CALLSTACK, callstack.toString());
-
-    return getInstance(project, id.toString());
   }
 
   public static Actor create(RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {

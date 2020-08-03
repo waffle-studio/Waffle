@@ -190,28 +190,30 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public void finish() {
+    Main.systemThreadPool.submit(() -> {
     /*
       run finalizers
      */
-    if (getState().equals(State.Finished)) {
-      for (String actorId : getFinalizers()) {
-        Actor finalizer = Actor.getInstance(getProject(), actorId);
-        finalizer.putVariablesByJson(getVariables().toString());
-        finalizer.setResponsibleActor(getResponsibleActor());
-        if (finalizer != null) {
-          finalizer.start(this);
-        } else {
-          WarnLogMessage.issue("the actor(" + actorId + ") is not found");
+      if (getState().equals(State.Finished)) {
+        for (String actorId : getFinalizers()) {
+          Actor finalizer = Actor.getInstance(getProject(), actorId);
+          finalizer.putVariablesByJson(getVariables().toString());
+          finalizer.setResponsibleActor(getResponsibleActor());
+          if (finalizer != null) {
+            finalizer.start(this);
+          } else {
+            WarnLogMessage.issue("the actor(" + actorId + ") is not found");
+          }
         }
       }
-    }
 
     /*
       send a message finished to a responsible actor.
      */
-    if (!isRoot()) {
-      getResponsibleActor().postMessage(this, getState().name());
-    }
+      if (!isRoot()) {
+        getResponsibleActor().postMessage(this, getState().name());
+      }
+    });
   }
 
   public void appendErrorNote(String note) {

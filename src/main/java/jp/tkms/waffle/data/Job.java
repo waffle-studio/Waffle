@@ -40,7 +40,7 @@ public class Job {
   }
 
   public static ArrayList<Job> getList() {
-    return new ArrayList<>(Main.jobStore.getList());
+    return Main.jobStore.getList();
   }
 
   public static ArrayList<Job> getList(Host host) {

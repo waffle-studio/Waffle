@@ -105,7 +105,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Log log : Log.getDescList(-1, logBundleSize)) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     log.getLevel().name(),
                     log.getTimestamp(),

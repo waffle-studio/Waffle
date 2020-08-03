@@ -152,7 +152,7 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (ConductorTemplate module : moduleList) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                   Html.a(ConductorTemplateComponent.getUrl(module), null, null, module.getName()));
                 }));

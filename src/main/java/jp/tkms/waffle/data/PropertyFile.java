@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -32,11 +33,16 @@ public interface PropertyFile {
           }
         }
         try {
-          setPropertyStoreCache(cache = new JSONObject(json));
+          if (!"".equals(json)) {
+            cache = new JSONObject(json);
+          }
         }catch (Exception e) {
-          System.err.println(json);
+          WarnLogMessage.issue(storePath.toString() + " is broken : " + json);
+        }
+        if (cache == null) {
           cache = new JSONObject("{}");
         }
+        setPropertyStoreCache(cache);
       }
       return cache;
     }
@@ -73,125 +79,163 @@ public interface PropertyFile {
   }
 
   default String getStringFromProperty(String key) {
-    try {
-      return getPropertyStore().getString(key);
-    } catch (Exception e) {}
-    return null;
+    synchronized (this) {
+      try {
+        return getPropertyStore().getString(key);
+      } catch (Exception e) {
+      }
+      return null;
+    }
   }
 
   default String getStringFromProperty(String key, String defaultValue) {
-    String value = getStringFromProperty(key);
-    if (value == null) {
-      value = defaultValue;
-      if (value != null) {
-        setToProperty(key, defaultValue);
+    synchronized (this) {
+      String value = getStringFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
+        if (value != null) {
+          setToProperty(key, defaultValue);
+        }
       }
+      return value;
     }
-    return value;
   }
 
   default Integer getIntFromProperty(String key) {
-    try {
-      return getPropertyStore().getInt(key);
-    } catch (Exception e) {}
-    return null;
+    synchronized (this) {
+      try {
+        return getPropertyStore().getInt(key);
+      } catch (Exception e) {
+      }
+      return null;
+    }
   }
 
   default Integer getIntFromProperty(String key, Integer defaultValue) {
-    Integer value = getIntFromProperty(key);
-    if (value == null) {
-      value = defaultValue;
-      if (value != null) {
-        setToProperty(key, defaultValue);
+    synchronized (this) {
+      Integer value = getIntFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
+        if (value != null) {
+          setToProperty(key, defaultValue);
+        }
       }
+      return value;
     }
-    return value;
   }
 
   default Long getLongFromProperty(String key) {
-    try {
-      return getPropertyStore().getLong(key);
-    } catch (Exception e) {}
-    return null;
+    synchronized (this) {
+      try {
+        return getPropertyStore().getLong(key);
+      } catch (Exception e) {
+      }
+      return null;
+    }
   }
 
   default JSONObject getJSONObjectFromProperty(String key) {
-    try {
-      return getPropertyStore().getJSONObject(key);
-    } catch (Exception e) {}
-    return null;
+    synchronized (this) {
+      try {
+        return getPropertyStore().getJSONObject(key);
+      } catch (Exception e) {
+      }
+      return null;
+    }
   }
 
   default JSONObject getJSONObjectFromProperty(String key, JSONObject defaultValue) {
-    JSONObject value = getJSONObjectFromProperty(key);
-    if (value == null) {
-      value = defaultValue;
-      if (value != null) {
-        setToProperty(key, defaultValue);
+    synchronized (this) {
+      JSONObject value = getJSONObjectFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
+        if (value != null) {
+          setToProperty(key, defaultValue);
+        }
       }
+      return value;
     }
-    return value;
   }
 
   default JSONArray getArrayFromProperty(String key) {
-    return getPropertyStore().getJSONArray(key);
+    synchronized (this) {
+      return getPropertyStore().getJSONArray(key);
+    }
   }
 
   default void setToProperty(String key, String value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
   }
 
   default void setToProperty(String key, int value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
   }
 
   default void setToProperty(String key, long value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
   }
 
   default void setToProperty(String key, JSONObject value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
   }
 
   default void setToProperty(String key, JSONArray value) {
-    getPropertyStore().put(key, value);
-    updatePropertyStore();
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
   }
 
   default void putNewArrayToProperty(String key) {
-    getPropertyStore().put(key, new ArrayList<>());
-    updatePropertyStore();
+    synchronized (this) {
+      getPropertyStore().put(key, new ArrayList<>());
+      updatePropertyStore();
+    }
   }
 
   default void putToArrayOfProperty(String key, String value) {
-    JSONArray array = null;
-    boolean isContain = false;
-    try {
-      array = getPropertyStore().getJSONArray(key);
-      isContain = array.toList().contains(value);
-    } catch (Exception e) {}
-    if (array == null) {
-      getPropertyStore().put(key, new ArrayList<>());
-      array = getPropertyStore().getJSONArray(key);
+    synchronized (this) {
+      JSONArray array = null;
+      boolean isContain = false;
+      try {
+        array = getPropertyStore().getJSONArray(key);
+        isContain = array.toList().contains(value);
+      } catch (Exception e) {
+      }
+      if (array == null) {
+        getPropertyStore().put(key, new ArrayList<>());
+        array = getPropertyStore().getJSONArray(key);
+      }
+      if (!isContain) {
+        array.put(value);
+      }
+      updatePropertyStore();
     }
-    if (! isContain) {
-      array.put(value);
-    }
-    updatePropertyStore();
   }
 
   default void removeFromArrayOfProperty(String key, String value) {
-    try {
-      JSONArray array = getPropertyStore().getJSONArray(key);
-      int index = array.toList().indexOf(value);
-      if (index >= 0) {
-        array.remove(index);
+    synchronized (this) {
+      try {
+        JSONArray array = getPropertyStore().getJSONArray(key);
+        int index = array.toList().indexOf(value);
+        if (index >= 0) {
+          array.remove(index);
+        }
+      } catch (Exception e) {
       }
-    } catch (Exception e) {}
-    updatePropertyStore();
+      updatePropertyStore();
+    }
   }
 }

@@ -5,6 +5,7 @@ import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
@@ -69,14 +70,16 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static Simulator getInstance(Project project, String name) {
-    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-      Simulator simulator = instanceMap.get(name);
-      if (simulator == null) {
-        simulator = new Simulator(project, name);
+    synchronized (instanceMap) {
+      if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+        Simulator simulator = instanceMap.get(name);
+        if (simulator == null) {
+          simulator = new Simulator(project, name);
+        }
+        return simulator;
       }
-      return simulator;
+      return null;
     }
-    return null;
   }
 
   public static Simulator find(Project project, String key) {
@@ -96,14 +99,16 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static Simulator create(Project project, String name) {
-    name = FileName.removeRestrictedCharacters(name);
+    synchronized (instanceMap) {
+      name = FileName.removeRestrictedCharacters(name);
 
-    Simulator simulator = getInstance(project, name);
-    if (simulator == null) {
-      simulator = new Simulator(project, name);
+      Simulator simulator = getInstance(project, name);
+      if (simulator == null) {
+        simulator = new Simulator(project, name);
+      }
+
+      return simulator;
     }
-
-    return simulator;
   }
 
   private void initialise() {
@@ -173,6 +178,12 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
     }
     synchronized (this) {
       try{
+        Path gitIndexPath = getDirectoryPath().resolve(".git").resolve("index.lock");
+        if (Files.exists(gitIndexPath)) {
+          Files.delete(gitIndexPath);
+          WarnLogMessage.issue("Remove git index lock file in " + getName() + " " + this);
+        }
+
         Git git = Git.open(getDirectoryPath().toFile());
         git.add().addFilepattern(".").call();
 

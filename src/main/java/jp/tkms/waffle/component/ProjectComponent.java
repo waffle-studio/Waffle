@@ -236,7 +236,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                    */
 
                   int finalRunningCount = runningCount;
-                  list.add(Main.threadPool.submit(() -> {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       new Lte.TableValue("",
                         Html.a(ActorGroupComponent.getUrl(conductor),

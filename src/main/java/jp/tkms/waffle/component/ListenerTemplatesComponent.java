@@ -151,7 +151,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (ListenerTemplate module : moduleList) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getName()));
                   }

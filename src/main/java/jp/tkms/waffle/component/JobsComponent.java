@@ -100,7 +100,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Job job : Job.getList()) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   SimulatorRun run = job.getRun();
                   return new Lte.TableRow(
                     Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),

@@ -10,42 +10,48 @@ public interface DataDirectory {
   Path getDirectoryPath();
 
   default void createNewFile(Path path) {
-    if (! path.isAbsolute()) {
-      path = getDirectoryPath().resolve(path);
-    }
-    if (! Files.exists(path)) {
-      try {
-        Files.createDirectories(getDirectoryPath());
-        path.toFile().createNewFile();
-      } catch (IOException e) {
-        e.printStackTrace();
+    synchronized (this) {
+      if (!path.isAbsolute()) {
+        path = getDirectoryPath().resolve(path);
+      }
+      if (!Files.exists(path)) {
+        try {
+          Files.createDirectories(getDirectoryPath());
+          path.toFile().createNewFile();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
     }
   }
 
   default String getFileContents(Path path) {
-    if (! path.isAbsolute()) {
-      path = getDirectoryPath().resolve(path);
+    synchronized (this) {
+      if (!path.isAbsolute()) {
+        path = getDirectoryPath().resolve(path);
+      }
+      String contents = "";
+      try {
+        contents = new String(Files.readAllBytes(path));
+      } catch (IOException e) {
+      }
+      return contents;
     }
-    String contents = "";
-    try {
-      contents = new String(Files.readAllBytes(path));
-    } catch (IOException e) {
-    }
-    return contents;
   }
 
   default void updateFileContents(Path path, String contents) {
-    if (! path.isAbsolute()) {
-      path = getDirectoryPath().resolve(path);
-    }
-    if (Files.exists(path)) {
-      try {
-        FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(contents);
-        filewriter.close();
-      } catch (IOException e) {
-        e.printStackTrace();
+    synchronized (this) {
+      if (!path.isAbsolute()) {
+        path = getDirectoryPath().resolve(path);
+      }
+      if (Files.exists(path)) {
+        try {
+          FileWriter filewriter = new FileWriter(path.toFile());
+          filewriter.write(contents);
+          filewriter.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
     }
   }

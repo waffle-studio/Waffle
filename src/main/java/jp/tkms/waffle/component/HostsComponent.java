@@ -144,7 +144,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Host host : Host.getList()) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     Html.a(HostComponent.getUrl(host), null, null,  host.getName()),
                     String.valueOf(Job.getList(host).size()),

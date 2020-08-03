@@ -29,7 +29,8 @@ public class Main {
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
-  public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
+  public static ExecutorService interfaceThreadPool = Executors.newCachedThreadPool();
+  public static ExecutorService systemThreadPool = Executors.newCachedThreadPool();
   public static JobStore jobStore = null;
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
@@ -176,28 +177,40 @@ public class Main {
     new Thread(){
       @Override
       public void run() {
-        System.out.println("System will hibernate");
+        System.out.println("(0/6) System will hibernate");
         hibernateFlag = true;
-        PollingThread.waitForShutdown();
 
         try {
           fileWatcherThread.interrupt();
           pollingThreadWakerThread.interrupt();
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
+        System.out.println("(1/6) Misc. components stopped");
 
-        Spark.stop();
-        Spark.awaitStop();
+        PollingThread.waitForShutdown();
+        System.out.println("(2/6) Polling system stopped");
+
         try {
-          threadPool.shutdown();
-          threadPool.awaitTermination(7, TimeUnit.DAYS);
+          systemThreadPool.shutdown();
+          systemThreadPool.awaitTermination(7, TimeUnit.DAYS);
         } catch (Throwable e) {}
+        System.out.println("(3/6) System common threads stopped");
 
         try {
           jobStore.save();
         } catch (IOException e) {
           ErrorLogMessage.issue(e);
         }
+        System.out.println("(4/6) Job store stopped");
+
+        Spark.stop();
+        Spark.awaitStop();
+        System.out.println("(5/6) Web interface stopped");
+        try {
+          interfaceThreadPool.shutdown();
+          interfaceThreadPool.awaitTermination(7, TimeUnit.DAYS);
+        } catch (Throwable e) {}
+        System.out.println("(6/6) Web interface common threads stopped");
 
         if (restartFlag) {
           restartProcess();

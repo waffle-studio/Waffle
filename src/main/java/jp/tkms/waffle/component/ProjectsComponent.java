@@ -149,7 +149,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Project project : Project.getList()) {
-                list.add(Main.threadPool.submit(() -> {
+                list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       Html.a(ProjectComponent.getUrl(project), null, null, project.getName())
                     );
