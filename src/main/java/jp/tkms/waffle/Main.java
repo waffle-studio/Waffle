@@ -15,9 +15,7 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.IntStream;
 
 import static spark.Spark.*;
@@ -29,8 +27,8 @@ public class Main {
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
-  public static ExecutorService interfaceThreadPool = Executors.newCachedThreadPool();
-  public static ExecutorService systemThreadPool = Executors.newCachedThreadPool();
+  public static ExecutorService interfaceThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
+  public static ExecutorService systemThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static JobStore jobStore = null;
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();

@@ -23,9 +23,11 @@ public class BrowserMessageComponent extends AbstractAccessControlledComponent {
 
     String browserId = request.params(KEY_CURRENT_ROWID);
 
-    for (BrowserMessage message : BrowserMessage.getList(browserId)) {
-      result += "cid=" + message.getRowId() + ";" + message.getMessage() + ";";
-    }
+    try {
+      for (BrowserMessage message : BrowserMessage.getList(Long.valueOf(browserId))) {
+        result += "cid=" + message.getRowId() + ";" + message.getMessage() + ";";
+      }
+    } catch (Exception e) {}
 
     response.body(result);
   }

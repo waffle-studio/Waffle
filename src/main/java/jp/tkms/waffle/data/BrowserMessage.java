@@ -45,10 +45,6 @@ public class BrowserMessage {
     return new ArrayList<>(queue);
   }
 
-  public static ArrayList<BrowserMessage> getList(String currentRowId) {
-    return getList(Long.valueOf(currentRowId));
-  }
-
   public static void removeExpired() {
     while (messageQueue.size() > 0 && (messageQueue.peek().timestamp + 10000) < System.currentTimeMillis()) {
       messageQueue.poll();

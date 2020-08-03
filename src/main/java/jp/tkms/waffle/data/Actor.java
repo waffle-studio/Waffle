@@ -1,17 +1,14 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.*;
-import org.ehcache.Cache;
-import org.ehcache.CacheManager;
 import org.jruby.Ruby;
 import org.jruby.embed.PathType;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,17 +22,16 @@ public class Actor extends AbstractRun implements InternalHashedData {
   public static final String KEY_ACTIVE_RUN = "active_run";
   public static final UUID ROOT_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-  private static final Cache<String, Actor> instanceCache = new InstanceCache<Actor>(Actor.class, 500).getCacheStore();
-  //private static final HashMap<String, Actor> instanceMap = new HashMap<>();
+  //private static final Cache<String, Actor> instanceCache = new InstanceCache<Actor>(Actor.class, 500).getCacheStore();
+  private static final HashMap<String, Actor> instanceMap = new HashMap<>();
 
-  private final Object messageProcessorLocker = new Object();
   private String actorName;
   private HashSet<String> activeRunSet = new HashSet<>();
   private boolean isProcessing = false;
 
   public Actor(Project project, UUID id) {
     super(project, id, InternalHashedData.getDataDirectory(project, Actor.class.getName(), id));
-    instanceCache.put(id.toString(), this);
+    instanceMap.put(id.toString(), this);
 
     synchronized (activeRunSet) {
       for (Object runId : new JSONArray(getStringFromProperty(KEY_ACTIVE_RUN, "[]")).toList()) {
@@ -52,14 +48,14 @@ public class Actor extends AbstractRun implements InternalHashedData {
    */
 
   public static Actor getInstance(Project project, String id) {
-    synchronized (instanceCache) {
+    synchronized (instanceMap) {
       Actor actor = null;
 
       if (!ROOT_UUID.toString().equals(id)) {
         getRootInstance(project);
       }
 
-      actor = instanceCache.get(id);
+      actor = instanceMap.get(id);
       if (actor == null) {
         actor = new Actor(project, UUID.fromString(id));
       }
@@ -98,8 +94,8 @@ public class Actor extends AbstractRun implements InternalHashedData {
    */
 
   public static Actor getRootInstance(Project project) {
-    synchronized (instanceCache) {
-      Actor actor = instanceCache.get(ROOT_UUID.toString());
+    synchronized (instanceMap) {
+      Actor actor = instanceMap.get(ROOT_UUID.toString());
       if (actor == null) {
         actor = create(ROOT_UUID, RunNode.getRootInstance(project), null, null, null);
       }
@@ -266,7 +262,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
    */
   private static Actor create(UUID id, RunNode runNode, Actor parent, ActorGroup actorGroup, String actorName) {
-    synchronized (instanceCache) {
+    synchronized (instanceMap) {
       Project project = runNode.getProject();
       String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
       String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
@@ -436,7 +432,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
         return;
       }
     };
-    thread.start();
+    Main.systemThreadPool.submit(thread);
     if (!async) {
       try {
         thread.join();
@@ -514,6 +510,13 @@ public class Actor extends AbstractRun implements InternalHashedData {
 
    */
 
+
+  @Override
+  public void finish() {
+    super.finish();
+    instanceMap.remove(getId());
+  }
+
   private Path getActorScriptPath() {
     if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(getActorName())) {
       return getActorGroup().getRepresentativeActorScriptPath();
@@ -521,7 +524,7 @@ public class Actor extends AbstractRun implements InternalHashedData {
     return getActorGroup().getActorScriptPath(getActorName());
   }
 
-  public void registerActiveRun(AbstractRun run) {
+  public long registerActiveRun(AbstractRun run) {
     synchronized (activeRunSet) {
       activeRunSet.add(run.getId());
       JSONArray jsonArray = new JSONArray();
@@ -529,12 +532,12 @@ public class Actor extends AbstractRun implements InternalHashedData {
         jsonArray.put(id);
       }
       setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
+      setState(isRunning() ? State.Running : State.Finished);
+      return activeRunSet.size();
     }
-
-    setState(isRunning() ? State.Running : State.Finished);
   }
 
-  public void removeActiveRun(AbstractRun run) {
+  public long removeActiveRun(AbstractRun run) {
     synchronized (activeRunSet) {
       activeRunSet.remove(run.getId());
       JSONArray jsonArray = new JSONArray();
@@ -542,22 +545,18 @@ public class Actor extends AbstractRun implements InternalHashedData {
         jsonArray.put(id);
       }
       setToProperty(KEY_ACTIVE_RUN, jsonArray.toString());
+      setState(isRunning() ? State.Running : State.Finished);
+      return activeRunSet.size();
     }
-
-    setState(isRunning() ? State.Running : State.Finished);
   }
 
   public void postMessage(AbstractRun caller, String eventName) {
+    long activeRunSetSize = 0;
+    if (!caller.isRunning()) {
+      activeRunSetSize = removeActiveRun(caller);
+    }
     synchronized (this) {
-      if (!caller.isRunning()) {
-        removeActiveRun(caller);
-      }
-
       //processMessage(caller);
-      int activeRunSetSize = 0;
-      synchronized (activeRunSet) {
-        activeRunSetSize = activeRunSet.size();
-      }
       if (activeRunSetSize <= 0 && !isProcessing) {
         setState(State.Finished);
         finish();

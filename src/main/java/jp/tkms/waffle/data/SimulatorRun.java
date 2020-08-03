@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SimulatorRun extends AbstractRun {
   protected static final String TABLE_NAME = "simulator_run";
@@ -50,8 +51,8 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray localSharedList;
 
+  private static final ConcurrentHashMap<String, SimulatorRun> instanceMap = new ConcurrentHashMap<>();
   private static final Cache<String, SimulatorRun> instanceCache = new InstanceCache<SimulatorRun>(SimulatorRun.class, 500).getCacheStore();
-  //private static final HashMap<String, SimulatorRun> instanceMap = new HashMap<>();
 
   /*
   private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
@@ -81,6 +82,11 @@ public class SimulatorRun extends AbstractRun {
 
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     SimulatorRun run = null;
+
+    run = instanceMap.get(id);
+    if (run != null)  {
+      return run;
+    }
 
     run = instanceCache.get(id);
     if (run != null)  {
@@ -212,6 +218,7 @@ public class SimulatorRun extends AbstractRun {
     run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
     run.setToProperty(KEY_SIMULATOR, simulatorName);
     run.setToProperty(KEY_HOST, hostName);
+    run.setToProperty(KEY_ACTUAL_HOST, hostName);
     run.setToProperty(KEY_STATE, run.getState().ordinal());
     run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
     run.setToProperty(KEY_RUNNODE, runNode.getId());
@@ -541,9 +548,16 @@ public class SimulatorRun extends AbstractRun {
 
   public void start() {
     super.start();
+    instanceMap.put(getId(), this);
     putVariablesByJson(getParentActor().getVariables().toString());
     isStarted = true;
     Job.addRun(this);
+  }
+
+  @Override
+  public void finish() {
+    super.finish();
+    instanceMap.remove(getId());
   }
 
   public void restart() {
