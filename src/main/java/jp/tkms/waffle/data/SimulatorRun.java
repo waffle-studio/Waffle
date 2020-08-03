@@ -83,20 +83,22 @@ public class SimulatorRun extends AbstractRun {
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     SimulatorRun run = null;
 
-    run = instanceMap.get(id);
-    if (run != null)  {
-      return run;
-    }
+    if (id != null) {
+      run = instanceMap.get(id);
+      if (run != null)  {
+        return run;
+      }
 
-    run = instanceCache.get(id);
-    if (run != null)  {
-      return run;
-    }
+      run = instanceCache.get(id);
+      if (run != null)  {
+        return run;
+      }
 
-    RunNode runNode = RunNode.getInstance(project, id);
+      RunNode runNode = RunNode.getInstance(project, id);
 
-    if (runNode != null && runNode instanceof SimulatorRunNode) {
-      run = new SimulatorRun(project, runNode.getUuid(), runNode.getDirectoryPath());
+      if (runNode != null && runNode instanceof SimulatorRunNode) {
+        run = new SimulatorRun(project, runNode.getUuid(), runNode.getDirectoryPath());
+      }
     }
 
     if (run == null) {

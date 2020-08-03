@@ -324,7 +324,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formSelectGroup(KEY_HOST, "Host", Host.getViableList().stream().map(host -> host.getName()).collect(Collectors.toList()), null),
-                  Lte.formDataEditorGroup(KEY_PARAMETERS, "Parameters", "json", simulator.getDefaultParameters().toString(2), null)
+                  Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", simulator.getDefaultParameters().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")
