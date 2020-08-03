@@ -25,7 +25,7 @@ public class JobStore {
 
   public Job getJob(UUID id) {
     synchronized (jobMap) {
-      return jobMap.get(id);
+      return jobMap.get(id.toString());
     }
   }
 
