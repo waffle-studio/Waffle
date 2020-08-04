@@ -28,8 +28,11 @@ public class RubyScript {
   }
 
   private static ScriptingContainer getScriptingContainer() {
-    ScriptingContainer scriptingContainer = containersQueue.pollLast();
-    containersTimestampQueue.pollLast();
+    ScriptingContainer scriptingContainer = null;
+    synchronized (containersTimestampQueue) {
+      scriptingContainer = containersQueue.pollLast();
+      containersTimestampQueue.pollLast();
+    }
     if (scriptingContainer != null) {
       return scriptingContainer;
     }
@@ -39,22 +42,17 @@ public class RubyScript {
 
   private static void releaseScriptingContainer(ScriptingContainer scriptingContainer) {
     scriptingContainer.clear();
-    containersQueue.offerLast(scriptingContainer);
-    containersTimestampQueue.offerLast(System.currentTimeMillis());
-
-    if (containersTimestampQueue.size() > 1) {
-      while (containersTimestampQueue.peekFirst() + 30000 < System.currentTimeMillis()) {
-        ScriptingContainer container = containersQueue.pollFirst();
-        Ruby ruby = container.getProvider().getRuntime();
-        ruby.releaseClassLoader();
-        containersTimestampQueue.pollFirst();
-        container.terminate();
-        //container.getProvider().terminate();
+    synchronized (containersTimestampQueue) {
+      containersQueue.offerLast(scriptingContainer);
+      containersTimestampQueue.offerLast(System.currentTimeMillis());
+      if (containersTimestampQueue.size() > 1) {
         try {
-          container.finalize();
-        } catch (Throwable throwable) {
-        }
-        container = null;
+          while (containersTimestampQueue.peekFirst() + 10000 < System.currentTimeMillis()) {
+            ScriptingContainer container = containersQueue.pollFirst();
+            containersTimestampQueue.pollFirst();
+            container.terminate();
+          }
+        } catch (Exception e) {}
       }
     }
   }
@@ -125,5 +123,9 @@ public class RubyScript {
         }
       }
     } while (failed);
+  }
+
+  public static String debugReport() {
+    return RubyScript.class.getSimpleName() + " : cacheSize=" + containersQueue.size() + ", runningCount=" + runningCount;
   }
 }

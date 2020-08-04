@@ -23,6 +23,7 @@ public class PollingThread extends Thread {
   private Host host;
 
   public PollingThread(Host host) {
+    super("Waffle_Polling(" + host.getName() + ")");
     this.host = host;
   }
 

@@ -90,7 +90,7 @@ abstract public class MainTemplate extends AbstractTemplate {
             ),
             elementWithClass("footer", "main-footer", div("float-right d-none d-sm-block"),
               element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
-              a(SystemComponent.getUrl("update"), Lte.badge("secondary", null, "update (" + Main.VERSION + ")"))
+              a(SystemComponent.getUrl(SystemComponent.Mode.Update), Lte.badge("secondary", null, "update (" + Main.VERSION + ")"))
             )
           ),
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),
@@ -255,7 +255,7 @@ abstract public class MainTemplate extends AbstractTemplate {
         Lte.disabledTextInput("info", null, "Screen reloaded")
       ) +
       elementWithClass("li", "nav-item",
-        a(SystemComponent.getUrl("hibernate"), "nav-link", new Attributes(value("title", String.valueOf(Main.PID))),
+        a(SystemComponent.getUrl(SystemComponent.Mode.Hibernate), "nav-link", new Attributes(value("title", String.valueOf(Main.PID))),
           fasIcon("power-off", "nav-icon"),
           p("Hibernate")
         )

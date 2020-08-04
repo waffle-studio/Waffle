@@ -4,6 +4,8 @@ import jp.tkms.waffle.component.*;
 import jp.tkms.waffle.component.updater.SystemUpdater;
 import jp.tkms.waffle.data.JobStore;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
 import org.jruby.embed.LocalContextScope;
@@ -15,6 +17,7 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.stream.IntStream;
 
@@ -35,6 +38,7 @@ public class Main {
   private static Thread fileWatcherThread;
   private static Thread pollingThreadWakerThread;
   private static Thread gcInvokerThread;
+  private static Thread commandLineThread;
 
   public static void main(String[] args) {
     //NOTE: for https://bugs.openjdk.java.net/browse/JDK-8246714
@@ -75,6 +79,8 @@ public class Main {
       }
     });
 
+    InfoLogMessage.issue("PID is " + PID);
+
     try {
       jobStore = JobStore.load();
     } catch (Exception e) {
@@ -86,7 +92,7 @@ public class Main {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    fileWatcherThread = new Thread(){
+    fileWatcherThread = new Thread("Waffle_FileWatcher"){
       @Override
       public void run() {
         try {
@@ -126,7 +132,7 @@ public class Main {
     SystemComponent.register();
     SigninComponent.register();
 
-    pollingThreadWakerThread =  new Thread() {
+    pollingThreadWakerThread =  new Thread("Waffle_Polling") {
       @Override
       public void run() {
         while (!hibernateFlag) {
@@ -142,7 +148,7 @@ public class Main {
     };
     pollingThreadWakerThread.start();
 
-    gcInvokerThread = new Thread(){
+    gcInvokerThread = new Thread("Waffle_GCInvoker"){
       @Override
       public void run() {
         while (!hibernateFlag) {
@@ -156,7 +162,29 @@ public class Main {
         return;
       }
     };
-    gcInvokerThread.start();
+    //gcInvokerThread.start();
+
+    commandLineThread = new Thread("Waffle_CommandLine"){
+      @Override
+      public void run() {
+        try {
+          Scanner in = new Scanner(System.in);
+          while (true) {
+            String command = in.nextLine();
+            System.out.println("-> " + command);
+            switch (command) {
+              case "hibernate":
+                hibernate();
+                break;
+            }
+          }
+        } catch (Exception e) {
+          InfoLogMessage.issue("console command feature is disabled (could not gets user inputs)");
+          return;
+        }
+      }
+    };
+    commandLineThread.start();
 
     RubyScript.process(scriptingContainer -> {
       scriptingContainer.runScriptlet("print \"\"");
@@ -179,6 +207,7 @@ public class Main {
         hibernateFlag = true;
 
         try {
+          commandLineThread.interrupt();
           fileWatcherThread.interrupt();
           pollingThreadWakerThread.interrupt();
           gcInvokerThread.interrupt();
