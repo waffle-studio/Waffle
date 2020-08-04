@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.log.WarnLogMessage;
 import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
+import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.ScriptingContainer;
 import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
@@ -32,7 +33,8 @@ public class RubyScript {
     if (scriptingContainer != null) {
       return scriptingContainer;
     }
-    return new ScriptingContainer(LocalContextScope.THREADSAFE);
+    //return new ScriptingContainer(LocalContextScope.THREADSAFE);
+    return new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
   }
 
   private static void releaseScriptingContainer(ScriptingContainer scriptingContainer) {
@@ -43,12 +45,16 @@ public class RubyScript {
     if (containersTimestampQueue.size() > 1) {
       while (containersTimestampQueue.peekFirst() + 30000 < System.currentTimeMillis()) {
         ScriptingContainer container = containersQueue.pollFirst();
+        Ruby ruby = container.getProvider().getRuntime();
+        ruby.releaseClassLoader();
         containersTimestampQueue.pollFirst();
         container.terminate();
+        //container.getProvider().terminate();
         try {
           container.finalize();
         } catch (Throwable throwable) {
         }
+        container = null;
       }
     }
   }
