@@ -12,7 +12,7 @@ import java.util.Map;
 public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public enum Mode {Default, Hibernate, Restart, Update, DebugReport}
+  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache}
 
   public SystemComponent(Mode mode) {
     this.mode = mode;
@@ -23,6 +23,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(Mode.Restart), new SystemComponent(Mode.Restart));
     Spark.get(getUrl(Mode.Update), new SystemComponent(Mode.Update));
     Spark.get(getUrl(Mode.DebugReport), new SystemComponent(Mode.DebugReport));
+    Spark.get(getUrl(Mode.ReduceRubyContainerCache), new SystemComponent(Mode.ReduceRubyContainerCache));
   }
 
   public static String getUrl(Mode mode) {
@@ -34,38 +35,35 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     logger.info(response.status() + ": " + request.url());
 
     switch (mode) {
-      case Hibernate: {
-        String referer = request.headers("Referer");
-        if (referer == null || "".equals(referer)) {
-          referer = "/";
-        }
-        response.redirect(referer);
+      case Hibernate:
+        redirectToReferer();
         Main.hibernate();
-      }
-      break;
-      case Restart: {
-        String referer = request.headers("Referer");
-        if (referer == null || "".equals(referer)) {
-          referer = "/";
-        }
-        response.redirect(referer);
+        break;
+      case Restart:
+        redirectToReferer();
         Main.restart();
-      }
-      break;
-      case Update: {
-        String referer = request.headers("Referer");
-        if (referer == null || "".equals(referer)) {
-          referer = "/";
-        }
-        response.redirect(referer);
+        break;
+      case Update:
+        redirectToReferer();
         Main.update();
-      }
       break;
+      case ReduceRubyContainerCache:
+        redirectToReferer();
+        RubyScript.reduceContainerCache();
+        break;
       case DebugReport:
         renderDebugReport();
         break;
       default:
     }
+  }
+
+  void redirectToReferer() {
+    String referer = request.headers("Referer");
+    if (referer == null || "".equals(referer)) {
+      referer = "/";
+    }
+    response.redirect(referer);
   }
 
   void renderDebugReport() {
@@ -87,7 +85,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        return Html.div(null, Html.div(null, RubyScript.debugReport()) );
+        return Html.div(null, Html.div(null, RubyScript.debugReport(), " ", Html.a(SystemComponent.getUrl(Mode.ReduceRubyContainerCache), "ReduceCache")) );
       }
     }.render(this);
   }

@@ -45,7 +45,13 @@ public class RubyScript {
     synchronized (containersTimestampQueue) {
       containersQueue.offerLast(scriptingContainer);
       containersTimestampQueue.offerLast(System.currentTimeMillis());
-      if (containersTimestampQueue.size() > 1) {
+      reduceContainerCache();
+    }
+  }
+
+  public static void reduceContainerCache() {
+    synchronized (containersTimestampQueue) {
+      if (containersTimestampQueue.size() > 0) {
         try {
           while (containersTimestampQueue.peekFirst() + 10000 < System.currentTimeMillis()) {
             ScriptingContainer container = containersQueue.pollFirst();
