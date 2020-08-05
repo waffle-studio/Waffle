@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.JobStore;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.util.FileBuffer;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
 import org.jruby.embed.LocalContextScope;
@@ -212,32 +213,35 @@ public class Main {
           pollingThreadWakerThread.interrupt();
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
-        System.out.println("(1/6) Misc. components stopped");
+        System.out.println("(1/7) Misc. components stopped");
 
         PollingThread.waitForShutdown();
-        System.out.println("(2/6) Polling system stopped");
+        System.out.println("(2/7) Polling system stopped");
 
         try {
           systemThreadPool.shutdown();
           systemThreadPool.awaitTermination(7, TimeUnit.DAYS);
         } catch (Throwable e) {}
-        System.out.println("(3/6) System common threads stopped");
+        System.out.println("(3/7) System common threads stopped");
 
         try {
           jobStore.save();
         } catch (IOException e) {
           ErrorLogMessage.issue(e);
         }
-        System.out.println("(4/6) Job store stopped");
+        System.out.println("(4/7) Job store stopped");
 
         Spark.stop();
         Spark.awaitStop();
-        System.out.println("(5/6) Web interface stopped");
+        System.out.println("(5/7) Web interface stopped");
         try {
           interfaceThreadPool.shutdown();
           interfaceThreadPool.awaitTermination(7, TimeUnit.DAYS);
         } catch (Throwable e) {}
-        System.out.println("(6/6) Web interface common threads stopped");
+        System.out.println("(6/7) Web interface common threads stopped");
+
+        FileBuffer.shutdown();
+        System.out.println("(7/7) File buffer threads stopped");
 
         if (restartFlag) {
           restartProcess();
