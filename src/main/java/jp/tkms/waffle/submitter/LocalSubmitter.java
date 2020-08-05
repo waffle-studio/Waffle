@@ -17,6 +17,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class LocalSubmitter extends AbstractSubmitter {
+
+  public LocalSubmitter(Host host) {
+  }
+
   @Override
   public AbstractSubmitter connect(boolean retry) {
     return this;

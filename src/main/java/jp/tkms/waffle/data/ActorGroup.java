@@ -16,10 +16,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class ActorGroup extends ProjectData implements DataDirectory, PropertyFile {
-  protected static final String TABLE_NAME = "conductor";
   protected static final String KEY_CONDUCTOR = "conductor";
-  private static final String KEY_CONDUCTOR_TYPE = "conductor_type";
-  private static final String KEY_SCRIPT = "script_file";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_ACTOR = "actor";
   public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
@@ -29,14 +26,7 @@ public class ActorGroup extends ProjectData implements DataDirectory, PropertyFi
   private static final HashMap<String, ActorGroup> instanceMap = new HashMap<>();
 
   private String name = null;
-  private String conductorType = null;
   private String defaultVariables = null;
-
-  public static ArrayList<String> getConductorNameList() {
-    return new ArrayList<>(Arrays.asList(
-      RubyConductor.class.getCanonicalName()
-    ));
-  }
 
   public ActorGroup(Project project, String name) {
     super(project);

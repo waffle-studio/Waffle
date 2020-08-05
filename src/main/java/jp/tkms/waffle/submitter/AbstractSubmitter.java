@@ -19,6 +19,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -77,13 +78,18 @@ abstract public class AbstractSubmitter {
 
   public static AbstractSubmitter getInstance(Host host) {
     AbstractSubmitter submitter = null;
-    if (host.isLocal()) {
-      submitter = new LocalSubmitter();
-    } else if (host.getName().equals("ABCI")) {
-      submitter = new AbciSubmitter2(host);
-    } else {
+    try {
+      Class<?> clazz = Class.forName(host.getSubmitterType());
+      Constructor<?> constructor = clazz.getConstructor(Host.class);
+      submitter = (AbstractSubmitter) constructor.newInstance(new Object[]{host});
+    }catch(Exception e) {
+      ErrorLogMessage.issue(e);
+    }
+
+    if (submitter == null) {
       submitter = new SshSubmitter(host);
     }
+
     return submitter;
   }
 

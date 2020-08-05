@@ -92,6 +92,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
           Lte.card(Html.fasIcon("terminal") + "Properties",
             host.getState().getStatusBadge(),
             Html.div(null,
+              Lte.readonlyTextInput("Submitter Type", host.getSubmitterType()),
               Lte.formInputGroup("text", KEY_XSUB,
                 "Xsub directory on host",
                 "depends on $PATH", host.getXsubDirectory(), errors),

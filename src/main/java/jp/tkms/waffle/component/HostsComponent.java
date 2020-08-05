@@ -4,6 +4,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
+import jp.tkms.waffle.data.ActorGroup;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
 import spark.Spark;
@@ -92,7 +93,8 @@ public class HostsComponent extends AbstractAccessControlledComponent {
             Lte.card("New Host", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors)
+                Lte.formInputGroup("text", "name", null, "Name", null, errors),
+                Lte.formSelectGroup("type", "type", Host.getSubmitterTypeNameList(), errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -161,7 +163,7 @@ public class HostsComponent extends AbstractAccessControlledComponent {
   }
 
   private void addHost() {
-    Host host = Host.create(request.queryParams("name"));
+    Host host = Host.create(request.queryParams("name"), request.queryParams("type"));
     response.redirect(HostComponent.getUrl(host));
   }
 

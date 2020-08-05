@@ -137,8 +137,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             Lte.card("New ActorGroup", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors),
-                Lte.formSelectGroup("type", "type", ActorGroup.getConductorNameList(), errors)
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -270,7 +269,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
   private void addConductor() {
     String name = request.queryParams("name");
-    String type = request.queryParams("type");
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
     ActorGroup conductor = ActorGroup.create(project, name);
     response.redirect(ActorGroupComponent.getUrl(conductor));

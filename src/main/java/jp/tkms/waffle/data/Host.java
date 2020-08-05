@@ -7,7 +7,10 @@ import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.submitter.AbciSubmitter2;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.submitter.LocalSubmitter;
+import jp.tkms.waffle.submitter.SshSubmitter;
 import org.json.JSONObject;
 
 import javax.crypto.*;
@@ -31,7 +34,7 @@ public class Host implements DataDirectory, PropertyFile {
   private static final String KEY_XSUB_TEMPLATE = "xsub_template";
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
-  private static final String KEY_OS = "os";
+  private static final String KEY_SUBMITTER = "submitter";
   private static final String KEY_ENCRYPT_KEY = "encrypt_key";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_STATE = "state";
@@ -41,7 +44,12 @@ public class Host implements DataDirectory, PropertyFile {
 
   private static final HashMap<String, Host> instanceMap = new HashMap<>();
 
+  public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
+    SshSubmitter.class, AbciSubmitter2.class, LocalSubmitter.class
+  ));
+
   private String name;
+  private String submitterType = null;
   private String workBaseDirectory = null;
   private String xsubDirectory = null;
   private SecretKeySpec encryptKey = null;
@@ -58,6 +66,7 @@ public class Host implements DataDirectory, PropertyFile {
 
     Main.registerFileChangeEventListener(getBaseDirectoryPath().resolve(name), () -> {
       synchronized (this) {
+        submitterType = null;
         workBaseDirectory = null;
         xsubDirectory = null;
         pollingInterval = null;
@@ -132,7 +141,7 @@ public class Host implements DataDirectory, PropertyFile {
     return list;
   }
 
-  public static Host create(String name) {
+  public static Host create(String name, String submitterClassName) {
     Data.initializeWorkDirectory();
 
     name = FileName.removeRestrictedCharacters(name);
@@ -141,8 +150,17 @@ public class Host implements DataDirectory, PropertyFile {
     if (host == null) {
       host = new Host(name);
     }
+    host.setSubmitterType(submitterClassName);
 
     return host;
+  }
+
+  public static ArrayList<String> getSubmitterTypeNameList() {
+    ArrayList<String> list = new ArrayList<>();
+    for (Class c : submitterTypeList) {
+      list.add(c.getCanonicalName());
+    }
+    return list;
   }
 
   public void update() {
@@ -171,6 +189,22 @@ public class Host implements DataDirectory, PropertyFile {
   public boolean isLocal() {
     //return LOCAL_UUID.equals(id);
     return getName().equals(KEY_LOCAL);
+  }
+
+  public String getSubmitterType() {
+    synchronized (this) {
+      if (submitterType == null) {
+        submitterType = getStringFromProperty(KEY_SUBMITTER, submitterTypeList.get(0).getCanonicalName());
+      }
+      return submitterType;
+    }
+  }
+
+  public void setSubmitterType(String submitterClassName) {
+    synchronized (this) {
+      setToProperty(KEY_SUBMITTER, submitterClassName);
+      submitterType = submitterClassName;
+    }
   }
 
   public String getWorkBaseDirectory() {
@@ -463,7 +497,7 @@ public class Host implements DataDirectory, PropertyFile {
   public static void initializeWorkDirectory() {
     Data.initializeWorkDirectory();
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
-      create(KEY_LOCAL);
+      create(KEY_LOCAL, LocalSubmitter.class.getCanonicalName());
     }
   }
 }
