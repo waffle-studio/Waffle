@@ -115,6 +115,10 @@ public class SimulatorRun extends AbstractRun {
     return Host.getInstance(host);
   }
 
+  public void setActualHost(Host host) {
+    setToProperty(KEY_ACTUAL_HOST, host.getName());
+  }
+
   public Host getActualHost() {
     return Host.getInstance(getStringFromProperty(KEY_ACTUAL_HOST, getHost().getName()));
   }

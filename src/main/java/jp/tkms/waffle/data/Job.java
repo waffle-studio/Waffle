@@ -84,6 +84,11 @@ public class Job {
     }
   }
 
+  public void replaceHost(Host host) throws RunNotFoundException {
+    getRun().setActualHost(host);
+    this.hostName = host.getName();
+  }
+
   public void incrementErrorCount() {
     errorCount += 1;
   }
