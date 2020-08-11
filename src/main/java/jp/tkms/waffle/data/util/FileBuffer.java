@@ -6,7 +6,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class FileBuffer extends Thread {
   private Path path;
@@ -16,10 +20,27 @@ public class FileBuffer extends Thread {
   private long timestamp;
 
   private static ExecutorService threadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
+  private static Lock bufferLock = new ReentrantLock();
+  private static boolean flushFlag = false;
   private static ConcurrentHashMap<Path, FileBuffer> map = new ConcurrentHashMap<>();
   private static ConcurrentLinkedQueue<FileBuffer> queue = new ConcurrentLinkedQueue<>();
+  private static HashSet<FileBuffer> runningSet = new HashSet<>();
 
   public static void write(Path path, String contents) {
+    try {
+      Path directoryPath = path.getParent();
+      if (!Files.exists(directoryPath)) {
+        Files.createDirectories(directoryPath);
+      }
+
+      FileWriter filewriter = new FileWriter(path.toFile());
+      filewriter.write(contents);
+      filewriter.close();
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    /*
+    checkFlushFlag();
     runLifeCycle();
     synchronized (map) {
       Path absolutePath = path.toAbsolutePath();
@@ -35,11 +56,25 @@ public class FileBuffer extends Thread {
       fileBuffer = new FileBuffer(absolutePath, contents);
       map.put(absolutePath, fileBuffer);
       queue.offer(fileBuffer);
-      threadPool.submit(fileBuffer);
+      if (Files.exists(absolutePath)) {
+        threadPool.submit(fileBuffer);
+      } else {
+        fileBuffer.writeToDisk();
+        fileBuffer.isReadMode = true;
+      }
     }
+
+     */
   }
 
   public static String read(Path path) {
+    try {
+      return new String(Files.readAllBytes(path));
+    } catch (IOException e) {
+      return "";
+    }
+    /*
+    checkFlushFlag();
     runLifeCycle();
     FileBuffer fileBuffer = null;
     synchronized (map) {
@@ -52,10 +87,38 @@ public class FileBuffer extends Thread {
       }
     }
     return fileBuffer.getContents();
+
+     */
+  }
+
+  public static void flush() {
+    bufferLock.lock();
+    try {
+      flushFlag = true;
+      synchronized (map) {
+        for (FileBuffer fileBuffer : queue) {
+          if (!fileBuffer.isReadMode) {
+            fileBuffer.interrupt();
+          }
+        }
+        map.clear();
+        queue.clear();
+      }
+      int runningCount = 0;
+      do {
+        synchronized (runningSet) {
+          runningCount = runningSet.size();
+        }
+      } while (runningCount > 0);
+      flushFlag = false;
+    } finally {
+      bufferLock.unlock();
+    }
   }
 
   public static void shutdown() {
     try {
+      flush();
       threadPool.shutdown();
       threadPool.awaitTermination(7, TimeUnit.DAYS);
     } catch (InterruptedException e) {
@@ -63,9 +126,14 @@ public class FileBuffer extends Thread {
     }
   }
 
+  private static void checkFlushFlag() {
+    bufferLock.lock();
+    bufferLock.unlock();
+  }
+
   private static void runLifeCycle() {
     synchronized (map) {
-      while (!queue.isEmpty() && queue.peek().timestamp + 1000 > System.currentTimeMillis()) {
+      while (!queue.isEmpty() && queue.peek().isReadMode && queue.peek().timestamp + 1000 > System.currentTimeMillis()) {
         FileBuffer fileBuffer = queue.poll();
         map.remove(fileBuffer.path);
       }
@@ -109,18 +177,7 @@ public class FileBuffer extends Thread {
     }
   }
 
-  @Override
-  public void run() {
-    while (timestamp + 1000 > System.currentTimeMillis()) {
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException e) { }
-    }
-    synchronized (map) {
-      map.remove(path);
-      queue.remove(this);
-      alive = false;
-    }
+  private void writeToDisk() {
     try {
       Path directoryPath = path.getParent();
       if (!Files.exists(directoryPath)) {
@@ -132,6 +189,29 @@ public class FileBuffer extends Thread {
       filewriter.close();
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
+    }
+  }
+
+  @Override
+  public void run() {
+    synchronized (runningSet) {
+      runningSet.add(this);
+    }
+    while (timestamp + 1000 > System.currentTimeMillis() && !isInterrupted()) {
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) { }
+    }
+    if (!flushFlag) {
+      synchronized (map) {
+        map.remove(path);
+        queue.remove(this);
+        alive = false;
+      }
+    }
+    writeToDisk();
+    synchronized (runningSet) {
+      runningSet.remove(this);
     }
   }
 }

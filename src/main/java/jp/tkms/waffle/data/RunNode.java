@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.util.FileBuffer;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
@@ -296,6 +297,7 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
 
   public void replace(Path path) {
     int count = 1;
+    FileBuffer.flush();
     while (Files.exists(path)) {
       path = path.getParent().resolve(path.getFileName().toString() + '_' + count++);
       //name = (name.length() > 0 ? "_" : "") + UUID.randomUUID().toString().replaceFirst("-.*$", "");
