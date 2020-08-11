@@ -6,6 +6,7 @@ import jp.tkms.waffle.component.template.ProjectMainTemplate;
 import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.exception.ProjectNotFoundException;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.util.FileName;
 import spark.Spark;
 
@@ -30,6 +31,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
   private Project project;
   private ActorGroup actorGroup;
   private Actor parent;
+  private SimulatorRun baseRun;
   public ActorGroupComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -42,6 +44,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getUrl(null), new ActorGroupComponent());
     Spark.get(getUrl(null, "prepare", null), new ActorGroupComponent(Mode.Prepare));
+    Spark.get(getUrl(null, "prepare", null, null), new ActorGroupComponent(Mode.Prepare));
     Spark.post(getUrl(null, "run", null), new ActorGroupComponent(Mode.Run));
     Spark.post(getUrl(null, "update-arguments"), new ActorGroupComponent(Mode.UpdateArguments));
     Spark.post(getUrl(null, "update-main-script"), new ActorGroupComponent(Mode.UpdateMainScript));
@@ -59,6 +62,12 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
       + (parent == null ? ":parent" : parent.getId());
   }
 
+  public static String getUrl(ActorGroup conductor, String mode, Actor parent, SimulatorRun base) {
+    return getUrl(conductor) + '/' + mode
+      + '/' + (parent == null ? ":parent" : parent.getId())
+      + '/' + (base == null ? ":base" : base.getId());
+  }
+
   public static String getUrl(ActorGroup conductor, String mode) {
     return getUrl(conductor) + '/' + mode;
   }
@@ -72,6 +81,11 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
     if (mode == Mode.Prepare) {
       if (actorGroup.checkSyntax()) {
         parent = Actor.getInstance(project, request.params("parent"));
+        try {
+          baseRun = SimulatorRun.getInstance(project, request.params("base"));
+        } catch (RunNotFoundException e) {
+          baseRun = null;
+        }
         renderPrepareForm();
       } else {
         response.redirect(getUrl(actorGroup));
@@ -311,16 +325,30 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
+        String name = actorGroup.getName() + '_' + LocalDateTime.now().toString();
+        String variables = actorGroup.getDefaultVariables().toString();
+
+        if (baseRun != null) {
+          name = baseRun.getName();
+          RunNode parent = baseRun.getRunNode().getParent();
+          while (parent != null) {
+            name = parent.getSimpleName() + "_" + name;
+            parent = parent.getParent();
+          }
+          name = name + '_' + LocalDateTime.now().toString();
+          variables = baseRun.getVariables().toString();
+        }
+
         content +=
           Html.form(getUrl(actorGroup, "run", parent), Html.Method.Post,
             Lte.card(Html.fasIcon("feather-alt") + "Prepare",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(actorGroup.getName() + '_' + LocalDateTime.now().toString()), null)
+                  Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(name), null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form",  actorGroup.getDefaultVariables().toString(), null)
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form", variables, null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run"), "card-info", null

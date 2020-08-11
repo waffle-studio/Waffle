@@ -5,6 +5,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.ProjectMainTemplate;
+import jp.tkms.waffle.data.Actor;
 import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.RunNode;
 import jp.tkms.waffle.data.SimulatorRun;
@@ -139,7 +140,9 @@ public class RunComponent extends AbstractAccessControlledComponent {
               Lte.formJsonEditorGroup("", null, "view", run.getVariables().toString(), null)
             )
           )
-          , null, "collapsed-card", null);
+          , (run.getActorGroup() == null ? "" : Html.a(ActorGroupComponent.getUrl(run.getActorGroup(), "prepare", Actor.getRootInstance(project), run),
+            Html.span("right badge badge-secondary", null, "run by this variables")
+          )), "collapsed-card", null);
 
         content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
           Lte.cardToggleButton(false),
