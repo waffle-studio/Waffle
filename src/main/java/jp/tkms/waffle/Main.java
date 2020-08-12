@@ -240,7 +240,6 @@ public class Main {
         } catch (Throwable e) {}
         System.out.println("(6/7) Web interface common threads stopped");
 
-        FileBuffer.shutdown();
         System.out.println("(7/7) File buffer threads stopped");
 
         if (restartFlag) {

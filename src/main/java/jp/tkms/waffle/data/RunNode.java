@@ -297,7 +297,6 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
 
   public void replace(Path path) {
     int count = 1;
-    FileBuffer.flush();
     while (Files.exists(path)) {
       path = path.getParent().resolve(path.getFileName().toString() + '_' + count++);
       //name = (name.length() > 0 ? "_" : "") + UUID.randomUUID().toString().replaceFirst("-.*$", "");
