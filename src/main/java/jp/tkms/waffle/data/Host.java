@@ -7,10 +7,7 @@ import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.HostState;
-import jp.tkms.waffle.submitter.AbciSubmitter2;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
-import jp.tkms.waffle.submitter.LocalSubmitter;
-import jp.tkms.waffle.submitter.SshSubmitter;
+import jp.tkms.waffle.submitter.*;
 import org.json.JSONObject;
 
 import javax.crypto.*;
@@ -45,7 +42,7 @@ public class Host implements DataDirectory, PropertyFile {
   private static final HashMap<String, Host> instanceMap = new HashMap<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
-    SshSubmitter.class, AbciSubmitter2.class, LocalSubmitter.class
+    SshSubmitter.class, AbciSubmitter2.class, LocalSubmitter.class, RoundRobinSubmitter.class
   ));
 
   private String name;

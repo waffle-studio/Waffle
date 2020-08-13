@@ -33,12 +33,22 @@ public class PollingThread extends Thread {
 
     AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
 
+    int waitCount = submitter.getPollingInterval() - 1;
     do {
+      while (waitCount < submitter.getPollingInterval()) {
+        if (Main.hibernateFlag) {
+          submitter.hibernate();
+          break;
+        }
+        try { sleep(1000); } catch (InterruptedException e) { e.printStackTrace(); }
+        waitCount += 1;
+      }
       if (Main.hibernateFlag) {
         submitter.hibernate();
         break;
       }
-      try { sleep(submitter.getPollingInterval() * 1000); } catch (InterruptedException e) { e.printStackTrace(); }
+      waitCount = 0;
+
       synchronized (runningSubmitterSet) {
         runningSubmitterSet.add(host);
       }
