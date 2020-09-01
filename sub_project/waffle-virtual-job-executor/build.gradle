@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     // This dependency is used by the application.
-    implementation 'com.google.guava:guava:28.2-jre'
+    compile 'org.json:json:20190722'
 }
 
 application {
