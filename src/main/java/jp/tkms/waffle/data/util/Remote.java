@@ -28,6 +28,16 @@ public class Remote {
     return content;
   }
 
+  public String getCommandResults(String command) {
+    String content = "";
+    try {
+      content =  submitter.exec("cd '" + submitter.getWorkDirectory(run) + "' && " + command);
+    } catch (Exception | Error e) {
+      WarnLogMessage.issue(run, e);
+    }
+    return content;
+  }
+
   public void pull(String path) {
     try {
       Path local = run.getWorkPath().resolve(path);

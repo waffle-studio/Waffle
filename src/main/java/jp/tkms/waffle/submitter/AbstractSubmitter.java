@@ -62,7 +62,7 @@ abstract public class AbstractSubmitter {
 
   abstract public void createDirectories(Path path) throws FailedToControlRemoteException;
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
-  abstract String exec(String command) throws FailedToControlRemoteException;
+  abstract public String exec(String command) throws FailedToControlRemoteException;
   abstract public void putText(Job job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(SimulatorRun run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;

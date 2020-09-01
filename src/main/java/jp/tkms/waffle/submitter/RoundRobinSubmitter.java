@@ -58,7 +58,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  String exec(String command) throws FailedToControlRemoteException {
+  public String exec(String command) throws FailedToControlRemoteException {
     return null;
   }
 
