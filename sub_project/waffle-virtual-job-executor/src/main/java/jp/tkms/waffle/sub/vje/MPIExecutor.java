@@ -1,6 +1,11 @@
 package jp.tkms.waffle.sub.vje;
 
+import java.io.IOException;
+
 public class MPIExecutor extends AbstractExecutor{
+  public MPIExecutor() throws IOException {
+    super();
+  }
 }
 
 /*

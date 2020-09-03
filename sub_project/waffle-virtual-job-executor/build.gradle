@@ -27,5 +27,5 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClassName = 'jp.tkms.waffle.sub.vjr.Main'
+    mainClassName = 'jp.tkms.waffle.sub.vje.Main'
 }
