@@ -25,7 +25,4 @@ dependencies {
     compile 'org.json:json:20190722'
 }
 
-application {
-    // Define the main class for the application.
-    mainClassName = 'jp.tkms.waffle.sub.vje.Main'
-}
+mainClassName = 'jp.tkms.waffle.sub.vje.Main'
