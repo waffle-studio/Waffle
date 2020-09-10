@@ -6,10 +6,12 @@ import java.nio.file.*;
 import java.util.HashSet;
 
 public abstract class AbstractExecutor {
+  protected static final String BATCH_FILE = "batch.sh";
   public static final Path JOBS_PATH = Paths.get("jobs");
 
   private WatchService fileWatchService = null;
-  private HashSet<String> runningList = new HashSet<>();
+  private HashSet<String> runningJobList = new HashSet<>();
+  private Object objectLocker = new Object();
 
   public AbstractExecutor() throws IOException {
     Files.createDirectories(JOBS_PATH);
@@ -37,11 +39,69 @@ public abstract class AbstractExecutor {
   }
 
   private void checkJobs() {
-    for (File file : JOBS_PATH.toFile().listFiles()) {
-      if (!runningList.contains(file.getName())) {
-        System.out.println(file.getName());
-        runningList.add(file.getName());
+    synchronized (objectLocker) {
+      for (String jobName : runningJobList) {
+        if (!Files.exists(JOBS_PATH.resolve(jobName))) {
+          jobRemoved(jobName);
+          runningJobList.remove(jobName);
+        }
+      }
+      for (File file : JOBS_PATH.toFile().listFiles()) {
+        if (!runningJobList.contains(file.getName())) {
+          jobAdded(file.getName());
+          runningJobList.add(file.getName());
+        }
       }
     }
+  }
+
+  protected void jobAdded(String jobName) {
+    System.out.println(jobName);
+  }
+
+  protected void jobRemoved(String jobName) {
+    System.out.println(jobName);
+  }
+
+  protected void jobFinished(String jobName) {
+    synchronized (objectLocker) {
+      runningJobList.remove(jobName);
+    }
+  }
+
+  protected Thread startJobThread(String jobName) {
+    Thread thread = new Thread() {
+      boolean isCanceled = false;
+      Process process = null;
+
+      @Override
+      public void run() {
+        if (isCanceled) {
+          return;
+        }
+
+        try {
+          process = new ProcessBuilder().directory(Paths.get("..").resolve("..").resolve(jobName).toFile())
+            .command(BATCH_FILE).start();
+          process.waitFor();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+
+        jobFinished(jobName);
+      }
+
+      @Override
+      public void interrupt() {
+        isCanceled = true;
+        if (process != null) {
+          process.destroyForcibly();
+        }
+      }
+    };
+
+    thread.start();
+
+    return thread;
   }
 }
