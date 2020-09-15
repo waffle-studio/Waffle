@@ -1,6 +1,5 @@
 package jp.tkms.waffle.submitter;
 
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.Host;
 import jp.tkms.waffle.data.Job;
@@ -8,17 +7,13 @@ import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
-import jp.tkms.waffle.data.exception.WaffleException;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
-import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.Future;
 
 public class RoundRobinSubmitter extends AbstractSubmitter {
   public static final String KEY_TARGET_HOSTS = "target_hosts";
@@ -87,7 +82,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     int num = 0;
 
     for (Host h : Host.getList()) {
-      num += h.getMaximumNumberOfJobs();
+      num += h.getMaximumNumberOfThreads();
     }
 
     return num;
@@ -95,7 +90,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
   @Override
   public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
-    int maximumOverNumberOfJobs = host.getMaximumNumberOfJobs();
+    int maximumOverNumberOfJobs = host.getMaximumNumberOfThreads();
 
     for (Job job : cancelJobList) {
       try {
@@ -112,10 +107,10 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
       for (Object object : targetHosts.toList()) {
         Host targetHost = Host.getInstance(object.toString());
         if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
-          int passabale = targetHost.getMaximumNumberOfJobs() - Job.getList(targetHost).size() + maximumOverNumberOfJobs;
+          int passabale = targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).size() + maximumOverNumberOfJobs;
           if (passabale > 0) {
             passableHostList.add(targetHost);
-            passableNumberList.add(targetHost.getMaximumNumberOfJobs() - Job.getList(targetHost).size() + maximumOverNumberOfJobs);
+            passableNumberList.add(targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).size() + maximumOverNumberOfJobs);
           }
         }
       }

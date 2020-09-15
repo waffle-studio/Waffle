@@ -34,6 +34,8 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   public static final String KEY_OUTPUT_JSON = "_output.json";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   public static final String KEY_TESTRUN = "testrun";
+  private static final String KEY_REQUIRED_THREAD = "required_thread";
+  private static final String KEY_REQUIRED_MEMORY = "required_memory";
 
   public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
@@ -47,6 +49,8 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   private String simulationCommand = null;
   private String defaultParameters = null;
   private String versionId = null;
+  private Double requiredThread = null;
+  private Double requiredMemory = null;
   private long lastGitCheckTimestamp = 0;
 
   public Simulator(Project project, String name) {
@@ -265,6 +269,34 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   public void setSimulatorCommand(String command) {
     simulationCommand = command;
     setToProperty(KEY_SIMULATION_COMMAND, simulationCommand);
+  }
+
+  public Double getRequiredThread() {
+    try {
+      if (requiredThread == null) {
+        requiredThread = getDoubleFromProperty(KEY_REQUIRED_THREAD, 1.0);
+      }
+    } catch (Exception e) {}
+    return requiredThread;
+  }
+
+  public void setRequiredThread(double num) {
+    requiredThread = num;
+    setToProperty(KEY_REQUIRED_THREAD, requiredThread);
+  }
+
+  public Double getRequiredMemory() {
+    try {
+      if (requiredMemory == null) {
+        requiredMemory = getDoubleFromProperty(KEY_REQUIRED_MEMORY, 1.0);
+      }
+    } catch (Exception e) {}
+    return requiredMemory;
+  }
+
+  public void setRequiredMemory(double num) {
+    requiredMemory = num;
+    setToProperty(KEY_REQUIRED_MEMORY, requiredMemory);
   }
 
   public JSONObject getDefaultParameters() {

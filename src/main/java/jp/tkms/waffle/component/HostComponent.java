@@ -16,7 +16,8 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_POLLING = "polling_interval";
-  private static final String KEY_MAX_JOBS = "maximum_jobs";
+  private static final String KEY_MAX_THREADS = "maximum_threads";
+  private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ENVIRONMENTS = "environments";
   private Mode mode;
@@ -98,8 +99,10 @@ public class HostComponent extends AbstractAccessControlledComponent {
                 "depends on $PATH", host.getXsubDirectory(), errors),
               Lte.formInputGroup("text", KEY_WORKBASE,
                 "Work base directory on host", "", host.getWorkBaseDirectory(), errors),
-              Lte.formInputGroup("text", KEY_MAX_JOBS,
-                "Maximum number of jobs", "", host.getMaximumNumberOfJobs().toString(), errors),
+              Lte.formInputGroup("text", KEY_MAX_THREADS,
+                "Maximum number of therads", "", host.getMaximumNumberOfThreads().toString(), errors),
+              Lte.formInputGroup("text", KEY_ALLOCABLE_MEMORY,
+                "Allocable memory size (GB)", "", host.getAllocableMemorySize().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", host.getPollingInterval().toString(), errors),
               Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", host.getEnvironments().toString(), null),
@@ -138,7 +141,8 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private void updateHost() {
     host.setXsubDirectory(request.queryParams(KEY_XSUB));
     host.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
-    host.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_MAX_JOBS)));
+    host.setMaximumNumberOfThreads(Double.parseDouble(request.queryParams(KEY_MAX_THREADS)));
+    host.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));
     host.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
     host.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
     host.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));

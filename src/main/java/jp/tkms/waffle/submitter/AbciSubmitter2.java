@@ -18,9 +18,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class AbciSubmitter2 extends SshSubmitter {
   protected static final String PACK_BATCH_FILE = "pack_batch.sh";
@@ -147,7 +144,7 @@ public class AbciSubmitter2 extends SshSubmitter {
       return;
     }
 
-    if (jobIdSet.size() < host.getMaximumNumberOfJobs() && queuedJobList.size() > 0) {
+    if (jobIdSet.size() < host.getMaximumNumberOfThreads() && queuedJobList.size() > 0) {
       if (queuedJobList.size() >= getMaximumNumberOfJobs(host) || holdingJob == queuedJobList.size()) {
         UUID packId = UUID.randomUUID();
         StringBuilder packBatchTextBuilder = new StringBuilder();

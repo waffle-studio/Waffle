@@ -118,7 +118,9 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               Html.div(null,
                 Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", simulator.getBinDirectory().toString()),
                 Lte.readonlyTextInput("Version ID", simulator.getVersionId()),
-                Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", simulator.getSimulationCommand(), errors)
+                Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", simulator.getSimulationCommand(), errors),
+                Lte.formInputGroup("text", "req_t", "Required thread", "", simulator.getRequiredThread().toString(), errors),
+                Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", simulator.getRequiredMemory().toString(), errors)
               ),
               Lte.formSubmitButton("success", "Update")
             )
@@ -343,6 +345,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   void updateSimulator() {
     simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
+    simulator.setRequiredThread(Double.parseDouble(request.queryParams("req_t")));
+    simulator.setRequiredMemory(Double.parseDouble(request.queryParams("req_m")));
     response.redirect(getUrl(simulator));
   }
 

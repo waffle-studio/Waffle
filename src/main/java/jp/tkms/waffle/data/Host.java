@@ -30,7 +30,8 @@ public class Host implements DataDirectory, PropertyFile {
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_XSUB_TEMPLATE = "xsub_template";
   private static final String KEY_POLLING = "polling_interval";
-  private static final String KEY_MAX_JOBS = "maximum_jobs";
+  private static final String KEY_MAX_THREADS = "maximum_threads";
+  private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
   private static final String KEY_SUBMITTER = "submitter";
   private static final String KEY_ENCRYPT_KEY = "encrypt_key";
   private static final String KEY_PARAMETERS = "parameters";
@@ -51,7 +52,8 @@ public class Host implements DataDirectory, PropertyFile {
   private String xsubDirectory = null;
   private SecretKeySpec encryptKey = null;
   private Integer pollingInterval = null;
-  private Integer maximumNumberOfJobs = null;
+  private Double maximumNumberOfThreads = null;
+  private Double allocableMemorySize = null;
   private JSONObject parameters = null;
   private JSONObject xsubTemplate = null;
 
@@ -67,7 +69,8 @@ public class Host implements DataDirectory, PropertyFile {
         workBaseDirectory = null;
         xsubDirectory = null;
         pollingInterval = null;
-        maximumNumberOfJobs = null;
+        maximumNumberOfThreads = null;
+        allocableMemorySize = null;
         parameters = null;
         xsubTemplate = null;
         reloadPropertyStore();
@@ -122,7 +125,8 @@ public class Host implements DataDirectory, PropertyFile {
     if (getState() == null) { setState(HostState.Unviable); }
     if (getXsubDirectory() == null) { setXsubDirectory(""); }
     if (getWorkBaseDirectory() == null) { setWorkBaseDirectory("/tmp/waffle"); }
-    if (getMaximumNumberOfJobs() == null) { setMaximumNumberOfJobs(1); }
+    if (getMaximumNumberOfThreads() == null) { setMaximumNumberOfThreads(1.0); }
+    if (getAllocableMemorySize() == null) { setAllocableMemorySize(1.0); }
     if (getPollingInterval() == null) { setPollingInterval(10); }
   }
 
@@ -310,19 +314,35 @@ public class Host implements DataDirectory, PropertyFile {
     }
   }
 
-  public Integer getMaximumNumberOfJobs() {
+  public Double getMaximumNumberOfThreads() {
     synchronized (this) {
-      if (maximumNumberOfJobs == null) {
-        maximumNumberOfJobs = getIntFromProperty(KEY_MAX_JOBS);
+      if (maximumNumberOfThreads == null) {
+        maximumNumberOfThreads = getDoubleFromProperty(KEY_MAX_THREADS);
       }
-      return maximumNumberOfJobs;
+      return maximumNumberOfThreads;
     }
   }
 
-  public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
+  public void setMaximumNumberOfThreads(Double maximumNumberOfThreads) {
     synchronized (this) {
-      setToProperty(KEY_MAX_JOBS, maximumNumberOfJobs);
-      this.maximumNumberOfJobs = maximumNumberOfJobs;
+      setToProperty(KEY_MAX_THREADS, maximumNumberOfThreads);
+      this.maximumNumberOfThreads = maximumNumberOfThreads;
+    }
+  }
+
+  public Double getAllocableMemorySize() {
+    synchronized (this) {
+      if (allocableMemorySize == null) {
+        allocableMemorySize = getDoubleFromProperty(KEY_ALLOCABLE_MEMORY);
+      }
+      return allocableMemorySize;
+    }
+  }
+
+  public void setAllocableMemorySize(Double allocableMemorySize) {
+    synchronized (this) {
+      setToProperty(KEY_ALLOCABLE_MEMORY, allocableMemorySize);
+      this.allocableMemorySize = allocableMemorySize;
     }
   }
 

@@ -189,7 +189,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     ArrayList<Job> jobList = Job.getList(host);
 
-    int maximumNumberOfJobs = host.getMaximumNumberOfJobs();
+    int maximumNumberOfJobs = host.getMaximumNumberOfThreads();
 
     ArrayList<Job> createdJobList = new ArrayList<>();
     int submittedCount = 0;
