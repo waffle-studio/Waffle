@@ -116,6 +116,42 @@ public interface PropertyFile {
     }
   }
 
+  default Long getLongFromProperty(String key, Long defaultValue) {
+    synchronized (this) {
+      Long value = getLongFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
+        if (value != null) {
+          setToProperty(key, defaultValue);
+        }
+      }
+      return value;
+    }
+  }
+
+  default Double getDoubleFromProperty(String key) {
+    synchronized (this) {
+      try {
+        return getPropertyStore().getDouble(key);
+      } catch (Exception e) {
+      }
+      return null;
+    }
+  }
+
+  default Double getDoubleFromProperty(String key, Double defaultValue) {
+    synchronized (this) {
+      Double value = getDoubleFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
+        if (value != null) {
+          setToProperty(key, defaultValue);
+        }
+      }
+      return value;
+    }
+  }
+
   default JSONObject getJSONObjectFromProperty(String key) {
     synchronized (this) {
       try {
@@ -160,6 +196,13 @@ public interface PropertyFile {
   }
 
   default void setToProperty(String key, long value) {
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
+  }
+
+  default void setToProperty(String key, double value) {
     synchronized (this) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
