@@ -78,20 +78,41 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public int getMaximumNumberOfJobs(Host host) {
-    int num = 0;
+  public double getMaximumNumberOfThreads(Host host) {
+    double num = 0.0;
 
-    for (Host h : Host.getList()) {
-      num += h.getMaximumNumberOfThreads();
+    JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
+    if (targetHosts != null) {
+      for (Object object : targetHosts.toList()) {
+        Host targetHost = Host.getInstance(object.toString());
+        if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
+          num += targetHost.getMaximumNumberOfThreads();
+        }
+      }
     }
 
-    return num;
+    return (num < host.getMaximumNumberOfThreads() ? num : host.getMaximumNumberOfThreads());
+  }
+
+  @Override
+  public double getAllocableMemorySize(Host host) {
+    double size = 0.0;
+
+    JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
+    if (targetHosts != null) {
+      for (Object object : targetHosts.toList()) {
+        Host targetHost = Host.getInstance(object.toString());
+        if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
+          size += targetHost.getAllocableMemorySize();
+        }
+      }
+    }
+
+    return (size < host.getAllocableMemorySize() ? size : host.getAllocableMemorySize());
   }
 
   @Override
   public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
-    int maximumOverNumberOfJobs = host.getMaximumNumberOfThreads();
-
     for (Job job : cancelJobList) {
       try {
         cancel(job);
@@ -100,17 +121,34 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
       }
     }
 
+    double globalFreeThread = host.getMaximumNumberOfThreads();
+    double globalFreeMemory = host.getAllocableMemorySize();
+
     LinkedList<Host> passableHostList = new LinkedList<>();
-    LinkedList<Integer> passableNumberList = new LinkedList<>();
+    LinkedList<Double> freeThreadList = new LinkedList<>();
+    LinkedList<Double> freeMemoryList = new LinkedList<>();
     JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
     if (targetHosts != null) {
       for (Object object : targetHosts.toList()) {
         Host targetHost = Host.getInstance(object.toString());
         if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
-          int passabale = targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).size() + maximumOverNumberOfJobs;
-          if (passabale > 0) {
+          double freeThread = targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).stream().mapToDouble(o->o.getRequiredThread()).sum();
+          double freeMemory = targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).stream().mapToDouble(o->o.getRequiredMemory()).sum();
+          if (freeThread > 0 && freeMemory > 0) {
             passableHostList.add(targetHost);
-            passableNumberList.add(targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).size() + maximumOverNumberOfJobs);
+            freeThreadList.add(freeThread);
+            freeMemoryList.add(freeMemory);
+          }
+
+          for (Job job : Job.getList(targetHost)) {
+            try {
+              SimulatorRun run = job.getRun();
+              if (run.getHost().equals(host)) {
+                globalFreeThread -= run.getSimulator().getRequiredThread();
+                globalFreeMemory -= run.getSimulator().getRequiredMemory();
+              }
+            } catch (RunNotFoundException e) {
+            }
           }
         }
       }

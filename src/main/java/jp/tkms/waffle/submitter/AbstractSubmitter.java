@@ -392,11 +392,28 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
+  protected boolean isSubmittable(Host host, Job next, ArrayList<Job>... lists) {
+    SimulatorRun nextRun = null;
+    try {
+      if (next != null) {
+        nextRun = next.getRun();
+      }
+    } catch (RunNotFoundException e) {
+    }
+    double thread = (nextRun == null ? 0.0: nextRun.getSimulator().getRequiredThread());
+    for (ArrayList<Job> list : lists) {
+      thread += list.stream().mapToDouble(o->o.getRequiredThread()).sum();
+    }
+    double memory = (nextRun == null ? 0.0: nextRun.getSimulator().getRequiredMemory());
+    for (ArrayList<Job> list : lists) {
+      memory += list.stream().mapToDouble(o->o.getRequiredMemory()).sum();
+    }
+    return thread <= getMaximumNumberOfThreads(host) && memory <= getAllocableMemorySize(host);
+  }
+
   public void pollingTask(Host host) throws FailedToControlRemoteException {
     pollingInterval = host.getPollingInterval();
     ArrayList<Job> jobList = Job.getList(host);
-
-    int maximumNumberOfJobs = getMaximumNumberOfJobs(host);
 
     createdJobList.clear();
     preparedJobList.clear();
@@ -408,13 +425,13 @@ abstract public class AbstractSubmitter {
       try {
         switch (job.getState(true)) {
           case Created:
-            if ((createdJobList.size() + preparedJobList.size()) < maximumNumberOfJobs) {
+            if (isSubmittable(host, null, createdJobList, preparedJobList)) {
               job.getRun(); // check exists
               createdJobList.add(job);
             }
             break;
           case Prepared:
-            if ((createdJobList.size() + preparedJobList.size()) < maximumNumberOfJobs) {
+            if (isSubmittable(host, null, createdJobList, preparedJobList)) {
               job.getRun(); // check exists
               preparedJobList.add(job);
             }
@@ -448,14 +465,18 @@ abstract public class AbstractSubmitter {
     processJobLists(host, createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
   }
 
-  public int getMaximumNumberOfJobs(Host host) {
+  public double getMaximumNumberOfThreads(Host host) {
     return host.getMaximumNumberOfThreads();
   }
 
+  public double getAllocableMemorySize(Host host) {
+    return host.getAllocableMemorySize();
+  }
+
   public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
-    int maximumNumberOfJobs = getMaximumNumberOfJobs(host);
-    int submittedCount = submittedJobList.size() + runningJobList.size();
+    //int submittedCount = submittedJobList.size() + runningJobList.size();
     submittedJobList.addAll(runningJobList);
+    ArrayList<Job> submittedJobListForAggregation = new ArrayList<>(submittedJobList);
     ArrayList<Job> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
@@ -496,11 +517,13 @@ abstract public class AbstractSubmitter {
           case Failed:
           case Excepted:
           case Canceled:
+            submittedJobListForAggregation.remove(job);
             if (! queuedJobList.isEmpty()) {
-              Job nextJob = queuedJobList.remove(0);
-              submit(nextJob);
-            } else {
-              submittedCount -= 1;
+              Job nextJob = queuedJobList.get(0);
+              if (isSubmittable(host, nextJob, submittedJobListForAggregation)) {
+                submit(nextJob);
+                queuedJobList.remove(nextJob);
+              }
             }
         }
       } catch (WaffleException e) {
@@ -516,9 +539,8 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
 
       try {
-        if (submittedCount < maximumNumberOfJobs) {
+        if (isSubmittable(host, job, submittedJobListForAggregation)) {
           submit(job);
-          submittedCount++;
         }
       } catch (WaffleException e) {
         WarnLogMessage.issue(e);

@@ -14,6 +14,8 @@ public class Job {
   private String jobId = "";
   private State state = null;
   private int errorCount = 0;
+  private Double requiredThread = null;
+  private Double requiredMemory = null;
 
   public Job() {}
 
@@ -82,6 +84,28 @@ public class Job {
     if (run != null) {
       run.setState(state);
     }
+  }
+
+  public Double getRequiredThread() {
+    if (requiredThread == null) {
+      try {
+        requiredThread = getRun().getSimulator().getRequiredThread();
+      } catch (RunNotFoundException e) {
+        return 0.0;
+      }
+    }
+    return requiredThread;
+  }
+
+  public Double getRequiredMemory() {
+    if (requiredMemory == null) {
+      try {
+        requiredMemory = getRun().getSimulator().getRequiredMemory();
+      } catch (RunNotFoundException e) {
+        return 0.0;
+      }
+    }
+    return requiredMemory;
   }
 
   public void replaceHost(Host host) throws RunNotFoundException {

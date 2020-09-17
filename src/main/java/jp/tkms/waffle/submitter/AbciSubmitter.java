@@ -2,10 +2,13 @@ package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.*;
+import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Job;
+import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
+import jp.tkms.waffle.data.exception.WaffleException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
@@ -13,142 +16,22 @@ import jp.tkms.waffle.data.util.State;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.UUID;
-import java.util.concurrent.*;
 
 public class AbciSubmitter extends SshSubmitter {
   protected static final String PACK_BATCH_FILE = "pack_batch.sh";
 
-  UUID currentPackId = null;
-  HashMap<UUID, ArrayList<Job>> queuedJobList = new HashMap<>();
-  HashMap<UUID, String> packBatchTextList = new HashMap<>();
-  HashMap<Job, UUID> jobPackMap = new HashMap<>();
-  int remainingJobSize = 0;
-
-  HashMap<UUID, PackWaitThread> packWaitThreadMap = new HashMap<>();
-
-  private static final Object objectLocker = new Object();
-
-  class PackWaitThread extends Thread {
-    private int waitTime = 0;
-    private ArrayList<Job> readyJobList = new ArrayList<>();
-    private UUID packId;
-
-    public PackWaitThread(UUID packId) {
-      super();
-      this.packId = packId;
-    }
-
-    void resetWaitTime() {
-      waitTime = 5;
-    }
-
-    void addReadyJob(Job job) {
-      readyJobList.add(job);
-    }
-
-    @Override
-    public void run() {
-      resetWaitTime();
-
-      while (readyJobList.size() < queuedJobList.get(packId).size() || waitTime >= 0) {
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-        }
-
-        synchronized (objectLocker) {
-          waitTime -= 1;
-        }
-      }
-
-      submitQueue(packId);
-    }
-  };
+  HashMap<String, String> updatedPackJson = new HashMap<>();
+  int holdingJob = 0;
 
   public AbciSubmitter(Host host) {
     super(host);
   }
 
-  private void submitQueue(UUID packId) {
-    synchronized (objectLocker) {
-      try {
-        putText(packId, PACK_BATCH_FILE, packBatchTextList.get(packId) + "EOF\n");
-        host.setParameter("resource_type_num", AbciResourceSelector.getResourceText(queuedJobList.get(packId).size()));
-        String resultJson = exec(xsubSubmitCommand(packId));
-        for (Job job : queuedJobList.get(packId)) {
-          try {
-            processXsubSubmit(job, resultJson);
-          } catch (Exception e) {
-            WarnLogMessage.issue(e);
-            job.setState(State.Excepted);
-          }
-        }
-        queuedJobList.remove(packId);
-        packBatchTextList.remove(packId);
-        packWaitThreadMap.remove(packId);
-      } catch (FailedToTransferFileException | FailedToControlRemoteException | RunNotFoundException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-  }
-
-  String xsubSubmitCommand(UUID packId) throws FailedToControlRemoteException {
-    return xsubCommand(packId) + " " + PACK_BATCH_FILE;
-  }
-
-  @Override
-  public void submit(Job job) throws RunNotFoundException {
-    UUID packId = null;
-    PackWaitThread packWaitThread = null;
-
-    synchronized (objectLocker) {
-      if (currentPackId == null || !queuedJobList.containsKey(currentPackId)
-        || queuedJobList.get(currentPackId).size() >= AbciResourceSelector.getPackSize(remainingJobSize)) {
-        packId = UUID.randomUUID();
-        currentPackId = packId;
-        queuedJobList.put(packId, new ArrayList<>());
-        packBatchTextList.put(packId,
-          "#!/bin/sh\n\n" +
-            "run() {\n" +
-            "cd $1\n" +
-            "sh batch.sh\n" +
-            "}\n" +
-            "export -f run\n" +
-            "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n"
-        );
-
-        PackWaitThread thread = new PackWaitThread(packId);
-        packWaitThreadMap.put(packId, thread);
-        thread.start();
-      }
-
-      packId = currentPackId;
-      jobPackMap.put(job, packId);
-      queuedJobList.get(packId).add(job);
-      packWaitThread = packWaitThreadMap.get(packId);
-      remainingJobSize -= 1;
-
-      packWaitThread.resetWaitTime();
-    }
-
-    job.setState(State.Prepared);
-    try {
-      prepareJob(job);
-
-      synchronized (objectLocker) {
-        packBatchTextList.put(packId, packBatchTextList.get(packId) + getRunDirectory(job.getRun()) + "\n");
-        packWaitThread.addReadyJob(job);
-      }
-    } catch (Exception e) {
-      WarnLogMessage.issue(e);
-      job.setState(State.Excepted);
-    }
-  }
-
   public void putText(UUID packId, String path, String text) throws FailedToTransferFileException {
     try {
-      session.putText(text, path, getWorkDirectory(packId).toString());
+      session.putText(text, path, getWorkDirectory(packId));
     } catch (JSchException | FailedToControlRemoteException e) {
       throw new FailedToTransferFileException(e);
     }
@@ -156,9 +39,7 @@ public class AbciSubmitter extends SshSubmitter {
 
   String getWorkDirectory(UUID packId) throws FailedToControlRemoteException {
     Path path = parseHomePath(host.getWorkBaseDirectory()).resolve(RUN_DIR).resolve("pack").resolve(packId.toString());
-
     createDirectories(path);
-
     return path.toString();
   }
 
@@ -168,140 +49,150 @@ public class AbciSubmitter extends SshSubmitter {
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
-  HashMap<UUID, String> updatedPackJson = new HashMap<>();
+  public String getResourceText(int size) {
+    if (size <= 5) {
+      return "rt_C.small=1";
+    } else if (size <= 20) {
+      return "rt_C.large=1";
+    } else {
+      return "rt_F=1";
+    }
+  }
+
   @Override
   public State update(Job job) throws RunNotFoundException {
     SimulatorRun run = job.getRun();
-    UUID packId = jobPackMap.get(job);
-    if (!updatedPackJson.containsKey(packId)) {
-      updatedPackJson.put(packId, exec(xstatCommand(job)));
+    if (!updatedPackJson.containsKey(job.getJobId())) {
+      updatedPackJson.put(job.getJobId(), exec(xstatCommand(job)));
     }
-    processXstat(job, updatedPackJson.get(packId));
+    processXstat(job, updatedPackJson.get(job.getJobId()));
     return run.getState();
   }
 
   @Override
-  public void pollingTask(Host host) {
+  public int getMaximumNumberOfThreads(Host host) {
+    return 40;
+  }
 
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) { }
-
-    ArrayList<Job> jobList = Job.getList(host);
-
-    int maximumNumberOfJobs = host.getMaximumNumberOfThreads();
-
-    ArrayList<Job> createdJobList = new ArrayList<>();
-    int submittedCount = 0;
-
+  @Override
+  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
     updatedPackJson.clear();
 
-    for (Job job : jobList) {
+    HashSet<String> cancelJobIdSet = new HashSet<>();
+    for (Job job : cancelJobList) {
+      cancelJobIdSet.add(job.getJobId());
       try {
-        switch (job.getState()) {
-          case Created:
-            if (createdJobList.size() <= maximumNumberOfJobs) {
-              job.getRun();
-              createdJobList.add(job);
-            }
-            break;
-          case Prepared:
-            submittedCount++;
-            break;
-          case Submitted:
-          case Running:
-            State state = update(job);
-            if (!(State.Finished.equals(state) || State.Failed.equals(state))) {
-              submittedCount++;
-            }
-            break;
+        job.setState(State.Canceled);
+      } catch (RunNotFoundException e) { }
+    }
+
+    submittedJobList.addAll(runningJobList);
+    HashSet<String> jobIdSet = new HashSet<>();
+    for (Job job : submittedJobList) {
+      if (Main.hibernateFlag) { break; }
+
+      try {
+        switch (update(job)) {
           case Finished:
           case Failed:
           case Excepted:
           case Canceled:
-            job.remove();
             break;
-          case Cancel:
-            cancel(job);
+          default:
+            jobIdSet.add(job.getJobId());
         }
-      } catch (RunNotFoundException e) {
+      } catch (WaffleException e) {
+        WarnLogMessage.issue(e);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
+      }
+    }
+
+    for (Job job : cancelJobList) {
+      String jobId = job.getJobId();
+      if (cancelJobIdSet.contains(jobId) && jobIdSet.contains(jobId)) {
         try {
           cancel(job);
-        } catch (RunNotFoundException ex) { }
-        job.remove();
-        WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
-      }
-
-      if (Main.hibernateFlag) {
-        break;
+        } catch (RunNotFoundException e) { }
+        cancelJobIdSet.remove(jobId);
       }
     }
 
-    remainingJobSize = createdJobList.size();
-    ExecutorService executor = Executors.newFixedThreadPool(15);
-    ArrayList<Callable<Boolean>> jobThreadList = new ArrayList<>();
+    ArrayList<Job> queuedJobList = new ArrayList<>();
+    queuedJobList.addAll(preparedJobList);
     for (Job job : createdJobList) {
-      if (submittedCount < maximumNumberOfJobs) {
-        jobThreadList.add(new Callable<Boolean>() {
-          @Override
-          public Boolean call() throws Exception {
-            submit(job);
-            return true;
-          }
-        });
-        submittedCount++;
-      }
-    }
-
-    try {
-      executor.invokeAll(jobThreadList);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    executor.shutdown();
-
-    for (PackWaitThread thread : new ArrayList<>(packWaitThreadMap.values())) {
-      if (thread != null) {
-        try {
-          thread.join();
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-    }
-  }
-
-  @Override
-  public void hibernate() {
-    super.hibernate();
-
-    for (PackWaitThread thread : packWaitThreadMap.values()) {
+      if (Main.hibernateFlag) { break; }
       try {
-        thread.join();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  public static class AbciResourceSelector {
-    public static String getResourceText(int size) {
-      if (size <= 5) {
-        return "rt_C.small=1";
-      } else if (size <= 20) {
-        return "rt_C.large=1";
-      } else {
-        return "rt_F=1";
+        if (queuedJobList.size() < getMaximumNumberOfThreads(host)) {
+          prepareJob(job);
+          queuedJobList.add(job);
+        } else {
+          break;
+        }
+      } catch (WaffleException e) {
+        WarnLogMessage.issue(e);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
       }
     }
 
-    public static int getPackSize(int jobSize) {
-      if (jobSize >= 40) {
-        return 40;
-      } else if (jobSize >= 15) {
-        return 20;
+    if (Main.hibernateFlag) {
+      return;
+    }
+
+    if (jobIdSet.size() < host.getMaximumNumberOfThreads() && queuedJobList.size() > 0) {
+      if (queuedJobList.size() >= getMaximumNumberOfThreads(host) || holdingJob == queuedJobList.size()) {
+        UUID packId = UUID.randomUUID();
+        StringBuilder packBatchTextBuilder = new StringBuilder();
+        packBatchTextBuilder.append(
+          "#!/bin/sh\n\n" +
+            "run() {\n" +
+            "cd $1\n" +
+            "sh batch.sh\n" +
+            "}\n" +
+            "export -f run\n" +
+            "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n");
+
+        for (Job job : queuedJobList) {
+          try {
+            packBatchTextBuilder.append(getRunDirectory(job.getRun()) + "\n");
+          } catch (RunNotFoundException e) {
+            WarnLogMessage.issue(e);
+            try {
+              job.setState(State.Excepted);
+            } catch (RunNotFoundException ex) { }
+          }
+        }
+
+        packBatchTextBuilder.append("EOF\n");
+
+        try {
+          putText(packId, PACK_BATCH_FILE, packBatchTextBuilder.toString());
+          host.setParameter("resource_type_num", getResourceText(queuedJobList.size()));
+          String resultJson = exec(xsubCommand(packId) + " " + PACK_BATCH_FILE);
+          for (Job job : queuedJobList) {
+            try {
+              processXsubSubmit(job, resultJson);
+            } catch (Exception e) {
+              WarnLogMessage.issue(e);
+              job.setState(State.Excepted);
+            }
+          }
+        } catch (FailedToTransferFileException | FailedToControlRemoteException | RunNotFoundException e) {
+          ErrorLogMessage.issue(e);
+        }
+
+        holdingJob = 0;
+        skepPolling();
       } else {
-        return 5;
+        if (holdingJob != queuedJobList.size()) {
+          skepPolling();
+        }
+        holdingJob = queuedJobList.size();
       }
     }
   }

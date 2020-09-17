@@ -43,7 +43,7 @@ public class Host implements DataDirectory, PropertyFile {
   private static final HashMap<String, Host> instanceMap = new HashMap<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
-    SshSubmitter.class, AbciSubmitter2.class, LocalSubmitter.class, RoundRobinSubmitter.class
+    SshSubmitter.class, AbciSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class
   ));
 
   private String name;
@@ -76,6 +76,14 @@ public class Host implements DataDirectory, PropertyFile {
         reloadPropertyStore();
       }
     });
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof Host) {
+      return getName().equals(((Host) o).getName());
+    }
+    return false;
   }
 
   public String getName() {
