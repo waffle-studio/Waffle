@@ -13,9 +13,11 @@ public abstract class AbstractExecutor {
   private HashSet<String> runningJobList = new HashSet<>();
   private Object objectLocker = new Object();
   private int waitTime = 0;
+  private int hesitationTime = 0;
 
-  public AbstractExecutor(int waitTime) throws IOException {
+  public AbstractExecutor(int waitTime, int hesitationTime) throws IOException {
     this.waitTime = waitTime;
+    this.hesitationTime = hesitationTime;
     Files.createDirectories(JOBS_PATH);
     fileWatchService = FileSystems.getDefault().newWatchService();
     JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
@@ -23,8 +25,8 @@ public abstract class AbstractExecutor {
   }
 
   public void startPolling() {
+    Thread waitTimer = null;
     try {
-      Thread waitTimer = null;
       WatchKey watchKey = null;
       while ((watchKey = fileWatchService.take()) != null) {
         if (waitTimer != null) {
@@ -46,6 +48,7 @@ public abstract class AbstractExecutor {
             public void run() {
               try {
                 sleep(waitTime);
+                shutdown();
               } catch (InterruptedException e) {
               }
             }
@@ -54,6 +57,9 @@ public abstract class AbstractExecutor {
         }
       }
     } catch (InterruptedException e) {
+      if (waitTimer != null) {
+        waitTimer.interrupt();
+      }
       return;
     }
   }
@@ -65,8 +71,9 @@ public abstract class AbstractExecutor {
       } catch (IOException e) {
         e.printStackTrace();
       }
-
     }
+
+    checkJobs();
   }
 
   private void checkJobs() {

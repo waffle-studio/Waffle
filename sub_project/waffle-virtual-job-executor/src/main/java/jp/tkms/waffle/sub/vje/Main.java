@@ -5,12 +5,13 @@ import java.io.IOException;
 public class Main {
   public static void main(String[] args) {
     boolean isLocalMode = true;
-    int shutdownTime = 0;
     int waitTime = 0;
+    int shutdownTime = 0;
+    int hesitationTime = 0;
 
-    if (args.length < 3) {
+    if (args.length < 4) {
       System.err.println("invalid arguments");
-      System.err.println("<JAVA JAR> [MODE] [WAIT] [SHUTDOWN]");
+      System.err.println("<JAVA JAR> [MODE] [WAIT] [SHUTDOWN] [HESITATION]");
       System.exit(1);
     }
 
@@ -21,6 +22,7 @@ public class Main {
     try {
       waitTime = Integer.valueOf(args[1]);
       shutdownTime = Integer.valueOf(args[2]);
+      hesitationTime = Integer.valueOf(args[3]);
     } catch (NumberFormatException e) {
       e.printStackTrace();
       System.exit(1);
@@ -29,9 +31,9 @@ public class Main {
     try {
       AbstractExecutor executor = null;
       if (isLocalMode) {
-        executor = new LocalExecutor();
+        executor = new LocalExecutor(waitTime, hesitationTime);
       } else {
-        executor = new MPIExecutor();
+        executor = new MPIExecutor(waitTime, hesitationTime);
       }
 
       final int finalShutdownTime = shutdownTime;
