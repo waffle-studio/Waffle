@@ -74,6 +74,14 @@ public abstract class AbstractExecutor {
     }
 
     checkJobs();
+
+    for (int countDown = hesitationTime; countDown >= 0 && !runningJobList.isEmpty(); countDown--) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   private void checkJobs() {
