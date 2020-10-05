@@ -16,6 +16,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_POLLING = "polling_interval";
+  private static final String KEY_MAX_NODES = "maximum_nodes";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
   private static final String KEY_PARAMETERS = "parameters";
@@ -141,6 +142,7 @@ public class HostComponent extends AbstractAccessControlledComponent {
   private void updateHost() {
     host.setXsubDirectory(request.queryParams(KEY_XSUB));
     host.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
+    host.setMaximumNumberOfNodes(Integer.parseInt(request.queryParams(KEY_MAX_NODES)));
     host.setMaximumNumberOfThreads(Double.parseDouble(request.queryParams(KEY_MAX_THREADS)));
     host.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));
     host.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));

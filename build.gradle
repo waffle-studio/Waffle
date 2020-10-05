@@ -68,6 +68,12 @@ processResources {
 		}
 		println "version -> ${buildVersion}"
 	}
+	copy {
+		from ('sub_project/waffle-virtual-job-executor/build/libs') {
+			include 'waffle-virtual-job-executor-all.jar'
+		}
+		into 'build/resources'
+	}
 }
 
 processResources.outputs.upToDateWhen { false }

@@ -4,7 +4,8 @@ import java.io.IOException;
 
 public class MPIExecutor extends AbstractExecutor{
   public MPIExecutor(int waitTime, int hesitationTime) throws IOException {
-    super(waitTime);
+    super(waitTime, hesitationTime);
+    checkJobs();
   }
 }
 

@@ -21,7 +21,6 @@ public abstract class AbstractExecutor {
     Files.createDirectories(JOBS_PATH);
     fileWatchService = FileSystems.getDefault().newWatchService();
     JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
-    checkJobs();
   }
 
   public void startPolling() {
@@ -56,7 +55,7 @@ public abstract class AbstractExecutor {
           waitTimer.start();
         }
       }
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | ClosedWatchServiceException e) {
       if (waitTimer != null) {
         waitTimer.interrupt();
       }
@@ -65,6 +64,8 @@ public abstract class AbstractExecutor {
   }
 
   public void shutdown() {
+    System.err.println("Executor will shutdown");
+
     synchronized (objectLocker) {
       try {
         fileWatchService.close();
@@ -82,11 +83,20 @@ public abstract class AbstractExecutor {
         e.printStackTrace();
       }
     }
+
+    HashSet<String> temporaryJobList = new HashSet<>(runningJobList);
+    for (String jobName : temporaryJobList) {
+      if (Files.exists(JOBS_PATH.resolve(jobName))) {
+        jobRemoved(jobName);
+        runningJobList.remove(jobName);
+      }
+    }
   }
 
-  private void checkJobs() {
+  protected void checkJobs() {
     synchronized (objectLocker) {
-      for (String jobName : runningJobList) {
+      HashSet<String> temporaryJobList = new HashSet<>(runningJobList);
+      for (String jobName : temporaryJobList) {
         if (!Files.exists(JOBS_PATH.resolve(jobName))) {
           jobRemoved(jobName);
           runningJobList.remove(jobName);
@@ -102,16 +112,20 @@ public abstract class AbstractExecutor {
   }
 
   protected void jobAdded(String jobName) {
-    System.out.println(jobName);
+    System.out.println("'" + jobName + "' was added");
   }
 
   protected void jobRemoved(String jobName) {
-    System.out.println(jobName);
+    System.out.println("'" + jobName + "' was forcibly removed");
   }
 
   protected void jobFinished(String jobName) {
     synchronized (objectLocker) {
       runningJobList.remove(jobName);
+      try {
+        Files.delete(JOBS_PATH.resolve(jobName));
+      } catch (IOException e) {
+      }
     }
   }
 
@@ -131,7 +145,7 @@ public abstract class AbstractExecutor {
             .command(BATCH_FILE).start();
           process.waitFor();
         } catch (Exception e) {
-          e.printStackTrace();
+          System.err.println("'" + jobName + "' was failed to execute.");
         }
 
         jobFinished(jobName);

@@ -9,6 +9,7 @@ public class LocalExecutor extends AbstractExecutor {
 
   public LocalExecutor(int waitTime, int hesitationTime) throws IOException {
     super(waitTime, hesitationTime);
+    checkJobs();
   }
 
   @Override
@@ -35,5 +36,11 @@ public class LocalExecutor extends AbstractExecutor {
     if (thread != null) {
       thread.interrupt();
     }
+  }
+
+  @Override
+  protected void jobFinished(String jobName) {
+    super.jobFinished(jobName);
+    threadMap.remove(jobName);
   }
 }

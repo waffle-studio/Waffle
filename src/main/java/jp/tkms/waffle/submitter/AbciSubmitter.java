@@ -70,8 +70,8 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   @Override
-  public int getMaximumNumberOfThreads(Host host) {
-    return 40;
+  public double getMaximumNumberOfThreads(Host host) {
+    return 40.0;
   }
 
   @Override
