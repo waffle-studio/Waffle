@@ -392,6 +392,10 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
+  protected boolean isSubmittable(Host host, Job job) {
+    return isSubmittable(host, job, Job.getList(host));
+  }
+
   protected boolean isSubmittable(Host host, Job next, ArrayList<Job>... lists) {
     SimulatorRun nextRun = null;
     try {
@@ -408,7 +412,8 @@ abstract public class AbstractSubmitter {
     for (ArrayList<Job> list : lists) {
       memory += list.stream().mapToDouble(o->o.getRequiredMemory()).sum();
     }
-    return thread <= getMaximumNumberOfThreads(host) && memory <= getAllocableMemorySize(host);
+
+    return (thread <= getMaximumNumberOfThreads(host) && memory <= getAllocableMemorySize(host));
   }
 
   public void pollingTask(Host host) throws FailedToControlRemoteException {

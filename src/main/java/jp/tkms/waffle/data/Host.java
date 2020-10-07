@@ -30,7 +30,6 @@ public class Host implements DataDirectory, PropertyFile {
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_XSUB_TEMPLATE = "xsub_template";
   private static final String KEY_POLLING = "polling_interval";
-  private static final String KEY_MAX_NODES = "maximum_nodes";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
   private static final String KEY_SUBMITTER = "submitter";
@@ -53,7 +52,6 @@ public class Host implements DataDirectory, PropertyFile {
   private String xsubDirectory = null;
   private SecretKeySpec encryptKey = null;
   private Integer pollingInterval = null;
-  private Integer maximumNumberOfNodes = null;
   private Double maximumNumberOfThreads = null;
   private Double allocableMemorySize = null;
   private JSONObject parameters = null;
@@ -71,7 +69,6 @@ public class Host implements DataDirectory, PropertyFile {
         workBaseDirectory = null;
         xsubDirectory = null;
         pollingInterval = null;
-        maximumNumberOfNodes = null;
         maximumNumberOfThreads = null;
         allocableMemorySize = null;
         parameters = null;
@@ -136,7 +133,6 @@ public class Host implements DataDirectory, PropertyFile {
     if (getState() == null) { setState(HostState.Unviable); }
     if (getXsubDirectory() == null) { setXsubDirectory(""); }
     if (getWorkBaseDirectory() == null) { setWorkBaseDirectory("/tmp/waffle"); }
-    if (getMaximumNumberOfNodes() == null) { setMaximumNumberOfNodes(1); }
     if (getMaximumNumberOfThreads() == null) { setMaximumNumberOfThreads(1.0); }
     if (getAllocableMemorySize() == null) { setAllocableMemorySize(1.0); }
     if (getPollingInterval() == null) { setPollingInterval(10); }
@@ -323,22 +319,6 @@ public class Host implements DataDirectory, PropertyFile {
     synchronized (this) {
       setToProperty(KEY_POLLING, pollingInterval);
       this.pollingInterval = pollingInterval;
-    }
-  }
-
-  public Integer getMaximumNumberOfNodes() {
-    synchronized (this) {
-      if (maximumNumberOfNodes == null) {
-        maximumNumberOfNodes = getIntFromProperty(KEY_MAX_NODES);
-      }
-      return maximumNumberOfNodes;
-    }
-  }
-
-  public void setMaximumNumberOfNodes(Integer maximumNumberOfNodes) {
-    synchronized (this) {
-      setToProperty(KEY_MAX_NODES, maximumNumberOfNodes);
-      this.maximumNumberOfNodes = maximumNumberOfNodes;
     }
   }
 

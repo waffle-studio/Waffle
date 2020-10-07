@@ -125,20 +125,12 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     double globalFreeMemory = host.getAllocableMemorySize();
 
     LinkedList<Host> passableHostList = new LinkedList<>();
-    LinkedList<Double> freeThreadList = new LinkedList<>();
-    LinkedList<Double> freeMemoryList = new LinkedList<>();
     JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
     if (targetHosts != null) {
       for (Object object : targetHosts.toList()) {
         Host targetHost = Host.getInstance(object.toString());
         if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
-          double freeThread = targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).stream().mapToDouble(o->o.getRequiredThread()).sum();
-          double freeMemory = targetHost.getMaximumNumberOfThreads() - Job.getList(targetHost).stream().mapToDouble(o->o.getRequiredMemory()).sum();
-          if (freeThread > 0 && freeMemory > 0) {
-            passableHostList.add(targetHost);
-            freeThreadList.add(freeThread);
-            freeMemoryList.add(freeMemory);
-          }
+          passableHostList.add(targetHost);
 
           for (Job job : Job.getList(targetHost)) {
             try {
@@ -155,28 +147,24 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     }
 
     int targetHostCursor = 0;
-    if (passableHostList.size() > 0) {
-      for (Job job : createdJobList) {
-        Host targetHost = passableHostList.get(targetHostCursor);
+    if (globalFreeThread > 0.0 && globalFreeMemory > 0.0) {
+      if (passableHostList.size() > 0) {
+        for (Job job : createdJobList) {
+          Host targetHost = passableHostList.get(targetHostCursor);
 
-        try {
-          job.replaceHost(targetHost);
-        } catch (RunNotFoundException e) {
-          WarnLogMessage.issue(e);
-          job.remove();
-        }
-
-        passableNumberList.set(targetHostCursor, passableNumberList.get(targetHostCursor) -1);
-        if (passableNumberList.get(targetHostCursor) <= 0) {
-          passableHostList.remove(targetHostCursor);
-          passableNumberList.remove(targetHostCursor);
-          if (passableHostList.size() <= 0) {
-            break;
+          if (true /* isSubmittable(targetHost, job) */) {
+            try {
+              job.replaceHost(targetHost);
+            } catch (RunNotFoundException e) {
+              WarnLogMessage.issue(e);
+              job.remove();
+            }
           }
-        }
-        targetHostCursor += 1;
-        if (targetHostCursor >= passableHostList.size()) {
-          targetHostCursor = 0;
+
+          targetHostCursor += 1;
+          if (targetHostCursor >= passableHostList.size()) {
+            targetHostCursor = 0;
+          }
         }
       }
     }
