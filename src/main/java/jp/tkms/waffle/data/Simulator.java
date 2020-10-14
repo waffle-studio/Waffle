@@ -4,7 +4,6 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
@@ -12,7 +11,6 @@ import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.jruby.RubyProcess;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -474,7 +472,7 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
     if (runNode == null) {
       runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
     }
-    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), Actor.getRootInstance(getProject()), this, host);
+    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), ActorRun.getRootInstance(getProject()), this, host);
     setToProperty(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();

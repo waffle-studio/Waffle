@@ -13,8 +13,8 @@ import java.util.HashMap;
 public class Hub {
 
   Project project;
-  Actor conductorRun;
-  Actor nextParentConductorRun;
+  ActorRun conductorRun;
+  ActorRun nextParentConductorRun;
   AbstractRun run;
   Registry registry;
   ArrayList<AbstractRun> createdRunList;
@@ -28,7 +28,7 @@ public class Hub {
   ConductorTemplate conductorTemplate = null;
   ListenerTemplate listenerTemplate = null;
 
-  public Hub(Actor conductorRun, AbstractRun run, ConductorTemplate conductorTemplate) {
+  public Hub(ActorRun conductorRun, AbstractRun run, ConductorTemplate conductorTemplate) {
     this.project = conductorRun.getProject();
     this.conductorRun = conductorRun;
     this.nextParentConductorRun = conductorRun;
@@ -45,7 +45,7 @@ public class Hub {
     }
   }
 
-  public Hub(Actor conductorRun, AbstractRun run) {
+  public Hub(ActorRun conductorRun, AbstractRun run) {
     this(conductorRun, run, null);
   }
 
@@ -53,7 +53,7 @@ public class Hub {
     return project;
   }
 
-  public Actor getConductorRun() {
+  public ActorRun getConductorRun() {
     return conductorRun;
   }
 
@@ -74,10 +74,10 @@ public class Hub {
   }
 
   public void changeParent(String name) {
-    nextParentConductorRun = Actor.find(project, name);
+    nextParentConductorRun = ActorRun.find(project, name);
   }
 
-  public Actor createActor(String name) {
+  public ActorRun createActor(String name) {
     ActorGroup actorGroup = ActorGroup.find(project, name);
     if (actorGroup == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
@@ -87,9 +87,9 @@ public class Hub {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    Actor actor = Actor.create(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
-    createdRunList.add(actor);
-    return actor;
+    ActorRun actorRun = ActorRun.create(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
+    createdRunList.add(actorRun);
+    return actorRun;
   }
 
   public SimulatorRun createSimulatorRun(String name, String hostName) {

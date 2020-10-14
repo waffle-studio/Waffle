@@ -30,7 +30,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
 
   private Project project;
   private ActorGroup actorGroup;
-  private Actor parent;
+  private ActorRun parent;
   private SimulatorRun baseRun;
   public ActorGroupComponent(Mode mode) {
     super();
@@ -57,12 +57,12 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
       + (conductor == null ? ":project/:id" : conductor.getProject().getName() + '/' + conductor.getName());
   }
 
-  public static String getUrl(ActorGroup conductor, String mode, Actor parent) {
+  public static String getUrl(ActorGroup conductor, String mode, ActorRun parent) {
     return getUrl(conductor) + '/' + mode + '/'
       + (parent == null ? ":parent" : parent.getId());
   }
 
-  public static String getUrl(ActorGroup conductor, String mode, Actor parent, SimulatorRun base) {
+  public static String getUrl(ActorGroup conductor, String mode, ActorRun parent, SimulatorRun base) {
     return getUrl(conductor) + '/' + mode
       + '/' + (parent == null ? ":parent" : parent.getId())
       + '/' + (base == null ? ":base" : base.getId());
@@ -80,7 +80,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
 
     if (mode == Mode.Prepare) {
       if (actorGroup.checkSyntax()) {
-        parent = Actor.getInstance(project, request.params("parent"));
+        parent = ActorRun.getInstance(project, request.params("parent"));
         try {
           baseRun = SimulatorRun.getInstance(project, request.params("base"));
         } catch (RunNotFoundException e) {
@@ -92,13 +92,13 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
       }
     } else if (mode == Mode.Run) {
 
-      parent = Actor.getInstance(project, request.params("parent"));
+      parent = ActorRun.getInstance(project, request.params("parent"));
       String newRunNodeName = "" + request.queryParams(KEY_NAME);
-      Actor actor = Actor.create(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, actorGroup);
+      ActorRun actorRun = ActorRun.create(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, actorGroup);
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-        actor.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
+        actorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
-      actor.start(null, true);
+      actorRun.start(null, true);
       response.redirect(ProjectComponent.getUrl(project));
 
     } else if (mode == Mode.UpdateArguments) {
@@ -203,7 +203,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
             Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + actorGroup.getName()))),
-            Html.a(getUrl(actorGroup, "prepare", Actor.getRootInstance(project)),
+            Html.a(getUrl(actorGroup, "prepare", ActorRun.getRootInstance(project)),
               Html.span("right badge badge-secondary", null, "run")
             ),
             null,

@@ -185,7 +185,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             null
           );
         } else {
-          ArrayList<Actor> notFinishedList = new ArrayList<>();
+          ArrayList<ActorRun> notFinishedList = new ArrayList<>();
           /*
           for (Actor notFinished : Actor.getNotFinishedList(project)) {
             if (!notFinished.isRoot()) {
@@ -244,7 +244,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                       new Lte.TableValue("text-align:right;",
                         Html.span(null, null,
                           Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getName()))),
-                          Html.a(ActorGroupComponent.getUrl(conductor, "prepare", Actor.getRootInstance(project)),
+                          Html.a(ActorGroupComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
                             Html.span("right badge badge-secondary", null, "run")
                           ),
                           Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + finalRunningCount + ")")

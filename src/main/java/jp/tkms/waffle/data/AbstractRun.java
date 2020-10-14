@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
@@ -31,8 +32,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   private Path path;
   private String name = null;
   private ActorGroup actorGroup = null;
-  private Actor parentActor = null;
-  private Actor responsibleActor = null;
+  private ActorRun parentActorRun = null;
+  private ActorRun responsibleActorRun = null;
   private JSONArray finalizers = null;
   private JSONArray callstack = null;
   private JSONObject parameters = null;
@@ -83,23 +84,23 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     return isStarted;
   }
 
-  public Actor getParentActor() {
-    if (parentActor == null) {
-      parentActor = Actor.getInstance(getProject(), getStringFromProperty(KEY_PARENT));
+  public ActorRun getParentActor() {
+    if (parentActorRun == null) {
+      parentActorRun = ActorRun.getInstance(getProject(), getStringFromProperty(KEY_PARENT));
     }
-    return parentActor;
+    return parentActorRun;
   }
 
-  public Actor getResponsibleActor() {
-    if (responsibleActor == null) {
-      responsibleActor = Actor.getInstance(getProject(), getStringFromProperty(KEY_RESPONSIBLE_ACTOR));
+  public ActorRun getResponsibleActor() {
+    if (responsibleActorRun == null) {
+      responsibleActorRun = ActorRun.getInstance(getProject(), getStringFromProperty(KEY_RESPONSIBLE_ACTOR));
     }
-    return responsibleActor;
+    return responsibleActorRun;
   }
 
-  protected void setResponsibleActor(Actor actor) {
-    responsibleActor = actor;
-    setToProperty(KEY_RESPONSIBLE_ACTOR, actor.getId());
+  protected void setResponsibleActor(ActorRun actorRun) {
+    responsibleActorRun = actorRun;
+    setToProperty(KEY_RESPONSIBLE_ACTOR, actorRun.getId());
   }
 
   public Registry getRegistry() {
@@ -111,7 +112,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public boolean isRoot() {
-    return Actor.ROOT_UUID.equals(getUuid());
+    return ActorRun.ROOT_UUID.equals(getUuid());
   }
 
   public RunNode getRunNode() {
@@ -119,6 +120,22 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
       runNode = RunNode.getInstance(getProject(), getStringFromProperty(KEY_RUNNODE));
     }
     return runNode;
+  }
+
+  public ArrayList<SimulatorRun> getChildSimulationRunList() {
+    ArrayList<SimulatorRun> childSimulationRunList = new ArrayList<>();
+
+    for (RunNode node : getRunNode().getList()) {
+      if (node instanceof SimulatorRunNode) {
+        try {
+          childSimulationRunList.add(SimulatorRun.getInstance(node.getProject(), node.getId()));
+        } catch (RunNotFoundException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    return childSimulationRunList;
   }
 
   protected void setRunNode(RunNode node) {
@@ -164,9 +181,9 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public void addFinalizer(String key) {
-    Actor actor = Actor.create(getRunNode(), (Actor)(this instanceof SimulatorRun ? getParentActor() : this), getActorGroup(), key);
+    ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), getActorGroup(), key);
     ArrayList<String> finalizers = getFinalizers();
-    finalizers.add(actor.getId());
+    finalizers.add(actorRun.getId());
     setFinalizers(finalizers);
   }
 
@@ -196,7 +213,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
      */
       if (getState().equals(State.Finished)) {
         for (String actorId : getFinalizers()) {
-          Actor finalizer = Actor.getInstance(getProject(), actorId);
+          ActorRun finalizer = ActorRun.getInstance(getProject(), actorId);
           finalizer.putVariablesByJson(getVariables().toString());
           finalizer.setResponsibleActor(getResponsibleActor());
           if (finalizer != null) {

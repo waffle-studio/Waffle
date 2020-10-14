@@ -1,19 +1,5 @@
 package jp.tkms.waffle.component;
 
-import jp.tkms.waffle.Main;
-import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.Lte;
-import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.Actor;
-import jp.tkms.waffle.data.Project;
-import jp.tkms.waffle.data.SimulatorRun;
-import spark.Spark;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.concurrent.Future;
-
 public class TrialsComponent extends AbstractAccessControlledComponent {
   @Override
   public void controller() {

@@ -12,12 +12,12 @@ import java.nio.file.Path;
 
 public class RubyConductor extends CycleConductor {
   @Override
-  protected void preProcess(Actor actor) {
+  protected void preProcess(ActorRun actorRun) {
     //actor.processMessage(null);
   }
 
   @Override
-  protected void eventHandler(Actor conductorRun, AbstractRun run) {
+  protected void eventHandler(ActorRun conductorRun, AbstractRun run) {
     if (run instanceof SimulatorRun) {
       if (((SimulatorRun) run).getState().equals(State.Finished)) {
         SimulatorRun simulatorRun = (SimulatorRun) run;
@@ -40,9 +40,9 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
-  protected void finalizeProcess(Actor conductorRun) {
+  protected void finalizeProcess(ActorRun conductorRun) {
     //TODO: do refactor
-    Actor parent = conductorRun.getParentActor();
+    ActorRun parent = conductorRun.getParentActor();
     if (parent == null) {
       parent = conductorRun;
     }
@@ -64,7 +64,7 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
-  protected void suspendProcess(Actor entity) {
+  protected void suspendProcess(ActorRun entity) {
 
   }
 

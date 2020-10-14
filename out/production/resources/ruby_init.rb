@@ -21,7 +21,7 @@ class ConductorArgument
     end
 end
 
-class Actor < Java::jp.tkms.waffle.data.Actor
+class Actor < Java::jp.tkms.waffle.data.ActorRun
 end
 
 class SimulatorRun < Java::jp.tkms.waffle.data.SimulatorRun
@@ -162,8 +162,8 @@ def exec_result_collect(run, remote)
 end
 
 class ActorWrapper
-    def initialize(actor)
-        @instance = actor
+    def initialize(actorRun)
+        @instance = actorRun
         @store = get_store(@instance.getRegistry, @instance.id)
         @template_argument =  get_template_argument(@instance.getRegistry, @instance.id)
     end

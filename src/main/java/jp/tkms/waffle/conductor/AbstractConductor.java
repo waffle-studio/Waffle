@@ -2,27 +2,27 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.AbstractRun;
 import jp.tkms.waffle.data.ActorGroup;
-import jp.tkms.waffle.data.Actor;
+import jp.tkms.waffle.data.ActorRun;
 import jp.tkms.waffle.data.util.State;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 abstract public class AbstractConductor {
-  abstract protected void mainProcess(Actor entity);
-  abstract protected void eventHandler(Actor entity, AbstractRun run);
-  abstract protected void finalizeProcess(Actor entity);
-  abstract protected void suspendProcess(Actor entity);
+  abstract protected void mainProcess(ActorRun entity);
+  abstract protected void eventHandler(ActorRun entity, AbstractRun run);
+  abstract protected void finalizeProcess(ActorRun entity);
+  abstract protected void suspendProcess(ActorRun entity);
   abstract public String defaultScriptName();
   abstract public void prepareConductor(ActorGroup conductor);
 
   private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
-  private static HashMap<Actor, AbstractConductor> runningInstance = new HashMap<>();
+  private static HashMap<ActorRun, AbstractConductor> runningInstance = new HashMap<>();
 
   public AbstractConductor() {
   }
 
-  public void start(Actor conductorRun, boolean async) {
+  public void start(ActorRun conductorRun, boolean async) {
     Thread thread = new Thread() {
       @Override
       public void run() {
@@ -45,7 +45,7 @@ abstract public class AbstractConductor {
     }
   }
 
-  public void eventHandle(Actor conductorRun, AbstractRun run) {
+  public void eventHandle(ActorRun conductorRun, AbstractRun run) {
     eventHandler(conductorRun, run);
     if (! conductorRun.isRunning()) {
       if (run.getState().equals(State.Finished)) {
@@ -57,11 +57,11 @@ abstract public class AbstractConductor {
     }
   }
 
-  public void hibernate(Actor entity) {
+  public void hibernate(ActorRun entity) {
     suspendProcess(entity);
   }
 
-  public static AbstractConductor getInstance(Actor entity) {
+  public static AbstractConductor getInstance(ActorRun entity) {
     if (runningInstance.containsKey(entity)) {
       return runningInstance.get(entity);
     }

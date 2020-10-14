@@ -198,7 +198,7 @@ public class SimulatorRun extends AbstractRun {
   }
    */
 
-  public static SimulatorRun create(RunNode runNode, Actor parent, Simulator simulator, Host host) {
+  public static SimulatorRun create(RunNode runNode, ActorRun parent, Simulator simulator, Host host) {
     SimulatorRun run = new SimulatorRun(parent.getProject(), runNode.getUuid(), runNode.getDirectoryPath());
 
     ActorGroup conductor = parent.getActorGroup();
