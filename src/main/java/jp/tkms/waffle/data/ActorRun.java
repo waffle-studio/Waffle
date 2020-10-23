@@ -319,6 +319,10 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       actorRun.setToProperty(KEY_ACTOR, actorName);
       actorRun.setToProperty(KEY_CALLSTACK, callstack.toString());
 
+      if (actorGroup != null) {
+        actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
+      }
+
       return getInstance(project, id.toString());
     }
   }
