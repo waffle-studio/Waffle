@@ -3,20 +3,15 @@ package jp.tkms.waffle.submitter.util;
 import com.jcraft.jsch.*;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.WarnLogMessage;
-import org.jruby.RubyProcess;
 
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Locale;
 import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public class SshSession {
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
@@ -184,9 +179,26 @@ public class SshSession {
   }
 
   public String getText(String path, String workDir) throws JSchException {
-    SshChannel channel = exec("cat " + path, workDir);
+    //SshChannel channel = exec("cat " + path, workDir);
 
-    return channel.getStdout();
+    //return channel.getStdout();
+    final String[] resultText = new String[1];
+    processSftp(channelSftp -> {
+      try {
+        channelSftp.cd(workDir);
+        InputStream inputStream = channelSftp.get(path);
+        resultText[0] = inputStream.readAllBytes().toString();
+        inputStream.close();
+      } catch (SftpException | IOException e) {
+        WarnLogMessage.issue(e);
+        return false;
+      }
+      return true;
+    });
+
+    //TODO: implement an exception handling
+
+    return resultText[0];
   }
 
   public synchronized boolean putText(String text, String path, String workDir) throws JSchException {
