@@ -185,10 +185,20 @@ public class SshSession {
     final String[] resultText = new String[1];
     processSftp(channelSftp -> {
       try {
-        channelSftp.cd(workDir);
+        if (workDir != null && !"".equals(workDir)) {
+          channelSftp.cd(workDir);
+        }
         InputStream inputStream = channelSftp.get(path);
-        resultText[0] = inputStream.readAllBytes().toString();
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuilder stringBuilder = new StringBuilder();
+
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+          stringBuilder.append(line);
+        }
         inputStream.close();
+
+        resultText[0] = stringBuilder.toString();
       } catch (SftpException | IOException e) {
         WarnLogMessage.issue(e);
         return false;
