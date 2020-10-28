@@ -196,6 +196,11 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
 
   public void addFinalizer(String key) {
     ActorRun referenceOwner = (finalizerReferenceOwner == null ? getOwner() : finalizerReferenceOwner);
+    if (this instanceof ActorRun) {
+      if (!((ActorRun)this).isActorGroupRun()) {
+        referenceOwner = getOwner();
+      }
+    }
     ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), referenceOwner, key);
     ArrayList<String> finalizers = getFinalizers();
     finalizers.add(actorRun.getId());

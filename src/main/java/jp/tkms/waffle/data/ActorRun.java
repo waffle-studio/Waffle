@@ -114,20 +114,22 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
         actorRun.setToProperty(KEY_OWNER, actorGroupRun.getId());
       }
 
+      /*
       if (actorGroup != null) {
         actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
       }
+       */
 
       return getInstance(project, id.toString());
     }
   }
 
-  public static ActorRun create(RunNode runNode, ActorRun parent, ActorRun actorGroupRun, String actorName) {
-    return create(UUID.randomUUID(), runNode, parent, actorGroupRun, actorName);
+  public static ActorRun create(RunNode runNode, ActorRun parent, ActorRun owner, String actorName) {
+    return create(UUID.randomUUID(), runNode, parent, owner, actorName);
   }
 
-  public static ActorRun create(RunNode runNode, ActorRun actorGroupRun) {
-    return create(runNode, actorGroupRun, actorGroupRun, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
+  public static ActorRun create(RunNode runNode, ActorRun owner) {
+    return create(runNode, owner, owner, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
   private static ActorRun createActorGroupRun(UUID id, RunNode runNode, ActorRun parent, ActorGroup actorGroup) {
@@ -148,9 +150,11 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       actorRun.setToProperty(KEY_STATE, State.Created.ordinal());
       actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
 
+      /*
       if (actorGroup != null) {
         actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
       }
+       */
 
       return getInstance(project, id.toString());
     }
@@ -214,7 +218,8 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
         isProcessing = true;
         //processMessage(null); //?????
         if (isActorGroupRun()) {
-          ActorRun actorRun = ActorRun.create(getRunNode().createInclusiveRunNode(getActorGroup().getName()), thisInstance);
+          ActorRun actorRun = create(getRunNode().createInclusiveRunNode(getActorGroup().getName()), thisInstance);
+          //actorRun.putVariablesByJson(getVariables().toString());
           actorRun.start();
         } else {
           if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
@@ -328,7 +333,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       setRunNode(runNode);
     }
 
-    ActorRun actorRun = ActorRun.createActorGroupRun(getRunNode().createInclusiveRunNode(""), this, actorGroup);
+    ActorRun actorRun = ActorRun.createActorGroupRun(getRunNode().createInclusiveRunNode(actorGroup.getName()), this, actorGroup);
     transactionRunList.add(actorRun);
 
     actorRun.setFinalizerReference(this);
