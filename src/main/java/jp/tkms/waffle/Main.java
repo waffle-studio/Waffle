@@ -80,6 +80,7 @@ public class Main {
       }
     });
 
+    InfoLogMessage.issue("VERSION is " + VERSION);
     InfoLogMessage.issue("PID is " + PID);
 
     try {
@@ -349,7 +350,7 @@ public class Main {
   }
 
   private static String getVersionId() {
-    String version = ResourceFile.getContents("/version.txt");
+    String version = ResourceFile.getContents("/version.txt").trim();
     if ("".equals(version)) {
       return "?";
     }

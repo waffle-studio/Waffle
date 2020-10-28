@@ -94,7 +94,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
 
       parent = ActorRun.getInstance(project, request.params("parent"));
       String newRunNodeName = "" + request.queryParams(KEY_NAME);
-      ActorRun actorRun = ActorRun.create(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, actorGroup);
+      ActorRun actorRun = ActorRun.createActorGroupRun(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, actorGroup);
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
         actorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
@@ -289,7 +289,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
         Html.div(null, "instance.loadListenerTemplate(\"&lt;NAME&gt;\")"),
         Html.div(null, "instance.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
         Html.div(null, "<b>[RUN(Simulation)]</b> = instance.createSimulatorRun(\"&lt;SIMULATOR_NAME&gt;\", \"&lt;HOST&gt;\")"),
-        Html.div(null, "<b>[RUN(Actor)]</b> = instance.createActorRun(\"&lt;ACTOR_GROUP_NAME&gt;\")"),
+        Html.div(null, "<b>[RUN(Actor)]</b> = instance.createActorGroupRun(\"&lt;ACTOR_GROUP_NAME&gt;\")"),
         Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
         Html.div(null, "instance.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
         Html.div(null, "<b>[RUN(Simulation)]</b>.p[:&lt;NAME&gt;] = &lt;VALUE&gt;"),

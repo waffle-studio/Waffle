@@ -23,6 +23,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   public static final String KEY_PARENT_RUNNODE = "parent_runnode";
   public static final String KEY_RESPONSIBLE_ACTOR = "responsible";
   public static final String KEY_CALLSTACK = "callstack";
+  public static final String KEY_OWNER = "owner";
 
   abstract public boolean isRunning();
   abstract public State getState();
@@ -40,7 +41,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   protected boolean isStarted = false;
   private RunNode runNode = null;
   private RunNode parentRunNode = null;
-  private ActorGroup finalizerReferenceActorGroup = null;
+  private ActorRun finalizerReferenceOwner = null;
+  private ActorRun owner = null;
 
   Registry registry;
 
@@ -139,6 +141,17 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     return childSimulationRunList;
   }
 
+  public ActorRun getOwner() {
+    if (owner == null) {
+      final String KEY_UNKNOWN_OWNER = "?";
+      String name = getStringFromProperty(KEY_OWNER, KEY_UNKNOWN_OWNER);
+      if (!KEY_UNKNOWN_OWNER.equals(name)) {
+        owner = ActorRun.getInstance(getProject(), name);
+      }
+    }
+    return owner;
+  }
+
   protected void setRunNode(RunNode node) {
     runNode = node;
     setToProperty(KEY_RUNNODE, node.getId());
@@ -182,15 +195,15 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public void addFinalizer(String key) {
-    ActorGroup referenceActorGroup = (finalizerReferenceActorGroup == null ? getActorGroup() : finalizerReferenceActorGroup);
-    ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), referenceActorGroup, key);
+    ActorRun referenceOwner = (finalizerReferenceOwner == null ? getOwner() : finalizerReferenceOwner);
+    ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), referenceOwner, key);
     ArrayList<String> finalizers = getFinalizers();
     finalizers.add(actorRun.getId());
     setFinalizers(finalizers);
   }
 
   protected void setFinalizerReference(ActorRun actorRun) {
-    this.finalizerReferenceActorGroup = actorRun.getActorGroup();
+    this.finalizerReferenceOwner = actorRun;
   }
 
   public void setCallstack(JSONArray callstack) {
@@ -220,7 +233,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
       if (getState().equals(State.Finished)) {
         for (String actorId : getFinalizers()) {
           ActorRun finalizer = ActorRun.getInstance(getProject(), actorId);
-          finalizer.putVariablesByJson(getVariables().toString());
+          //finalizer.putVariablesByJson(getVariables().toString());
           finalizer.setResponsibleActor(getResponsibleActor());
           if (finalizer != null) {
             finalizer.start(this);
@@ -250,10 +263,6 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     return "";
   }
 
-  protected void updateVariablesStore() {
-    setToProperty(KEY_VARIABLES, getVariables().toString());
-  }
-
   public void putVariablesByJson(String json) {
     getVariables(); // init.
     JSONObject valueMap = null;
@@ -262,14 +271,16 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     } catch (Exception e) {
       WarnLogMessage.issue(e);
     }
-    JSONObject map = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
     if (valueMap != null) {
+      if (getOwner() != null) {
+        getOwner().putVariablesByJson(json);
+      }
+
       for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
         parameters.put(key, valueMap.get(key));
       }
 
-      updateVariablesStore();
+      setToProperty(KEY_VARIABLES, parameters.toString());
     }
   }
 
@@ -280,8 +291,12 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public JSONObject getVariables() {
-    if (parameters == null) {
-      parameters = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
+    if (getOwner() != null) {
+      parameters = getOwner().getVariables();
+    } else {
+      if (parameters == null) {
+        parameters = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
+      }
     }
     return parameters;
   }

@@ -159,7 +159,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    tabTrigger: 'instance.createSimulatorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = instance.createActorRun(\"${2:actor group name}\")', \n" +
+              "                    content: '${1:run} = instance.createActorGroupRun(\"${2:actor group name}\")', \n" +
               "                    tabTrigger: 'instance.createActorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +

@@ -87,7 +87,7 @@ public class Hub {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    ActorRun actorRun = ActorRun.create(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
+    ActorRun actorRun = ActorRun.createActorGroupRun(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
     createdRunList.add(actorRun);
     return actorRun;
   }

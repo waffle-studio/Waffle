@@ -23,7 +23,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   public static final UUID ROOT_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
   //private static final Cache<String, Actor> instanceCache = new InstanceCache<Actor>(Actor.class, 500).getCacheStore();
-  private static final HashMap<String, ActorRun> instanceMap = new HashMap<>();
+  protected static final HashMap<String, ActorRun> instanceMap = new HashMap<>();
 
   private String actorName;
   private HashSet<String> activeRunSet = new HashSet<>();
@@ -39,13 +39,6 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       }
     }
   }
-
-  /*
-  public Actor(Actor actor) {
-    super(actor.getProject(), actor.getUuid(), actor.getName(), actor.getRunNode());
-    this.actorName = actor.actorName;
-  }
-   */
 
   public static ActorRun getInstance(Project project, String id) {
     synchronized (instanceMap) {
@@ -64,35 +57,6 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     }
   }
 
-  /*
-  public static Actor getInstanceByName(Project project, String name) {
-    final Actor[] conductorRun = {null};
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR).where(Sql.Value.equal(KEY_NAME, name)).executeQuery();
-        while (resultSet.next()) {
-          RunNode runNode = RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE));
-          if (runNode == null) {
-            new Sql.Delete(db, TABLE_NAME).where(Sql.Value.equal(KEY_ID, resultSet.getString(KEY_ID))).execute();
-          } else {
-            conductorRun[0] = new Actor(
-              project,
-              UUID.fromString(resultSet.getString(KEY_ID)),
-              resultSet.getString(KEY_NAME),
-              runNode,
-              resultSet.getString(KEY_ACTOR)
-            );
-          }
-        }
-      }
-    });
-
-    return conductorRun[0];
-  }
-   */
-
   public static ActorRun getRootInstance(Project project) {
     synchronized (instanceMap) {
       ActorRun actorRun = instanceMap.get(ROOT_UUID.toString());
@@ -102,168 +66,19 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       return actorRun;
     }
 
-    /*
-    final Actor[] conductorRun = {null};
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR).where(Sql.Value.and(Sql.Value.equal(KEY_NAME, ROOT_NAME), Sql.Value.equal(KEY_PARENT, ""))).executeQuery();
-        while (resultSet.next()) {
-          conductorRun[0] = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getRootInstance(project),
-            resultSet.getString(KEY_ACTOR)
-          );
-        }
-      }
-    });
-
-    return conductorRun[0];
-     */
   }
 
   public static ActorRun find(Project project, String key) {
-    //if (key.matches("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")) {
-      return getInstance(project, key);
-    //}
-    //return getInstanceByName(project, key);
+    return getInstance(project, key);
   }
 
-  /*
-  public static ArrayList<Actor> getList(Project project, Actor parent) {
-    ArrayList<Actor> list = new ArrayList<>();
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_PARENT, parent.getId()))
-          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
-        while (resultSet.next()) {
-          Actor conductorRun = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-          list.add(conductorRun);
-        }
-      }
-    });
-
-    return list;
-  }
-
-  public static ArrayList<Actor> getChildList(Project project, Actor parent) {
-    ArrayList<Actor> list = new ArrayList<>();
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, parent.getId()))
-          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
-        while (resultSet.next()) {
-          Actor conductorRun = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-          list.add(conductorRun);
-        }
-      }
-    });
-
-    return list;
-  }
-
-  public static ArrayList<Actor> getList(Project project, ActorGroup actorGroup) {
-    ArrayList<Actor> list = new ArrayList<>();
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_CONDUCTOR, actorGroup.getId()))
-          .orderBy(KEY_TIMESTAMP_CREATE, true).orderBy(KEY_ROWID, true).executeQuery();
-        while (resultSet.next()) {
-          Actor conductorRun = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-          list.add(conductorRun);
-        }
-      }
-    });
-
-    return list;
-  }
-
-  public static Actor getLastInstance(Project project, ActorGroup actorGroup) {
-    final Actor[] conductorRun = {null};
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.equal(KEY_CONDUCTOR, actorGroup.getId())).orderBy(KEY_TIMESTAMP_CREATE, true).limit(1).executeQuery();
-        while (resultSet.next()) {
-          conductorRun[0] = new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          );
-        }
-      }
-    });
-
-    return conductorRun[0];
-  }
-
-  public static ArrayList<Actor> getList(Project project, String parentId) {
-    return getList(project, getInstance(project, parentId));
-  }
-
-  public static ArrayList<Actor> getNotFinishedList(Project project) {
-    ArrayList<Actor> list = new ArrayList<>();
-
-    handleDatabase(new Actor(project), new Handler() {
-      @Override
-      void handling(Database db) throws SQLException {
-        ResultSet resultSet = new Sql.Select(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_RUNNODE, KEY_ACTOR)
-          .where(Sql.Value.lessThan(KEY_STATE, State.Finished.ordinal())).executeQuery();
-        while (resultSet.next()) {
-          list.add(new Actor(
-            project,
-            UUID.fromString(resultSet.getString(KEY_ID)),
-            resultSet.getString(KEY_NAME),
-            RunNode.getInstance(project, resultSet.getString(KEY_RUNNODE)),
-            resultSet.getString(KEY_ACTOR)
-          ));
-        }
-      }
-    });
-
-    System.out.println(list.size());
-
-    return list;
-  }
-
-   */
-  private static ActorRun create(UUID id, RunNode runNode, ActorRun parent, ActorGroup actorGroup, String actorName) {
+  private static ActorRun create(UUID id, RunNode runNode, ActorRun parent, ActorRun actorGroupRun, String actorName) {
     synchronized (instanceMap) {
       Project project = runNode.getProject();
+      ActorGroup actorGroup = null;
+      if (actorGroupRun != null) {
+        actorGroup = actorGroupRun.getActorGroup();
+      }
       String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
       String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
         + " : " + LocalDateTime.now().toString();
@@ -280,30 +95,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
           runNode = parentActorRun.getRunNode();
         }
       }
-    /*
 
-    if (callstack.toList().contains(callname)) {
-      Actor parentActor = parent;
-      while (parentActor != null) {
-        List list = parentActor.getCallstack().toList();
-        int index = list.indexOf(callname);
-
-        if (index < 0 || index >= (list.size() -1)) {
-          break;
-        }
-
-        parentActor = parentActor.getParentActor();
-      }
-      if (parentActor != null) {
-        JSONArray modifiedCallstack = parentActor.getCallstack();
-        if (!modifiedCallstack.toList().isEmpty() && modifiedCallstack.get(modifiedCallstack.length() -1).equals(callname)) {
-          modifiedCallstack.remove(modifiedCallstack.length() -1);
-        }
-        callstack = parentActor.getCallstack();
-        runNode = parentActor.getRunNode();
-      }
-    }
-     */
       callstack.put(callname);
 
       ActorRun actorRun = new ActorRun(project, id);
@@ -318,6 +110,9 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
       actorRun.setToProperty(KEY_ACTOR, actorName);
       actorRun.setToProperty(KEY_CALLSTACK, callstack.toString());
+      if (actorGroupRun != null) {
+        actorRun.setToProperty(KEY_OWNER, actorGroupRun.getId());
+      }
 
       if (actorGroup != null) {
         actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
@@ -327,24 +122,43 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     }
   }
 
-  public static ActorRun create(RunNode runNode, ActorRun parent, ActorGroup actorGroup, String actorName) {
-    return create(UUID.randomUUID(), runNode, parent, actorGroup, actorName);
+  public static ActorRun create(RunNode runNode, ActorRun parent, ActorRun actorGroupRun, String actorName) {
+    return create(UUID.randomUUID(), runNode, parent, actorGroupRun, actorName);
   }
 
-  public static ActorRun create(RunNode runNode, ActorRun parent, ActorGroup actorGroup) {
-    return create(runNode, parent, actorGroup, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
+  public static ActorRun create(RunNode runNode, ActorRun actorGroupRun) {
+    return create(runNode, actorGroupRun, actorGroupRun, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
-  /*
-  public ArrayList<Actor> getChildActorRunList() {
-    //return getChildList(getProject(), this);
-    return new ArrayList<>();
+  private static ActorRun createActorGroupRun(UUID id, RunNode runNode, ActorRun parent, ActorGroup actorGroup) {
+    synchronized (instanceMap) {
+      Project project = runNode.getProject();
+      String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
+      String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
+        + " : " + LocalDateTime.now().toString();
+
+      ActorRun actorRun = new ActorRun(project, id);
+
+      if (parent != null) {
+        actorRun.setToProperty(KEY_PARENT, parent.getId());
+        actorRun.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
+        actorRun.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+      }
+      actorRun.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
+      actorRun.setToProperty(KEY_STATE, State.Created.ordinal());
+      actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
+
+      if (actorGroup != null) {
+        actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
+      }
+
+      return getInstance(project, id.toString());
+    }
   }
 
-  public boolean hasRunningChildRun() {
-    return !activeRunSet.isEmpty(); //SimulatorRun.getNumberOfRunning(getProject(), this) > 0;
+  public static ActorRun createActorGroupRun(RunNode runNode, ActorRun parent, ActorGroup actorGroup) {
+    return createActorGroupRun(UUID.randomUUID(), runNode, parent, actorGroup);
   }
-   */
 
   public State getState() {
     return State.valueOf(getIntFromProperty(KEY_STATE, 0));
@@ -361,21 +175,12 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     return actorName;
   }
 
+  public boolean isActorGroupRun() {
+    return getOwner() == null;
+  }
+
   @Override
   public boolean isRunning() {
-    /*
-    if (hasRunningChildSimulationRun()) {
-      return true;
-    }
-
-    for (Actor conductorRun : getChildActorRunList()) {
-      if (conductorRun.isRunning()) {
-        return true;
-      }
-    }
-
-    return false;
-     */
     synchronized (activeRunSet) {
       return !activeRunSet.isEmpty();
     }
@@ -394,24 +199,12 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
 
     super.start();
 
-    /*
-    StackTraceElement[] ste = new Throwable().getStackTrace();
-    System.out.println("vvvvvvvvvvvvvvvv");
-    for (int i = 0; i < ste.length; i++) {
-      System.out.println(ste[i].getFileName() + " : " + ste[i].getLineNumber()); // ファイル名を取得
-    }
-    System.out.println("^^^^^^^^^^^^^^^^");
-
-     */
-
     isStarted = true;
     setState(State.Running);
     if (!isRoot()) {
       getResponsibleActor().setState(State.Running);
       getResponsibleActor().registerActiveRun(this);
     }
-    //AbstractConductor abstractConductor = AbstractConductor.getInstance(this);
-    //abstractConductor.start(this, async);
 
     ActorRun thisInstance = this;
     Thread thread = new Thread() {
@@ -420,18 +213,23 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
         super.run();
         isProcessing = true;
         //processMessage(null); //?????
-        if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
-          RubyScript.process((container) -> {
-            try {
-              container.runScriptlet(RubyConductor.getConductorTemplateScript());
-              container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
-              thisInstance.setFinalizerReference(thisInstance);
-              container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", thisInstance, caller);
-            } catch (Exception e) {
-              WarnLogMessage.issue(e);
-              getRunNode().appendErrorNote(e.getMessage());
-            }
-          });
+        if (isActorGroupRun()) {
+          ActorRun actorRun = ActorRun.create(getRunNode().createInclusiveRunNode(getActorGroup().getName()), thisInstance);
+          actorRun.start();
+        } else {
+          if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
+            RubyScript.process((container) -> {
+              try {
+                container.runScriptlet(RubyConductor.getConductorTemplateScript());
+                container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
+                thisInstance.setFinalizerReference(thisInstance);
+                container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", thisInstance, caller);
+              } catch (Exception e) {
+                WarnLogMessage.issue(e);
+                getRunNode().appendErrorNote(e.getMessage());
+              }
+            });
+          }
         }
         isProcessing = false;
 
@@ -452,73 +250,6 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     }
   }
 
-  /*
-  public void update() {
-    if (!isRoot()) {
-      //eventHandler(conductorRun, run);
-      if (! isRunning()) {
-        //if (! run.getState().equals(State.Finished)) { // TOD: check!!!
-        //  setState(State.Failed);
-        //}
-
-        if (! getState().equals(State.Finished)) {
-          setState(State.Finished);
-          finish();
-        }
-      }
-
-      //TODO: do refactor
-      //if (getActorGroup() != null) {
-      //  int runningCount = 0;
-      //  for (Actor notFinished : Actor.getNotFinishedList(getProject()) ) {
-      //    if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getName().equals(getActorGroup().getName())) {
-      //      runningCount += 1;
-      //    }
-      //  }
-      //  BrowserMessage.addMessage("updateConductorJobNum('" + getActorGroup().getName() + "'," + runningCount + ")");
-      //}
-
-    }
-  }
-
-  @Override
-  protected Updater getDatabaseUpdater() {
-    return new Updater() {
-      @Override
-      String tableName() {
-        return TABLE_NAME;
-      }
-
-      @Override
-      ArrayList<UpdateTask> updateTasks() {
-        return new ArrayList<UpdateTask>(Arrays.asList(
-          new UpdateTask() {
-            @Override
-            void task(Database db) throws SQLException {
-              new Sql.Create(db, TABLE_NAME, KEY_ID, KEY_NAME, KEY_PARENT, KEY_RESPONSIBLE_ACTOR, KEY_CONDUCTOR,
-                Sql.Create.withDefault(KEY_VARIABLES, "'{}'"),
-                Sql.Create.withDefault(KEY_FINALIZER, "'[]'"),
-                Sql.Create.withDefault(KEY_CALLSTACK, "'[]'"),
-                KEY_STATE,
-                KEY_RUNNODE,
-                KEY_ACTOR,
-                Sql.Create.timestamp(KEY_TIMESTAMP_CREATE),
-                KEY_PARENT_RUNNODE).execute();
-              new Sql.Insert(db, TABLE_NAME,
-                Sql.Value.equal(KEY_ID, UUID.randomUUID().toString()),
-                Sql.Value.equal(KEY_NAME, ROOT_NAME),
-                Sql.Value.equal(KEY_PARENT, ""),
-                Sql.Value.equal(KEY_RESPONSIBLE_ACTOR, ""),
-                Sql.Value.equal(KEY_RUNNODE, RunNode.getRootInstance(getProject()).getId())// for compatibility
-              ).execute();
-            }
-          }
-        ));
-      }
-    };
-  }
-
-   */
 
 
   @Override
@@ -574,44 +305,11 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     }
   }
 
-  /*
-  public void processMessage(AbstractRun caller) {
-    if (!isRoot() && getActorScriptPath() != null && Files.exists(getActorScriptPath())) {
-      if ("#".equals(getActorName())) {
-        try {
-          createSimulatorRun("sleep", "LOCAL").start();
-        }catch (Throwable e) {
-          System.out.println("VVVVVVVVVVVVVVVVVVVV");
-          e.printStackTrace();
-          System.out.println("^^^^^^^^^^^^^^^^^^^");
-        }
-      }else {
-        RubyScript.process((container) -> {
-          try {
-            container.runScriptlet(RubyConductor.getConductorTemplateScript());
-            container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
-            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", this, caller);
-          } catch (Exception e) {
-            WarnLogMessage.issue(e);
-            getRunNode().appendErrorNote(e.getMessage());
-          }
-        });
-      }
-    }
-
-    if (activeRunSet.size() <= 0) {
-      setState(State.Finished);
-      finish();
-    }
-  }
-
-   */
-
   private ConductorTemplate conductorTemplate = null;
   private ListenerTemplate listenerTemplate = null;
   private ArrayList<AbstractRun> transactionRunList = new ArrayList<>();
 
-  public ActorRun createActorRun(String name) {
+  public ActorRun createActorGroupRun(String name) {
     ActorGroup actorGroup = ActorGroup.find(getProject(), name);
     if (actorGroup == null) {
       throw new RuntimeException("ActorGroup\"(" + name + "\") is not found");
@@ -630,7 +328,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       setRunNode(runNode);
     }
 
-    ActorRun actorRun = ActorRun.create(getRunNode().createInclusiveRunNode(""), this, actorGroup);
+    ActorRun actorRun = ActorRun.createActorGroupRun(getRunNode().createInclusiveRunNode(""), this, actorGroup);
     transactionRunList.add(actorRun);
 
     actorRun.setFinalizerReference(this);
@@ -710,13 +408,6 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
 
     transactionRunList.clear();;
   }
-
-  /*
-  @Override
-  public Path getDirectoryPath() {
-    return InternalHashedData.getHashedDirectoryPath(getProject(), getInternalDataGroup(), getUuid());
-  }
-   */
 
   @Override
   public String getInternalDataGroup() {

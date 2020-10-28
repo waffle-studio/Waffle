@@ -181,8 +181,8 @@ class ActorWrapper
         @instance.id
     end
 
-    def createActorRun(name)
-        @instance.createActorRun(name)
+    def createActorGroupRun(name)
+        @instance.createActorGroupRun(name)
     end
 
     def createSimulatorRun(name, hostName)
