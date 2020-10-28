@@ -40,6 +40,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   protected boolean isStarted = false;
   private RunNode runNode = null;
   private RunNode parentRunNode = null;
+  private ActorGroup finalizerReferenceActorGroup = null;
 
   Registry registry;
 
@@ -181,10 +182,15 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public void addFinalizer(String key) {
-    ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), getActorGroup(), key);
+    ActorGroup referenceActorGroup = (finalizerReferenceActorGroup == null ? getActorGroup() : finalizerReferenceActorGroup);
+    ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), referenceActorGroup, key);
     ArrayList<String> finalizers = getFinalizers();
     finalizers.add(actorRun.getId());
     setFinalizers(finalizers);
+  }
+
+  protected void setFinalizerReference(ActorRun actorRun) {
+    this.finalizerReferenceActorGroup = actorRun.getActorGroup();
   }
 
   public void setCallstack(JSONArray callstack) {

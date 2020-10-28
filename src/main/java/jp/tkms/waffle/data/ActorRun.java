@@ -425,6 +425,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
             try {
               container.runScriptlet(RubyConductor.getConductorTemplateScript());
               container.runScriptlet(PathType.ABSOLUTE, getActorScriptPath().toAbsolutePath().toString());
+              thisInstance.setFinalizerReference(thisInstance);
               container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_actor_script", thisInstance, caller);
             } catch (Exception e) {
               WarnLogMessage.issue(e);
@@ -631,6 +632,9 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
 
     ActorRun actorRun = ActorRun.create(getRunNode().createInclusiveRunNode(""), this, actorGroup);
     transactionRunList.add(actorRun);
+
+    actorRun.setFinalizerReference(this);
+
     return actorRun;
   }
 

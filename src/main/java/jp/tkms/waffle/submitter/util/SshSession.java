@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class SshSession {
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
@@ -189,16 +190,8 @@ public class SshSession {
           channelSftp.cd(workDir);
         }
         InputStream inputStream = channelSftp.get(path);
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-        StringBuilder stringBuilder = new StringBuilder();
-
-        String line;
-        while ((line = bufferedReader.readLine()) != null) {
-          stringBuilder.append(line);
-        }
+        resultText[0] = new BufferedReader(new InputStreamReader(inputStream)).lines().collect(Collectors.joining("\n"));
         inputStream.close();
-
-        resultText[0] = stringBuilder.toString();
       } catch (SftpException | IOException e) {
         WarnLogMessage.issue(e);
         return false;
