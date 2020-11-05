@@ -229,6 +229,7 @@ public class SimulatorRun extends AbstractRun {
     run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
     run.setToProperty(KEY_RUNNODE, runNode.getId());
     run.setToProperty(KEY_CALLSTACK, callstack.toString());
+    run.setToProperty(KEY_OWNER, parent.getOwner().getId());
 
     run.setExitStatus(-1);
     run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());

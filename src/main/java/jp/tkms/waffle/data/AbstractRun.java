@@ -143,11 +143,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
 
   public ActorRun getOwner() {
     if (owner == null) {
-      final String KEY_UNKNOWN_OWNER = "?";
-      String name = getStringFromProperty(KEY_OWNER, KEY_UNKNOWN_OWNER);
-      if (!KEY_UNKNOWN_OWNER.equals(name)) {
-        owner = ActorRun.getInstance(getProject(), name);
-      }
+      owner = ActorRun.getInstance(getProject(), getStringFromProperty(KEY_OWNER));
     }
     return owner;
   }
@@ -195,13 +191,15 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public void addFinalizer(String key) {
-    ActorRun referenceOwner = (finalizerReferenceOwner == null ? getOwner() : finalizerReferenceOwner);
+    ActorRun referenceOwner = getOwner();
     if (this instanceof ActorRun) {
-      if (!((ActorRun)this).isActorGroupRun()) {
-        referenceOwner = getOwner();
+      if (((ActorRun)this).isActorGroupRun()) {
+        referenceOwner = (finalizerReferenceOwner == null ? getOwner() : finalizerReferenceOwner);
       }
     }
-    ActorRun actorRun = ActorRun.create(getRunNode(), (ActorRun)(this instanceof SimulatorRun ? getParentActor() : this), referenceOwner, key);
+    ActorRun actorRun = ActorRun.create(getRunNode(),
+      (ActorRun)(this instanceof SimulatorRun || (this instanceof ActorRun && ((ActorRun)this).isActorGroupRun())
+        ? getParentActor() : this), referenceOwner, key);
     ArrayList<String> finalizers = getFinalizers();
     finalizers.add(actorRun.getId());
     setFinalizers(finalizers);
@@ -240,6 +238,15 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
           ActorRun finalizer = ActorRun.getInstance(getProject(), actorId);
           //finalizer.putVariablesByJson(getVariables().toString());
           finalizer.setResponsibleActor(getResponsibleActor());
+          /*
+          ActorRun responsibleActor = getResponsibleActor();
+          if (this instanceof SimulatorRun || (this instanceof ActorRun && ((ActorRun)this).isActorGroupRun())) {
+            if (getResponsibleActor().getRunNode() instanceof InclusiveRunNode && getResponsibleActor().getParentActor() != null) {
+              finalizer.setResponsibleActor(getResponsibleActor().getParentActor());
+            }
+          }
+          finalizer.setResponsibleActor(responsibleActor);
+           */
           if (finalizer != null) {
             finalizer.start(this);
           } else {
@@ -277,7 +284,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
       WarnLogMessage.issue(e);
     }
     if (valueMap != null) {
-      if (getOwner() != null) {
+      if (!getOwner().getId().equals(getId())) {
         getOwner().putVariablesByJson(json);
       }
 
@@ -296,12 +303,12 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   }
 
   public JSONObject getVariables() {
-    if (getOwner() != null) {
-      parameters = getOwner().getVariables();
-    } else {
+    if (getOwner().getId().equals(getId())) {
       if (parameters == null) {
         parameters = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
       }
+    } else {
+      parameters = getOwner().getVariables();
     }
     return parameters;
   }

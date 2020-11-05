@@ -110,9 +110,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
       actorRun.setToProperty(KEY_ACTOR, actorName);
       actorRun.setToProperty(KEY_CALLSTACK, callstack.toString());
-      if (actorGroupRun != null) {
-        actorRun.setToProperty(KEY_OWNER, actorGroupRun.getId());
-      }
+      actorRun.setToProperty(KEY_OWNER, (actorGroupRun == null ? actorRun.getId() : actorGroupRun.getId()));
 
       /*
       if (actorGroup != null) {
@@ -149,12 +147,11 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       actorRun.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
       actorRun.setToProperty(KEY_STATE, State.Created.ordinal());
       actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
+      actorRun.setToProperty(KEY_OWNER, actorRun.getId());
 
-      /*
       if (actorGroup != null) {
         actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
       }
-       */
 
       return getInstance(project, id.toString());
     }
@@ -180,7 +177,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   }
 
   public boolean isActorGroupRun() {
-    return getOwner() == null;
+    return getOwner().getId().equals(getId());
   }
 
   @Override
@@ -218,7 +215,8 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
         isProcessing = true;
         //processMessage(null); //?????
         if (isActorGroupRun()) {
-          ActorRun actorRun = create(getRunNode().createInclusiveRunNode(getActorGroup().getName()), thisInstance);
+          //ActorRun actorRun = create(getRunNode().createInclusiveRunNode(getActorGroup().getName()), thisInstance);
+          ActorRun actorRun = create(getRunNode(), thisInstance);
           //actorRun.putVariablesByJson(getVariables().toString());
           actorRun.start();
         } else {
