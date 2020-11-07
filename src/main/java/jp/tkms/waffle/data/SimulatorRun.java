@@ -52,7 +52,7 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray localSharedList;
 
   private static final ConcurrentHashMap<String, SimulatorRun> instanceMap = new ConcurrentHashMap<>();
-  private static final Cache<String, SimulatorRun> instanceCache = new InstanceCache<SimulatorRun>(SimulatorRun.class, 500).getCacheStore();
+  //private static final Cache<String, SimulatorRun> instanceCache = new InstanceCache<SimulatorRun>(SimulatorRun.class, 500).getCacheStore();
 
   /*
   private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
@@ -70,7 +70,7 @@ public class SimulatorRun extends AbstractRun {
 
   private SimulatorRun(Project project, UUID id, Path path) {
     super(project, id, path);
-    instanceCache.put(getId(), this);
+    //instanceCache.put(getId(), this);
   }
 
 /*
@@ -89,10 +89,12 @@ public class SimulatorRun extends AbstractRun {
         return run;
       }
 
+      /*
       run = instanceCache.get(id);
       if (run != null)  {
         return run;
       }
+       */
 
       RunNode runNode = RunNode.getInstance(project, id);
 
