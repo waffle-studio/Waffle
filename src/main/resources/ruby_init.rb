@@ -30,6 +30,10 @@ end
 class Registry < Java::jp.tkms.waffle.data.Registry
 end
 
+def self.system_restart()
+    Java::jp.tkms.waffle.Main.restart()
+end
+
 def self.alert(text)
     puts "alert: " + text.to_s
     Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")

@@ -45,8 +45,8 @@ public class SimulatorRun extends AbstractRun {
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
-  private JSONObject parameters = null;
-  private JSONObject results = null;
+  //private JSONObject parameters = null;
+  //private JSONObject results = null;
   private JSONObject environments;
   private JSONArray arguments;
   private JSONArray localSharedList;
@@ -219,6 +219,8 @@ public class SimulatorRun extends AbstractRun {
     }
      */
 
+    run.setToProperty(KEY_RUNNODE, runNode.getId());
+    run.setToProperty(KEY_OWNER, parent.getOwner().getId());
     run.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
     run.setToProperty(KEY_PARENT, parent.getId());
     run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
@@ -226,10 +228,9 @@ public class SimulatorRun extends AbstractRun {
     run.setToProperty(KEY_HOST, hostName);
     run.setToProperty(KEY_ACTUAL_HOST, hostName);
     run.setToProperty(KEY_STATE, run.getState().ordinal());
-    run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
-    run.setToProperty(KEY_RUNNODE, runNode.getId());
+    //run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+    run.putVariablesByJson(parent.getVariables().toString());
     run.setToProperty(KEY_CALLSTACK, callstack.toString());
-    run.setToProperty(KEY_OWNER, parent.getOwner().getId());
 
     run.setExitStatus(-1);
     run.setToProperty(KEY_CREATED_AT, ZonedDateTime.now().toEpochSecond());
@@ -241,8 +242,7 @@ public class SimulatorRun extends AbstractRun {
     try {
       Files.createDirectories(run.getWorkPath());
     } catch (Exception e) {}
-    run.parameters = new JSONObject(simulator.getDefaultParameters().toString());
-    run.updateParametersStore();
+    run.putParametersByJson(simulator.getDefaultParameters().toString());
 
     return run;
   }
@@ -394,7 +394,8 @@ public class SimulatorRun extends AbstractRun {
     return environments;
   }
 
-  protected void updateParametersStore() {
+  protected void updateParametersStore(JSONObject parameters) {
+  //protected void updateParametersStore() {
     if (! Files.exists(getDirectoryPath())) {
       try {
         Files.createDirectories(getDirectoryPath());
@@ -444,10 +445,10 @@ public class SimulatorRun extends AbstractRun {
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
-        parameters.put(key, valueMap.get(key));
+        //parameters.put(key, valueMap.get(key));
       }
 
-      updateParametersStore();
+      updateParametersStore(map);
     }
   }
 
@@ -458,9 +459,9 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public JSONObject getParameters() {
-    if (parameters == null) {
-      parameters = new JSONObject(getFromParametersStore());
-    }
+    //if (parameters == null) {
+      JSONObject parameters = new JSONObject(getFromParametersStore());
+    //}
     return parameters;
   }
 
@@ -468,7 +469,8 @@ public class SimulatorRun extends AbstractRun {
     return getParameters().get(key);
   }
 
-  protected void updateResultsStore() {
+  protected void updateResultsStore(JSONObject results) {
+    //protected void updateResultsStore() {
     if (! Files.exists(getDirectoryPath())) {
       try {
         Files.createDirectories(getDirectoryPath());
@@ -518,10 +520,10 @@ public class SimulatorRun extends AbstractRun {
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
-        results.put(key, valueMap.get(key));
+        //results.put(key, valueMap.get(key));
       }
 
-      updateResultsStore();
+      updateResultsStore(map);
     }
   }
 
@@ -532,9 +534,9 @@ public class SimulatorRun extends AbstractRun {
   }
 
   public JSONObject getResults() {
-    if (results == null) {
-      results = new JSONObject(getFromResultsStore());
-    }
+    //if (results == null) {
+      JSONObject results = new JSONObject(getFromResultsStore());
+    //}
     //return results;
     return new JSONObject(getFromResultsStore());
   }

@@ -44,9 +44,9 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     synchronized (instanceMap) {
       ActorRun actorRun = null;
 
-      if (!ROOT_UUID.toString().equals(id)) {
+      //if (!ROOT_UUID.toString().equals(id)) {
         getRootInstance(project);
-      }
+      //}
 
       actorRun = instanceMap.get(id);
       if (actorRun == null) {
@@ -100,17 +100,18 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
 
       ActorRun actorRun = new ActorRun(project, id);
 
+      actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
+      actorRun.setToProperty(KEY_OWNER, (actorGroupRun == null ? actorRun.getId() : actorGroupRun.getId()));
       if (parent != null) {
         actorRun.setToProperty(KEY_PARENT, parent.getId());
         actorRun.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
-        actorRun.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+        //actorRun.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+        actorRun.putVariablesByJson(parent.getVariables().toString());
       }
       actorRun.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
       actorRun.setToProperty(KEY_STATE, State.Created.ordinal());
-      actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
       actorRun.setToProperty(KEY_ACTOR, actorName);
       actorRun.setToProperty(KEY_CALLSTACK, callstack.toString());
-      actorRun.setToProperty(KEY_OWNER, (actorGroupRun == null ? actorRun.getId() : actorGroupRun.getId()));
 
       /*
       if (actorGroup != null) {
@@ -139,15 +140,16 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
 
       ActorRun actorRun = new ActorRun(project, id);
 
+      actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
+      actorRun.setToProperty(KEY_OWNER, actorRun.getId());
       if (parent != null) {
         actorRun.setToProperty(KEY_PARENT, parent.getId());
         actorRun.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
-        actorRun.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+        //actorRun.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
+        actorRun.putVariablesByJson(parent.getVariables().toString());
       }
       actorRun.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
       actorRun.setToProperty(KEY_STATE, State.Created.ordinal());
-      actorRun.setToProperty(KEY_RUNNODE, runNode.getId());
-      actorRun.setToProperty(KEY_OWNER, actorRun.getId());
 
       if (actorGroup != null) {
         actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
@@ -409,7 +411,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       }
     }
 
-    transactionRunList.clear();;
+    transactionRunList.clear();
   }
 
   @Override
@@ -419,6 +421,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(KEY_ACTOR + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(KEY_ACTOR + "_" + getId() + Constants.EXT_JSON);
+    //return getDataDirectory(getUuid()).resolve(KEY_ACTOR + Constants.EXT_JSON);
   }
 }

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -7,6 +8,9 @@ import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +41,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   private ActorRun responsibleActorRun = null;
   private JSONArray finalizers = null;
   private JSONArray callstack = null;
-  private JSONObject parameters = null;
+  //private JSONObject variables = null;
   protected boolean isStarted = false;
   private RunNode runNode = null;
   private RunNode parentRunNode = null;
@@ -275,6 +279,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     return "";
   }
 
+  /*
   public void putVariablesByJson(String json) {
     getVariables(); // init.
     JSONObject valueMap = null;
@@ -289,10 +294,10 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
       }
 
       for (String key : valueMap.keySet()) {
-        parameters.put(key, valueMap.get(key));
+        variables.put(key, valueMap.get(key));
       }
 
-      setToProperty(KEY_VARIABLES, parameters.toString());
+      setToProperty(KEY_VARIABLES, variables.toString());
     }
   }
 
@@ -304,19 +309,107 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
 
   public JSONObject getVariables() {
     if (getOwner().getId().equals(getId())) {
-      if (parameters == null) {
-        parameters = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
+      if (variables == null) {
+        variables = new JSONObject(getStringFromProperty(KEY_VARIABLES, "{}"));
       }
     } else {
-      parameters = getOwner().getVariables();
+      variables = getOwner().getVariables();
     }
-    return parameters;
+    return variables;
   }
 
   public Object getVariable(String key) {
     return getVariables().get(key);
   }
+  */
 
+  protected void updateVariablesStore(JSONObject variables) {
+    //protected void updateParametersStore() {
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (variables == null) {
+      variables = new JSONObject();
+    }
+
+    Path storePath = getDirectoryPath().resolve(KEY_VARIABLES + Constants.EXT_JSON);
+    if (this instanceof ActorRun) {
+      storePath = ((ActorRun)this).getDataDirectory(getUuid()).resolve(KEY_VARIABLES + Constants.EXT_JSON);
+    }
+
+    try {
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(variables.toString(2));
+      filewriter.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String getFromVariablesStore() {
+    Path storePath = getDirectoryPath().resolve(KEY_VARIABLES + Constants.EXT_JSON);
+    if (this instanceof ActorRun) {
+      storePath = ((ActorRun)this).getDataDirectory(getUuid()).resolve(KEY_VARIABLES + Constants.EXT_JSON);
+    }
+    String json = "{}";
+    if (Files.exists(storePath)) {
+      try {
+        json = new String(Files.readAllBytes(storePath));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return json;
+  }
+
+  public void putVariablesByJson(String json) {
+    getVariables(); // init.
+    JSONObject valueMap = null;
+    try {
+      valueMap = new JSONObject(json);
+    } catch (Exception e) {
+      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      e.printStackTrace();
+    }
+    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
+    JSONObject map = new JSONObject(getFromVariablesStore());
+    if (valueMap != null) {
+      if (!getOwner().getId().equals(getId())) {
+        getOwner().putVariablesByJson(json);
+      }
+
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        //parameters.put(key, valueMap.get(key));
+      }
+
+      updateVariablesStore(map);
+    }
+  }
+
+  public void putVariable(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putVariablesByJson(obj.toString());
+  }
+
+  public JSONObject getVariables() {
+    if (getOwner().getId().equals(getId())) {
+      //if (variables == null) {
+        return new JSONObject(getFromVariablesStore());
+      //}
+    }
+    return getOwner().getVariables();
+  }
+
+  public Object getVariable(String key) {
+    return getVariables().get(key);
+  }
 
   private final HashMap<Object, Object> variablesMapWrapper  = new HashMap<Object, Object>() {
     @Override
