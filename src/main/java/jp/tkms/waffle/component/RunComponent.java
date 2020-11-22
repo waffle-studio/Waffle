@@ -133,28 +133,54 @@ public class RunComponent extends AbstractAccessControlledComponent {
             })
           , null, null, "p-0");
 
-        content += Lte.card(Html.fasIcon("list-alt") + "Variables",
-          Lte.cardToggleButton(true),
-          Lte.divRow(
-            Lte.divCol(Lte.DivSize.F12,
-              Lte.formJsonEditorGroup("", null, "view", run.getVariables().toString(), null)
+        if (run.getVariablesStoreSize() <= Constants.HUGE_FILE_SIZE) {
+          content += Lte.card(Html.fasIcon("list-alt") + "Variables",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Lte.formJsonEditorGroup("", null, "view", run.getVariables().toString(), null)
+              )
             )
-          )
-          , (run.getActorGroup() == null ? "" : Html.a(ActorGroupComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
-            Html.span("right badge badge-secondary", null, "run by this variables")
-          )), "collapsed-card", null);
+            , (run.getActorGroup() == null ? "" : Html.a(ActorGroupComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
+              Html.span("right badge badge-secondary", null, "run by this variables")
+            )), "collapsed-card", null);
+        } else {
+          content += Lte.card(Html.fasIcon("list-alt") + "Variables",
+            Lte.cardToggleButton(true),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                "The variables is too large"
+              )
+            )
+            , (run.getActorGroup() == null ? "" : Html.a(ActorGroupComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
+              Html.span("right badge badge-secondary", null, "run by this variables")
+            )), "collapsed-card", null);
+        }
+
+        String parametersAndResults = "";
+
+        if (run.getParametersStoreSize() <= Constants.HUGE_FILE_SIZE) {
+          parametersAndResults = Lte.divCol(Lte.DivSize.F12,
+            Lte.formJsonEditorGroup("", "Parameters", "view", run.getParameters().toString(), null)
+          );
+        } else {
+          parametersAndResults = Lte.divCol(Lte.DivSize.F12,
+            Lte.readonlyTextAreaGroup("", "Parameters", "The parameters is too large.")
+          );
+        }
+
+        if (run.getResultsStoreSize() <= Constants.HUGE_FILE_SIZE) {
+          parametersAndResults += Lte.divCol(Lte.DivSize.F12,
+            Lte.formJsonEditorGroup("", "Results", "view", run.getResults().toString(), null)
+          );
+        } else {
+          parametersAndResults += Lte.divCol(Lte.DivSize.F12,
+            Lte.readonlyTextAreaGroup("", "Results", "The results is too large.")
+          );
+        }
 
         content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
-          Lte.cardToggleButton(false),
-          Lte.divRow(
-            Lte.divCol(Lte.DivSize.F12,
-              Lte.formJsonEditorGroup("", "Parameters", "view", run.getParameters().toString(), null)
-            ),
-            Lte.divCol(Lte.DivSize.F12,
-              Lte.formJsonEditorGroup("", "Results", "view", run.getResults().toString(), null)
-            )
-          )
-          , null);
+          Lte.cardToggleButton(false), Lte.divRow(parametersAndResults) , null);
 
         if (Files.exists(run.getDirectoryPath().resolve(Constants.STDOUT_FILE))) {
           content += Lte.card(Html.fasIcon("file") + "Standard Output",

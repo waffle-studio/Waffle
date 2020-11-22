@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -337,25 +338,34 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
       variables = new JSONObject();
     }
 
-    Path storePath = getDirectoryPath().resolve(KEY_VARIABLES + Constants.EXT_JSON);
-    if (this instanceof ActorRun) {
-      storePath = ((ActorRun)this).getDataDirectory(getUuid()).resolve(KEY_VARIABLES + Constants.EXT_JSON);
-    }
+    Path storePath = getVariablesStorePath();
 
     try {
+      JSONWriter.writeValue(storePath, variables);
+      /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(variables.toString(2));
       filewriter.close();
+       */
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
-  private String getFromVariablesStore() {
+  private Path getVariablesStorePath() {
     Path storePath = getDirectoryPath().resolve(KEY_VARIABLES + Constants.EXT_JSON);
     if (this instanceof ActorRun) {
       storePath = ((ActorRun)this).getDataDirectory(getUuid()).resolve(KEY_VARIABLES + Constants.EXT_JSON);
     }
+    return storePath;
+  }
+
+  public long getVariablesStoreSize() {
+      return getVariablesStorePath().toFile().length();
+  }
+
+  private String getFromVariablesStore() {
+    Path storePath = getVariablesStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
       try {

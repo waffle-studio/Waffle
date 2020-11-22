@@ -1,11 +1,15 @@
 package jp.tkms.waffle.data;
 
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.InstanceCache;
+import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
 import org.ehcache.Cache;
 import org.json.JSONArray;
@@ -360,13 +364,16 @@ public class SimulatorRun extends AbstractRun {
 
   public void setArguments(ArrayList<Object> arguments) {
     this.arguments = new JSONArray(arguments);
-    String argumentsJson = this.arguments.toString();
+    //String argumentsJson = this.arguments.toString();
 
     Path storePath = getDirectoryPath().resolve(KEY_ARGUMENTS + Constants.EXT_JSON);
     try {
+      JSONWriter.writeValue(storePath, this.arguments);
+      /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(argumentsJson);
       filewriter.close();
+       */
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -410,18 +417,29 @@ public class SimulatorRun extends AbstractRun {
       parameters = new JSONObject();
     }
 
-    Path storePath = getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+    Path storePath = getParametersStorePath();
     try {
+      JSONWriter.writeValue(storePath, parameters);
+      /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(parameters.toString(2));
       filewriter.close();
+       */
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
+  private Path getParametersStorePath() {
+    return getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+  }
+
+  public long getParametersStoreSize() {
+    return getParametersStorePath().toFile().length();
+  }
+
   private String getFromParametersStore() {
-    Path storePath = getDirectoryPath().resolve(KEY_PARAMETERS + Constants.EXT_JSON);
+    Path storePath = getParametersStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
       try {
@@ -485,18 +503,29 @@ public class SimulatorRun extends AbstractRun {
       results = new JSONObject();
     }
 
-    Path storePath = getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+    Path storePath = getResultsStorePath();
     try {
+      JSONWriter.writeValue(storePath, results);
+      /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(results.toString(2));
       filewriter.close();
+       */
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
+  private Path getResultsStorePath() {
+    return getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+  }
+
+  public long getResultsStoreSize() {
+    return getResultsStorePath().toFile().length();
+  }
+
   private String getFromResultsStore() {
-    Path storePath = getDirectoryPath().resolve(KEY_RESULTS + Constants.EXT_JSON);
+    Path storePath = getResultsStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
       try {

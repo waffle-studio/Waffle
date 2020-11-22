@@ -29,4 +29,5 @@ public class Constants {
   public static final String STDOUT_FILE = "stdout.txt";
   public static final String STDERR_FILE = "stderr.txt";
   public static final String DOT_INTERNAL = ".internal";
+  public static final long HUGE_FILE_SIZE = 1048576;
 }
