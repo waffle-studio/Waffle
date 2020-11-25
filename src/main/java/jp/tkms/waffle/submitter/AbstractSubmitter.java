@@ -107,10 +107,14 @@ abstract public class AbstractSubmitter {
 
   public State update(Job job) throws RunNotFoundException {
     SimulatorRun run = job.getRun();
-    try {
-      processXstat(job, exec(xstatCommand(job)));
-    } catch (FailedToControlRemoteException e) {
-      ErrorLogMessage.issue(e);
+    if (!job.getJobId().equals("")) {
+      try {
+        processXstat(job, exec(xstatCommand(job)));
+      } catch (FailedToControlRemoteException e) {
+        ErrorLogMessage.issue(e);
+      }
+    } else {
+      WarnLogMessage.issue(run.getId() + " has not JobID");
     }
     return run.getState();
   }
