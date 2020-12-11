@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
+import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 
 import java.util.ArrayList;
@@ -76,6 +77,7 @@ public class Job {
 
   public void setJobId(String jobId) throws RunNotFoundException {
     this.jobId = jobId;
+    getRun().setJobId(jobId);
   }
 
   public void setState(State state) throws RunNotFoundException {
@@ -132,6 +134,13 @@ public class Job {
   }
 
   public String getJobId() {
+    if ("".equals(jobId)) {
+      try {
+        jobId = getRun().getJobId();
+      } catch (RunNotFoundException e) {
+        WarnLogMessage.issue(e);
+      }
+    }
     return jobId;
   }
 

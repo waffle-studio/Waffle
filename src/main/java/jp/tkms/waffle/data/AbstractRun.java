@@ -432,6 +432,11 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
       putVariable(key.toString(), value);
       return value;
     }
+
+    @Override
+    public String toString() {
+      return getVariables().toString();
+    }
   };
   public HashMap variables() { return variablesMapWrapper; }
   public HashMap v() { return variablesMapWrapper; }

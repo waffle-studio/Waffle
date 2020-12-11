@@ -9,6 +9,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -307,7 +308,7 @@ public class SshSession {
 
   private static void transferFile(String remotePath, Path localPath, ChannelSftp clientChannel) throws SftpException, FileNotFoundException {
     try {
-      Files.copy(clientChannel.get(remotePath), localPath);
+      Files.copy(clientChannel.get(remotePath), localPath, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
       e.printStackTrace();
     }

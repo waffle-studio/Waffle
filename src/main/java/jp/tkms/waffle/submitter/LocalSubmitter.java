@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 public class LocalSubmitter extends AbstractSubmitter {
 
@@ -112,7 +113,7 @@ public class LocalSubmitter extends AbstractSubmitter {
       if (Files.isDirectory(localPath)) {
         transferDirectory(localPath.toFile(), remotePath.toFile());
       } else {
-        Files.copy(localPath, remotePath);
+        Files.copy(localPath, remotePath, StandardCopyOption.REPLACE_EXISTING);
       }
     } catch (IOException e) {
       throw new FailedToTransferFileException(e);
@@ -126,7 +127,7 @@ public class LocalSubmitter extends AbstractSubmitter {
       if (Files.isDirectory(remotePath)) {
         transferDirectory(remotePath.toFile(), localPath.toFile());
       } else {
-        Files.copy(remotePath, localPath);
+        Files.copy(remotePath, localPath, StandardCopyOption.REPLACE_EXISTING);
       }
     } catch (IOException e) {
       throw new FailedToTransferFileException(e);
@@ -150,7 +151,7 @@ public class LocalSubmitter extends AbstractSubmitter {
         transferDirectory(srcFile, destFile);
       }
     }else{
-      Files.copy(src.toPath(), dest.toPath());
+      Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
   }
 
