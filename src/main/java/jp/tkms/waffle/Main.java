@@ -11,6 +11,7 @@ import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.ScriptingContainer;
+import org.jruby.util.collections.StringArraySet;
 import spark.Spark;
 
 import java.io.*;
@@ -48,7 +49,21 @@ public class Main {
 
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
 
-    System.out.println("PID: " + PID);
+    //Check already running process
+    try {
+      if (Constants.PID_FILE.toFile().exists()) {
+        if (Runtime.getRuntime().exec("kill -0 " + new String(Files.readAllBytes(Constants.PID_FILE))).waitFor() == 0) {
+          System.err.println("The WAFFLE on '" + Constants.WORK_DIR + "' is already running.");
+          System.err.println("You should hibernate it if you want startup WAFFLE in this console.");
+          System.exit(1);
+        }
+      }
+      Files.createDirectories(Constants.PID_FILE.getParent());
+      Files.write(Constants.PID_FILE, (String.valueOf(PID)).getBytes());
+      Constants.PID_FILE.toFile().deleteOnExit();
+    } catch (IOException | InterruptedException e) {
+      ErrorLogMessage.issue(e);
+    }
 
     if (args.length >= 1) {
       if (Integer.valueOf(args[0]) >= 1024) {
@@ -66,7 +81,6 @@ public class Main {
         .findFirst().orElseThrow(IllegalStateException::new); // Finding free port from 4567
     }
     port(port);
-    System.out.println("PORT: " + port);
 
     Runtime.getRuntime().addShutdownHook(new Thread()
     {
@@ -80,8 +94,9 @@ public class Main {
       }
     });
 
-    InfoLogMessage.issue("VERSION is " + VERSION);
+    InfoLogMessage.issue("Version is " + VERSION);
     InfoLogMessage.issue("PID is " + PID);
+    InfoLogMessage.issue("Web port is " + port);
 
     try {
       jobStore = JobStore.load();
@@ -248,6 +263,7 @@ public class Main {
         }
 
         System.out.println("System hibernated");
+
         System.exit(0);
         return;
       }

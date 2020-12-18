@@ -44,7 +44,7 @@ abstract public class MainTemplate extends AbstractTemplate {
             ),
             elementWithClass("aside", "main-sidebar sidebar-light-primary elevation-4",
               a(Constants.ROOT_PAGE, "brand-link navbar-light",
-                new Attributes(value("title", Constants.APP_FULL_NAME)),
+                new Attributes(value("title", Constants.APP_NAME_MEANING)),
                 attribute("img",
                   value("src", "/img/logo.png"),
                   value("class", "brand-image"),

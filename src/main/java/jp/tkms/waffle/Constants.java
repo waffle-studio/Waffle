@@ -11,12 +11,12 @@ import java.time.format.DateTimeFormatter;
 public class Constants {
   static final public String JAR_URL = "https://desk.tkms.jp/resource/WjjMKKgC2MdI4GpepkzGOy4yQ3dWEOxM/waffle-all.jar";
   static final public String APP_NAME = "WAFFLE";
-  static final public String APP_FULL_NAME = "Workflow Administration Framework to Facilitate Lucid Exploration";
+  static final public String APP_NAME_MEANING = "Workflow Administration Framework to Facilitate Lucid Exploration";
   static final public String MAIN_DB_NAME = ".main.db";
   static final public String PROJECT_DB_NAME = ".project.db";
   static final public String LOG_DB_NAME = "log-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".db";
   static final public String ROOT_PAGE = ProjectsComponent.getUrl();
-  static final public Path WORK_DIR = Paths.get("." + File.separator + APP_NAME.toLowerCase()).toAbsolutePath();
+  static final public Path WORK_DIR = Paths.get("." + File.separator + APP_NAME).toAbsolutePath();
   static final public String PROJECT = "project";
   static final public String HOST = "host";
   static final public String LOG = "log";
@@ -28,6 +28,7 @@ public class Constants {
   public static final String EXT_RUBY = ".rb";
   public static final String STDOUT_FILE = "stdout.txt";
   public static final String STDERR_FILE = "stderr.txt";
-  public static final String DOT_INTERNAL = ".internal";
+  public static final String DOT_INTERNAL = ".INTERNAL";
+  public static final Path PID_FILE = WORK_DIR.resolve(DOT_INTERNAL).resolve("PID");
   public static final long HUGE_FILE_SIZE = 1048576;
 }
