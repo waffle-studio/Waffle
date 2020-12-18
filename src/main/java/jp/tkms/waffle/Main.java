@@ -1,17 +1,11 @@
 package jp.tkms.waffle;
 
 import jp.tkms.waffle.component.*;
-import jp.tkms.waffle.component.updater.SystemUpdater;
 import jp.tkms.waffle.data.JobStore;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
-import jp.tkms.waffle.data.log.WarnLogMessage;
-import jp.tkms.waffle.data.util.FileBuffer;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
-import org.jruby.embed.LocalContextScope;
-import org.jruby.embed.ScriptingContainer;
-import org.jruby.util.collections.StringArraySet;
 import spark.Spark;
 
 import java.io.*;
@@ -29,6 +23,7 @@ public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
   public static final String VERSION = getVersionId();
   public static int port = 4567;
+  public static boolean aliveFlag = true;
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
@@ -38,7 +33,7 @@ public class Main {
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
   private static Thread fileWatcherThread;
-  private static Thread pollingThreadWakerThread;
+  private static Thread pollingThreadWalkerThread;
   private static Thread gcInvokerThread;
   private static Thread commandLineThread;
 
@@ -55,6 +50,7 @@ public class Main {
         if (Runtime.getRuntime().exec("kill -0 " + new String(Files.readAllBytes(Constants.PID_FILE))).waitFor() == 0) {
           System.err.println("The WAFFLE on '" + Constants.WORK_DIR + "' is already running.");
           System.err.println("You should hibernate it if you want startup WAFFLE in this console.");
+          aliveFlag = false;
           System.exit(1);
         }
       }
@@ -89,6 +85,14 @@ public class Main {
       {
         if (!hibernateFlag) {
           hibernate();
+        }
+
+        while (aliveFlag) {
+          try {
+            Thread.sleep(500);
+          } catch (InterruptedException e) {
+            // not needed output
+          }
         }
         return;
       }
@@ -149,7 +153,7 @@ public class Main {
     SystemComponent.register();
     SigninComponent.register();
 
-    pollingThreadWakerThread =  new Thread("Waffle_Polling") {
+    pollingThreadWalkerThread =  new Thread("Waffle_Polling") {
       @Override
       public void run() {
         while (!hibernateFlag) {
@@ -163,7 +167,7 @@ public class Main {
         return;
       }
     };
-    pollingThreadWakerThread.start();
+    pollingThreadWalkerThread.start();
 
     gcInvokerThread = new Thread("Waffle_GCInvoker"){
       @Override
@@ -190,8 +194,13 @@ public class Main {
             String command = in.nextLine();
             System.out.println("-> " + command);
             switch (command) {
+              case "exit":
+              case "quit":
               case "hibernate":
                 hibernate();
+              case "kill":
+                aliveFlag = false;
+                System.exit(1);
                 break;
             }
           }
@@ -212,12 +221,14 @@ public class Main {
     return;
   }
 
-  public static void hibernate() {
+  public static Thread hibernate() {
+    Thread processThread = null;
+
     if (hibernateFlag) {
-      return;
+      return processThread;
     }
 
-    new Thread(){
+    processThread = new Thread(){
       @Override
       public void run() {
         System.out.println("(0/6) System will hibernate");
@@ -226,7 +237,7 @@ public class Main {
         try {
           commandLineThread.interrupt();
           fileWatcherThread.interrupt();
-          pollingThreadWakerThread.interrupt();
+          pollingThreadWalkerThread.interrupt();
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
         System.out.println("(1/7) Misc. components stopped");
@@ -264,12 +275,15 @@ public class Main {
 
         System.out.println("System hibernated");
 
+        aliveFlag = false;
         System.exit(0);
         return;
       }
-    }.start();
+    };
 
-    return;
+    processThread.start();
+
+    return processThread;
   }
 
   public static void registerFileChangeEventListener(Path path, Runnable function) {
