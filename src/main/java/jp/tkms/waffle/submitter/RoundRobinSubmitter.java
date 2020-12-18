@@ -152,7 +152,18 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
         for (Job job : createdJobList) {
           Host targetHost = passableHostList.get(targetHostCursor);
 
-          if (true /* isSubmittable(targetHost, job) */) {
+          if (!isSubmittable(targetHost, job)) {
+            int startOfTargetHostCursor = targetHostCursor;
+            targetHostCursor += 1;
+            if (targetHostCursor >= passableHostList.size()) {
+              targetHostCursor = 0;
+            }
+            do {
+              targetHost = passableHostList.get(targetHostCursor);
+            } while (targetHostCursor != startOfTargetHostCursor && !isSubmittable(targetHost, job));
+          }
+
+          if (isSubmittable(targetHost, job)) {
             try {
               job.replaceHost(targetHost);
             } catch (RunNotFoundException e) {
