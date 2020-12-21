@@ -466,13 +466,13 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
     return script;
   }
 
-  public SimulatorRun runTest(Host host, String parametersJsonText) {
+  public SimulatorRun runTest(Computer computer, String parametersJsonText) {
     String baseRunName = "TESTRUN-" + name;
     RunNode runNode = RunNode.getInstanceByName(getProject(), Paths.get(baseRunName));
     if (runNode == null) {
       runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
     }
-    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), ActorRun.getRootInstance(getProject()), this, host);
+    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), ActorRun.getRootInstance(getProject()), this, computer);
     setToProperty(KEY_TESTRUN, run.getId());
     run.putParametersByJson(parametersJsonText);
     run.start();

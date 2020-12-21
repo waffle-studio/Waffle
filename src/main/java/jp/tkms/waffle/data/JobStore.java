@@ -16,11 +16,11 @@ import java.util.zip.GZIPOutputStream;
 
 public class JobStore {
   private LinkedHashMap<String, Job> jobMap;
-  private LinkedHashMap<String, ArrayList<Job>> hostJobListMap;
+  private LinkedHashMap<String, ArrayList<Job>> computerJobListMap;
 
   public JobStore() {
     jobMap = new LinkedHashMap<>();
-    hostJobListMap = new LinkedHashMap<>();
+    computerJobListMap = new LinkedHashMap<>();
   }
 
   public Job getJob(UUID id) {
@@ -35,12 +35,12 @@ public class JobStore {
     }
   }
 
-  public ArrayList<Job> getList(Host host) {
+  public ArrayList<Job> getList(Computer computer) {
     synchronized (jobMap) {
-      ArrayList list = hostJobListMap.get(host.getName());
+      ArrayList list = computerJobListMap.get(computer.getName());
       if (list == null) {
         list = new ArrayList();
-        hostJobListMap.put(host.getName(), list);
+        computerJobListMap.put(computer.getName(), list);
       }
       return list;
     }

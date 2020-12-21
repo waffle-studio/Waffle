@@ -341,18 +341,18 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
     return actorRun;
   }
 
-  public SimulatorRun createSimulatorRun(String name, String hostName) {
+  public SimulatorRun createSimulatorRun(String name, String computerName) {
     Simulator simulator = Simulator.find(getProject(), name);
     if (simulator == null) {
       throw new RuntimeException("Simulator(\"" + name + "\") is not found");
     }
-    Host host = Host.find(hostName);
-    if (host == null) {
-      throw new RuntimeException("Host(\"" + hostName + "\") is not found");
+    Computer computer = Computer.find(computerName);
+    if (computer == null) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not found");
     }
-    //host.update();
-    if (! host.getState().equals(HostState.Viable)) {
-      throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
+    //computer.update();
+    if (! computer.getState().equals(HostState.Viable)) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not viable");
     }
 
     if (getRunNode() instanceof SimulatorRunNode) {
@@ -367,7 +367,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       setRunNode(runNode);
     }
 
-    SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, host);
+    SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, computer);
     transactionRunList.add(createdRun);
 
     return createdRun;

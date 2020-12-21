@@ -92,25 +92,25 @@ public class Hub {
     return actorRun;
   }
 
-  public SimulatorRun createSimulatorRun(String name, String hostName) {
+  public SimulatorRun createSimulatorRun(String name, String computerName) {
     Simulator simulator = Simulator.find(project, name);
     if (simulator == null) {
       throw new RuntimeException("Simulator(\"" + name + "\") is not found");
     }
-    Host host = Host.find(hostName);
-    if (host == null) {
-      throw new RuntimeException("Host(\"" + hostName + "\") is not found");
+    Computer computer = Computer.find(computerName);
+    if (computer == null) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not found");
     }
-    //host.update();
-    if (! host.getState().equals(HostState.Viable)) {
-      throw new RuntimeException("Host(\"" + hostName + "\") is not viable");
+    //computer.update();
+    if (! computer.getState().equals(HostState.Viable)) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not viable");
     }
 
     if (runNode instanceof SimulatorRunNode) {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    SimulatorRun createdRun = SimulatorRun.create(runNode.createSimulatorRunNode(""), nextParentConductorRun, simulator, host);
+    SimulatorRun createdRun = SimulatorRun.create(runNode.createSimulatorRunNode(""), nextParentConductorRun, simulator, computer);
     createdRunList.add(createdRun);
     return createdRun;
   }

@@ -1,13 +1,12 @@
 package jp.tkms.waffle.submitter;
 
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -19,7 +18,7 @@ import java.nio.file.StandardCopyOption;
 
 public class LocalSubmitter extends AbstractSubmitter {
 
-  public LocalSubmitter(Host host) {
+  public LocalSubmitter(Computer computer) {
   }
 
   @Override
@@ -135,7 +134,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Host host) {
+  public JSONObject getDefaultParameters(Computer computer) {
     return new JSONObject();
   }
 

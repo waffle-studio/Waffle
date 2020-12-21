@@ -2,7 +2,7 @@ package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
@@ -25,8 +25,8 @@ public class AbciSubmitter extends SshSubmitter {
   HashMap<String, String> updatedPackJson = new HashMap<>();
   int holdingJob = 0;
 
-  public AbciSubmitter(Host host) {
-    super(host);
+  public AbciSubmitter(Computer computer) {
+    super(computer);
   }
 
   public void putText(UUID packId, String path, String text) throws FailedToTransferFileException {
@@ -38,15 +38,15 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   String getWorkDirectory(UUID packId) throws FailedToControlRemoteException {
-    Path path = parseHomePath(host.getWorkBaseDirectory()).resolve(RUN_DIR).resolve("pack").resolve(packId.toString());
+    Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(RUN_DIR).resolve("pack").resolve(packId.toString());
     createDirectories(path);
     return path.toString();
   }
 
   String xsubCommand(UUID packId) throws FailedToControlRemoteException {
-    return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
+    return "XSUB_COMMAND=`which " + getXsubBinDirectory(computer) + "xsub`; " +
       "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getWorkDirectory(packId) + "'; " +
-      "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
+      "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + computer.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
   public String getResourceText(int size) {
@@ -70,12 +70,12 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   @Override
-  public double getMaximumNumberOfThreads(Host host) {
+  public double getMaximumNumberOfThreads(Computer computer) {
     return 40.0;
   }
 
   @Override
-  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
+  public void processJobLists(Computer computer, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
     updatedPackJson.clear();
 
     HashSet<String> cancelJobIdSet = new HashSet<>();
@@ -125,7 +125,7 @@ public class AbciSubmitter extends SshSubmitter {
     for (Job job : createdJobList) {
       if (Main.hibernateFlag) { break; }
       try {
-        if (queuedJobList.size() < getMaximumNumberOfThreads(host)) {
+        if (queuedJobList.size() < getMaximumNumberOfThreads(computer)) {
           prepareJob(job);
           queuedJobList.add(job);
         } else {
@@ -144,8 +144,8 @@ public class AbciSubmitter extends SshSubmitter {
       return;
     }
 
-    if (jobIdSet.size() < host.getMaximumNumberOfThreads() && queuedJobList.size() > 0) {
-      if (queuedJobList.size() >= getMaximumNumberOfThreads(host) || holdingJob == queuedJobList.size()) {
+    if (jobIdSet.size() < computer.getMaximumNumberOfThreads() && queuedJobList.size() > 0) {
+      if (queuedJobList.size() >= getMaximumNumberOfThreads(computer) || holdingJob == queuedJobList.size()) {
         UUID packId = UUID.randomUUID();
         StringBuilder packBatchTextBuilder = new StringBuilder();
         packBatchTextBuilder.append(
@@ -172,7 +172,7 @@ public class AbciSubmitter extends SshSubmitter {
 
         try {
           putText(packId, PACK_BATCH_FILE, packBatchTextBuilder.toString());
-          host.setParameter("resource_type_num", getResourceText(queuedJobList.size()));
+          computer.setParameter("resource_type_num", getResourceText(queuedJobList.size()));
           String resultJson = exec(xsubCommand(packId) + " " + PACK_BATCH_FILE);
           for (Job job : queuedJobList) {
             try {

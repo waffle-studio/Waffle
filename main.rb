@@ -5,9 +5,9 @@ end
 def cycle_process(entity, store, registry)
   alert(store[:count])
   if store[:count] < 3 then
-    host = Host.find_by_name("localhost")
+    computer = Host.find_by_name("localhost")
     sim = Simulator.list(entity).first
-    run = Run.create(entity, sim, host)
+    run = Run.create(entity, sim, computer)
     run.start
   end      
   store[:count] += 1

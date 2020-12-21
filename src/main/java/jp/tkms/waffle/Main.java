@@ -145,7 +145,7 @@ public class Main {
     ProjectsComponent.register();
     TemplatesComponent.register();
     JobsComponent.register();
-    HostsComponent.register();
+    ComputersComponent.register();
     ConductorTemplatesComponent.register();
     ListenerTemplatesComponent.register();
     LogsComponent.register();

@@ -1,6 +1,6 @@
 package jp.tkms.waffle.submitter;
 
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
@@ -17,12 +17,12 @@ import java.util.Map;
 
 public class SshSubmitter2 extends AbstractSubmitter {
 
-  Host host;
+  Computer computer;
   SshSession2 session;
   SshSession2 tunnelSession;
 
-  public SshSubmitter2(Host host) {
-    this.host = host;
+  public SshSubmitter2(Computer computer) {
+    this.computer = computer;
   }
 
   @Override
@@ -35,7 +35,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
       int port = 22;
       boolean useTunnel = false;
 
-      for (Map.Entry<String, Object> entry : host.getParametersWithDefaultParameters().toMap().entrySet()) {
+      for (Map.Entry<String, Object> entry : computer.getParametersWithDefaultParameters().toMap().entrySet()) {
         switch (entry.getKey()) {
           case "host" :
             hostName = entry.getValue().toString();
@@ -59,7 +59,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
       }
 
       if (useTunnel) {
-        JSONObject object = host.getParametersWithDefaultParameters().getJSONObject("tunnel");
+        JSONObject object = computer.getParametersWithDefaultParameters().getJSONObject("tunnel");
         tunnelSession = new SshSession2();
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
         if (object.getString("identity_pass").equals("")) {
@@ -187,9 +187,9 @@ public class SshSubmitter2 extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Host host) {
+  public JSONObject getDefaultParameters(Computer computer) {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put("host", host.getName());
+    jsonObject.put("host", computer.getName());
     jsonObject.put("user", System.getProperty("user.name"));
     jsonObject.put("identity_file", "~/.ssh/id_rsa");
     jsonObject.put("identity_pass", "");

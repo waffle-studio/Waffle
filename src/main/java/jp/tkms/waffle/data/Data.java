@@ -1,23 +1,18 @@
 package jp.tkms.waffle.data;
 
-import jnr.ffi.annotations.In;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.Sql;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.UUID;
 
 abstract public class Data implements PropertyFile {
@@ -178,7 +173,7 @@ abstract public class Data implements PropertyFile {
     createDirectories(Project.getBaseDirectoryPath());
     createDirectories(ConductorTemplate.getBaseDirectoryPath());
     createDirectories(ListenerTemplate.getBaseDirectoryPath());
-    createDirectories(Host.getBaseDirectoryPath());
+    createDirectories(Computer.getBaseDirectoryPath());
   }
 
   private static void initializeMainDatabase() {

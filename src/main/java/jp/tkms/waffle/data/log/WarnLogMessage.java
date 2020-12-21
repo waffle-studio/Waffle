@@ -1,6 +1,6 @@
 package jp.tkms.waffle.data.log;
 
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.WaffleException;
 
@@ -29,8 +29,8 @@ public class WarnLogMessage extends LogMessage {
     new WarnLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + message).printMessage();
   }
 
-  public static void issue(Host host, String message) {
-    new WarnLogMessage("Host(" + host.getName() + ") " + message).printMessage();
+  public static void issue(Computer computer, String message) {
+    new WarnLogMessage("Host(" + computer.getName() + ") " + message).printMessage();
   }
 
   public static void issue(SimulatorRun run, WaffleException e) {

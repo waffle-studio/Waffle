@@ -14,7 +14,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class JobsComponent extends AbstractAccessControlledComponent {
@@ -32,8 +31,6 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getUrl(), new JobsComponent());
     Spark.get(getUrl(Mode.Cancel, null), new JobsComponent(Mode.Cancel));
-
-    HostComponent.register();
   }
 
   public static String getUrl() {
@@ -115,7 +112,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         run.getSimulator().getName()
                       ),
                       Html.a(
-                        HostComponent.getUrl(job.getHost()),
+                        ComputersComponent.getUrl(null, job.getHost()),
                         job.getHost().getName()
                       ),
                       job.getJobId(),

@@ -23,7 +23,9 @@ abstract public class MainTemplate extends AbstractTemplate {
           meta(value("http-equiv", "X-UA-Compatible"),
             value("content", "IE=edge")),
           element("title", null,
-            (pageTitle() == "" ? Constants.APP_NAME : pageTitle() + " | " + Constants.APP_NAME)),
+            (pageTitle() == "" ? Constants.APP_NAME : pageTitle()
+              + (pageSubTitle() == "" ? "" : "/" + pageSubTitle())
+              + " | " + Constants.APP_NAME)),
           link("stylesheet", "/css/adminlte.min.css"),
           link("stylesheet", "/css/fontawesome-free.min.css"),
           link("stylesheet", "/css/ionicons.min.css"),
@@ -81,7 +83,8 @@ abstract public class MainTemplate extends AbstractTemplate {
                     div("col-sm-6",
                       renderPageBreadcrumb()
                     )
-                  )
+                  ),
+                  div(null, pageTool())
                 )
               ),
               elementWithClass("section", "content",
@@ -155,7 +158,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    tabTrigger: 'instance.loadListenerTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = instance.createSimulatorRun(\"${2:simulator name}\", \"${3:host name}\")', \n" +
+              "                    content: '${1:run} = instance.createSimulatorRun(\"${2:simulator name}\", \"${3:computer name}\")', \n" +
               "                    tabTrigger: 'instance.createSimulatorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
@@ -239,9 +242,9 @@ abstract public class MainTemplate extends AbstractTemplate {
         )
       ) +
       elementWithClass("li", "nav-item",
-        a(HostsComponent.getUrl(), "nav-link", null,
+        a(ComputersComponent.getUrl(), "nav-link", null,
           fasIcon("server", "nav-icon"),
-          p("Hosts")
+          p("Computers")
         )
       ) +
       elementWithClass("li", "nav-item",
@@ -321,6 +324,8 @@ abstract public class MainTemplate extends AbstractTemplate {
   protected String pageSubTitle() {
     return "";
   }
+
+  protected String pageTool() { return ""; };
 
   protected abstract ArrayList<String> pageBreadcrumb();
 

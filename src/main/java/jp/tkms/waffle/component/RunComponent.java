@@ -119,7 +119,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                   list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
                 }
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
-                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Host", (run.getHost() == null ? "NotFound" : Html.a(HostComponent.getUrl(run.getHost()), run.getHost().getName())));}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer", (run.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(null, run.getComputer()), run.getComputer().getName())));}));
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(project, run, "recheck"),

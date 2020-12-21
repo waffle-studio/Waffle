@@ -3,16 +3,12 @@ package jp.tkms.waffle.component;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
-import jp.tkms.waffle.component.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.Host;
-import jp.tkms.waffle.data.Project;
 import jp.tkms.waffle.data.UserSession;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class SigninComponent extends AbstractComponent {
   private Mode mode;

@@ -1,6 +1,6 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
@@ -13,25 +13,23 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
 
 public class PollingThread extends Thread {
   private static final Map<String, PollingThread> threadMap = new HashMap<>();
-  private static final HashSet<Host> runningSubmitterSet = new HashSet<>();
+  private static final HashSet<Computer> runningSubmitterSet = new HashSet<>();
 
-  private Host host;
+  private Computer computer;
 
-  public PollingThread(Host host) {
-    super("Waffle_Polling(" + host.getName() + ")");
-    this.host = host;
+  public PollingThread(Computer computer) {
+    super("Waffle_Polling(" + computer.getName() + ")");
+    this.computer = computer;
   }
 
   @Override
   public void run() {
-    InfoLogMessage.issue(host, "submitter started");
+    InfoLogMessage.issue(computer, "submitter started");
 
-    AbstractSubmitter submitter = AbstractSubmitter.getInstance(host).connect();
+    AbstractSubmitter submitter = AbstractSubmitter.getInstance(computer).connect();
 
     int waitCount = submitter.getPollingInterval() - 1;
     do {
@@ -50,35 +48,35 @@ public class PollingThread extends Thread {
       waitCount = 0;
 
       synchronized (runningSubmitterSet) {
-        runningSubmitterSet.add(host);
+        runningSubmitterSet.add(computer);
       }
       if (submitter == null || !submitter.isConnected()) {
         if (submitter != null) {
           submitter.close();
         }
         try {
-          InfoLogMessage.issue(host, "will be scanned");
-          submitter = AbstractSubmitter.getInstance(host).connect();
+          InfoLogMessage.issue(computer, "will be scanned");
+          submitter = AbstractSubmitter.getInstance(computer).connect();
         } catch (Exception e) {
           WarnLogMessage.issue(e);
-          InfoLogMessage.issue(host, "submitter closed");
+          InfoLogMessage.issue(computer, "submitter closed");
           return;
         }
         if (! submitter.isConnected()) {
-          WarnLogMessage.issue("Failed to connect to " + host.getName());
+          WarnLogMessage.issue("Failed to connect to " + computer.getName());
           continue;
         }
       }
       try {
-        submitter.pollingTask(host);
+        submitter.pollingTask(computer);
       } catch (FailedToControlRemoteException e) {
         submitter.close();
-        WarnLogMessage.issue(host, "was scanned with error");
+        WarnLogMessage.issue(computer, "was scanned with error");
         continue;
       }
-      InfoLogMessage.issue(host, "was scanned");
+      InfoLogMessage.issue(computer, "was scanned");
       synchronized (runningSubmitterSet) {
-        runningSubmitterSet.remove(host);
+        runningSubmitterSet.remove(computer);
         if (runningSubmitterSet.isEmpty()) {
           try {
             Main.jobStore.save();
@@ -87,25 +85,25 @@ public class PollingThread extends Thread {
           }
         }
       }
-    } while (Job.getList(host).size() > 0);
+    } while (Job.getList(computer).size() > 0);
 
     if (submitter != null && submitter.isConnected()) {
       submitter.close();
     }
-    threadMap.remove(host.getName());
+    threadMap.remove(computer.getName());
 
-    InfoLogMessage.issue(host, "submitter closed");
+    InfoLogMessage.issue(computer, "submitter closed");
   }
 
   synchronized public static void startup() {
     if (!Main.hibernateFlag) {
-      for (Host host : Host.getList()) {
-        if (host.getState().equals(HostState.Viable)) {
-          if (!threadMap.containsKey(host.getName()) && Job.hasJob(host)) {
-            host.update();
-            if (host.getState().equals(HostState.Viable)) {
-              PollingThread pollingThread = new PollingThread(host);
-              threadMap.put(host.getName(), pollingThread);
+      for (Computer computer : Computer.getList()) {
+        if (computer.getState().equals(HostState.Viable)) {
+          if (!threadMap.containsKey(computer.getName()) && Job.hasJob(computer)) {
+            computer.update();
+            if (computer.getState().equals(HostState.Viable)) {
+              PollingThread pollingThread = new PollingThread(computer);
+              threadMap.put(computer.getName(), pollingThread);
               pollingThread.start();
             }
           }

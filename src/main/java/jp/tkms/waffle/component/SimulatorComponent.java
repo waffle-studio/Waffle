@@ -22,8 +22,8 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_UPDATE_PARAMETERS = "update-parameters";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_RUN = "run";
-  private static final String KEY_HOST = "host";
-  private static final String KEY_SIMULATOR = "host";
+  private static final String KEY_COMPUTER = "computer";
+  private static final String KEY_SIMULATOR = "simulator";
 
   private Mode mode;
 
@@ -309,7 +309,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getName()),
-                    (finalLatestRun.getHost() == null ? "NotFound" : finalLatestRun.getHost().getName()),
+                    (finalLatestRun.getComputer() == null ? "NotFound" : finalLatestRun.getComputer().getName()),
                     Html.spanWithId(finalLatestRun.getId() + "-badge", finalLatestRun.getState().getStatusBadge())
                   );
                 }));
@@ -325,7 +325,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formSelectGroup(KEY_HOST, "Host", Host.getViableList().stream().map(host -> host.getName()).collect(Collectors.toList()), null),
+                  Lte.formSelectGroup(KEY_COMPUTER, "Host", Computer.getViableList().stream().map(computer -> computer.getName()).collect(Collectors.toList()), null),
                   Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", simulator.getDefaultParameters().toString(2), null)
                 )
               )
@@ -339,7 +339,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   }
 
   void runSimulator() {
-    SimulatorRun run = simulator.runTest(Host.find(request.queryParams(KEY_HOST)), request.queryParams(KEY_PARAMETERS));
+    SimulatorRun run = simulator.runTest(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
     response.redirect(RunComponent.getUrl(project, run.getUuid()));
   }
 

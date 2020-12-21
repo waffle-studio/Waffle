@@ -1,7 +1,7 @@
 class Simulator < Java::jp.tkms.waffle.data.Simulator
 end
 
-class Host < Java::jp.tkms.waffle.data.Host
+class Computer < Java::jp.tkms.waffle.data.Computer
 end
 
 class ActorGroup < Java::jp.tkms.waffle.data.ActorGroup
@@ -189,8 +189,8 @@ class ActorWrapper
         @instance.createActorGroupRun(name)
     end
 
-    def createSimulatorRun(name, hostName)
-        @instance.createSimulatorRun(name, hostName)
+    def createSimulatorRun(name, computerName)
+        @instance.createSimulatorRun(name, computerName)
     end
 
     def addFinalizer(name)

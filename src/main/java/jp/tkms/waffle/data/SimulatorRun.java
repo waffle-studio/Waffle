@@ -1,21 +1,15 @@
 package jp.tkms.waffle.data;
 
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.updater.RunStatusUpdater;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.util.DateTime;
-import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
-import org.ehcache.Cache;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SimulatorRun extends AbstractRun {
   protected static final String TABLE_NAME = "simulator_run";
-  private static final String KEY_HOST = "host";
+  private static final String KEY_COMPUTER = "computer";
   private static final String KEY_SIMULATOR = "simulator";
   private static final String KEY_RESTART_COUNT = "restart";
   private static final String KEY_EXIT_STATUS = "exit_status";
@@ -42,47 +36,22 @@ public class SimulatorRun extends AbstractRun {
   private static final String KEY_LOCAL_SHARED = "local_shared";
   public static final String WORKING_DIR = "WORK";
   public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
-  private static final String KEY_ACTUAL_HOST = "actual_host";
+  private static final String KEY_ACTUAL_COMPUTER = "actual_computer";
 
   private String simulator;
-  private String host;
+  private String computer;
   private State state;
   private Integer exitStatus;
   private Integer restartCount;
-  //private JSONObject parameters = null;
-  //private JSONObject results = null;
   private JSONObject environments;
   private JSONArray arguments;
   private JSONArray localSharedList;
 
   private static final ConcurrentHashMap<String, SimulatorRun> instanceMap = new ConcurrentHashMap<>();
-  //private static final Cache<String, SimulatorRun> instanceCache = new InstanceCache<SimulatorRun>(SimulatorRun.class, 500).getCacheStore();
-
-  /*
-  private SimulatorRun(Actor parent, Simulator simulator, Host host, RunNode runNode) {
-    this(parent.getProject(), runNode.getUuid(),"",
-      simulator.getName(), host.getName(), runNode);
-  }
-
-  private SimulatorRun(Project project, Path path) {
-    super(project, id, name);
-    instanceMap.put(id, run[0]);
-    this.simulator = simulator;
-    this.host = host;
-  }
-   */
 
   private SimulatorRun(Project project, UUID id, Path path) {
     super(project, id, path);
-    //instanceCache.put(getId(), this);
   }
-
-/*
-  @Override
-  public Path getDirectoryPath() {
-    return getRunNode().getDirectoryPath();
-  }
- */
 
   public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
     SimulatorRun run = null;
@@ -93,12 +62,6 @@ public class SimulatorRun extends AbstractRun {
         return run;
       }
 
-      /*
-      run = instanceCache.get(id);
-      if (run != null)  {
-        return run;
-      }
-       */
 
       RunNode runNode = RunNode.getInstance(project, id);
 
@@ -114,19 +77,19 @@ public class SimulatorRun extends AbstractRun {
     return run;
   }
 
-  public Host getHost() {
-    if (host == null) {
-      host = getStringFromProperty(KEY_HOST);
+  public Computer getComputer() {
+    if (computer == null) {
+      computer = getStringFromProperty(KEY_COMPUTER);
     }
-    return Host.getInstance(host);
+    return Computer.getInstance(computer);
   }
 
-  public void setActualHost(Host host) {
-    setToProperty(KEY_ACTUAL_HOST, host.getName());
+  public void setActualHost(Computer computer) {
+    setToProperty(KEY_ACTUAL_COMPUTER, computer.getName());
   }
 
-  public Host getActualHost() {
-    return Host.getInstance(getStringFromProperty(KEY_ACTUAL_HOST, getHost().getName()));
+  public Computer getActualHost() {
+    return Computer.getInstance(getStringFromProperty(KEY_ACTUAL_COMPUTER, getComputer().getName()));
   }
 
   public Simulator getSimulator() {
@@ -204,13 +167,13 @@ public class SimulatorRun extends AbstractRun {
   }
    */
 
-  public static SimulatorRun create(RunNode runNode, ActorRun parent, Simulator simulator, Host host) {
+  public static SimulatorRun create(RunNode runNode, ActorRun parent, Simulator simulator, Computer computer) {
     SimulatorRun run = new SimulatorRun(parent.getProject(), runNode.getUuid(), runNode.getDirectoryPath());
 
     ActorGroup conductor = parent.getActorGroup();
     String actorGroupName = (conductor == null ? "" : conductor.getName());
     String simulatorName = simulator.getName();
-    String hostName = host.getName();
+    String computerName = computer.getName();
     JSONArray callstack = parent.getCallstack();
     callstack.put("##");
 
@@ -231,8 +194,8 @@ public class SimulatorRun extends AbstractRun {
     run.setToProperty(KEY_PARENT, parent.getId());
     run.setToProperty(KEY_RESPONSIBLE_ACTOR, parent.getId());
     run.setToProperty(KEY_SIMULATOR, simulatorName);
-    run.setToProperty(KEY_HOST, hostName);
-    run.setToProperty(KEY_ACTUAL_HOST, hostName);
+    run.setToProperty(KEY_COMPUTER, computerName);
+    run.setToProperty(KEY_ACTUAL_COMPUTER, computerName);
     run.setToProperty(KEY_STATE, run.getState().ordinal());
     //run.setToProperty(KEY_VARIABLES, parent.getVariables().toString());
     run.putVariablesByJson(parent.getVariables().toString());

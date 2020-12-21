@@ -1,7 +1,7 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.PollingThread;
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.SimulatorRun;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
@@ -16,11 +16,11 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class RoundRobinSubmitter extends AbstractSubmitter {
-  public static final String KEY_TARGET_HOSTS = "target_hosts";
+  public static final String KEY_TARGET_COMPUTERS = "target_computers";
 
 
 
-  public RoundRobinSubmitter(Host host) {
+  public RoundRobinSubmitter(Computer computer) {
   }
 
   @Override
@@ -78,41 +78,41 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public double getMaximumNumberOfThreads(Host host) {
+  public double getMaximumNumberOfThreads(Computer computer) {
     double num = 0.0;
 
-    JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
-    if (targetHosts != null) {
-      for (Object object : targetHosts.toList()) {
-        Host targetHost = Host.getInstance(object.toString());
-        if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
-          num += targetHost.getMaximumNumberOfThreads();
+    JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
+    if (targetComputers != null) {
+      for (Object object : targetComputers.toList()) {
+        Computer targetComputer = Computer.getInstance(object.toString());
+        if (targetComputer != null && targetComputer.getState().equals(HostState.Viable)) {
+          num += targetComputer.getMaximumNumberOfThreads();
         }
       }
     }
 
-    return (num < host.getMaximumNumberOfThreads() ? num : host.getMaximumNumberOfThreads());
+    return (num < computer.getMaximumNumberOfThreads() ? num : computer.getMaximumNumberOfThreads());
   }
 
   @Override
-  public double getAllocableMemorySize(Host host) {
+  public double getAllocableMemorySize(Computer computer) {
     double size = 0.0;
 
-    JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
-    if (targetHosts != null) {
-      for (Object object : targetHosts.toList()) {
-        Host targetHost = Host.getInstance(object.toString());
-        if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
-          size += targetHost.getAllocableMemorySize();
+    JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
+    if (targetComputers != null) {
+      for (Object object : targetComputers.toList()) {
+        Computer targetComputer = Computer.getInstance(object.toString());
+        if (targetComputer != null && targetComputer.getState().equals(HostState.Viable)) {
+          size += targetComputer.getAllocableMemorySize();
         }
       }
     }
 
-    return (size < host.getAllocableMemorySize() ? size : host.getAllocableMemorySize());
+    return (size < computer.getAllocableMemorySize() ? size : computer.getAllocableMemorySize());
   }
 
   @Override
-  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
+  public void processJobLists(Computer computer, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
     for (Job job : cancelJobList) {
       try {
         cancel(job);
@@ -121,21 +121,21 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
       }
     }
 
-    double globalFreeThread = host.getMaximumNumberOfThreads();
-    double globalFreeMemory = host.getAllocableMemorySize();
+    double globalFreeThread = computer.getMaximumNumberOfThreads();
+    double globalFreeMemory = computer.getAllocableMemorySize();
 
-    LinkedList<Host> passableHostList = new LinkedList<>();
-    JSONArray targetHosts = host.getParameters().getJSONArray(KEY_TARGET_HOSTS);
-    if (targetHosts != null) {
-      for (Object object : targetHosts.toList()) {
-        Host targetHost = Host.getInstance(object.toString());
-        if (targetHost != null && targetHost.getState().equals(HostState.Viable)) {
-          passableHostList.add(targetHost);
+    LinkedList<Computer> passableComputerList = new LinkedList<>();
+    JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
+    if (targetComputers != null) {
+      for (Object object : targetComputers.toList()) {
+        Computer targetComputer = Computer.getInstance(object.toString());
+        if (targetComputer != null && targetComputer.getState().equals(HostState.Viable)) {
+          passableComputerList.add(targetComputer);
 
-          for (Job job : Job.getList(targetHost)) {
+          for (Job job : Job.getList(targetComputer)) {
             try {
               SimulatorRun run = job.getRun();
-              if (run.getHost().equals(host)) {
+              if (run.getComputer().equals(computer)) {
                 globalFreeThread -= run.getSimulator().getRequiredThread();
                 globalFreeMemory -= run.getSimulator().getRequiredMemory();
               }
@@ -148,24 +148,24 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
     int targetHostCursor = 0;
     if (globalFreeThread > 0.0 && globalFreeMemory > 0.0) {
-      if (passableHostList.size() > 0) {
+      if (passableComputerList.size() > 0) {
         for (Job job : createdJobList) {
-          Host targetHost = passableHostList.get(targetHostCursor);
+          Computer targetComputer = passableComputerList.get(targetHostCursor);
 
-          if (!isSubmittable(targetHost, job)) {
+          if (!isSubmittable(targetComputer, job)) {
             int startOfTargetHostCursor = targetHostCursor;
             targetHostCursor += 1;
-            if (targetHostCursor >= passableHostList.size()) {
+            if (targetHostCursor >= passableComputerList.size()) {
               targetHostCursor = 0;
             }
             do {
-              targetHost = passableHostList.get(targetHostCursor);
-            } while (targetHostCursor != startOfTargetHostCursor && !isSubmittable(targetHost, job));
+              targetComputer = passableComputerList.get(targetHostCursor);
+            } while (targetHostCursor != startOfTargetHostCursor && !isSubmittable(targetComputer, job));
           }
 
-          if (isSubmittable(targetHost, job)) {
+          if (isSubmittable(targetComputer, job)) {
             try {
-              job.replaceHost(targetHost);
+              job.replaceHost(targetComputer);
             } catch (RunNotFoundException e) {
               WarnLogMessage.issue(e);
               job.remove();
@@ -173,7 +173,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
           }
 
           targetHostCursor += 1;
-          if (targetHostCursor >= passableHostList.size()) {
+          if (targetHostCursor >= passableComputerList.size()) {
             targetHostCursor = 0;
           }
         }
@@ -184,9 +184,9 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Host host) {
+  public JSONObject getDefaultParameters(Computer computer) {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put("target_hosts", new JSONArray());
+    jsonObject.put(KEY_TARGET_COMPUTERS, new JSONArray());
     return jsonObject;
   }
 }

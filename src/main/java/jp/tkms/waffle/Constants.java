@@ -17,9 +17,9 @@ public class Constants {
   static final public String LOG_DB_NAME = "log-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".db";
   static final public String ROOT_PAGE = ProjectsComponent.getUrl();
   static final public Path WORK_DIR = Paths.get("." + File.separator + APP_NAME).toAbsolutePath();
-  static final public String PROJECT = "project";
-  static final public String HOST = "host";
-  static final public String LOG = "log";
+  static final public String PROJECT = "PROJECT";
+  static final public String COMPUTER = "COMPUTER";
+  static final public String LOG = "LOG";
   static final public String CONDUCTOR_TEMPLATE = "conductor-template";
   static final public String LISTENER_TEMPLATE = "listener-template";
   static final public String LOCAL_WORK_DIR = "~/tmp";

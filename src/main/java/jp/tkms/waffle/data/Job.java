@@ -11,7 +11,7 @@ import java.util.UUID;
 public class Job {
   private String id = null;
   private String projectName = null;
-  private String hostName = null;
+  private String computerName = null;
   private String jobId = "";
   private State state = null;
   private int errorCount = 0;
@@ -20,10 +20,10 @@ public class Job {
 
   public Job() {}
 
-  public Job(UUID id, Project project, Host host) {
+  public Job(UUID id, Project project, Computer computer) {
     this.id = id.toString();
     this.projectName = project.getName();
-    this.hostName = host.getName();
+    this.computerName = computer.getName();
   }
 
   public String getId() {
@@ -46,12 +46,12 @@ public class Job {
     return Main.jobStore.getList();
   }
 
-  public static ArrayList<Job> getList(Host host) {
-    return new ArrayList<>(Main.jobStore.getList(host));
+  public static ArrayList<Job> getList(Computer computer) {
+    return new ArrayList<>(Main.jobStore.getList(computer));
   }
 
-  public static boolean hasJob(Host host) {
-    return getList(host).size() > 0;
+  public static boolean hasJob(Computer computer) {
+    return getList(computer).size() > 0;
   }
 
   public static int getNum() {
@@ -59,7 +59,7 @@ public class Job {
   }
 
   public static void addRun(SimulatorRun run) {
-    Job job = new Job(run.getUuid(), run.getProject(), run.getHost());
+    Job job = new Job(run.getUuid(), run.getProject(), run.getComputer());
     Main.jobStore.register(job);
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
@@ -110,10 +110,10 @@ public class Job {
     return requiredMemory;
   }
 
-  public void replaceHost(Host host) throws RunNotFoundException {
-    getRun().setActualHost(host);
+  public void replaceHost(Computer computer) throws RunNotFoundException {
+    getRun().setActualHost(computer);
     Main.jobStore.remove(id);
-    this.hostName = host.getName();
+    this.computerName = computer.getName();
     Main.jobStore.register(this);
   }
 
@@ -125,8 +125,8 @@ public class Job {
     return Project.getInstance(projectName);
   }
 
-  public Host getHost() {
-    return Host.getInstance(hostName);
+  public Computer getHost() {
+    return Computer.getInstance(computerName);
   }
 
   public SimulatorRun getRun() throws RunNotFoundException {

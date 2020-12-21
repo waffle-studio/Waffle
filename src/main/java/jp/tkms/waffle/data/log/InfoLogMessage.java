@@ -1,6 +1,6 @@
 package jp.tkms.waffle.data.log;
 
-import jp.tkms.waffle.data.Host;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.SimulatorRun;
 
 public class InfoLogMessage extends LogMessage {
@@ -16,7 +16,7 @@ public class InfoLogMessage extends LogMessage {
     new InfoLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + message).printMessage();
   }
 
-  public static void issue(Host host, String message) {
-    new InfoLogMessage("Host(" + host.getName() + ") " + message).printMessage();
+  public static void issue(Computer computer, String message) {
+    new InfoLogMessage("Host(" + computer.getName() + ") " + message).printMessage();
   }
 }

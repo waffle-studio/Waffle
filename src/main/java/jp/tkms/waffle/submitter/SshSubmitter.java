@@ -7,7 +7,6 @@ import jp.tkms.waffle.data.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.exception.RunNotFoundException;
 import jp.tkms.waffle.submitter.util.SshChannel;
 import jp.tkms.waffle.submitter.util.SshSession;
-import org.jruby.RubyProcess;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
@@ -18,13 +17,13 @@ public class SshSubmitter extends AbstractSubmitter {
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
-  Host host;
+  Computer computer;
   SshSession session;
   SshSession tunnelSession;
   String home = null;
 
-  public SshSubmitter(Host host) {
-    this.host = host;
+  public SshSubmitter(Computer computer) {
+    this.computer = computer;
   }
 
   @Override
@@ -37,7 +36,7 @@ public class SshSubmitter extends AbstractSubmitter {
       int port = 22;
       boolean useTunnel = false;
 
-      JSONObject parameters = host.getParametersWithDefaultParameters();
+      JSONObject parameters = computer.getParametersWithDefaultParameters();
       for (Map.Entry<String, Object> entry : parameters.toMap().entrySet()) {
         switch (entry.getKey()) {
           case "host" :
@@ -51,12 +50,12 @@ public class SshSubmitter extends AbstractSubmitter {
             break;
           case "identity_pass" :
             if (entry.getValue().toString().equals(ENCRYPTED_MARK)) {
-              identityPass = host.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS));
+              identityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS));
             } else {
               if (!entry.getValue().toString().equals("")) {
-                host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, host.encryptText(entry.getValue().toString()));
+                computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, computer.encryptText(entry.getValue().toString()));
                 identityPass = entry.getValue().toString();
-                host.setParameter("identity_pass", ENCRYPTED_MARK);
+                computer.setParameter("identity_pass", ENCRYPTED_MARK);
               }
             }
             break;
@@ -70,7 +69,7 @@ public class SshSubmitter extends AbstractSubmitter {
       }
 
       if (useTunnel) {
-        JSONObject object = host.getParametersWithDefaultParameters().getJSONObject("tunnel");
+        JSONObject object = computer.getParametersWithDefaultParameters().getJSONObject("tunnel");
         tunnelSession = new SshSession();
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
         String tunnelIdentityPass = object.getString("identity_pass");
@@ -78,10 +77,10 @@ public class SshSubmitter extends AbstractSubmitter {
           tunnelIdentityPass = "";
         } else {
           if (tunnelIdentityPass.equals(ENCRYPTED_MARK)) {
-            tunnelIdentityPass = host.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1"));
+            tunnelIdentityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1"));
           } else {
             if (! tunnelIdentityPass.equals("")) {
-              host.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", host.encryptText(tunnelIdentityPass));
+              computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", computer.encryptText(tunnelIdentityPass));
               object.put("identity_pass", ENCRYPTED_MARK);
             }
           }
@@ -94,7 +93,7 @@ public class SshSubmitter extends AbstractSubmitter {
         tunnelSession.connect(retry);
         port = tunnelSession.setPortForwardingL(hostName, port);
         hostName = "127.0.0.1";
-        host.setParameter("tunnel", object);
+        computer.setParameter("tunnel", object);
       }
 
       session = new SshSession();
@@ -214,9 +213,9 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Host host) {
+  public JSONObject getDefaultParameters(Computer computer) {
     JSONObject jsonObject = new JSONObject();
-    jsonObject.put("host", host.getName());
+    jsonObject.put("host", computer.getName());
     jsonObject.put("user", System.getProperty("user.name"));
     jsonObject.put("identity_file", "~/.ssh/id_rsa");
     jsonObject.put("identity_pass", "");

@@ -22,9 +22,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
-public class Host implements DataDirectory, PropertyFile {
-  private static final String TABLE_NAME = "host";
-  private static final UUID LOCAL_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_LOCAL = "LOCAL";
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
@@ -40,7 +38,7 @@ public class Host implements DataDirectory, PropertyFile {
   private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
   private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
 
-  private static final HashMap<String, Host> instanceMap = new HashMap<>();
+  private static final HashMap<String, Computer> instanceMap = new HashMap<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
     SshSubmitter.class, AbciSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class
@@ -57,7 +55,7 @@ public class Host implements DataDirectory, PropertyFile {
   private JSONObject parameters = null;
   private JSONObject xsubTemplate = null;
 
-  public Host(String name) {
+  public Computer(String name) {
     this.name = name;
     instanceMap.put(name, this);
 
@@ -80,8 +78,8 @@ public class Host implements DataDirectory, PropertyFile {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Host) {
-      return getName().equals(((Host) o).getName());
+    if (o instanceof Computer) {
+      return getName().equals(((Computer) o).getName());
     }
     return false;
   }
@@ -90,25 +88,25 @@ public class Host implements DataDirectory, PropertyFile {
     return name;
   }
 
-  public static Host getInstance(String name) {
+  public static Computer getInstance(String name) {
     if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath().resolve(name))) {
-      Host host = instanceMap.get(name);
-      if (host == null) {
-        host = new Host(name);
+      Computer computer = instanceMap.get(name);
+      if (computer == null) {
+        computer = new Computer(name);
       }
-      return host;
+      return computer;
     }
     return null;
   }
 
-  public static Host find(String key) {
+  public static Computer find(String key) {
     return getInstance(key);
   }
 
-  public static ArrayList<Host> getList() {
+  public static ArrayList<Computer> getList() {
     initializeWorkDirectory();
 
-    ArrayList<Host> list = new ArrayList<>();
+    ArrayList<Computer> list = new ArrayList<>();
 
     for (File file : getBaseDirectoryPath().toFile().listFiles()) {
       if (file.isDirectory()) {
@@ -138,30 +136,30 @@ public class Host implements DataDirectory, PropertyFile {
     if (getPollingInterval() == null) { setPollingInterval(10); }
   }
 
-  public static ArrayList<Host> getViableList() {
-    ArrayList<Host> list = new ArrayList<>();
+  public static ArrayList<Computer> getViableList() {
+    ArrayList<Computer> list = new ArrayList<>();
 
-    for (Host host : getList()) {
-      if (host.getState().equals(HostState.Viable)) {
-        list.add(host);
+    for (Computer computer : getList()) {
+      if (computer.getState().equals(HostState.Viable)) {
+        list.add(computer);
       }
     }
 
     return list;
   }
 
-  public static Host create(String name, String submitterClassName) {
+  public static Computer create(String name, String submitterClassName) {
     Data.initializeWorkDirectory();
 
     name = FileName.removeRestrictedCharacters(name);
 
-    Host host = getInstance(name);
-    if (host == null) {
-      host = new Host(name);
+    Computer computer = getInstance(name);
+    if (computer == null) {
+      computer = new Computer(name);
     }
-    host.setSubmitterType(submitterClassName);
+    computer.setSubmitterType(submitterClassName);
 
-    return host;
+    return computer;
   }
 
   public static ArrayList<String> getSubmitterTypeNameList() {
@@ -495,7 +493,7 @@ public class Host implements DataDirectory, PropertyFile {
   }
 
   public static Path getBaseDirectoryPath() {
-    return Data.getWaffleDirectoryPath().resolve(Constants.HOST);
+    return Data.getWaffleDirectoryPath().resolve(Constants.COMPUTER);
   }
 
   @Override
@@ -516,7 +514,7 @@ public class Host implements DataDirectory, PropertyFile {
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(Constants.HOST + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(Constants.COMPUTER + Constants.EXT_JSON);
   }
 
   public static void initializeWorkDirectory() {

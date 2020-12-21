@@ -55,7 +55,7 @@ abstract public class AbstractSubmitter {
   abstract public boolean isConnected();
   abstract public void close();
 
-  abstract public JSONObject getDefaultParameters(Host host);
+  abstract public JSONObject getDefaultParameters(Computer computer);
 
   abstract public Path parseHomePath(String pathString) throws FailedToControlRemoteException;
 
@@ -75,18 +75,18 @@ abstract public class AbstractSubmitter {
     putText(job, Paths.get(pathString), text);
   }
 
-  public static AbstractSubmitter getInstance(Host host) {
+  public static AbstractSubmitter getInstance(Computer computer) {
     AbstractSubmitter submitter = null;
     try {
-      Class<?> clazz = Class.forName(host.getSubmitterType());
-      Constructor<?> constructor = clazz.getConstructor(Host.class);
-      submitter = (AbstractSubmitter) constructor.newInstance(new Object[]{host});
+      Class<?> clazz = Class.forName(computer.getSubmitterType());
+      Constructor<?> constructor = clazz.getConstructor(Computer.class);
+      submitter = (AbstractSubmitter) constructor.newInstance(new Object[]{computer});
     }catch(Exception e) {
       ErrorLogMessage.issue(e);
     }
 
     if (submitter == null) {
-      submitter = new SshSubmitter(host);
+      submitter = new SshSubmitter(computer);
     }
 
     return submitter;
@@ -159,8 +159,8 @@ abstract public class AbstractSubmitter {
   }
 
   public Path getRunDirectory(SimulatorRun run) throws FailedToControlRemoteException {
-    Host host = run.getActualHost();
-    Path path = parseHomePath(host.getWorkBaseDirectory()).resolve(RUN_DIR).resolve(run.getId());
+    Computer computer = run.getActualHost();
+    Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(RUN_DIR).resolve(run.getId());
 
     createDirectories(path);
 
@@ -244,22 +244,22 @@ abstract public class AbstractSubmitter {
   }
 
   String xsubCommand(Job job) throws FailedToControlRemoteException, RunNotFoundException {
-    Host host = job.getHost();
-    return "XSUB_COMMAND=`which " + getXsubBinDirectory(host) + "xsub`; " +
+    Computer computer = job.getHost();
+    return "XSUB_COMMAND=`which " + getXsubBinDirectory(computer) + "xsub`; " +
       "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
-      "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + host.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
+      "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + computer.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
   String xstatCommand(Job job) {
-    Host host = job.getHost();
+    Computer computer = job.getHost();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + getXsubBinDirectory(host) + "xstat " + job.getJobId();
+      + getXsubBinDirectory(computer) + "xstat " + job.getJobId();
   }
 
   String xdelCommand(Job job) {
-    Host host = job.getHost();
+    Computer computer = job.getHost();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + getXsubBinDirectory(host) + "xdel " + job.getJobId();
+      + getXsubBinDirectory(computer) + "xdel " + job.getJobId();
   }
 
   void processXsubSubmit(Job job, String json) throws Exception {
@@ -365,16 +365,16 @@ abstract public class AbstractSubmitter {
     return getWorkDirectory(run).resolve(path);
   }
 
-  public static String getXsubBinDirectory(Host host) {
-    String separator = (host.isLocal() ? File.separator : "/");
-    return (host.getXsubDirectory().equals("") ? "": host.getXsubDirectory() + separator + "bin" + separator);
+  public static String getXsubBinDirectory(Computer computer) {
+    String separator = (computer.isLocal() ? File.separator : "/");
+    return (computer.getXsubDirectory().equals("") ? "": computer.getXsubDirectory() + separator + "bin" + separator);
   }
 
-  public static JSONObject getXsubTemplate(Host host, boolean retry) throws RuntimeException, FailedToControlRemoteException {
-    AbstractSubmitter submitter = getInstance(host).connect(retry);
+  public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, FailedToControlRemoteException {
+    AbstractSubmitter submitter = getInstance(computer).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
-      getXsubBinDirectory(host) + "xsub -t";
+      getXsubBinDirectory(computer) + "xsub -t";
     String json = submitter.exec(command);
     if (json != null) {
       try {
@@ -386,17 +386,17 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
-  public static JSONObject getParameters(Host host) {
-    AbstractSubmitter submitter = getInstance(host);
-    JSONObject jsonObject = submitter.getDefaultParameters(host);
+  public static JSONObject getParameters(Computer computer) {
+    AbstractSubmitter submitter = getInstance(computer);
+    JSONObject jsonObject = submitter.getDefaultParameters(computer);
     return jsonObject;
   }
 
-  protected boolean isSubmittable(Host host, Job job) {
-    return isSubmittable(host, job, Job.getList(host));
+  protected boolean isSubmittable(Computer computer, Job job) {
+    return isSubmittable(computer, job, Job.getList(computer));
   }
 
-  protected boolean isSubmittable(Host host, Job next, ArrayList<Job>... lists) {
+  protected boolean isSubmittable(Computer computer, Job next, ArrayList<Job>... lists) {
     SimulatorRun nextRun = null;
     try {
       if (next != null) {
@@ -413,12 +413,12 @@ abstract public class AbstractSubmitter {
       memory += list.stream().mapToDouble(o->o.getRequiredMemory()).sum();
     }
 
-    return (thread <= getMaximumNumberOfThreads(host) && memory <= getAllocableMemorySize(host));
+    return (thread <= getMaximumNumberOfThreads(computer) && memory <= getAllocableMemorySize(computer));
   }
 
-  public void pollingTask(Host host) throws FailedToControlRemoteException {
-    pollingInterval = host.getPollingInterval();
-    ArrayList<Job> jobList = Job.getList(host);
+  public void pollingTask(Computer computer) throws FailedToControlRemoteException {
+    pollingInterval = computer.getPollingInterval();
+    ArrayList<Job> jobList = Job.getList(computer);
 
     createdJobList.clear();
     preparedJobList.clear();
@@ -430,13 +430,13 @@ abstract public class AbstractSubmitter {
       try {
         switch (job.getState(true)) {
           case Created:
-            if (isSubmittable(host, null, createdJobList, preparedJobList)) {
+            if (isSubmittable(computer, null, createdJobList, preparedJobList)) {
               job.getRun(); // check exists
               createdJobList.add(job);
             }
             break;
           case Prepared:
-            if (isSubmittable(host, null, createdJobList, preparedJobList)) {
+            if (isSubmittable(computer, null, createdJobList, preparedJobList)) {
               job.getRun(); // check exists
               preparedJobList.add(job);
             }
@@ -467,18 +467,18 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
     }
 
-    processJobLists(host, createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
+    processJobLists(computer, createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
   }
 
-  public double getMaximumNumberOfThreads(Host host) {
-    return host.getMaximumNumberOfThreads();
+  public double getMaximumNumberOfThreads(Computer computer) {
+    return computer.getMaximumNumberOfThreads();
   }
 
-  public double getAllocableMemorySize(Host host) {
-    return host.getAllocableMemorySize();
+  public double getAllocableMemorySize(Computer computer) {
+    return computer.getAllocableMemorySize();
   }
 
-  public void processJobLists(Host host, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
+  public void processJobLists(Computer computer, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
     //int submittedCount = submittedJobList.size() + runningJobList.size();
     submittedJobList.addAll(runningJobList);
     ArrayList<Job> submittedJobListForAggregation = new ArrayList<>(submittedJobList);
@@ -525,7 +525,7 @@ abstract public class AbstractSubmitter {
             submittedJobListForAggregation.remove(job);
             if (! queuedJobList.isEmpty()) {
               Job nextJob = queuedJobList.get(0);
-              if (isSubmittable(host, nextJob, submittedJobListForAggregation)) {
+              if (isSubmittable(computer, nextJob, submittedJobListForAggregation)) {
                 submit(nextJob);
                 queuedJobList.remove(nextJob);
               }
@@ -544,7 +544,7 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
 
       try {
-        if (isSubmittable(host, job, submittedJobListForAggregation)) {
+        if (isSubmittable(computer, job, submittedJobListForAggregation)) {
           submit(job);
         }
       } catch (WaffleException e) {
