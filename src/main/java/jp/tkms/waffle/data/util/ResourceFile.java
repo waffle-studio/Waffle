@@ -2,12 +2,17 @@ package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.data.Job;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import spark.utils.IOUtils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 
 public class ResourceFile {
   private static ResourceFile staticInstance = new ResourceFile();
@@ -39,4 +44,25 @@ public class ResourceFile {
     return contents.toString();
   }
 
+  public static void unzip(String fileName, Path destPath) {
+    try (ZipFile zipFile = new ZipFile(new File(staticInstance.getClass().getResource(fileName).toURI()))) {
+      Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
+        Path entryPath = destPath.resolve(entry.getName());
+        if (entry.isDirectory()) {
+          Files.createDirectories(entryPath);
+        } else {
+          Files.createDirectories(entryPath.getParent());
+          try (InputStream in = zipFile.getInputStream(entry)){
+            try (OutputStream out = new FileOutputStream(entryPath.toFile())){
+              IOUtils.copy(in, out);
+            }
+          }
+        }
+      }
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
+  }
 }

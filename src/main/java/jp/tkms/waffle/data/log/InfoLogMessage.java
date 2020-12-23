@@ -17,6 +17,6 @@ public class InfoLogMessage extends LogMessage {
   }
 
   public static void issue(Computer computer, String message) {
-    new InfoLogMessage("Host(" + computer.getName() + ") " + message).printMessage();
+    new InfoLogMessage("Computer(" + computer.getName() + ") " + message).printMessage();
   }
 }

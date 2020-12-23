@@ -5,6 +5,9 @@
  * For more details take a look at the Java Quickstart chapter in the Gradle
  * user guide available at https://docs.gradle.org/4.4.1/userguide/tutorial_java_projects.html
  */
+
+String jruby_jar = "jruby-complete-9.2.14.0.jar"
+
 buildscript {
 	repositories {
 		jcenter()
@@ -62,7 +65,6 @@ dependencies {
 mainClassName = 'jp.tkms.waffle.Main'
 applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"]
 
-
 processResources {
 	doFirst {
 		filesMatching("version.txt") {
@@ -74,8 +76,45 @@ processResources {
 		from ('sub_project/waffle-virtual-job-executor/build/libs') {
 			include 'waffle-virtual-job-executor-all.jar'
 		}
-		into 'build/resources'
+		into 'build/resources/main'
+	}
+}
+processResources.outputs.upToDateWhen { false }
+
+task createXsub {
+	doLast {
+		copy {
+			from 'xsub'
+			into 'build/tmp/xsub_archive/xsub'
+		}
+	}
+	doLast {
+		file("build/tmp/xsub_archive/xsub/bin").renameTo(file("build/tmp/xsub_archive/xsub/org_bin"))
+	}
+	doLast {
+		copy {
+			from 'src/main/resources/xsub/bin'
+			into 'build/tmp/xsub_archive/xsub/bin'
+		}
+	}
+    doLast {
+		copy {
+			from ('lib') {
+				include jruby_jar
+			}
+			into 'build/tmp/xsub_archive/xsub/bin'
+		}
+	}
+	doLast {
+		file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
 	}
 }
 
-processResources.outputs.upToDateWhen { false }
+task createXsubArchive(type: Zip, dependsOn: createXsub) {
+	destinationDirectory = file('build/resources/main')
+	archiveFileName = 'xsub.zip'
+	from 'build/tmp/xsub_archive/'
+	excludes = ['.git',]
+}
+
+assemble.dependsOn(jar, createXsubArchive)

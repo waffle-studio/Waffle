@@ -54,7 +54,7 @@ public class Database implements AutoCloseable {
 
   public static synchronized Database getDatabase(Path path) {
     if (path == null) {
-      path = Paths.get( Constants.WORK_DIR + File.separator + Constants.MAIN_DB_NAME);
+      path = Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(Constants.MAIN_DB_NAME);
     }
 
     Path dirPath = path.getParent();

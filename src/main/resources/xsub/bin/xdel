@@ -1,0 +1,11 @@
+#!/bin/sh
+
+COMMAND="xdel"
+BIN_DIR=$(dirname $0)
+which ruby >/dev/null 2>&1
+if [ $? -eq 0 ];then
+ruby ${BIN_DIR}/../org_bin/${COMMAND} "$@"
+else
+java -jar ${BIN_DIR}/jruby-complete.jar ${BIN_DIR}/../org_bin/${COMMAND} "$@"
+fi
+

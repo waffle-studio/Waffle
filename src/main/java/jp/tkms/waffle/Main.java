@@ -198,6 +198,7 @@ public class Main {
               case "quit":
               case "hibernate":
                 hibernate();
+                break;
               case "kill":
                 aliveFlag = false;
                 System.exit(1);

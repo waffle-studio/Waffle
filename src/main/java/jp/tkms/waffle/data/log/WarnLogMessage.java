@@ -30,7 +30,7 @@ public class WarnLogMessage extends LogMessage {
   }
 
   public static void issue(Computer computer, String message) {
-    new WarnLogMessage("Host(" + computer.getName() + ") " + message).printMessage();
+    new WarnLogMessage("Computer(" + computer.getName() + ") " + message).printMessage();
   }
 
   public static void issue(SimulatorRun run, WaffleException e) {

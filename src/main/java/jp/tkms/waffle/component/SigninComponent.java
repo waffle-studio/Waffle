@@ -1,11 +1,15 @@
 package jp.tkms.waffle.component;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 import jp.tkms.waffle.component.template.MainTemplate;
 import jp.tkms.waffle.data.UserSession;
+import jp.tkms.waffle.data.log.ErrorLogMessage;
 import spark.Spark;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -16,6 +20,14 @@ public class SigninComponent extends AbstractComponent {
   public SigninComponent(Mode mode) {
     super();
     this.mode = mode;
+
+    if (!Files.exists(Constants.WORK_DIR.resolve(Constants.PASSWORD))) {
+      try {
+        Files.write(Constants.WORK_DIR.resolve(Constants.PASSWORD), "".getBytes());
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
   }
 
   public SigninComponent() {

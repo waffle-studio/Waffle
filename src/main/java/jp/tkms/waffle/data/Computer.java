@@ -4,9 +4,11 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.submitter.*;
 import org.json.JSONObject;
 
@@ -35,6 +37,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_STATE = "state";
   private static final String KEY_ENVIRONMENTS = "environments";
+  private static final String KEY_MESSAGE = "message";
   private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
   private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
 
@@ -520,7 +523,20 @@ public class Computer implements DataDirectory, PropertyFile {
   public static void initializeWorkDirectory() {
     Data.initializeWorkDirectory();
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
-      create(KEY_LOCAL, LocalSubmitter.class.getCanonicalName());
+      Computer computer = create(KEY_LOCAL, LocalSubmitter.class.getCanonicalName());
+      Path xsubPath = Constants.WORK_DIR.resolve("xsub");
+      if (! Files.exists(xsubPath)) {
+        ResourceFile.unzip("/xsub.zip", Constants.WORK_DIR);
+        try {
+          Process process = new ProcessBuilder("sh", xsubPath.resolve("bin").resolve("set_perm.sh").toString()).start();
+          process.waitFor();
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+      computer.setXsubDirectory(xsubPath.toString());
+      computer.update();
+      InfoLogMessage.issue(computer, "was added automatically");
     }
   }
 }
