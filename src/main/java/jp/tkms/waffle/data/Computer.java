@@ -3,6 +3,8 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
+import jp.tkms.waffle.data.exception.NotFoundXsubException;
+import jp.tkms.waffle.data.exception.WaffleException;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.WarnLogMessage;
@@ -174,14 +176,29 @@ public class Computer implements DataDirectory, PropertyFile {
   }
 
   public void update() {
+    String err = "ERR";
     try {
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
+      err = jsonObject.toString();
       setXsubTemplate(jsonObject);
       setParameters(getParameters());
       setState(HostState.Viable);
-    } catch (RuntimeException | FailedToControlRemoteException e) {
+      setMessage("");
+    } catch (NotFoundXsubException e) {
+      setMessage("bin/xsub is not found in " + getXsubDirectory());
+      setState(HostState.XsubNotFound);
+    } catch (RuntimeException | WaffleException e) {
+      setMessage(e.getMessage());
       setState(HostState.Unviable);
     }
+  }
+
+  private void setMessage(String message) {
+    setToProperty(KEY_MESSAGE, message);
+  }
+
+  public String getMessage() {
+    return getStringFromProperty(KEY_MESSAGE, "");
   }
 
   private void setState(HostState state) {

@@ -4,10 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
-import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
-import jp.tkms.waffle.data.exception.FailedToTransferFileException;
-import jp.tkms.waffle.data.exception.RunNotFoundException;
-import jp.tkms.waffle.data.exception.WaffleException;
+import jp.tkms.waffle.data.exception.*;
 import jp.tkms.waffle.data.log.ErrorLogMessage;
 import jp.tkms.waffle.data.log.InfoLogMessage;
 import jp.tkms.waffle.data.log.LogMessage;
@@ -370,7 +367,7 @@ abstract public class AbstractSubmitter {
     return (computer.getXsubDirectory().equals("") ? "": computer.getXsubDirectory() + separator + "bin" + separator);
   }
 
-  public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, FailedToControlRemoteException {
+  public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
     AbstractSubmitter submitter = getInstance(computer).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
@@ -380,7 +377,12 @@ abstract public class AbstractSubmitter {
       try {
         jsonObject = new JSONObject(json);
       } catch (Exception e) {
-        throw new RuntimeException("Failed to parse JSON");
+        if (submitter.exec("if test ! -e '" + getXsubBinDirectory(computer) + "xsub'; then echo NotFound; fi;").startsWith("NotFound")) {
+          throw new NotFoundXsubException(e);
+        }
+        throw new RuntimeException("Failed to parse JSON : " +
+          submitter.exec("if test ! -e '" + getXsubBinDirectory(computer) + "xsub'; then echo NotFound; fi;")
+          );
       }
     }
     return jsonObject;
