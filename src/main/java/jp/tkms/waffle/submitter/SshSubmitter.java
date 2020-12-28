@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter extends AbstractSubmitter {
+  public static final String KEY_IDENTITY_FILE = "identity_file";
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
@@ -70,7 +71,7 @@ public class SshSubmitter extends AbstractSubmitter {
 
       if (useTunnel) {
         JSONObject object = computer.getParametersWithDefaultParameters().getJSONObject("tunnel");
-        tunnelSession = new SshSession();
+        tunnelSession = new SshSession(computer);
         tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
         String tunnelIdentityPass = object.getString("identity_pass");
         if (tunnelIdentityPass == null) {
@@ -96,7 +97,7 @@ public class SshSubmitter extends AbstractSubmitter {
         computer.setParameter("tunnel", object);
       }
 
-      session = new SshSession();
+      session = new SshSession(computer);
       session.setSession(user, hostName, port);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
@@ -105,7 +106,6 @@ public class SshSubmitter extends AbstractSubmitter {
       }
       session.connect(retry);
     } catch (Exception e) {
-      e.printStackTrace();
       throw new RuntimeException(e.getMessage());
     }
 

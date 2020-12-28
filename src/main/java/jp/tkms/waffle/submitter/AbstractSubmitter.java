@@ -377,7 +377,7 @@ abstract public class AbstractSubmitter {
       try {
         jsonObject = new JSONObject(json);
       } catch (Exception e) {
-        if (submitter.exec("if test ! -e '" + getXsubBinDirectory(computer) + "xsub'; then echo NotFound; fi;").startsWith("NotFound")) {
+        if (submitter.exec("which '" + getXsubBinDirectory(computer) + "xsub' 2>/dev/null; if test 0 -ne $?; then echo NotFound; fi;").startsWith("NotFound")) {
           throw new NotFoundXsubException(e);
         }
         throw new RuntimeException("Failed to parse JSON : " +

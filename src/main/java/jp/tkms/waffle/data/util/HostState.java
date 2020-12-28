@@ -4,7 +4,7 @@ import jp.tkms.waffle.component.template.Html;
 import jp.tkms.waffle.component.template.Lte;
 
 public enum HostState {
-  Viable, Unviable, XsubNotFound, Stopped;
+  Viable, Unviable, KeyNotFound, UnsupportedKey, XsubNotFound, Stopped;
 
   public static HostState valueOf(int i) {
     return values()[i];
@@ -16,6 +16,10 @@ public enum HostState {
         return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Unviable:
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), name());
+      case KeyNotFound:
+        return Lte.badge("danger", new Html.Attributes(Html.value("style","width:8em;")), name());
+      case UnsupportedKey:
+        return Lte.badge("danger", new Html.Attributes(Html.value("style","width:9em;")), name());
       case XsubNotFound:
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:8em;")), name());
       case Stopped:

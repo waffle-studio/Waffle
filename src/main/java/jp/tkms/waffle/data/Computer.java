@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -176,20 +177,43 @@ public class Computer implements DataDirectory, PropertyFile {
   }
 
   public void update() {
-    String err = "ERR";
     try {
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
-      err = jsonObject.toString();
       setXsubTemplate(jsonObject);
       setParameters(getParameters());
       setState(HostState.Viable);
       setMessage("");
     } catch (NotFoundXsubException e) {
-      setMessage("bin/xsub is not found in " + getXsubDirectory());
+      setMessage("bin/xsub is not found in " + ("".equals(getXsubDirectory()) ? "$PATH" : getXsubDirectory()));
       setState(HostState.XsubNotFound);
     } catch (RuntimeException | WaffleException e) {
-      setMessage(e.getMessage());
-      setState(HostState.Unviable);
+      String message = e.getMessage();
+      if (message.startsWith("java.io.FileNotFoundException: ")) {
+        message = message.replaceFirst("java\\.io\\.FileNotFoundException: ", "");
+        setState(HostState.KeyNotFound);
+      } else if (message.startsWith("invalid privatekey: ")) {
+        if (getParameters().keySet().contains(SshSubmitter.KEY_IDENTITY_FILE)) {
+          String keyPath = getParameters().getString(SshSubmitter.KEY_IDENTITY_FILE);
+          if (keyPath.indexOf('~') == 0) {
+            keyPath = keyPath.replaceFirst("^~", System.getProperty("user.home"));
+          }
+          try {
+            if (!"".equals(keyPath) && (new String(Files.readAllBytes(Paths.get(keyPath)))).indexOf("OPENSSH PRIVATE KEY") > 0) {
+              message = keyPath + " is a OpenSSH private key type and WAFFLE does not supported the key type";
+              setState(HostState.UnsupportedKey);
+            }
+          } catch (IOException ioException) {
+            ErrorLogMessage.issue(ioException);
+          }
+        }
+      } else {
+        message = message.replaceFirst("Auth fail", "probably, invalid user or key");
+        message = message.replaceFirst("USERAUTH fail", "probably, invalid key passphrase (identity_pass)");
+        message = message.replaceFirst("java\\.net\\.UnknownHostException: (.*)", "$1 is unknown host");
+        message = message.replaceFirst("java\\.net\\.ConnectException: Connection refused \\(Connection refused\\)", "Connection refused (could not connect to the SSH server)");
+        setState(HostState.Unviable);
+      }
+      setMessage(message);
     }
   }
 
@@ -443,12 +467,12 @@ public class Computer implements DataDirectory, PropertyFile {
 
   public void setParameters(JSONObject jsonObject) {
     synchronized (this) {
-      JSONObject filteredParameters = getFilteredParameters();
-      for (String key : filteredParameters.keySet()) {
-        jsonObject.put(key, filteredParameters.get(key));
+      JSONObject parameters = getFilteredParameters();
+      for (String key : jsonObject.keySet()) {
+        parameters.put(key, jsonObject.get(key));
       }
 
-      updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, jsonObject.toString(2));
+      updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, parameters.toString(2));
       this.parameters = null;
     }
   }

@@ -2,6 +2,7 @@ package jp.tkms.waffle.submitter.util;
 
 import com.jcraft.jsch.*;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.Computer;
 import jp.tkms.waffle.data.log.WarnLogMessage;
 
 import java.io.*;
@@ -24,8 +25,10 @@ public class SshSession {
   String username;
   String host;
   int port;
+  Computer loggingTarget;
 
-  public SshSession() throws JSchException {
+  public SshSession(Computer loggingTarget) throws JSchException {
+    this.loggingTarget = loggingTarget;
     this.jsch = new JSch();
     if (Files.exists(Paths.get(DEFAULT_CONFIG_FILE))) {
       try {
@@ -79,10 +82,10 @@ public class SshSession {
         }
 
         if (!retry) {
-          WarnLogMessage.issue(e.getMessage());
+          WarnLogMessage.issue(loggingTarget, e.getMessage());
           throw e;
         } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
-          WarnLogMessage.issue(e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
+          WarnLogMessage.issue(loggingTarget, e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
           session.disconnect();
           try {
             Thread.sleep(waitTime * 1000);
@@ -127,7 +130,7 @@ public class SshSession {
           failed = true;
           channelSemaphore.release();
 
-          WarnLogMessage.issue("Retry to open channel after 1 sec.");
+          WarnLogMessage.issue(loggingTarget, "Retry to open channel after 1 sec.");
           try {
             Thread.sleep(1000);
           } catch (InterruptedException ex) {
@@ -152,7 +155,7 @@ public class SshSession {
           try {
             mkdir(path.getParent());
           } catch (JSchException ex) {
-            WarnLogMessage.issue(e);
+            WarnLogMessage.issue(loggingTarget, e);
             return false;
           }
         }
@@ -165,7 +168,7 @@ public class SshSession {
           try {
             channelSftp.mkdir(path.toString());
           } catch (SftpException ex) {
-            WarnLogMessage.issue(ex);
+            WarnLogMessage.issue(loggingTarget, ex);
             return false;
           }
         }
@@ -194,7 +197,7 @@ public class SshSession {
         resultText[0] = new BufferedReader(new InputStreamReader(inputStream)).lines().collect(Collectors.joining("\n"));
         inputStream.close();
       } catch (SftpException | IOException e) {
-        WarnLogMessage.issue(e);
+        WarnLogMessage.issue(loggingTarget, e);
         return false;
       }
       return true;
@@ -211,7 +214,7 @@ public class SshSession {
         channelSftp.cd(workDir);
         channelSftp.put (new ByteArrayInputStream(text.getBytes ()), path);
       } catch (SftpException e) {
-        WarnLogMessage.issue(e);
+        WarnLogMessage.issue(loggingTarget, e);
         return false;
       }
       return true;
@@ -233,7 +236,7 @@ public class SshSession {
           transferFile(remote, local.toPath(), channelSftp);
         }
       } catch (Exception e) {
-        WarnLogMessage.issue(e);
+        WarnLogMessage.issue(loggingTarget, e);
         return false;
       }
       return true;
@@ -254,7 +257,7 @@ public class SshSession {
           transferFile(local, dest, channelSftp);
         }
       } catch (Exception e) {
-        WarnLogMessage.issue(e);
+        WarnLogMessage.issue(loggingTarget, e);
         return false;
       }
       return true;
@@ -281,7 +284,7 @@ public class SshSession {
           if (e.getMessage().equals("channel is not opened.")) {
             failed = true;
             channelSftp = null;
-            WarnLogMessage.issue("Retry to open channel after 1 sec.");
+            WarnLogMessage.issue(loggingTarget, "Retry to open channel after 1 sec.");
             try { Thread.sleep(1000); } catch (InterruptedException ex) { }
           } else {
             throw e;

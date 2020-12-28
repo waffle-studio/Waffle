@@ -33,6 +33,10 @@ public class WarnLogMessage extends LogMessage {
     new WarnLogMessage("Computer(" + computer.getName() + ") " + message).printMessage();
   }
 
+  public static void issue(Computer computer, Throwable e) {
+    issue(computer, getStackTrace(e));
+  }
+
   public static void issue(SimulatorRun run, WaffleException e) {
     issue(run, e.getMessage());
   }
