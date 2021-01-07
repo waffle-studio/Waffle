@@ -1,11 +1,11 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.component.*;
-import jp.tkms.waffle.data.JobStore;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
+import jp.tkms.waffle.data.job.JobStore;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
+import jp.tkms.waffle.web.component.*;
 import spark.Spark;
 
 import java.io.*;
@@ -91,7 +91,7 @@ public class Main {
           try {
             Thread.sleep(500);
           } catch (InterruptedException e) {
-            // not needed output
+            // not needed to output
           }
         }
         return;

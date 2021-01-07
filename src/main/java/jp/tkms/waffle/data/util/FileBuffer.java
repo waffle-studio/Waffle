@@ -1,16 +1,12 @@
 package jp.tkms.waffle.data.util;
 
-import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class FileBuffer {
   private static ConcurrentHashMap<Path, Object> map = new ConcurrentHashMap<>();

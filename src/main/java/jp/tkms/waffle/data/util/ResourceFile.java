@@ -1,17 +1,14 @@
 package jp.tkms.waffle.data.util;
 
-import jp.tkms.waffle.data.Job;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import spark.utils.IOUtils;
 
 import java.io.*;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 public class ResourceFile {

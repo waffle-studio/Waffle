@@ -1,6 +1,6 @@
 package jp.tkms.waffle.collector;
 
-import jp.tkms.waffle.data.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
 import java.lang.reflect.Constructor;

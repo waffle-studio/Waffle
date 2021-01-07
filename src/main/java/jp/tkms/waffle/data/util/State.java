@@ -1,7 +1,7 @@
 package jp.tkms.waffle.data.util;
 
-import jp.tkms.waffle.component.template.Html;
-import jp.tkms.waffle.component.template.Lte;
+import jp.tkms.waffle.web.template.Html;
+import jp.tkms.waffle.web.template.Lte;
 
 public enum State {
   Created, Prepared, Submitted, Running, Finished, Failed, Excepted, Cancel, Canceled, None;

@@ -1,10 +1,10 @@
-class Simulator < Java::jp.tkms.waffle.data.Simulator
+class Simulator < Java::Simulator
 end
 
-class Host < Java::jp.tkms.waffle.data.Computer
+class Host < Java::Computer
 end
 
-class ActorGroup < Java::jp.tkms.waffle.data.ActorGroup
+class ActorGroup < Java::ActorGroup
 end
 
 class ConductorArgument
@@ -21,18 +21,18 @@ class ConductorArgument
     end
 end
 
-class Actor < Java::jp.tkms.waffle.data.ActorRun
+class Actor < Java::ActorRun
 end
 
-class SimulatorRun < Java::jp.tkms.waffle.data.SimulatorRun
+class SimulatorRun < Java::SimulatorRun
 end
 
-class Registry < Java::jp.tkms.waffle.data.Registry
+class Registry < Java::Registry
 end
 
 def self.alert(text)
     puts "alert: " + text.to_s
-    Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
+    Java::BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
 end
 
 def get_store(registry, entity_id)
@@ -68,7 +68,7 @@ class TemplateArgument
     end
 end
 
-class Hub < Java::jp.tkms.waffle.data.util.Hub
+class Hub < Java::Hub
     def initialize(conductorRun, run, template)
         super(conductorRun, run, template)
         @store = get_store(registry, conductorRun.id)

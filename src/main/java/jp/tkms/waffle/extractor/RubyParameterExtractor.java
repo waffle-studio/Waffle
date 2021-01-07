@@ -1,18 +1,12 @@
 package jp.tkms.waffle.extractor;
 
-import jp.tkms.waffle.data.BrowserMessage;
-import jp.tkms.waffle.data.SimulatorRun;
-import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 import org.jruby.Ruby;
-import org.jruby.RubySystemCallError;
 import org.jruby.embed.EvalFailedException;
-import org.jruby.embed.LocalContextScope;
-import org.jruby.embed.ScriptingContainer;
-import org.jruby.exceptions.LoadError;
-import org.jruby.exceptions.SystemCallError;
 
 public class RubyParameterExtractor extends AbstractParameterExtractor {
   @Override

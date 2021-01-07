@@ -2,8 +2,8 @@ package jp.tkms.waffle.submitter.util;
 
 import com.jcraft.jsch.*;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.Computer;
-import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 

@@ -1,7 +1,5 @@
 package jp.tkms.waffle.data.util;
 
-import jp.tkms.waffle.data.Database;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;

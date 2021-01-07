@@ -1,8 +1,8 @@
 package jp.tkms.waffle.conductor;
 
-import jp.tkms.waffle.data.AbstractRun;
-import jp.tkms.waffle.data.ActorGroup;
-import jp.tkms.waffle.data.ActorRun;
+import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
+import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.util.State;
 
 import java.lang.reflect.Constructor;

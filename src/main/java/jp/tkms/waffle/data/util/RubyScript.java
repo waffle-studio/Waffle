@@ -1,9 +1,8 @@
 package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.WarnLogMessage;
-import org.jruby.Ruby;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
@@ -11,9 +10,7 @@ import org.jruby.embed.ScriptingContainer;
 import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 
-import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class RubyScript {

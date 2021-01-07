@@ -1,34 +1,21 @@
 package jp.tkms.waffle.submitter.util;
 
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
-import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.connection.ConnectionException;
-import net.schmizz.sshj.connection.channel.direct.DirectConnection;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.sftp.*;
-import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.keyprovider.FileKeyProvider;
-import net.schmizz.sshj.userauth.keyprovider.KeyFormat;
-import net.schmizz.sshj.userauth.keyprovider.KeyProviderUtil;
 import net.schmizz.sshj.userauth.keyprovider.OpenSSHKeyFile;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.InMemorySourceFile;
-import net.schmizz.sshj.xfer.LocalSourceFile;
-import org.bouncycastle.jcajce.provider.util.SecretKeyUtil;
-import org.bouncycastle.pqc.jcajce.provider.util.KeyUtil;
 
 import java.io.*;
-import java.nio.channels.ScatteringByteChannel;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.Semaphore;
 
 public class SshSession2 {
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";

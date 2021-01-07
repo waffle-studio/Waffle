@@ -1,10 +1,10 @@
-class Simulator < Java::jp.tkms.waffle.data.Simulator
+class Simulator < Java::jp.tkms.waffle.data.project.executable.Simulator
 end
 
-class Computer < Java::jp.tkms.waffle.data.Computer
+class Computer < Java::jp.tkms.waffle.data.computer.Computer
 end
 
-class ActorGroup < Java::jp.tkms.waffle.data.ActorGroup
+class ActorGroup < Java::jp.tkms.waffle.data.project.conductor.ActorGroup
 end
 
 class ConductorArgument
@@ -21,13 +21,13 @@ class ConductorArgument
     end
 end
 
-class Actor < Java::jp.tkms.waffle.data.ActorRun
+class Actor < Java::jp.tkms.waffle.data.project.workspace.run.ActorRun
 end
 
-class SimulatorRun < Java::jp.tkms.waffle.data.SimulatorRun
+class SimulatorRun < Java::jp.tkms.waffle.data.project.workspace.run.SimulatorRun
 end
 
-class Registry < Java::jp.tkms.waffle.data.Registry
+class Registry < Java::jp.tkms.waffle.data.project.Registry
 end
 
 def self.system_restart()
@@ -36,7 +36,7 @@ end
 
 def self.alert(text)
     puts "alert: " + text.to_s
-    Java::jp.tkms.waffle.data.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
+    Java::jp.tkms.waffle.data.web.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
 end
 
 def get_store(registry, entity_id)

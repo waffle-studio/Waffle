@@ -1,11 +1,11 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.data.Computer;
-import jp.tkms.waffle.data.Job;
-import jp.tkms.waffle.data.exception.FailedToControlRemoteException;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
-import jp.tkms.waffle.data.log.InfoLogMessage;
-import jp.tkms.waffle.data.log.WarnLogMessage;
+import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.exception.FailedToControlRemoteException;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.HostState;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 

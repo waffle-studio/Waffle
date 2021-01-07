@@ -1,7 +1,8 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.data.log.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.Project;
 
 import java.io.IOException;
 import java.nio.file.Files;
