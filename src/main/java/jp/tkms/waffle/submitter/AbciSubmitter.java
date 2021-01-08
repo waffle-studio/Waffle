@@ -187,10 +187,10 @@ public class AbciSubmitter extends SshSubmitter {
         }
 
         holdingJob = 0;
-        skepPolling();
+        skipPolling();
       } else {
         if (holdingJob != queuedJobList.size()) {
-          skepPolling();
+          skipPolling();
         }
         holdingJob = queuedJobList.size();
       }

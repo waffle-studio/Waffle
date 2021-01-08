@@ -1,11 +1,11 @@
 package jp.tkms.waffle.web.component;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.executable.Simulator;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
@@ -34,7 +34,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return ProjectComponent.getUrl(project) + "/" + Simulator.SIMULATOR;
+    return ProjectComponent.getUrl(project) + "/" + Executable.EXECUTABLE;
   }
 
   public static String getUrl(Project project, String mode) {
@@ -100,9 +100,9 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void addSimulator() {
-    Simulator simulator = Simulator.create(project, request.queryParams("name"));
-    simulator.setSimulatorCommand("");
-    response.redirect(SimulatorComponent.getUrl(simulator));
+    Executable executable = Executable.create(project, request.queryParams("name"));
+    executable.setSimulatorCommand("");
+    response.redirect(SimulatorComponent.getUrl(executable));
   }
 
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
@@ -125,8 +125,8 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Simulator> simulatorList = Simulator.getList(project);
-        if (simulatorList.size() <= 0) {
+        ArrayList<Executable> executableList = Executable.getList(project);
+        if (executableList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl(project, "add"), null, null,
               Html.fasIcon("plus-square") + "Add Simulator"
@@ -149,10 +149,10 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Simulator simulator : simulatorList) {
+              for (Executable executable : executableList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
-                      Html.a(SimulatorComponent.getUrl(simulator), null, null, simulator.getName()));
+                      Html.a(SimulatorComponent.getUrl(executable), null, null, executable.getName()));
                   }
                 ));
               }

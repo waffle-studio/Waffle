@@ -5,7 +5,7 @@ import jp.tkms.waffle.data.project.conductor.ActorGroup;
 import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.executable.Simulator;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.web.updater.RunStatusUpdater;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -98,11 +98,11 @@ public class SimulatorRun extends AbstractRun {
     return Computer.getInstance(getStringFromProperty(KEY_ACTUAL_COMPUTER, getComputer().getName()));
   }
 
-  public Simulator getSimulator() {
+  public Executable getSimulator() {
     if (simulator == null) {
       simulator = getStringFromProperty(KEY_SIMULATOR);
     }
-    return Simulator.getInstance(getProject(), simulator);
+    return Executable.getInstance(getProject(), simulator);
   }
 
   public State getState() {
@@ -173,12 +173,12 @@ public class SimulatorRun extends AbstractRun {
   }
    */
 
-  public static SimulatorRun create(RunNode runNode, ActorRun parent, Simulator simulator, Computer computer) {
+  public static SimulatorRun create(RunNode runNode, ActorRun parent, Executable executable, Computer computer) {
     SimulatorRun run = new SimulatorRun(parent.getProject(), runNode.getUuid(), runNode.getDirectoryPath());
 
     ActorGroup conductor = parent.getActorGroup();
     String actorGroupName = (conductor == null ? "" : conductor.getName());
-    String simulatorName = simulator.getName();
+    String simulatorName = executable.getName();
     String computerName = computer.getName();
     JSONArray callstack = parent.getCallstack();
     callstack.put("##");
@@ -217,7 +217,7 @@ public class SimulatorRun extends AbstractRun {
     try {
       Files.createDirectories(run.getWorkPath());
     } catch (Exception e) {}
-    run.putParametersByJson(simulator.getDefaultParameters().toString());
+    run.putParametersByJson(executable.getDefaultParameters().toString());
 
     return run;
   }

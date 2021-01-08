@@ -1,12 +1,12 @@
 package jp.tkms.waffle.web.component;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.executable.Simulator;
 import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -31,7 +31,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   private Project project;
-  private Simulator simulator;
+  private Executable executable;
   public SimulatorComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -52,19 +52,19 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     ResultCollectorComponent.register();
   }
 
-  public static String getUrl(Simulator simulator) {
-    return "/simulator/"
-      + (simulator == null ? ":project/:" + KEY_SIMULATOR : simulator.getProject().getName() + '/' + simulator.getName());
+  public static String getUrl(Executable executable) {
+    return SimulatorsComponent.getUrl(executable == null ? null : executable.getProject())
+      + (executable == null ? "/:" + KEY_SIMULATOR : '/' + executable.getName());
   }
 
-  public static String getUrl(Simulator simulator, String mode) {
-    return getUrl(simulator) + '/' + mode;
+  public static String getUrl(Executable executable, String mode) {
+    return getUrl(executable) + "/@" + mode;
   }
 
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params(KEY_SIMULATOR));
+    executable = Executable.getInstance(project, request.params(KEY_SIMULATOR));
 
     switch (mode) {
       case Update:
@@ -94,7 +94,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return simulator.getName();
+        return executable.getName();
       }
 
       @Override
@@ -113,17 +113,17 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content +=
-          Html.form(getUrl(simulator, "update"), Html.Method.Post,
+          Html.form(getUrl(executable, "update"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Properties",
-              Html.a(getUrl(simulator, KEY_RUN),
+              Html.a(getUrl(executable, KEY_RUN),
                 Html.span("right badge badge-secondary", null, "test run")
               ),
               Html.div(null,
-                Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", simulator.getBinDirectory().toString()),
-                Lte.readonlyTextInput("Version ID", simulator.getVersionId()),
-                Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", simulator.getSimulationCommand(), errors),
-                Lte.formInputGroup("text", "req_t", "Required thread", "", simulator.getRequiredThread().toString(), errors),
-                Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", simulator.getRequiredMemory().toString(), errors)
+                Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", executable.getBinDirectory().toString()),
+                Lte.readonlyTextInput("Version ID", executable.getVersionId()),
+                Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getSimulationCommand(), errors),
+                Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
+                Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors)
               ),
               Lte.formSubmitButton("success", "Update")
             )
@@ -167,15 +167,15 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
          */
 
-        String defaultParametersText = simulator.getDefaultParameters().toString(2);
+        String defaultParametersText = executable.getDefaultParameters().toString(2);
 
         content +=
-          Html.form(getUrl(simulator, KEY_UPDATE_PARAMETERS), Html.Method.Post,
+          Html.form(getUrl(executable, KEY_UPDATE_PARAMETERS), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Default Parameters",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formJsonEditorGroup(KEY_DEFAULT_PARAMETERS, null, "tree", simulator.getDefaultParameters().toString(), null)
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_PARAMETERS, null, "tree", executable.getDefaultParameters().toString(), null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
@@ -183,7 +183,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           );
 
         content += Lte.card(Html.fasIcon("file-import") + "Parameter Extractors",
-          Html.a(ParameterExtractorComponent.getStaticUrl(simulator, "add"), Html.fasIcon("plus-square")),
+          Html.a(ParameterExtractorComponent.getStaticUrl(executable, "add"), Html.fasIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -193,12 +193,12 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              List<String> nameList = simulator.getExtractorNameList();
+              List<String> nameList = executable.getExtractorNameList();
               if (nameList != null) {
                 for (String extractorName : nameList) {
                   list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
-                        Html.a(ParameterExtractorComponent.getUrl(simulator, extractorName), null, null, extractorName));
+                        Html.a(ParameterExtractorComponent.getUrl(executable, extractorName), null, null, extractorName));
                     }
                   ));
                 }
@@ -209,7 +209,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           , null, null, "p-0");
 
         content += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
-          Html.a(ResultCollectorComponent.getStaticUrl(simulator, "add"), Html.fasIcon("plus-square")),
+          Html.a(ResultCollectorComponent.getStaticUrl(executable, "add"), Html.fasIcon("plus-square")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -219,12 +219,12 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              List<String> nameList = simulator.getCollectorNameList();
+              List<String> nameList = executable.getCollectorNameList();
               if (nameList != null) {
                 for (String collectorName : nameList) {
                   list.add(Main.interfaceThreadPool.submit(() -> {
                       return new Lte.TableRow(
-                        Html.a(ResultCollectorComponent.getUrl(simulator, collectorName), null, null, collectorName));
+                        Html.a(ResultCollectorComponent.getUrl(executable, collectorName), null, null, collectorName));
                     }
                   ));
                 }
@@ -245,7 +245,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (File child : simulator.getBinDirectory().toFile().listFiles()) {
+              for (File child : executable.getBinDirectory().toFile().listFiles()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(child.getName());
                   }
@@ -265,7 +265,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return simulator.getName();
+        return executable.getName();
       }
 
       @Override
@@ -279,7 +279,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Simulators",
-          simulator.getName()
+          executable.getName()
         ));
       }
 
@@ -289,7 +289,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
         SimulatorRun latestRun = null;
         try {
-          latestRun = simulator.getLatestTestRun();
+          latestRun = executable.getLatestTestRun();
         } catch (RunNotFoundException e) { }
 
         if (latestRun != null) {
@@ -323,13 +323,13 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         }
 
         content +=
-          Html.form(getUrl(simulator, "run"), Html.Method.Post,
+          Html.form(getUrl(executable, "run"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "TestRun",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formSelectGroup(KEY_COMPUTER, "Host", Computer.getViableList().stream().map(computer -> computer.getName()).collect(Collectors.toList()), null),
-                  Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", simulator.getDefaultParameters().toString(2), null)
+                  Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", executable.getDefaultParameters().toString(2), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")
@@ -342,20 +342,20 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
   }
 
   void runSimulator() {
-    SimulatorRun run = simulator.runTest(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
+    SimulatorRun run = executable.runTest(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
     response.redirect(RunComponent.getUrl(project, run.getUuid()));
   }
 
   void updateSimulator() {
-    simulator.setSimulatorCommand(request.queryParams("sim_cmd"));
-    simulator.setRequiredThread(Double.parseDouble(request.queryParams("req_t")));
-    simulator.setRequiredMemory(Double.parseDouble(request.queryParams("req_m")));
-    response.redirect(getUrl(simulator));
+    executable.setSimulatorCommand(request.queryParams("sim_cmd"));
+    executable.setRequiredThread(Double.parseDouble(request.queryParams("req_t")));
+    executable.setRequiredMemory(Double.parseDouble(request.queryParams("req_m")));
+    response.redirect(getUrl(executable));
   }
 
   void updateDefaultParameters() {
-    simulator.setDefaultParameters(request.queryParams(KEY_DEFAULT_PARAMETERS));
-    response.redirect(getUrl(simulator));
+    executable.setDefaultParameters(request.queryParams(KEY_DEFAULT_PARAMETERS));
+    response.redirect(getUrl(executable));
   }
 
   public enum Mode {Default, Update, UpdateParameters, TestRun}

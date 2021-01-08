@@ -1,15 +1,17 @@
 package jp.tkms.waffle.web.component;
 
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.executable.Simulator;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import static jp.tkms.waffle.data.project.executable.Executable.KEY_EXTRACTOR;
 
 public class ParameterExtractorComponent extends AbstractAccessControlledComponent {
   public static final String KEY_REMOVE = "remove";
@@ -17,7 +19,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   private Mode mode;
 
   private Project project;
-  private Simulator simulator;
+  private Executable executable;
   private String extractorName;
 
   public ParameterExtractorComponent(Mode mode) {
@@ -37,25 +39,22 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     Spark.get(getUrl(null, null, KEY_REMOVE), new ParameterExtractorComponent(Mode.Remove));
   }
 
-  public static String getStaticUrl(Simulator simulator, String mode) {
-    return "/parameter_extractor-" + mode + "/"
-      + (simulator == null ? ":project/:simulator" : simulator.getProject().getName() + "/" + simulator.getName());
+  public static String getStaticUrl(Executable executable, String mode) {
+    return SimulatorComponent.getUrl(executable) + "/" + KEY_EXTRACTOR + "/@" + (mode == null ? ":mode" : mode);
   }
 
-  public static String getUrl(Simulator simulator, String name) {
-    return "/parameter_extractor/"
-      + (name == null ? ":project/:simulator/:name"
-      : simulator.getProject().getName() + '/' + simulator.getName() + '/' +  name);
+  public static String getUrl(Executable executable, String name) {
+    return SimulatorComponent.getUrl(executable) + "/" + KEY_EXTRACTOR + "/" + (name == null ? ":name" : name + ".rb");
   }
 
-  public static String getUrl(Simulator simulator, String name, String mode) {
-    return getUrl(simulator, name) + '/' + mode;
+  public static String getUrl(Executable executable, String name, String mode) {
+    return getUrl(executable, name) + "/@" + mode;
   }
 
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params("simulator"));
+    executable = Executable.getInstance(project, request.params("simulator"));
 
     switch (mode) {
       case Add:
@@ -67,15 +66,15 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
         }
         break;
       case Update:
-        extractorName = request.params("name");
+        extractorName = request.params("name").replaceFirst("\\.rb$", "");
         updateParameterExtractor();
         break;
       case Remove:
-        extractorName = request.params("name");
+        extractorName = request.params("name").replaceFirst("\\.rb$", "");
         removeParameterExtractor();
         break;
       default:
-        extractorName = request.params("name");
+        extractorName = request.params("name").replaceFirst("\\.rb$", "");
         renderParameterExtractor();
     }
   }
@@ -93,7 +92,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getName()),
+          Html.a(SimulatorComponent.getUrl(executable), executable.getName()),
           "Parameter Extractor",
           extractorName
         ));
@@ -106,17 +105,17 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getUrl(simulator, extractorName, "update"), Html.Method.Post,
+        content += Html.form(getUrl(executable, extractorName, "update"), Html.Method.Post,
           Lte.card(Html.fasIcon("tasks") + "Properties", null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", extractorName, errors),
-              Lte.formDataEditorGroup("extract_script", "Script", "ruby", simulator.getExtractorScript(extractorName), errors)
+              Lte.formDataEditorGroup("extract_script", "Script", "ruby", executable.getExtractorScript(extractorName), errors)
             )
             , Lte.formSubmitButton("primary", "Update")
           )
         );
 
-        content += Html.form(getUrl(simulator, extractorName, KEY_REMOVE), Html.Method.Get,
+        content += Html.form(getUrl(executable, extractorName, KEY_REMOVE), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Html.div(null,
@@ -149,7 +148,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getName()),
+          Html.a(SimulatorComponent.getUrl(executable), executable.getName()),
           "Parameter Extractor",
           "Add"
         ));
@@ -162,7 +161,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getStaticUrl(simulator,"add"), Html.Method.Post,
+        content += Html.form(getStaticUrl(executable,"add"), Html.Method.Post,
           Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,
@@ -179,21 +178,21 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   public void addParameterExtractor() {
-    String name = request.queryParams("name");
-    simulator.createExtractor(name);
-    response.redirect(getUrl(simulator, name));
+    String name = request.queryParams("name").replaceFirst("\\.rb$", "");
+    executable.createExtractor(name);
+    response.redirect(getUrl(executable, name));
   }
 
   public void updateParameterExtractor() {
-    String name = request.queryParams("name");
+    String name = request.queryParams("name").replaceFirst("\\.rb$", "");
     String script = request.queryParams("extract_script");
-    simulator.updateExtractorScript(name, script);
-    response.redirect(getUrl(simulator, extractorName));
+    executable.updateExtractorScript(name, script);
+    response.redirect(getUrl(executable, extractorName));
   }
 
   public void removeParameterExtractor() {
-    simulator.removeExtractor(extractorName);
-    response.redirect(SimulatorComponent.getUrl(simulator));
+    executable.removeExtractor(extractorName);
+    response.redirect(SimulatorComponent.getUrl(executable));
   }
 
   public enum Mode {Default, Add, Update, Remove}

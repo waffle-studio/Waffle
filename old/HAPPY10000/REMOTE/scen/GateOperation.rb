@@ -16,9 +16,9 @@ class GateOperation < CrowdWalkWrapper
   #++
   ## 初期化
   ## _simulator_:: java のシミュレータ(EvacuationSimulator)
-  def initialize(simulator)
-    super(simulator)
-    @simulator = simulator
+  def initialize(executable)
+    super(executable)
+    @executable = executable
     @dummy_event = CloseGateEvent.new
   end
 

@@ -31,11 +31,11 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Simulator extends ProjectData implements DataDirectory, PropertyFile {
-  public static final String SIMULATOR = "SIMULATOR";
-  public static final String KEY_EXTRACTOR = "extractor";
+public class Executable extends ProjectData implements DataDirectory, PropertyFile {
+  public static final String EXECUTABLE = "EXECUTABLE";
+  public static final String KEY_EXTRACTOR = "EXTRACTOR";
   public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
-  public static final String KEY_COLLECTOR = "collector";
+  public static final String KEY_COLLECTOR = "COLLECTOR";
   public static final String KEY_OUTPUT_JSON = "_output.json";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   public static final String KEY_TESTRUN = "testrun";
@@ -45,10 +45,9 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
 
-  protected static final String TABLE_NAME = "simulator";
   private static final String KEY_SIMULATION_COMMAND = "simulation_command";
 
-  private static final HashMap<String, Simulator> instanceMap = new HashMap<>();
+  private static final HashMap<String, Executable> instanceMap = new HashMap<>();
 
   private String name = null;
   private String simulationCommand = null;
@@ -58,7 +57,7 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   private Double requiredMemory = null;
   private long lastGitCheckTimestamp = 0;
 
-  public Simulator(Project project, String name) {
+  public Executable(Project project, String name) {
     super(project);
     this.name = name;
     instanceMap.put(name, this);
@@ -70,53 +69,53 @@ public class Simulator extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(SIMULATOR);
+    return project.getDirectoryPath().resolve(EXECUTABLE);
   }
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(SIMULATOR + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(EXECUTABLE + Constants.EXT_JSON);
   }
 
-  public static Simulator getInstance(Project project, String name) {
+  public static Executable getInstance(Project project, String name) {
     synchronized (instanceMap) {
       if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-        Simulator simulator = instanceMap.get(name);
-        if (simulator == null) {
-          simulator = new Simulator(project, name);
+        Executable executable = instanceMap.get(name);
+        if (executable == null) {
+          executable = new Executable(project, name);
         }
-        return simulator;
+        return executable;
       }
       return null;
     }
   }
 
-  public static Simulator find(Project project, String key) {
+  public static Executable find(Project project, String key) {
     return getInstance(project, key);
   }
 
-  public static ArrayList<Simulator> getList(Project project) {
-    ArrayList<Simulator> simulatorList = new ArrayList<>();
+  public static ArrayList<Executable> getList(Project project) {
+    ArrayList<Executable> executableList = new ArrayList<>();
 
     for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
       if (file.isDirectory()) {
-        simulatorList.add(getInstance(project, file.getName()));
+        executableList.add(getInstance(project, file.getName()));
       }
     }
 
-    return simulatorList;
+    return executableList;
   }
 
-  public static Simulator create(Project project, String name) {
+  public static Executable create(Project project, String name) {
     synchronized (instanceMap) {
       name = FileName.removeRestrictedCharacters(name);
 
-      Simulator simulator = getInstance(project, name);
-      if (simulator == null) {
-        simulator = new Simulator(project, name);
+      Executable executable = getInstance(project, name);
+      if (executable == null) {
+        executable = new Executable(project, name);
       }
 
-      return simulator;
+      return executable;
     }
   }
 

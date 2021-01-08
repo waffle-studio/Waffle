@@ -9,7 +9,7 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.executable.Simulator;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.template.ConductorTemplate;
 import jp.tkms.waffle.data.template.ListenerTemplate;
 import jp.tkms.waffle.data.util.HostState;
@@ -351,8 +351,8 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   }
 
   public SimulatorRun createSimulatorRun(String name, String computerName) {
-    Simulator simulator = Simulator.find(getProject(), name);
-    if (simulator == null) {
+    Executable executable = Executable.find(getProject(), name);
+    if (executable == null) {
       throw new RuntimeException("Simulator(\"" + name + "\") is not found");
     }
     Computer computer = Computer.find(computerName);
@@ -376,7 +376,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       setRunNode(runNode);
     }
 
-    SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, simulator, computer);
+    SimulatorRun createdRun = SimulatorRun.create(getRunNode().createSimulatorRunNode(""), this, executable, computer);
     transactionRunList.add(createdRun);
 
     return createdRun;

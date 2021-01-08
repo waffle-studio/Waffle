@@ -4,19 +4,22 @@ import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.executable.Simulator;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static jp.tkms.waffle.data.project.executable.Executable.KEY_COLLECTOR;
+import static jp.tkms.waffle.data.project.executable.Executable.KEY_EXTRACTOR;
+
 public class ResultCollectorComponent extends AbstractAccessControlledComponent {
   public static final String KEY_REMOVE = "remove";
   private Mode mode;
 
   private Project project;
-  private Simulator simulator;
+  private Executable executable;
   private String collectorName;
 
   public ResultCollectorComponent(Mode mode) {
@@ -36,25 +39,22 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
     Spark.get(getUrl(null, null, KEY_REMOVE), new ResultCollectorComponent(Mode.Remove));
   }
 
-  public static String getStaticUrl(Simulator simulator, String mode) {
-    return "/result_collector-" + mode + "/"
-      + (simulator == null ? ":project/:simulator" : simulator.getProject().getName() + "/" + simulator.getName());
+  public static String getStaticUrl(Executable executable, String mode) {
+    return SimulatorComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/@" + (mode == null ? ":mode" : mode);
   }
 
-  public static String getUrl(Simulator simulator, String name) {
-    return "/result_collector/"
-      + (name == null ? ":project/:simulator/:name"
-      : simulator.getProject().getName() + '/' + simulator.getName() + '/' +  name);
+  public static String getUrl(Executable executable, String name) {
+    return SimulatorComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/" + (name == null ? ":name" : name + ".rb");
   }
 
-  public static String getUrl(Simulator simulator, String name, String mode) {
-    return getUrl(simulator, name) + '/' + mode;
+  public static String getUrl(Executable executable, String name, String mode) {
+    return getUrl(executable, name) + "/@" + mode;
   }
 
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
-    simulator = Simulator.getInstance(project, request.params("simulator"));
+    executable = Executable.getInstance(project, request.params("simulator"));
 
     switch (mode) {
       case Add:
@@ -65,15 +65,15 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
         }
         break;
       case Update:
-        collectorName = request.params("name");
+        collectorName = request.params("name").replaceFirst("\\.rb$", "");
         updateResultCollector();
         break;
       case Remove:
-        collectorName = request.params("name");
+        collectorName = request.params("name").replaceFirst("\\.rb$", "");
         removeResultCollector();
         break;
       default:
-        collectorName = request.params("name");
+        collectorName = request.params("name").replaceFirst("\\.rb$", "");
         renderParameterExtractor();
     }
   }
@@ -91,7 +91,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getName()),
+          Html.a(SimulatorComponent.getUrl(executable), executable.getName()),
           "Result Collector",
           collectorName
         ));
@@ -104,17 +104,17 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getUrl(simulator, collectorName, "update"), Html.Method.Post,
+        content += Html.form(getUrl(executable, collectorName, "update"), Html.Method.Post,
           Lte.card(Html.fasIcon("tasks") + "Properties", null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", collectorName, errors),
-              Lte.formDataEditorGroup("collect_script", "Script", "ruby", simulator.getCollectorScript(collectorName), errors)
+              Lte.formDataEditorGroup("collect_script", "Script", "ruby", executable.getCollectorScript(collectorName), errors)
               )
             , Lte.formSubmitButton("primary", "Update")
           )
         );
 
-        content += Html.form(getUrl(simulator, collectorName, KEY_REMOVE), Html.Method.Get,
+        content += Html.form(getUrl(executable, collectorName, KEY_REMOVE), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Html.div(null,
@@ -148,7 +148,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(simulator), simulator.getName()),
+          Html.a(SimulatorComponent.getUrl(executable), executable.getName()),
           "Result Collector",
           "Add"
         ));
@@ -161,7 +161,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getStaticUrl(simulator,  "add"), Html.Method.Post,
+        content += Html.form(getStaticUrl(executable,  "add"), Html.Method.Post,
           Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,
@@ -178,21 +178,21 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   }
 
   public void addResultCollector() {
-    String name = request.queryParams("name");
-    simulator.createCollector(name);
-    response.redirect(getUrl(simulator, name));
+    String name = request.queryParams("name").replaceFirst("\\.rb$", "");
+    executable.createCollector(name);
+    response.redirect(getUrl(executable, name));
   }
 
   public void updateResultCollector() {
-    String name = request.queryParams("name");
+    String name = request.queryParams("name").replaceFirst("\\.rb$", "");
     String script = request.queryParams("collect_script");
-    simulator.updateCollectorScript(name, script);
-    response.redirect(getUrl(simulator, collectorName));
+    executable.updateCollectorScript(name, script);
+    response.redirect(getUrl(executable, collectorName));
   }
 
   public void removeResultCollector() {
-    simulator.removeCollector(collectorName);
-    response.redirect(SimulatorComponent.getUrl(simulator));
+    executable.removeCollector(collectorName);
+    response.redirect(SimulatorComponent.getUrl(executable));
   }
 
   public enum Mode {Default, Add, Update, Remove}

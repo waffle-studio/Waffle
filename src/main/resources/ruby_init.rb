@@ -1,4 +1,4 @@
-class Simulator < Java::jp.tkms.waffle.data.project.executable.Simulator
+class Executable < Java::jp.tkms.waffle.data.project.executable.Executable
 end
 
 class Computer < Java::jp.tkms.waffle.data.computer.Computer

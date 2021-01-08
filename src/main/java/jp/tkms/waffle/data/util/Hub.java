@@ -5,7 +5,7 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.Registry;
 import jp.tkms.waffle.data.project.conductor.ActorGroup;
-import jp.tkms.waffle.data.project.executable.Simulator;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.*;
 import jp.tkms.waffle.data.template.ConductorTemplate;
 import jp.tkms.waffle.data.template.ListenerTemplate;
@@ -101,8 +101,8 @@ public class Hub {
   }
 
   public SimulatorRun createSimulatorRun(String name, String computerName) {
-    Simulator simulator = Simulator.find(project, name);
-    if (simulator == null) {
+    Executable executable = Executable.find(project, name);
+    if (executable == null) {
       throw new RuntimeException("Simulator(\"" + name + "\") is not found");
     }
     Computer computer = Computer.find(computerName);
@@ -118,7 +118,7 @@ public class Hub {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    SimulatorRun createdRun = SimulatorRun.create(runNode.createSimulatorRunNode(""), nextParentConductorRun, simulator, computer);
+    SimulatorRun createdRun = SimulatorRun.create(runNode.createSimulatorRunNode(""), nextParentConductorRun, executable, computer);
     createdRunList.add(createdRun);
     return createdRun;
   }

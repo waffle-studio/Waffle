@@ -46,7 +46,7 @@ abstract public class AbstractSubmitter {
     return pollingInterval;
   }
 
-  public void skepPolling() {
+  public void skipPolling() {
     pollingInterval = 0;
   }
 
