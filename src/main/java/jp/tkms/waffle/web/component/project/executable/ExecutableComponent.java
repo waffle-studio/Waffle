@@ -1,7 +1,11 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project.executable;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -19,8 +23,8 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-public class SimulatorComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "Simulator";
+public class ExecutableComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "Executable";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   private static final String KEY_UPDATE_PARAMETERS = "update-parameters";
   private static final String KEY_PARAMETERS = "parameters";
@@ -32,28 +36,28 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
 
   private Project project;
   private Executable executable;
-  public SimulatorComponent(Mode mode) {
+  public ExecutableComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public SimulatorComponent() {
+  public ExecutableComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new SimulatorComponent());
-    Spark.post(getUrl(null, "update"), new SimulatorComponent(Mode.Update));
-    Spark.post(getUrl(null, KEY_UPDATE_PARAMETERS), new SimulatorComponent(Mode.UpdateParameters));
-    Spark.get(getUrl(null, KEY_RUN), new SimulatorComponent(Mode.TestRun));
-    Spark.post(getUrl(null, KEY_RUN), new SimulatorComponent(Mode.TestRun));
+    Spark.get(getUrl(null), new ExecutableComponent());
+    Spark.post(getUrl(null, "update"), new ExecutableComponent(Mode.Update));
+    Spark.post(getUrl(null, KEY_UPDATE_PARAMETERS), new ExecutableComponent(Mode.UpdateParameters));
+    Spark.get(getUrl(null, KEY_RUN), new ExecutableComponent(Mode.TestRun));
+    Spark.post(getUrl(null, KEY_RUN), new ExecutableComponent(Mode.TestRun));
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();
   }
 
   public static String getUrl(Executable executable) {
-    return SimulatorsComponent.getUrl(executable == null ? null : executable.getProject())
+    return ExecutablesComponent.getUrl(executable == null ? null : executable.getProject())
       + (executable == null ? "/:" + KEY_SIMULATOR : '/' + executable.getName());
   }
 
@@ -102,7 +106,7 @@ public class SimulatorComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators")
+          Html.a(ExecutablesComponent.getUrl(project), "Simulators")
         ));
       }
 

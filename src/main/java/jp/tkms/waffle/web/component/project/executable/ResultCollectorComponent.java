@@ -1,5 +1,8 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project.executable;
 
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -12,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static jp.tkms.waffle.data.project.executable.Executable.KEY_COLLECTOR;
-import static jp.tkms.waffle.data.project.executable.Executable.KEY_EXTRACTOR;
 
 public class ResultCollectorComponent extends AbstractAccessControlledComponent {
   public static final String KEY_REMOVE = "remove";
@@ -40,11 +42,11 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   }
 
   public static String getStaticUrl(Executable executable, String mode) {
-    return SimulatorComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/@" + (mode == null ? ":mode" : mode);
+    return ExecutableComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/@" + (mode == null ? ":mode" : mode);
   }
 
   public static String getUrl(Executable executable, String name) {
-    return SimulatorComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/" + (name == null ? ":name" : name + ".rb");
+    return ExecutableComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/" + (name == null ? ":name" : name + ".rb");
   }
 
   public static String getUrl(Executable executable, String name, String mode) {
@@ -90,8 +92,8 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(executable), executable.getName()),
+          Html.a(ExecutablesComponent.getUrl(project), "Simulators"),
+          Html.a(ExecutableComponent.getUrl(executable), executable.getName()),
           "Result Collector",
           collectorName
         ));
@@ -147,8 +149,8 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators"),
-          Html.a(SimulatorComponent.getUrl(executable), executable.getName()),
+          Html.a(ExecutablesComponent.getUrl(project), "Simulators"),
+          Html.a(ExecutableComponent.getUrl(executable), executable.getName()),
           "Result Collector",
           "Add"
         ));
@@ -192,7 +194,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
   public void removeResultCollector() {
     executable.removeCollector(collectorName);
-    response.redirect(SimulatorComponent.getUrl(executable));
+    response.redirect(ExecutableComponent.getUrl(executable));
   }
 
   public enum Mode {Default, Add, Update, Remove}

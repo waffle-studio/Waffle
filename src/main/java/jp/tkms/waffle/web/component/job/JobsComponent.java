@@ -1,6 +1,11 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.job;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -108,7 +113,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         job.getProject().getName()
                       ),
                       Html.a(
-                        SimulatorComponent.getUrl(run.getSimulator()),
+                        ExecutableComponent.getUrl(run.getSimulator()),
                         run.getSimulator().getName()
                       ),
                       Html.a(

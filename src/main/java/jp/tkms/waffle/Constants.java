@@ -1,6 +1,6 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.web.component.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 
 import java.io.File;
 import java.nio.file.Path;

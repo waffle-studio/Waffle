@@ -1,6 +1,12 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.*;
+import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
+import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
+import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
+import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
+import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -39,10 +45,10 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
     Spark.post(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
 
-    SimulatorsComponent.register();
-    SimulatorComponent.register();
+    ExecutablesComponent.register();
+    ExecutableComponent.register();
     //TrialsComponent.register();
-    ActorGroupComponent.register();
+    ConductorComponent.register();
     RunsComponent.register();
     RunComponent.register();
   }
@@ -116,7 +122,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "ActorGroups";
+        return "Conductor";
       }
 
       @Override
@@ -129,14 +135,14 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "ActorGroups"));
+          "Conductors"));
       }
 
       @Override
       protected String pageContent() {
         return
           Html.form(getUrl(project, "add_conductor"), Html.Method.Post,
-            Lte.card("New ActorGroup", null,
+            Lte.card("New Conductor", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors)
@@ -174,15 +180,15 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
             Html.a(RunsComponent.getUrl(project), "Runs"), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
-            Html.a(SimulatorsComponent.getUrl(project), "Simulators"), "")
+            Html.a(ExecutablesComponent.getUrl(project), ExecutablesComponent.EXECUTABLES), "")
         );
 
         ArrayList<ActorGroup> conductorList = ActorGroup.getList(project);
         if (conductorList.size() <= 0) {
-          content += Lte.card(Html.fasIcon("user-tie") + "ActorGroups",
+          content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
             Html.a(getUrl(project, "add_conductor"), null, null,
-              Html.fasIcon("plus-square") + "Add ActorGroups"
+              Html.fasIcon("plus-square") + "Add Conductors"
             ),
             null
           );
@@ -240,13 +246,13 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                   list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       new Lte.TableValue("",
-                        Html.a(ActorGroupComponent.getUrl(conductor),
+                        Html.a(ConductorComponent.getUrl(conductor),
                           null, null, conductor.getName())),
                       new Lte.TableValue("", conductor.getName()),
                       new Lte.TableValue("text-align:right;",
                         Html.span(null, null,
                           Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getName()))),
-                          Html.a(ActorGroupComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
+                          Html.a(ConductorComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
                             Html.span("right badge badge-secondary", null, "run")
                           ),
                           Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + finalRunningCount + ")")
@@ -273,6 +279,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     String name = request.queryParams("name");
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
     ActorGroup conductor = ActorGroup.create(project, name);
-    response.redirect(ActorGroupComponent.getUrl(conductor));
+    response.redirect(ConductorComponent.getUrl(conductor));
   }
 }

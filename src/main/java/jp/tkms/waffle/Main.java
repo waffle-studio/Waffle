@@ -5,7 +5,17 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
-import jp.tkms.waffle.web.component.*;
+import jp.tkms.waffle.web.component.job.JobsComponent;
+import jp.tkms.waffle.web.component.log.LogsComponent;
+import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
+import jp.tkms.waffle.web.component.misc.ErrorComponent;
+import jp.tkms.waffle.web.component.misc.SigninComponent;
+import jp.tkms.waffle.web.component.misc.SystemComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
+import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
+import jp.tkms.waffle.web.component.template.TemplatesComponent;
+import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import spark.Spark;
 
 import java.io.*;

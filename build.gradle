@@ -78,6 +78,12 @@ processResources {
 		}
 		into 'build/resources/main'
 	}
+	copy {
+		from ('./') {
+			include 'LICENSE.md'
+		}
+		into 'build/resources/main'
+	}
 }
 processResources.outputs.upToDateWhen { false }
 

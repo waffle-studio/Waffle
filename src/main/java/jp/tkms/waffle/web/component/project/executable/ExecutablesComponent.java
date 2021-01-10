@@ -1,7 +1,10 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project.executable;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -13,24 +16,26 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 
-public class SimulatorsComponent extends AbstractAccessControlledComponent {
+public class ExecutablesComponent extends AbstractAccessControlledComponent {
+  public static final String EXECUTABLES = "Executables";
+
   private Mode mode;
 
   private String requestedId;
   private Project project;
-  public SimulatorsComponent(Mode mode) {
+  public ExecutablesComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public SimulatorsComponent() {
+  public ExecutablesComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new SimulatorsComponent());
-    Spark.get(getUrl(null, "add"), new SimulatorsComponent(Mode.Add));
-    Spark.post(getUrl(null, "add"), new SimulatorsComponent(Mode.Add));
+    Spark.get(getUrl(null), new ExecutablesComponent());
+    Spark.get(getUrl(null, "add"), new ExecutablesComponent(Mode.Add));
+    Spark.post(getUrl(null, "add"), new ExecutablesComponent(Mode.Add));
   }
 
   public static String getUrl(Project project) {
@@ -66,7 +71,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "Simulators";
+        return "Executables";
       }
 
       @Override
@@ -79,7 +84,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(SimulatorsComponent.getUrl(project), "Simulators")));
+          Html.a(ExecutablesComponent.getUrl(project), "Simulators")));
       }
 
       @Override
@@ -102,7 +107,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
   private void addSimulator() {
     Executable executable = Executable.create(project, request.queryParams("name"));
     executable.setSimulatorCommand("");
-    response.redirect(SimulatorComponent.getUrl(executable));
+    response.redirect(ExecutableComponent.getUrl(executable));
   }
 
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
@@ -113,7 +118,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "Simulators";
+        return "Executables";
       }
 
       @Override
@@ -152,7 +157,7 @@ public class SimulatorsComponent extends AbstractAccessControlledComponent {
               for (Executable executable : executableList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
-                      Html.a(SimulatorComponent.getUrl(executable), null, null, executable.getName()));
+                      Html.a(ExecutableComponent.getUrl(executable), null, null, executable.getName()));
                   }
                 ));
               }

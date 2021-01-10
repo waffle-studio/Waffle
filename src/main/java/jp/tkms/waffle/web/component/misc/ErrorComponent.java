@@ -1,5 +1,6 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.misc;
 
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.MainTemplate;
 import spark.Spark;

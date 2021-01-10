@@ -1,7 +1,13 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
+import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -114,11 +120,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Status", run.getState().getStatusBadge());}));
                 if (run.getActorGroup() != null) {
-                  list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ActorGroupComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
+                  list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
                 } else {
                   list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
                 }
-                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(SimulatorComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(ExecutableComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer", (run.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(null, run.getComputer()), run.getComputer().getName())));}));
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
@@ -141,7 +147,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 Lte.formJsonEditorGroup("", null, "view", run.getVariables().toString(), null)
               )
             )
-            , (run.getActorGroup() == null ? "" : Html.a(ActorGroupComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
+            , (run.getActorGroup() == null ? "" : Html.a(ConductorComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
               Html.span("right badge badge-secondary", null, "run by this variables")
             )), "collapsed-card", null);
         } else {
@@ -152,7 +158,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 "The variables is too large"
               )
             )
-            , (run.getActorGroup() == null ? "" : Html.a(ActorGroupComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
+            , (run.getActorGroup() == null ? "" : Html.a(ConductorComponent.getUrl(run.getActorGroup(), "prepare", ActorRun.getRootInstance(project), run),
               Html.span("right badge badge-secondary", null, "run by this variables")
             )), "collapsed-card", null);
         }

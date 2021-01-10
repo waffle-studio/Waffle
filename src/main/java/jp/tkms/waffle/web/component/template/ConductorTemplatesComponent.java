@@ -1,10 +1,11 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.template;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
-import jp.tkms.waffle.data.project.Project;
+import jp.tkms.waffle.data.template.ConductorTemplate;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -12,32 +13,34 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-public class ProjectsComponent extends AbstractAccessControlledComponent {
+public class ConductorTemplatesComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "ConductorTemplates";
+
   private Mode mode;
 
-  public ProjectsComponent(Mode mode) {
+  public ConductorTemplatesComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public ProjectsComponent() {
+  public ConductorTemplatesComponent() {
     this(Mode.Default);
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ProjectsComponent());
-    Spark.get(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
-    Spark.post(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
+    Spark.get(getUrl(), new ConductorTemplatesComponent());
+    Spark.get(getUrl("add"), new ConductorTemplatesComponent(ConductorTemplatesComponent.Mode.Add));
+    Spark.post(getUrl("add"), new ConductorTemplatesComponent(ConductorTemplatesComponent.Mode.Add));
 
-    ProjectComponent.register();
+    ConductorTemplateComponent.register();
   }
 
   public static String getUrl() {
-    return "/PROJECT";
+    return getUrl("");
   }
 
   public static String getUrl(String mode) {
-    return getUrl() + "/" + mode;
+    return "/conductor-templates/" + mode;
   }
 
   @Override
@@ -46,7 +49,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
       if (request.requestMethod().toLowerCase().equals("post")) {
         ArrayList<Lte.FormError> errors = checkAddFormError();
         if (errors.isEmpty()) {
-          addProject();
+          addConductorModule();
         } else {
           renderAddForm(errors);
         }
@@ -67,7 +70,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTitle() {
-        return "Projects";
+        return TITLE;
       }
 
       @Override
@@ -78,7 +81,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(getUrl(), null, null, "Projects"),
+          Html.a(getUrl(), null, null, TITLE),
           "Add")
         );
       }
@@ -87,7 +90,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         return
           Html.form(getUrl("add"), Html.Method.Post,
-            Lte.card("New Project", null,
+            Lte.card("New ConductorTemplate", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors)
@@ -113,21 +116,21 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTitle() {
-        return "Projects";
+        return TITLE;
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList("Projects"));
+        return new ArrayList<String>(Arrays.asList(TITLE));
       }
 
       @Override
       protected String pageContent() {
-        ArrayList<Project> projectList = Project.getList();
-        if (projectList.size() <= 0) {
+        ArrayList<ConductorTemplate> moduleList = ConductorTemplate.getList();
+        if (moduleList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
-              Html.fasIcon("plus-square") + "Add new project"
+              Html.fasIcon("plus-square") + "Add ConductorTemplate"
             ),
             null
           );
@@ -140,19 +143,20 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
           Lte.table("table-condensed", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              return null;
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("width:8em;", "ID"));
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
             }
 
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Project project : Project.getList()) {
+              for (ConductorTemplate module : moduleList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(
-                      Html.a(ProjectComponent.getUrl(project), null, null, project.getName())
-                    );
-                  }
-                ));
+                  return new Lte.TableRow(
+                  Html.a(ConductorTemplateComponent.getUrl(module), null, null, module.getName()));
+                }));
               }
               return list;
             }
@@ -162,10 +166,10 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  private void addProject() {
+  private void addConductorModule() {
     String name = request.queryParams("name");
-    Project project = Project.create(name);
-    response.redirect(ProjectComponent.getUrl(project));
+    ConductorTemplate module = ConductorTemplate.create(name);
+    response.redirect(ConductorTemplateComponent.getUrl(module));
   }
 
   public enum Mode {Default, Add}

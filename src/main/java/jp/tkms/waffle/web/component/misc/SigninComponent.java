@@ -1,6 +1,8 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.web.component.AbstractComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;

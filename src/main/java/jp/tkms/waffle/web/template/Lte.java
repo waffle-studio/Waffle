@@ -309,6 +309,12 @@ public class Lte {
     );
   }
 
+  public static String button(String color, String value) {
+    return element("button",
+      new Attributes(value("class", "btn btn-" + color)),
+      value);
+  }
+
   public enum DivSize {F12, F12Md6Sm3, F12Md12Sm6}
 
   public static class FormError {

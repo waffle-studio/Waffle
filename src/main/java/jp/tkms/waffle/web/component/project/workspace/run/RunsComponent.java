@@ -1,6 +1,9 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project.workspace.run;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;

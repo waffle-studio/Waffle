@@ -8,7 +8,7 @@ import spark.Response;
 import spark.Route;
 
 abstract public class AbstractComponent implements Route {
-  static Logger logger = LoggerFactory.getLogger("Component");
+  protected static Logger logger = LoggerFactory.getLogger("Component");
 
   public Request request;
   public Response response;

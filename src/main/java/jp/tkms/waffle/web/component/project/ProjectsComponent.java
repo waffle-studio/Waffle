@@ -1,10 +1,11 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
-import jp.tkms.waffle.data.template.ListenerTemplate;
+import jp.tkms.waffle.data.project.Project;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -12,34 +13,32 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-public class ListenerTemplatesComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "ListenerTemplates";
-
+public class ProjectsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public ListenerTemplatesComponent(Mode mode) {
+  public ProjectsComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public ListenerTemplatesComponent() {
+  public ProjectsComponent() {
     this(Mode.Default);
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ListenerTemplatesComponent());
-    Spark.get(getUrl("add"), new ListenerTemplatesComponent(ListenerTemplatesComponent.Mode.Add));
-    Spark.post(getUrl("add"), new ListenerTemplatesComponent(ListenerTemplatesComponent.Mode.Add));
+    Spark.get(getUrl(), new ProjectsComponent());
+    Spark.get(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
+    Spark.post(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
 
-    ListenerTemplateComponent.register();
+    ProjectComponent.register();
   }
 
   public static String getUrl() {
-    return getUrl("");
+    return "/PROJECT";
   }
 
   public static String getUrl(String mode) {
-    return "/listener-templates/" + mode;
+    return getUrl() + "/" + mode;
   }
 
   @Override
@@ -48,7 +47,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
       if (request.requestMethod().toLowerCase().equals("post")) {
         ArrayList<Lte.FormError> errors = checkAddFormError();
         if (errors.isEmpty()) {
-          addListenerTemplate();
+          addProject();
         } else {
           renderAddForm(errors);
         }
@@ -69,7 +68,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
 
       @Override
       protected String pageTitle() {
-        return TITLE;
+        return "Projects";
       }
 
       @Override
@@ -80,7 +79,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(getUrl(), null, null, TITLE),
+          Html.a(getUrl(), null, null, "Projects"),
           "Add")
         );
       }
@@ -89,7 +88,7 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
       protected String pageContent() {
         return
           Html.form(getUrl("add"), Html.Method.Post,
-            Lte.card("New ListenerTemplate", null,
+            Lte.card("New Project", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors)
@@ -115,21 +114,21 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
 
       @Override
       protected String pageTitle() {
-        return TITLE;
+        return "Projects";
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(TITLE));
+        return new ArrayList<String>(Arrays.asList("Projects"));
       }
 
       @Override
       protected String pageContent() {
-        ArrayList<ListenerTemplate> moduleList = ListenerTemplate.getList();
-        if (moduleList.size() <= 0) {
+        ArrayList<Project> projectList = Project.getList();
+        if (projectList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
-              Html.fasIcon("plus-square") + "Add ListenerTemplate"
+              Html.fasIcon("plus-square") + "Add new project"
             ),
             null
           );
@@ -142,18 +141,17 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
           Lte.table("table-condensed", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
+              return null;
             }
 
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (ListenerTemplate module : moduleList) {
+              for (Project project : Project.getList()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
-                      Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getName()));
+                      Html.a(ProjectComponent.getUrl(project), null, null, project.getName())
+                    );
                   }
                 ));
               }
@@ -165,10 +163,10 @@ public class ListenerTemplatesComponent extends AbstractAccessControlledComponen
     }.render(this);
   }
 
-  private void addListenerTemplate() {
+  private void addProject() {
     String name = request.queryParams("name");
-    ListenerTemplate module = ListenerTemplate.create(name);
-    response.redirect(ListenerTemplateComponent.getUrl(module));
+    Project project = Project.create(name);
+    response.redirect(ProjectComponent.getUrl(project));
   }
 
   public enum Mode {Default, Add}

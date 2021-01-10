@@ -1,10 +1,13 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.project.conductor;
 
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.ActorGroup;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.workspace.run.RunNode;
 import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -21,8 +24,8 @@ import java.util.Arrays;
 
 import static jp.tkms.waffle.web.template.Html.value;
 
-public class ActorGroupComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "ActorGroup";
+public class ConductorComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "Conductor";
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
@@ -36,24 +39,24 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
   private ActorGroup actorGroup;
   private ActorRun parent;
   private SimulatorRun baseRun;
-  public ActorGroupComponent(Mode mode) {
+  public ConductorComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public ActorGroupComponent() {
+  public ConductorComponent() {
     this(Mode.Default);
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ActorGroupComponent());
-    Spark.get(getUrl(null, "prepare", null), new ActorGroupComponent(Mode.Prepare));
-    Spark.get(getUrl(null, "prepare", null, null), new ActorGroupComponent(Mode.Prepare));
-    Spark.post(getUrl(null, "run", null), new ActorGroupComponent(Mode.Run));
-    Spark.post(getUrl(null, "update-arguments"), new ActorGroupComponent(Mode.UpdateArguments));
-    Spark.post(getUrl(null, "update-main-script"), new ActorGroupComponent(Mode.UpdateMainScript));
-    Spark.post(getUrl(null, "update-listener-script"), new ActorGroupComponent(Mode.UpdateListenerScript));
-    Spark.post(getUrl(null, "new-listener"), new ActorGroupComponent(Mode.NewListener));
+    Spark.get(getUrl(null), new ConductorComponent());
+    Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
+    Spark.get(getUrl(null, "prepare", null, null), new ConductorComponent(Mode.Prepare));
+    Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
+    Spark.post(getUrl(null, "update-arguments"), new ConductorComponent(Mode.UpdateArguments));
+    Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
+    Spark.post(getUrl(null, "update-listener-script"), new ConductorComponent(Mode.UpdateListenerScript));
+    Spark.post(getUrl(null, "new-listener"), new ConductorComponent(Mode.NewListener));
   }
 
   public static String getUrl(ActorGroup conductor) {
@@ -321,7 +324,7 @@ public class ActorGroupComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Conductors",
-          Html.a(ActorGroupComponent.getUrl(actorGroup), actorGroup.getName())
+          Html.a(ConductorComponent.getUrl(actorGroup), actorGroup.getName())
         ));
       }
 

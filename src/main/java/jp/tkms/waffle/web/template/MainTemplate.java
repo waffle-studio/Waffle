@@ -3,6 +3,13 @@ package jp.tkms.waffle.web.template;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.web.component.*;
+import jp.tkms.waffle.web.component.job.JobsComponent;
+import jp.tkms.waffle.web.component.log.LogsComponent;
+import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
+import jp.tkms.waffle.web.component.misc.SystemComponent;
+import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.template.TemplatesComponent;
+import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.updater.AbstractUpdater;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.data.job.Job;
@@ -38,7 +45,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/jsoneditor/jsoneditor.min.js"))),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
-        body("hold-transition",
+        body("hold-transition layout-footer-fixed layout-fixed",
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
               renderPageNavigation(),
@@ -92,8 +99,11 @@ abstract public class MainTemplate extends AbstractTemplate {
               )
             ),
             elementWithClass("footer", "main-footer", div("float-right d-none d-sm-block"),
+              Lte.disabledTextInput("info", null, "Screen reloaded (WAFFLE:" + Main.VERSION + ")")
+              /*
               element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
               a(SystemComponent.getUrl(SystemComponent.Mode.Update), Lte.badge("secondary", null, "update (" + Main.VERSION + ")"))
+               */
             )
           ),
           element("script", new Attributes(value("src", "/js/bootstrap.bundle.min.js"))),
@@ -253,6 +263,13 @@ abstract public class MainTemplate extends AbstractTemplate {
           p("Logs")
         )
       ) +
+      elementWithClass("li", "nav-item",
+        a(SystemComponent.getUrl(), "nav-link", null,
+          fasIcon("cog", "nav-icon"),
+          p("System")
+        )
+      );
+        /*+
       elementWithClass("li", "nav-header", "Status") +
       elementWithClass("li", "nav-item",
         Lte.disabledTextInput("info", null, "Screen reloaded")
@@ -263,6 +280,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           p("Hibernate")
         )
       );
+         */
   }
 
   String renderPageNavigation() {

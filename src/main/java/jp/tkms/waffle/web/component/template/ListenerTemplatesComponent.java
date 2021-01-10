@@ -1,10 +1,11 @@
-package jp.tkms.waffle.web.component;
+package jp.tkms.waffle.web.component.template;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
-import jp.tkms.waffle.data.template.ConductorTemplate;
+import jp.tkms.waffle.data.template.ListenerTemplate;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -12,26 +13,26 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-public class ConductorTemplatesComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "ConductorTemplates";
+public class ListenerTemplatesComponent extends AbstractAccessControlledComponent {
+  public static final String TITLE = "ListenerTemplates";
 
   private Mode mode;
 
-  public ConductorTemplatesComponent(Mode mode) {
+  public ListenerTemplatesComponent(Mode mode) {
     super();
     this.mode = mode;
   }
 
-  public ConductorTemplatesComponent() {
+  public ListenerTemplatesComponent() {
     this(Mode.Default);
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ConductorTemplatesComponent());
-    Spark.get(getUrl("add"), new ConductorTemplatesComponent(ConductorTemplatesComponent.Mode.Add));
-    Spark.post(getUrl("add"), new ConductorTemplatesComponent(ConductorTemplatesComponent.Mode.Add));
+    Spark.get(getUrl(), new ListenerTemplatesComponent());
+    Spark.get(getUrl("add"), new ListenerTemplatesComponent(ListenerTemplatesComponent.Mode.Add));
+    Spark.post(getUrl("add"), new ListenerTemplatesComponent(ListenerTemplatesComponent.Mode.Add));
 
-    ConductorTemplateComponent.register();
+    ListenerTemplateComponent.register();
   }
 
   public static String getUrl() {
@@ -39,7 +40,7 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
   }
 
   public static String getUrl(String mode) {
-    return "/conductor-templates/" + mode;
+    return "/listener-templates/" + mode;
   }
 
   @Override
@@ -48,7 +49,7 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
       if (request.requestMethod().toLowerCase().equals("post")) {
         ArrayList<Lte.FormError> errors = checkAddFormError();
         if (errors.isEmpty()) {
-          addConductorModule();
+          addListenerTemplate();
         } else {
           renderAddForm(errors);
         }
@@ -89,7 +90,7 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
       protected String pageContent() {
         return
           Html.form(getUrl("add"), Html.Method.Post,
-            Lte.card("New ConductorTemplate", null,
+            Lte.card("New ListenerTemplate", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors)
@@ -125,11 +126,11 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
 
       @Override
       protected String pageContent() {
-        ArrayList<ConductorTemplate> moduleList = ConductorTemplate.getList();
+        ArrayList<ListenerTemplate> moduleList = ListenerTemplate.getList();
         if (moduleList.size() <= 0) {
           return Lte.card(null, null,
             Html.a(getUrl("add"), null, null,
-              Html.fasIcon("plus-square") + "Add ConductorTemplate"
+              Html.fasIcon("plus-square") + "Add ListenerTemplate"
             ),
             null
           );
@@ -143,7 +144,6 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:8em;", "ID"));
               list.add(new Lte.TableValue("", "Name"));
               return list;
             }
@@ -151,11 +151,12 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (ConductorTemplate module : moduleList) {
+              for (ListenerTemplate module : moduleList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                  return new Lte.TableRow(
-                  Html.a(ConductorTemplateComponent.getUrl(module), null, null, module.getName()));
-                }));
+                    return new Lte.TableRow(
+                      Html.a(ListenerTemplateComponent.getUrl(module), null, null, module.getName()));
+                  }
+                ));
               }
               return list;
             }
@@ -165,10 +166,10 @@ public class ConductorTemplatesComponent extends AbstractAccessControlledCompone
     }.render(this);
   }
 
-  private void addConductorModule() {
+  private void addListenerTemplate() {
     String name = request.queryParams("name");
-    ConductorTemplate module = ConductorTemplate.create(name);
-    response.redirect(ConductorTemplateComponent.getUrl(module));
+    ListenerTemplate module = ListenerTemplate.create(name);
+    response.redirect(ListenerTemplateComponent.getUrl(module));
   }
 
   public enum Mode {Default, Add}
