@@ -39,11 +39,11 @@ public class SystemComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl() {
-    return "/system";
+    return "/@system";
   }
 
   public static String getUrl(Mode mode) {
-    return "/system/" + mode.name();
+    return getUrl() + "/" + mode.name();
   }
 
   @Override

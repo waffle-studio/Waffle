@@ -37,7 +37,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
   public static final String KEY_COLLECTOR = "COLLECTOR";
   public static final String KEY_OUTPUT_JSON = "_output.json";
-  private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
+  private static final String KEY_DEFAULT_PARAMETERS = "DEFAULT_PARAMETERS";
   public static final String KEY_TESTRUN = "testrun";
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
@@ -45,12 +45,12 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
 
-  private static final String KEY_SIMULATION_COMMAND = "simulation_command";
+  private static final String KEY_COMMAND = "command";
 
   private static final HashMap<String, Executable> instanceMap = new HashMap<>();
 
   private String name = null;
-  private String simulationCommand = null;
+  private String command = null;
   private String defaultParameters = null;
   private String versionId = null;
   private Double requiredThread = null;
@@ -127,7 +127,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       e.printStackTrace();
     }
 
-    if (getSimulationCommand() == null) {
+    if (getCommand() == null) {
       setSimulatorCommand("");
     }
 
@@ -261,18 +261,18 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     return getDirectoryPath().resolve(KEY_REMOTE).toAbsolutePath();
   }
 
-  public String getSimulationCommand() {
+  public String getCommand() {
     try {
-      if (simulationCommand == null) {
-        simulationCommand = getStringFromProperty(KEY_SIMULATION_COMMAND);
+      if (command == null) {
+        command = getStringFromProperty(KEY_COMMAND);
       }
     } catch (Exception e) {}
-    return simulationCommand;
+    return command;
   }
 
   public void setSimulatorCommand(String command) {
-    simulationCommand = command;
-    setToProperty(KEY_SIMULATION_COMMAND, simulationCommand);
+    this.command = command;
+    setToProperty(KEY_COMMAND, this.command);
   }
 
   public Double getRequiredThread() {

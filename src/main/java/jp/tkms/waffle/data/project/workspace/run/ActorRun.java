@@ -3,7 +3,7 @@ package jp.tkms.waffle.data.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.conductor.RubyConductor;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.InternalHashedData;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
@@ -84,15 +84,15 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   private static ActorRun create(UUID id, RunNode runNode, ActorRun parent, ActorRun actorGroupRun, String actorName) {
     synchronized (instanceMap) {
       Project project = runNode.getProject();
-      ActorGroup actorGroup = null;
+      Conductor conductor = null;
       if (actorGroupRun != null) {
-        actorGroup = actorGroupRun.getActorGroup();
+        conductor = actorGroupRun.getActorGroup();
       }
-      String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
-      String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
+      String actorGroupName = (conductor == null ? "" : conductor.getName());
+      String name = (conductor == null ? "NON_CONDUCTOR" : conductor.getName())
         + " : " + LocalDateTime.now().toString();
 
-      String callname = getCallName(actorGroup, actorName);
+      String callname = getCallName(conductor, actorName);
       JSONArray callstack = (parent == null ? new JSONArray() : parent.getCallstack());
       if (callstack.toList().contains(callname)) {
         ActorRun parentActorRun = parent;
@@ -137,14 +137,14 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   }
 
   public static ActorRun create(RunNode runNode, ActorRun owner) {
-    return create(runNode, owner, owner, ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME);
+    return create(runNode, owner, owner, Conductor.KEY_REPRESENTATIVE_ACTOR_NAME);
   }
 
-  private static ActorRun createActorGroupRun(UUID id, RunNode runNode, ActorRun parent, ActorGroup actorGroup) {
+  private static ActorRun createActorGroupRun(UUID id, RunNode runNode, ActorRun parent, Conductor conductor) {
     synchronized (instanceMap) {
       Project project = runNode.getProject();
-      String actorGroupName = (actorGroup == null ? "" : actorGroup.getName());
-      String name = (actorGroup == null ? "NON_CONDUCTOR" : actorGroup.getName())
+      String actorGroupName = (conductor == null ? "" : conductor.getName());
+      String name = (conductor == null ? "NON_CONDUCTOR" : conductor.getName())
         + " : " + LocalDateTime.now().toString();
 
       ActorRun actorRun = new ActorRun(project, id);
@@ -160,16 +160,16 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       actorRun.setToProperty(KEY_ACTOR_GROUP, actorGroupName);
       actorRun.setToProperty(KEY_STATE, State.Created.ordinal());
 
-      if (actorGroup != null) {
-        actorRun.putVariablesByJson(actorGroup.getDefaultVariables().toString());
+      if (conductor != null) {
+        actorRun.putVariablesByJson(conductor.getDefaultVariables().toString());
       }
 
       return getInstance(project, id.toString());
     }
   }
 
-  public static ActorRun createActorGroupRun(RunNode runNode, ActorRun parent, ActorGroup actorGroup) {
-    return createActorGroupRun(UUID.randomUUID(), runNode, parent, actorGroup);
+  public static ActorRun createActorGroupRun(RunNode runNode, ActorRun parent, Conductor conductor) {
+    return createActorGroupRun(UUID.randomUUID(), runNode, parent, conductor);
   }
 
   public State getState() {
@@ -273,7 +273,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   }
 
   private Path getActorScriptPath() {
-    if (ActorGroup.KEY_REPRESENTATIVE_ACTOR_NAME.equals(getActorName())) {
+    if (Conductor.KEY_REPRESENTATIVE_ACTOR_NAME.equals(getActorName())) {
       return getActorGroup().getRepresentativeActorScriptPath();
     }
     return getActorGroup().getActorScriptPath(getActorName());
@@ -324,8 +324,8 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
   private ArrayList<AbstractRun> transactionRunList = new ArrayList<>();
 
   public ActorRun createActorGroupRun(String name) {
-    ActorGroup actorGroup = ActorGroup.find(getProject(), name);
-    if (actorGroup == null) {
+    Conductor conductor = Conductor.find(getProject(), name);
+    if (conductor == null) {
       throw new RuntimeException("ActorGroup\"(" + name + "\") is not found");
     }
 
@@ -342,7 +342,7 @@ public class ActorRun extends AbstractRun implements InternalHashedData {
       setRunNode(runNode);
     }
 
-    ActorRun actorRun = ActorRun.createActorGroupRun(getRunNode().createInclusiveRunNode(actorGroup.getName()), this, actorGroup);
+    ActorRun actorRun = ActorRun.createActorGroupRun(getRunNode().createInclusiveRunNode(conductor.getName()), this, conductor);
     transactionRunList.add(actorRun);
 
     actorRun.setFinalizerReference(this);

@@ -1,7 +1,7 @@
 package jp.tkms.waffle.web.component.project.conductor;
 
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.workspace.run.RunNode;
 import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
@@ -36,7 +36,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   private Project project;
-  private ActorGroup actorGroup;
+  private Conductor conductor;
   private ActorRun parent;
   private SimulatorRun baseRun;
   public ConductorComponent(Mode mode) {
@@ -59,23 +59,23 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, "new-listener"), new ConductorComponent(Mode.NewListener));
   }
 
-  public static String getUrl(ActorGroup conductor) {
+  public static String getUrl(Conductor conductor) {
     return "/actorGroup/"
       + (conductor == null ? ":project/:id" : conductor.getProject().getName() + '/' + conductor.getName());
   }
 
-  public static String getUrl(ActorGroup conductor, String mode, ActorRun parent) {
+  public static String getUrl(Conductor conductor, String mode, ActorRun parent) {
     return getUrl(conductor) + '/' + mode + '/'
       + (parent == null ? ":parent" : parent.getId());
   }
 
-  public static String getUrl(ActorGroup conductor, String mode, ActorRun parent, SimulatorRun base) {
+  public static String getUrl(Conductor conductor, String mode, ActorRun parent, SimulatorRun base) {
     return getUrl(conductor) + '/' + mode
       + '/' + (parent == null ? ":parent" : parent.getId())
       + '/' + (base == null ? ":base" : base.getId());
   }
 
-  public static String getUrl(ActorGroup conductor, String mode) {
+  public static String getUrl(Conductor conductor, String mode) {
     return getUrl(conductor) + '/' + mode;
   }
 
@@ -83,10 +83,10 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
 
-    actorGroup = ActorGroup.getInstance(project, request.params("id"));
+    conductor = Conductor.getInstance(project, request.params("id"));
 
     if (mode == Mode.Prepare) {
-      if (actorGroup.checkSyntax()) {
+      if (conductor.checkSyntax()) {
         parent = ActorRun.getInstance(project, request.params("parent"));
         try {
           baseRun = SimulatorRun.getInstance(project, request.params("base"));
@@ -95,13 +95,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         }
         renderPrepareForm();
       } else {
-        response.redirect(getUrl(actorGroup));
+        response.redirect(getUrl(conductor));
       }
     } else if (mode == Mode.Run) {
 
       parent = ActorRun.getInstance(project, request.params("parent"));
       String newRunNodeName = "" + request.queryParams(KEY_NAME);
-      ActorRun actorRun = ActorRun.createActorGroupRun(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, actorGroup);
+      ActorRun actorRun = ActorRun.createActorGroupRun(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, conductor);
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
         actorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
@@ -110,24 +110,24 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
     } else if (mode == Mode.UpdateArguments) {
       if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-        actorGroup.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
+        conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
-      response.redirect(getUrl(actorGroup));
+      response.redirect(getUrl(conductor));
     } else if (mode == Mode.UpdateMainScript) {
       if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-        actorGroup.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
+        conductor.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
       }
-      response.redirect(getUrl(actorGroup));
+      response.redirect(getUrl(conductor));
     } else if (mode == Mode.NewListener) {
       if (request.queryMap().hasKey(KEY_NAME)) {
-        actorGroup.createNewActor(request.queryParams(KEY_NAME));
+        conductor.createNewActor(request.queryParams(KEY_NAME));
       }
-      response.redirect(getUrl(actorGroup));
+      response.redirect(getUrl(conductor));
     } else if (mode == Mode.UpdateListenerScript) {
       if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-        actorGroup.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
+        conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
       }
-      response.redirect(getUrl(actorGroup));
+      response.redirect(getUrl(conductor));
     } else {
       renderConductor();
     }
@@ -142,7 +142,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return actorGroup.getName();
+        return conductor.getName();
       }
 
       @Override
@@ -209,40 +209,40 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
-            Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + actorGroup.getName()))),
-            Html.a(getUrl(actorGroup, "prepare", ActorRun.getRootInstance(project)),
+            Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
+            Html.a(getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
               Html.span("right badge badge-secondary", null, "run")
             ),
             null,
-            Html.javascript("updateConductorJobNum('" + actorGroup.getName() + "'," + runningCount + ")")
+            Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
           ),
           Html.div(null,
-            Lte.readonlyTextInputWithCopyButton("Conductor Directory", actorGroup.getDirectoryPath().toAbsolutePath().toString())
+            Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getDirectoryPath().toAbsolutePath().toString())
           )
           , null, "collapsed-card.stop", null);
 
         content +=
-          Html.form(getUrl(actorGroup, "update-arguments"), Html.Method.Post,
+          Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Default Variables",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, null, "tree", actorGroup.getDefaultVariables().toString(), null)
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, null, "tree", conductor.getDefaultVariables().toString(), null)
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
               "collapsed-card.stop", null)
           );
 
-        String mainScriptSyntaxError = RubyConductor.checkSyntax(actorGroup.getRepresentativeActorScriptPath());
+        String mainScriptSyntaxError = RubyConductor.checkSyntax(conductor.getRepresentativeActorScriptPath());
         content +=
-          Html.form(getUrl(actorGroup, "update-main-script"), Html.Method.Post,
+          Html.form(getUrl(conductor, "update-main-script"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "# (Main Script)",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", actorGroup.getRepresentativeActorScript(), errors),
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getRepresentativeActorScript(), errors),
                   getGuideHtml()
                 )
               ),
@@ -251,7 +251,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           );
 
         content +=
-          Html.form(getUrl(actorGroup, "new-listener"), Html.Method.Post,
+          Html.form(getUrl(conductor, "new-listener"), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "New Listener",
               Lte.cardToggleButton(true),
               Lte.divRow(
@@ -263,18 +263,18 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               , "collapsed-card", null)
           );
 
-        for (String listenerName : actorGroup.getActorNameList()) {
-          Path path = actorGroup.getActorScriptPath(listenerName);
+        for (String listenerName : conductor.getActorNameList()) {
+          Path path = conductor.getActorScriptPath(listenerName);
           String scriptSyntaxError = RubyConductor.checkSyntax(path);
           content +=
-            Html.form(getUrl(actorGroup, "update-listener-script"), Html.Method.Post,
+            Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
               Lte.card(Html.fasIcon("terminal") + listenerName + " (Event Listener)",
                 Lte.cardToggleButton(false),
                 Lte.divRow(
                   Lte.divCol(Lte.DivSize.F12,
                     Html.inputHidden(KEY_LISTENER_NAME, listenerName),
                     ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", actorGroup.getActorScript(listenerName), errors)
+                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getActorScript(listenerName), errors)
                   )
                 ),
                 Lte.formSubmitButton("success", "Update"),
@@ -315,7 +315,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return actorGroup.getName();
+        return conductor.getName();
       }
 
       @Override
@@ -324,7 +324,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           "Conductors",
-          Html.a(ConductorComponent.getUrl(actorGroup), actorGroup.getName())
+          Html.a(ConductorComponent.getUrl(conductor), conductor.getName())
         ));
       }
 
@@ -332,8 +332,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
-        String name = actorGroup.getName() + '_' + LocalDateTime.now().toString();
-        String variables = actorGroup.getDefaultVariables().toString();
+        String name = conductor.getName() + '_' + LocalDateTime.now().toString();
+        String variables = conductor.getDefaultVariables().toString();
 
         if (baseRun != null) {
           name = baseRun.getName();
@@ -347,7 +347,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         }
 
         content +=
-          Html.form(getUrl(actorGroup, "run", parent), Html.Method.Post,
+          Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
             Lte.card(Html.fasIcon("feather-alt") + "Prepare",
               null,
               Lte.divRow(

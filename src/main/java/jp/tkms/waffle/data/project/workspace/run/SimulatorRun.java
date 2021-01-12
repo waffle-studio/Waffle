@@ -1,7 +1,7 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
@@ -176,7 +176,7 @@ public class SimulatorRun extends AbstractRun {
   public static SimulatorRun create(RunNode runNode, ActorRun parent, Executable executable, Computer computer) {
     SimulatorRun run = new SimulatorRun(parent.getProject(), runNode.getUuid(), runNode.getDirectoryPath());
 
-    ActorGroup conductor = parent.getActorGroup();
+    Conductor conductor = parent.getActorGroup();
     String actorGroupName = (conductor == null ? "" : conductor.getName());
     String simulatorName = executable.getName();
     String computerName = computer.getName();

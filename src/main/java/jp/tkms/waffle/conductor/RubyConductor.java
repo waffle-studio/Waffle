@@ -2,7 +2,7 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
@@ -74,11 +74,11 @@ public class RubyConductor extends CycleConductor {
 
   @Override
   public String defaultScriptName() {
-    return ActorGroup.KEY_REPRESENTATIVE_ACTOR + Constants.EXT_RUBY;
+    return Conductor.KEY_REPRESENTATIVE_ACTOR + Constants.EXT_RUBY;
   }
 
   @Override
-  public void prepareConductor(ActorGroup conductor) {
+  public void prepareConductor(Conductor conductor) {
   }
 
   public static String getInitScript() {

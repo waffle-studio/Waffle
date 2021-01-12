@@ -125,7 +125,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               Html.div(null,
                 Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", executable.getBinDirectory().toString()),
                 Lte.readonlyTextInput("Version ID", executable.getVersionId()),
-                Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getSimulationCommand(), errors),
+                Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getCommand(), errors),
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
                 Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors)
               ),

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.component.project;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
@@ -10,7 +11,6 @@ import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
@@ -183,7 +183,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             Html.a(ExecutablesComponent.getUrl(project), ExecutablesComponent.EXECUTABLES), "")
         );
 
-        ArrayList<ActorGroup> conductorList = ActorGroup.getList(project);
+        ArrayList<Conductor> conductorList = Conductor.getList(project);
         if (conductorList.size() <= 0) {
           content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
@@ -232,7 +232,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                for (ActorGroup conductor : ActorGroup.getList(project)) {
+                for (Conductor conductor : Conductor.getList(project)) {
                   int runningCount = 0;
                   /*
                   for (Actor notFinished : notFinishedList) {
@@ -278,7 +278,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   private void addConductor() {
     String name = request.queryParams("name");
     //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    ActorGroup conductor = ActorGroup.create(project, name);
+    Conductor conductor = Conductor.create(project, name);
     response.redirect(ConductorComponent.getUrl(conductor));
   }
 }

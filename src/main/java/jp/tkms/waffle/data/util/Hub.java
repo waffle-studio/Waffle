@@ -4,7 +4,7 @@ import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.Registry;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.*;
 import jp.tkms.waffle.data.template.ConductorTemplate;
@@ -86,8 +86,8 @@ public class Hub {
   }
 
   public ActorRun createActor(String name) {
-    ActorGroup actorGroup = ActorGroup.find(project, name);
-    if (actorGroup == null) {
+    Conductor conductor = Conductor.find(project, name);
+    if (conductor == null) {
       throw new RuntimeException("Conductor\"(" + name + "\") is not found");
     }
 
@@ -95,7 +95,7 @@ public class Hub {
       runNode = ((SimulatorRunNode) runNode).moveToVirtualNode();
     }
 
-    ActorRun actorRun = ActorRun.createActorGroupRun(runNode.createInclusiveRunNode(""), nextParentConductorRun, actorGroup);
+    ActorRun actorRun = ActorRun.createActorGroupRun(runNode.createInclusiveRunNode(""), nextParentConductorRun, conductor);
     createdRunList.add(actorRun);
     return actorRun;
   }

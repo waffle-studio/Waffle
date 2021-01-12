@@ -2,7 +2,7 @@ package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.project.Project;
@@ -43,7 +43,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   protected UUID id;
   private Path path;
   private String name = null;
-  private ActorGroup actorGroup = null;
+  private Conductor conductor = null;
   private ActorRun parentActorRun = null;
   private ActorRun responsibleActorRun = null;
   private JSONArray finalizers = null;
@@ -177,11 +177,11 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     setToProperty(KEY_PARENT_RUNNODE, node.getId());
   }
 
-  public ActorGroup getActorGroup() {
-    ;if (actorGroup == null) {
-      actorGroup = ActorGroup.getInstance(getProject(), getStringFromProperty(KEY_ACTOR_GROUP));
+  public Conductor getActorGroup() {
+    ;if (conductor == null) {
+      conductor = Conductor.getInstance(getProject(), getStringFromProperty(KEY_ACTOR_GROUP));
     }
-    return actorGroup;
+    return conductor;
   }
 
   public ArrayList<String> getFinalizers() {
@@ -232,7 +232,7 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     return new JSONArray(callstack.toString());
   }
 
-  protected static String getCallName(ActorGroup group, String name) {
+  protected static String getCallName(Conductor group, String name) {
     if (group == null) {
       return "?/?";
     }

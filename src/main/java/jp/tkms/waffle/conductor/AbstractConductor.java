@@ -1,7 +1,7 @@
 package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.util.State;
 
@@ -14,7 +14,7 @@ abstract public class AbstractConductor {
   abstract protected void finalizeProcess(ActorRun entity);
   abstract protected void suspendProcess(ActorRun entity);
   abstract public String defaultScriptName();
-  abstract public void prepareConductor(ActorGroup conductor);
+  abstract public void prepareConductor(Conductor conductor);
 
   private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
   private static HashMap<ActorRun, AbstractConductor> runningInstance = new HashMap<>();

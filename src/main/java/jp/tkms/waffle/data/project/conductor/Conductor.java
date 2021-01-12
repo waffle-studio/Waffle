@@ -18,20 +18,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class ActorGroup extends ProjectData implements DataDirectory, PropertyFile {
-  protected static final String KEY_CONDUCTOR = "conductor";
+public class Conductor extends ProjectData implements DataDirectory, PropertyFile {
+  protected static final String KEY_CONDUCTOR = "CONDUCTOR";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_ACTOR = "actor";
   public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
   private static final String RUBY_ACTOR_TEMPLATE_RB = "/ruby_actor_template.rb";
   public static final String KEY_REPRESENTATIVE_ACTOR_NAME = "#";
 
-  private static final HashMap<String, ActorGroup> instanceMap = new HashMap<>();
+  private static final HashMap<String, Conductor> instanceMap = new HashMap<>();
 
   private String name = null;
   private String defaultVariables = null;
 
-  public ActorGroup(Project project, String name) {
+  public Conductor(Project project, String name) {
     super(project);
     this.name = name;
     instanceMap.put(name, this);
@@ -51,42 +51,42 @@ public class ActorGroup extends ProjectData implements DataDirectory, PropertyFi
     return project.getDirectoryPath().resolve(KEY_CONDUCTOR);
   }
 
-  public static ActorGroup getInstance(Project project, String name) {
+  public static Conductor getInstance(Project project, String name) {
     if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-      ActorGroup actorGroup = instanceMap.get(name);
-      if (actorGroup == null) {
-        actorGroup = new ActorGroup(project, name);
+      Conductor conductor = instanceMap.get(name);
+      if (conductor == null) {
+        conductor = new Conductor(project, name);
       }
-      return actorGroup;
+      return conductor;
     }
     return null;
   }
 
-  public static ActorGroup find(Project project, String key) {
+  public static Conductor find(Project project, String key) {
     return getInstance(project, key);
   }
 
-  public static ArrayList<ActorGroup> getList(Project project) {
-    ArrayList<ActorGroup> simulatorList = new ArrayList<>();
+  public static ArrayList<Conductor> getList(Project project) {
+    ArrayList<Conductor> conductorList = new ArrayList<>();
 
     for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
       if (file.isDirectory()) {
-        simulatorList.add(getInstance(project, file.getName()));
+        conductorList.add(getInstance(project, file.getName()));
       }
     }
 
-    return simulatorList;
+    return conductorList;
   }
 
-  public static ActorGroup create(Project project, String name) {
+  public static Conductor create(Project project, String name) {
     name = FileName.removeRestrictedCharacters(name);
 
-    ActorGroup actorGroup = getInstance(project, name);
-    if (actorGroup == null) {
-      actorGroup = new ActorGroup(project, name);
+    Conductor conductor = getInstance(project, name);
+    if (conductor == null) {
+      conductor = new Conductor(project, name);
     }
 
-    return actorGroup;
+    return conductor;
   }
 
   private void initialise() {

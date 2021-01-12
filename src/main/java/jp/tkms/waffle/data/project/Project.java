@@ -3,8 +3,9 @@ package jp.tkms.waffle.data.project;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.RunNode;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.web.Data;
@@ -94,9 +95,9 @@ public class Project implements DataDirectory {
       }
     }
 
-    if (! Files.exists(ActorGroup.getBaseDirectoryPath(this))) {
+    if (! Files.exists(Conductor.getBaseDirectoryPath(this))) {
       try {
-        Files.createDirectories(ActorGroup.getBaseDirectoryPath(this));
+        Files.createDirectories(Conductor.getBaseDirectoryPath(this));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
@@ -110,9 +111,9 @@ public class Project implements DataDirectory {
       }
     }
 
-    if (! Files.exists(RunNode.getBaseDirectoryPath(this))) {
+    if (! Files.exists(Workspace.getBaseDirectoryPath(this))) {
       try {
-        Files.createDirectories(RunNode.getBaseDirectoryPath(this));
+        Files.createDirectories(Workspace.getBaseDirectoryPath(this));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }

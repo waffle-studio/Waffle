@@ -2,7 +2,7 @@ package jp.tkms.waffle.conductor;
 
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
-import jp.tkms.waffle.data.project.conductor.ActorGroup;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 
 public class EmptyConductor extends CycleConductor {
   @Override
@@ -31,7 +31,7 @@ public class EmptyConductor extends CycleConductor {
   }
 
   @Override
-  public void prepareConductor(ActorGroup conductor) {
+  public void prepareConductor(Conductor conductor) {
 
   }
 }

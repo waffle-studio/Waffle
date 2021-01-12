@@ -26,6 +26,10 @@ public abstract class AbstractUpdater {
     return Html.element("div",new Html.Attributes(Html.value("style", "display:none;")), template) + Html.javascript(script);
   }
 
+  public AbstractUpdater() {
+    // this method is used in initialization.
+  }
+
   public AbstractUpdater(String... values) {
     BrowserMessage.addMessage(this.getClass().getSimpleName() + "(" + listByComma(values) + ")");
   }

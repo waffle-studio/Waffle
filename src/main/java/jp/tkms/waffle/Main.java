@@ -16,6 +16,7 @@ import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
 import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
 import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import jp.tkms.waffle.web.updater.SystemUpdater;
 import spark.Spark;
 
 import java.io.*;
@@ -226,8 +227,6 @@ public class Main {
     RubyScript.process(scriptingContainer -> {
       scriptingContainer.runScriptlet("print \"\"");
     });
-
-    //new SystemUpdater(null);
 
     return;
   }

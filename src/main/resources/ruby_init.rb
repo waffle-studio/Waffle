@@ -4,7 +4,7 @@ end
 class Computer < Java::jp.tkms.waffle.data.computer.Computer
 end
 
-class ActorGroup < Java::jp.tkms.waffle.data.project.conductor.ActorGroup
+class ActorGroup < Java::jp.tkms.waffle.data.project.conductor.Conductor
 end
 
 class ConductorArgument

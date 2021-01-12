@@ -21,6 +21,6 @@ public class SystemUpdater extends AbstractUpdater {
   }
 
   public SystemUpdater(Object obj) {
-    super();
+    super("");
   }
 }
