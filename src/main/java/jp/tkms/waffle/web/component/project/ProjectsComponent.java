@@ -27,8 +27,8 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
   public static void register() {
     Spark.get(getUrl(), new ProjectsComponent());
-    Spark.get(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
-    Spark.post(getUrl("add"), new ProjectsComponent(ProjectsComponent.Mode.Add));
+    Spark.get(getUrl(Mode.New), new ProjectsComponent(ProjectsComponent.Mode.New));
+    Spark.post(getUrl(Mode.New), new ProjectsComponent(ProjectsComponent.Mode.New));
 
     ProjectComponent.register();
   }
@@ -37,13 +37,13 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
     return "/PROJECT";
   }
 
-  public static String getUrl(String mode) {
-    return getUrl() + "/" + mode;
+  public static String getUrl(Mode mode) {
+    return getUrl() + "/@" + mode.name();
   }
 
   @Override
   public void controller() {
-    if (mode == Mode.Add) {
+    if (mode == Mode.New) {
       if (request.requestMethod().toLowerCase().equals("post")) {
         ArrayList<Lte.FormError> errors = checkAddFormError();
         if (errors.isEmpty()) {
@@ -73,7 +73,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return "Add";
+        return "@New";
       }
 
       @Override
@@ -87,7 +87,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         return
-          Html.form(getUrl("add"), Html.Method.Post,
+          Html.form(getUrl(Mode.New), Html.Method.Post,
             Lte.card("New Project", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
@@ -123,25 +123,31 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
       }
 
       @Override
+      protected String pageTool() {
+        return Html.a(getUrl(Mode.New),
+          null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
+        );
+      }
+
+      @Override
       protected String pageContent() {
         ArrayList<Project> projectList = Project.getList();
         if (projectList.size() <= 0) {
           return Lte.card(null, null,
-            Html.a(getUrl("add"), null, null,
+            Html.a(getUrl(Mode.New), null, null,
               Html.fasIcon("plus-square") + "Add new project"
             ),
             null
           );
         }
 
-        return Lte.card(null,
-          Html.a(getUrl("add"),
-            null, null, Html.fasIcon("plus-square")
-          ),
+        return Lte.card(null, null,
           Lte.table("table-condensed", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              return null;
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
             }
 
             @Override
@@ -169,5 +175,5 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
     response.redirect(ProjectComponent.getUrl(project));
   }
 
-  public enum Mode {Default, Add}
+  public enum Mode {Default, New}
 }

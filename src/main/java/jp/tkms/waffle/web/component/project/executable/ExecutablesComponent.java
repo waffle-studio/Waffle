@@ -34,16 +34,16 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ExecutablesComponent());
-    Spark.get(getUrl(null, "add"), new ExecutablesComponent(Mode.Add));
-    Spark.post(getUrl(null, "add"), new ExecutablesComponent(Mode.Add));
+    Spark.get(getUrl(null, Mode.New), new ExecutablesComponent(Mode.New));
+    Spark.post(getUrl(null, Mode.New), new ExecutablesComponent(Mode.New));
   }
 
   public static String getUrl(Project project) {
     return ProjectComponent.getUrl(project) + "/" + Executable.EXECUTABLE;
   }
 
-  public static String getUrl(Project project, String mode) {
-    return getUrl(project) + "/@" + mode;
+  public static String getUrl(Project project, Mode mode) {
+    return getUrl(project) + "/@" + mode.name();
   }
 
   @Override
@@ -51,7 +51,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
     requestedId = request.params("project");
     project = Project.getInstance(requestedId);
 
-    if (mode == Mode.Add) {
+    if (mode == Mode.New) {
       if (request.requestMethod().toLowerCase().equals("post")) {
         ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
         if (errors.isEmpty()) {
@@ -76,7 +76,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return "(new)";
+        return "@New";
       }
 
       @Override
@@ -84,14 +84,14 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(ExecutablesComponent.getUrl(project), "Simulators")));
+          Html.a(ExecutablesComponent.getUrl(project), EXECUTABLES)));
       }
 
       @Override
       protected String pageContent() {
         return
-          Html.form(getUrl(project, "add"), Html.Method.Post,
-            Lte.card("New Simulator", null,
+          Html.form(getUrl(project, Mode.New), Html.Method.Post,
+            Lte.card("New Executable", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors)
@@ -129,20 +129,24 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
       }
 
       @Override
+      protected String pageTool() {
+        return Html.a(getUrl(project, Mode.New),
+          null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
+        );
+      }
+
+      @Override
       protected String pageContent() {
         ArrayList<Executable> executableList = Executable.getList(project);
         if (executableList.size() <= 0) {
           return Lte.card(null, null,
-            Html.a(getUrl(project, "add"), null, null,
-              Html.fasIcon("plus-square") + "Add Simulator"
+            Html.a(getUrl(project, Mode.New), null, null,
+              Html.fasIcon("plus-square") + "Add Executable"
             ),
             null
           );
         }
-        return Lte.card(null,
-          Html.a(getUrl(project, "add"),
-            null, null, Html.fasIcon("plus-square")
-          ),
+        return Lte.card(null, null,
           Lte.table("table-condensed", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -169,5 +173,5 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  public enum Mode {Default, Add}
+  public enum Mode {Default, New}
 }

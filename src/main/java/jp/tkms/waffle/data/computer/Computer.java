@@ -49,7 +49,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final HashMap<String, Computer> instanceMap = new HashMap<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
-    SshSubmitter.class, AbciSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class
+    SshSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class, AbciSubmitter.class
   ));
 
   private String name;

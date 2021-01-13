@@ -42,7 +42,6 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
 
-  public static final String KEY_MASTER = "master";
   public static final String KEY_REMOTE = "REMOTE";
 
   private static final String KEY_COMMAND = "command";
@@ -141,11 +140,14 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
     }
 
+    /*
     if (! Files.exists(getDirectoryPath().resolve(".git"))) {
       initializeGit();
     }
+     */
   }
 
+  /*
   private String initializeGit() {
     synchronized (this) {
       try {
@@ -168,6 +170,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       return versionId;
     }
   }
+   */
 
   private void deleteDirectory(File file) {
     File[] contents = file.listFiles();
@@ -180,6 +183,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public synchronized void updateVersionId() {
+    /*
     if (lastGitCheckTimestamp + 2000 > System.currentTimeMillis()) {
       lastGitCheckTimestamp = System.currentTimeMillis();
       return;
@@ -226,8 +230,10 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       getVersionId();
       lastGitCheckTimestamp = System.currentTimeMillis();
     }
+     */
   }
 
+  /*
   public String getVersionId() {
     synchronized (this) {
       if (versionId == null) {
@@ -251,6 +257,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       return versionId;
     }
   }
+   */
 
   @Override
   public Path getDirectoryPath() {
@@ -472,7 +479,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     return script;
   }
 
-  public SimulatorRun runTest(Computer computer, String parametersJsonText) {
+  public SimulatorRun postTestRun(Computer computer, String parametersJsonText) {
     String baseRunName = "TESTRUN-" + name;
     RunNode runNode = RunNode.getInstanceByName(getProject(), Paths.get(baseRunName));
     if (runNode == null) {

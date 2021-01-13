@@ -6,6 +6,7 @@ import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -47,8 +48,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
     ExecutablesComponent.register();
     ExecutableComponent.register();
-    //TrialsComponent.register();
     ConductorComponent.register();
+    WorkspaceComponent.register();
     RunsComponent.register();
     RunComponent.register();
   }
@@ -177,8 +178,10 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getName() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
         content += Lte.divRow(
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
-            Html.a(RunsComponent.getUrl(project), "Runs"), ""),
+          //Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
+          //  Html.a(RunsComponent.getUrl(project), "Runs"), ""),
+          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "table", "bg-danger",
+            Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES), ""),
           Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
             Html.a(ExecutablesComponent.getUrl(project), ExecutablesComponent.EXECUTABLES), "")
         );
@@ -218,7 +221,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
           content += Lte.card(Html.fasIcon("user-tie") + "ActorGroups",
             Html.a(getUrl(project, "add_conductor"),
-              null, null, Html.fasIcon("plus-square")
+              null, null, Html.fasIcon("plus-square") + "NEW"
             ),
             Lte.table(null, new Lte.Table() {
               @Override

@@ -167,7 +167,7 @@ abstract public class AbstractSubmitter {
   }
 
   Path getSimulatorBinDirectory(Job job) throws FailedToControlRemoteException, RunNotFoundException {
-    return parseHomePath(job.getHost().getWorkBaseDirectory()).resolve(SIMULATOR_DIR).resolve(job.getRun().getSimulator().getVersionId());
+    return parseHomePath(job.getHost().getWorkBaseDirectory()).resolve(SIMULATOR_DIR).resolve(job.getRun().getSimulator().getName());
   }
 
   String makeBatchFileText(Job job) throws FailedToControlRemoteException, RunNotFoundException {

@@ -7,9 +7,6 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.ResourceFile;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -19,8 +16,8 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class Workspace extends ProjectData implements DataDirectory, PropertyFile {
-  protected static final String KEY_WORKSPACE = "WORKSPACE";
-  public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
+  public static final String WORKSPACE = "WORKSPACE";
+  public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
 
   private String name = null;
 
@@ -36,11 +33,11 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(KEY_WORKSPACE + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(WORKSPACE + Constants.EXT_JSON);
   }
 
   public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(KEY_WORKSPACE);
+    return project.getDirectoryPath().resolve(WORKSPACE);
   }
 
   public static Workspace getInstance(Project project, String name) {
@@ -66,6 +63,15 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     return workspaceList;
   }
 
+  public static Workspace getTestRunWorkspace(Project project) {
+    Workspace workspace = getInstance(project, TESTRUN_WORKSPACE);
+    if (workspace == null) {
+      workspace = new Workspace(project, TESTRUN_WORKSPACE);
+    }
+
+    return workspace;
+  }
+
   public static Workspace create(Project project, String name) {
     name = FileName.removeRestrictedCharacters(name);
 
@@ -83,6 +89,8 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
+
+    getTestRunWorkspace(getProject());
 
     /*
     if (! Files.exists(getRepresentativeActorScriptPath())) {

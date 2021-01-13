@@ -239,12 +239,14 @@ abstract public class MainTemplate extends AbstractTemplate {
           p("null")
         )
       ) +
+        /*
       elementWithClass("li", "nav-item",
         a(TemplatesComponent.getUrl(), "nav-link", null,
           fasIcon("layer-group", "nav-icon"),
           p("Templates")
         )
       ) +
+         */
       elementWithClass("li", "nav-item",
         a(JobsComponent.getUrl(), "nav-link", null,
           fasIcon("running", "nav-icon"),

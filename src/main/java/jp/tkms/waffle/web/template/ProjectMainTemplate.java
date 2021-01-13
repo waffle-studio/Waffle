@@ -1,8 +1,10 @@
 package jp.tkms.waffle.web.template;
 
 import jp.tkms.waffle.data.project.Project;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
@@ -28,7 +30,7 @@ public abstract class ProjectMainTemplate extends MainTemplate {
     return new ArrayList<Map.Entry<String, String>>(Arrays.asList(
       Map.entry(Html.element("strong", null, project.getName()) + " | Conductors", ProjectComponent.getUrl(project)),
       Map.entry(ExecutablesComponent.EXECUTABLES, ExecutablesComponent.getUrl(project)),
-      Map.entry(RunsComponent.TITLE, RunsComponent.getUrl(project))
+      Map.entry(WorkspaceComponent.WORKSPACES, WorkspaceComponent.getUrl(project))
     ));
   }
 }

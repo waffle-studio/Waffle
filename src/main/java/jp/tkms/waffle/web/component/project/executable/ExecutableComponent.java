@@ -124,7 +124,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               ),
               Html.div(null,
                 Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", executable.getBinDirectory().toString()),
-                Lte.readonlyTextInput("Version ID", executable.getVersionId()),
+                //Lte.readonlyTextInput("Version ID", executable.getVersionId()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getCommand(), errors),
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
                 Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors)
@@ -346,7 +346,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
   }
 
   void runSimulator() {
-    SimulatorRun run = executable.runTest(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
+    SimulatorRun run = executable.postTestRun(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
     response.redirect(RunComponent.getUrl(project, run.getUuid()));
   }
 
