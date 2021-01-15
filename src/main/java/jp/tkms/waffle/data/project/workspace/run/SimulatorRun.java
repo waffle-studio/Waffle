@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.data.computer.Computer;
@@ -426,7 +427,8 @@ public class SimulatorRun extends AbstractRun {
     try {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      WarnLogMessage.issue(e);
+      //BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       e.printStackTrace();
     }
     //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
@@ -512,7 +514,8 @@ public class SimulatorRun extends AbstractRun {
     try {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      WarnLogMessage.issue(e);
+      //BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       e.printStackTrace();
     }
     //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));

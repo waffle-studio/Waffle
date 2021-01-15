@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.RunNode;
+import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.web.Data;
 
@@ -47,15 +48,9 @@ public class Project implements DataDirectory {
   public static ArrayList<Project> getList() {
     Data.initializeWorkDirectory();
 
-    ArrayList<Project> list = new ArrayList<>();
-
-    for (File file : getBaseDirectoryPath().toFile().listFiles()) {
-      if (file.isDirectory()) {
-        list.add(getInstance(file.getName()));
-      }
-    }
-
-    return list;
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(), name -> {
+      return getInstance(name.toString());
+    });
   }
 
   public static Project create(String name) {
@@ -117,6 +112,7 @@ public class Project implements DataDirectory {
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
+      Workspace.getTestRunWorkspace(this);
     }
   }
 }

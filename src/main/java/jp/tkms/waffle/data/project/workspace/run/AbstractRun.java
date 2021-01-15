@@ -8,6 +8,8 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.Registry;
+import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.project.workspace.WorkspaceData;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -23,7 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
-abstract public class AbstractRun extends ProjectData implements DataDirectory, PropertyFile {
+abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile {
   protected static final String KEY_PARENT = "parent";
   protected static final String KEY_ACTOR_GROUP = "actor_group";
   protected static final String KEY_FINALIZER = "finalizer";
@@ -40,7 +42,6 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
   abstract public State getState();
   abstract public void setState(State state);
 
-  protected UUID id;
   private Path path;
   private String name = null;
   private Conductor conductor = null;
@@ -57,20 +58,11 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
 
   Registry registry;
 
-  public AbstractRun(Project project, UUID id, Path path) {
-    super(project);
+  public AbstractRun(Workspace workspace, Path path) {
+    super(workspace);
     this.path = path;
-    this.id = id;
 
     this.registry = new Registry(getProject());
-  }
-
-  public String getId() {
-    return id.toString();
-  }
-
-  public UUID getUuid() {
-    return id;
   }
 
   @Override
@@ -389,7 +381,8 @@ abstract public class AbstractRun extends ProjectData implements DataDirectory, 
     try {
       valueMap = new JSONObject(json);
     } catch (Exception e) {
-      BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
+      WarnLogMessage.issue(e);
+      //BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       e.printStackTrace();
     }
     //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));

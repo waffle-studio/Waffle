@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.workspace.run.RunNode;
 import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
@@ -46,8 +47,6 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
   private static final String KEY_COMMAND = "command";
 
-  private static final HashMap<String, Executable> instanceMap = new HashMap<>();
-
   private String name = null;
   private String command = null;
   private String defaultParameters = null;
@@ -59,7 +58,6 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public Executable(Project project, String name) {
     super(project);
     this.name = name;
-    instanceMap.put(name, this);
     initialise();
   }
 
@@ -77,16 +75,10 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public static Executable getInstance(Project project, String name) {
-    synchronized (instanceMap) {
-      if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
-        Executable executable = instanceMap.get(name);
-        if (executable == null) {
-          executable = new Executable(project, name);
-        }
-        return executable;
-      }
-      return null;
+    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+      return new Executable(project, name);
     }
+    return null;
   }
 
   public static Executable find(Project project, String key) {
@@ -94,28 +86,20 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public static ArrayList<Executable> getList(Project project) {
-    ArrayList<Executable> executableList = new ArrayList<>();
-
-    for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
-      if (file.isDirectory()) {
-        executableList.add(getInstance(project, file.getName()));
-      }
-    }
-
-    return executableList;
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), name -> {
+      return getInstance(project, name.toString());
+    });
   }
 
   public static Executable create(Project project, String name) {
-    synchronized (instanceMap) {
-      name = FileName.removeRestrictedCharacters(name);
+    name = FileName.removeRestrictedCharacters(name);
 
-      Executable executable = getInstance(project, name);
-      if (executable == null) {
-        executable = new Executable(project, name);
-      }
-
-      return executable;
+    Executable executable = getInstance(project, name);
+    if (executable == null) {
+      executable = new Executable(project, name);
     }
+
+    return executable;
   }
 
   private void initialise() {

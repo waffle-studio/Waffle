@@ -20,7 +20,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
 
-public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkData {
+public class RunNode implements DataDirectory, PropertyFile {
   public static final String KEY_EXPECTED_NAME = "expected_name";
   public static final String KEY_PROPERTY = "property";
   public static final String KEY_RUN = "run";
@@ -43,8 +43,7 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
 
   public RunNode(Project project, Path path) {
     this.project = project;
-    this.id = UUID.fromString(getDataId(path));
-    this.path = getDataDirectory(id);
+    this.path = path;
 
     //instanceCache.put(path.toString(), this);
 
@@ -99,11 +98,6 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
 
   public Project getProject() {
     return project;
-  }
-
-  @Override
-  public String getInternalDataGroup() {
-    return RunNode.class.getName();
   }
 
   public String getSimpleName() {
@@ -257,6 +251,7 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
     return getParent() == null;
   }
 
+  /*
   public InclusiveRunNode moveToVirtualNode() {
     String virtualNodeName = getDirectoryPath().getFileName().toString();
     RunNode parent = getParent();
@@ -325,6 +320,7 @@ public class RunNode implements DataDirectory, PropertyFile, InternalHashedLinkD
   private void setExpectedName(String name) {
     setToProperty(KEY_EXPECTED_NAME, name);
   }
+   */
 
   public String getExpectedName() {
     String name = getStringFromProperty(KEY_EXPECTED_NAME);

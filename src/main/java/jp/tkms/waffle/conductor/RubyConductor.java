@@ -35,7 +35,7 @@ public class RubyConductor extends CycleConductor {
           } catch (Exception e) {
             WarnLogMessage.issue(e);
             conductorRun.appendErrorNote(e.getMessage());
-            BrowserMessage.addMessage("toastr.error('simulator_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+            //BrowserMessage.addMessage("toastr.error('simulator_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
           }
           container.terminate();
         }
@@ -61,7 +61,7 @@ public class RubyConductor extends CycleConductor {
       } catch (Exception e) {
         WarnLogMessage.issue(e);
         conductorRun.appendErrorNote(e.getMessage());
-        BrowserMessage.addMessage("toastr.error('conductor_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
+        //BrowserMessage.addMessage("toastr.error('conductor_finalizer_script: " + e.getMessage().replaceAll("['\"\n]", "\"") + "');");
       }
       container.terminate();
     }

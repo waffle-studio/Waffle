@@ -69,9 +69,17 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   public static ArrayList<Conductor> getList(Project project) {
     ArrayList<Conductor> conductorList = new ArrayList<>();
 
-    for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
-      if (file.isDirectory()) {
-        conductorList.add(getInstance(project, file.getName()));
+    if (!Files.exists(getBaseDirectoryPath(project))) {
+      for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
+        if (file.isDirectory()) {
+          conductorList.add(getInstance(project, file.getName()));
+        }
+      }
+    } else {
+      try {
+        Files.createDirectories(getBaseDirectoryPath(project));
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
       }
     }
 
