@@ -10,7 +10,6 @@ import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -107,7 +106,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                   SimulatorRun run = job.getRun();
                   try {
                     return new Lte.TableRow(
-                      Html.a(RunComponent.getUrl(job.getProject(), job.getUuid()), job.getShortId()),
+                      Html.a(RunComponent.getUrl(job.getRun()), job.getHexCode()),
                       Html.a(
                         ProjectComponent.getUrl(job.getProject()),
                         job.getProject().getName()
@@ -117,8 +116,8 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         run.getSimulator().getName()
                       ),
                       Html.a(
-                        ComputersComponent.getUrl(null, job.getHost()),
-                        job.getHost().getName()
+                        ComputersComponent.getUrl(null, job.getComputer()),
+                        job.getComputer().getName()
                       ),
                       job.getJobId(),
                       Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),

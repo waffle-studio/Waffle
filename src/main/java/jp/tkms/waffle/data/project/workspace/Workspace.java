@@ -18,7 +18,9 @@ import java.util.*;
 
 public class Workspace extends ProjectData implements DataDirectory, PropertyFile {
   public static final String WORKSPACE = "WORKSPACE";
+  public static final String JSON_FILE = WORKSPACE + Constants.EXT_JSON;
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
+  public static final String ARCHIVE = ".ARCHIVE";
 
   private String name = null;
 
@@ -35,7 +37,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(WORKSPACE + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(JSON_FILE);
   }
 
   public static Path getBaseDirectoryPath(Project project) {

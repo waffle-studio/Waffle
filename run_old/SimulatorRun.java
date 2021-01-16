@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.web.updater.RunStatusUpdater;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -54,20 +55,22 @@ public class SimulatorRun extends AbstractRun {
   private JSONArray arguments;
   private JSONArray localSharedList;
 
-  private static final ConcurrentHashMap<String, SimulatorRun> instanceMap = new ConcurrentHashMap<>();
+  //private static final ConcurrentHashMap<String, SimulatorRun> instanceMap = new ConcurrentHashMap<>();
 
-  private SimulatorRun(Project project, UUID id, Path path) {
-    super(project, id, path);
+  private SimulatorRun(Workspace workspace, RunNode runNode) {
+    super(workspace, runNode);
   }
 
-  public static SimulatorRun getInstance(Project project, String id) throws RunNotFoundException {
+  public static SimulatorRun getInstance(Path path) throws RunNotFoundException {
     SimulatorRun run = null;
 
-    if (id != null) {
+    if (path != null) {
+      /*
       run = instanceMap.get(id);
       if (run != null)  {
         return run;
       }
+       */
 
 
       RunNode runNode = RunNode.getInstance(project, id);

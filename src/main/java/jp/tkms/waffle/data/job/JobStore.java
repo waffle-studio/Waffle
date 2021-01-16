@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.io.Output;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.util.WaffleId;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -16,7 +17,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class JobStore {
-  private LinkedHashMap<String, Job> jobMap;
+  private LinkedHashMap<WaffleId, Job> jobMap;
   private LinkedHashMap<String, ArrayList<Job>> computerJobListMap;
 
   public JobStore() {
@@ -56,18 +57,18 @@ public class JobStore {
   public void register(Job job) {
     synchronized (jobMap) {
       jobMap.put(job.getId(), job);
-      getList(job.getHost()).add(job);
+      getList(job.getComputer()).add(job);
     }
   }
 
-  public void remove(String id) {
+  public void remove(WaffleId id) {
     if (id == null) {
       return;
     }
     synchronized (jobMap) {
       Job removedJob = jobMap.remove(id);
       if (removedJob != null) {
-        getList(removedJob.getHost()).remove(removedJob);
+        getList(removedJob.getComputer()).remove(removedJob);
       }
     }
   }

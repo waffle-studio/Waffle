@@ -4,8 +4,8 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.project.workspace.run.ActorRun;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.web.BrowserMessage;
@@ -16,22 +16,22 @@ import java.nio.file.Path;
 
 public class RubyConductor extends CycleConductor {
   @Override
-  protected void preProcess(ActorRun actorRun) {
+  protected void preProcess(ConductorRun conductorRun) {
     //actor.processMessage(null);
   }
 
   @Override
-  protected void eventHandler(ActorRun conductorRun, AbstractRun run) {
-    if (run instanceof SimulatorRun) {
-      if (((SimulatorRun) run).getState().equals(State.Finished)) {
-        SimulatorRun simulatorRun = (SimulatorRun) run;
-        for (String script : simulatorRun.getFinalizers()) {
+  protected void eventHandler(ConductorRun conductorRun, AbstractRun run) {
+    if (run instanceof ExecutableRun) {
+      if (((ExecutableRun) run).getState().equals(State.Finished)) {
+        ExecutableRun executableRun = (ExecutableRun) run;
+        for (String script : executableRun.getFinalizers()) {
           ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
           try {
             container.runScriptlet(getInitScript());
             container.runScriptlet(getListenerTemplateScript());
             container.runScriptlet(script);
-            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, simulatorRun);
+            container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_script", conductorRun, executableRun);
           } catch (Exception e) {
             WarnLogMessage.issue(e);
             conductorRun.appendErrorNote(e.getMessage());
@@ -44,9 +44,9 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
-  protected void finalizeProcess(ActorRun conductorRun) {
+  protected void finalizeProcess(ConductorRun conductorRun) {
     //TODO: do refactor
-    ActorRun parent = conductorRun.getParentActor();
+    ConductorRun parent = conductorRun.getParentActor();
     if (parent == null) {
       parent = conductorRun;
     }
@@ -68,7 +68,7 @@ public class RubyConductor extends CycleConductor {
   }
 
   @Override
-  protected void suspendProcess(ActorRun entity) {
+  protected void suspendProcess(ConductorRun entity) {
 
   }
 

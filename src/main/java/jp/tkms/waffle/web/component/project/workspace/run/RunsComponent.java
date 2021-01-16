@@ -175,7 +175,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
                   list.add(Main.interfaceThreadPool.submit(() ->{
                       return new Lte.TableRow(
                         new Lte.TableValue(null, Html.fasIcon("circle")),
-                        new Lte.TableValue(null, Html.a(RunComponent.getUrl(project, child.getUuid()), null, null, child.getSimpleName())),
+                        new Lte.TableValue(null, Html.a(RunComponent.getUrlFromPath(child.getLocalDirectoryPath()), null, null, child.getSimpleName())),
                         new Lte.TableValue("max-width:0;", Html.div("hide-overflow", child.getNote())),
                         new Lte.TableValue(null, Html.spanWithId(child.getId() + "-badge", child.getState().getStatusBadge()))
                       );

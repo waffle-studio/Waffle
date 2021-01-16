@@ -4,7 +4,7 @@ import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -61,7 +61,7 @@ public class AbciSubmitter extends SshSubmitter {
 
   @Override
   public State update(Job job) throws RunNotFoundException {
-    SimulatorRun run = job.getRun();
+    ExecutableRun run = job.getRun();
     if (!updatedPackJson.containsKey(job.getJobId())) {
       updatedPackJson.put(job.getJobId(), exec(xstatCommand(job)));
     }

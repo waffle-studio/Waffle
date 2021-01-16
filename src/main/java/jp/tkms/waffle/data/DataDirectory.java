@@ -1,10 +1,14 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.waffle.Constants;
+
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 public interface DataDirectory {
   Path getDirectoryPath();
@@ -66,5 +70,29 @@ public interface DataDirectory {
 
   default void updateFileContents(String fileName, String contents) {
     updateFileContents(Paths.get(fileName), contents);
+  }
+
+  default Path getLocalDirectoryPath() {
+    return Constants.WORK_DIR.relativize(getDirectoryPath());
+  }
+
+  default void copyDirectory(Path dest) throws IOException {
+    copyDirectory(getDirectoryPath().toFile(), dest.toFile());
+  }
+
+  default void copyDirectory(File src, File dest) throws IOException {
+    if (src.isDirectory()) {
+      if (!dest.exists()) {
+        dest.mkdir();
+      }
+      String files[] = src.list();
+      for (String file : files) {
+        File srcFile = new File(src, file);
+        File destFile = new File(dest, file);
+        copyDirectory(srcFile, destFile);
+      }
+    }else{
+      Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
   }
 }

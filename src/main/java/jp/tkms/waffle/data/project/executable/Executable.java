@@ -6,19 +6,13 @@ import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
-import jp.tkms.waffle.data.project.workspace.run.ActorRun;
-import jp.tkms.waffle.data.project.workspace.run.RunNode;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,8 +22,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.*;
 
 public class Executable extends ProjectData implements DataDirectory, PropertyFile {
@@ -43,7 +35,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
 
-  public static final String KEY_REMOTE = "REMOTE";
+  public static final String BASE = "BASE";
 
   private static final String KEY_COMMAND = "command";
 
@@ -105,7 +97,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   private void initialise() {
     try {
       Files.createDirectories(getDirectoryPath());
-      Files.createDirectories(getBinDirectory());
+      Files.createDirectories(getBaseDirectory());
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -248,8 +240,8 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
-  public Path getBinDirectory() {
-    return getDirectoryPath().resolve(KEY_REMOTE).toAbsolutePath();
+  public Path getBaseDirectory() {
+    return getDirectoryPath().resolve(BASE).toAbsolutePath();
   }
 
   public String getCommand() {
@@ -463,21 +455,16 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     return script;
   }
 
-  public SimulatorRun postTestRun(Computer computer, String parametersJsonText) {
-    String baseRunName = "TESTRUN-" + name;
-    RunNode runNode = RunNode.getInstanceByName(getProject(), Paths.get(baseRunName));
-    if (runNode == null) {
-      runNode = RunNode.getRootInstance(getProject()).createInclusiveRunNode(baseRunName);
-    }
-    SimulatorRun run = SimulatorRun.create(runNode.createSimulatorRunNode(LocalDateTime.now().toString()), ActorRun.getRootInstance(getProject()), this, computer);
-    setToProperty(KEY_TESTRUN, run.getId());
-    run.putParametersByJson(parametersJsonText);
-    run.start();
-    return run;
+  public ExecutableRun postTestRun(Computer computer, String parametersJsonText) {
+    ExecutableRun executableRun = ExecutableRun.createTestRun(this, computer);
+    executableRun.putParametersByJson(parametersJsonText);
+    setToProperty(KEY_TESTRUN, executableRun.getLocalDirectoryPath().toString());
+    executableRun.start();
+    return executableRun;
   }
 
-  public SimulatorRun getLatestTestRun() throws RunNotFoundException {
-    return SimulatorRun.getInstance(getProject(), getStringFromProperty(KEY_TESTRUN));
+  public ExecutableRun getLatestTestRun() throws RunNotFoundException {
+    return ExecutableRun.getInstance(getStringFromProperty(KEY_TESTRUN));
   }
 
   JSONObject propertyStoreCache = null;

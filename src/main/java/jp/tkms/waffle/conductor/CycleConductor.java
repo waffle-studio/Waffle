@@ -1,12 +1,13 @@
 package jp.tkms.waffle.conductor;
 
-import jp.tkms.waffle.data.project.workspace.run.ActorRun;
+
+import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 
 public abstract class CycleConductor extends AbstractConductor {
-  abstract protected void preProcess(ActorRun entity);
+  abstract protected void preProcess(ConductorRun entity);
 
   @Override
-  protected void mainProcess(ActorRun entity) {
+  protected void mainProcess(ConductorRun entity) {
     preProcess(entity);
   }
 

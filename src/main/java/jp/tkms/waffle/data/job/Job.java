@@ -3,18 +3,21 @@ package jp.tkms.waffle.data.job;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 
+import java.lang.reflect.Executable;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.UUID;
 
 public class Job {
-  private String id = null;
-  private String projectName = null;
+  private WaffleId id = null;
+  private Path path = null;
   private String computerName = null;
   private String jobId = "";
   private State state = null;
@@ -24,22 +27,22 @@ public class Job {
 
   public Job() {}
 
-  public Job(UUID id, Project project, Computer computer) {
-    this.id = id.toString();
-    this.projectName = project.getName();
+  public Job(Path path, Computer computer) {
+    this.id = WaffleId.newId();
+    this.path = path;
     this.computerName = computer.getName();
   }
 
-  public String getId() {
+  public WaffleId getId() {
     return id;
   }
 
-  public UUID getUuid() {
-    return UUID.fromString(id);
+  public Path getPath() {
+    return path;
   }
 
-  public String getShortId() {
-    return id.replaceFirst("-.*$", "");
+  public String getHexCode() {
+    return id.getHexCode();
   }
 
   public static Job getInstance(String id) {
@@ -62,10 +65,10 @@ public class Job {
     return getList().size();
   }
 
-  public static void addRun(SimulatorRun run) {
-    Job job = new Job(run.getUuid(), run.getProject(), run.getComputer());
+  public static void addRun(ExecutableRun run) {
+    Job job = new Job(run.getLocalDirectoryPath(), run.getComputer());
     Main.jobStore.register(job);
-    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
   }
 
   public void cancel() throws RunNotFoundException {
@@ -86,7 +89,7 @@ public class Job {
 
   public void setState(State state) throws RunNotFoundException {
     this.state = state;
-    SimulatorRun run = getRun();
+    ExecutableRun run = getRun();
     if (run != null) {
       run.setState(state);
     }
@@ -95,7 +98,7 @@ public class Job {
   public Double getRequiredThread() {
     if (requiredThread == null) {
       try {
-        requiredThread = getRun().getSimulator().getRequiredThread();
+        requiredThread = getRun().getExecutable().getRequiredThread();
       } catch (RunNotFoundException e) {
         return 0.0;
       }
@@ -106,7 +109,7 @@ public class Job {
   public Double getRequiredMemory() {
     if (requiredMemory == null) {
       try {
-        requiredMemory = getRun().getSimulator().getRequiredMemory();
+        requiredMemory = getRun().getExecutable().getRequiredMemory();
       } catch (RunNotFoundException e) {
         return 0.0;
       }
@@ -114,8 +117,8 @@ public class Job {
     return requiredMemory;
   }
 
-  public void replaceHost(Computer computer) throws RunNotFoundException {
-    getRun().setActualHost(computer);
+  public void replaceComputer(Computer computer) throws RunNotFoundException {
+    getRun().setActualComputer(computer);
     Main.jobStore.remove(id);
     this.computerName = computer.getName();
     Main.jobStore.register(this);
@@ -125,16 +128,16 @@ public class Job {
     errorCount += 1;
   }
 
-  public Project getProject() {
-    return Project.getInstance(projectName);
+  public Project getProject() throws RunNotFoundException {
+    return getRun().getProject();
   }
 
-  public Computer getHost() {
+  public Computer getComputer() {
     return Computer.getInstance(computerName);
   }
 
-  public SimulatorRun getRun() throws RunNotFoundException {
-    return SimulatorRun.getInstance(getProject(), id);
+  public ExecutableRun getRun() throws RunNotFoundException {
+    return ExecutableRun.getInstance(getPath().toString());
   }
 
   public String getJobId() {

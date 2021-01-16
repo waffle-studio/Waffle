@@ -3,7 +3,7 @@ package jp.tkms.waffle.submitter;
 import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -63,7 +63,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(SimulatorRun run, Path path) throws FailedToTransferFileException {
+  public String getFileContents(ExecutableRun run, Path path) throws FailedToTransferFileException {
     return null;
   }
 
@@ -134,10 +134,10 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
           for (Job job : Job.getList(targetComputer)) {
             try {
-              SimulatorRun run = job.getRun();
+              ExecutableRun run = job.getRun();
               if (run.getComputer().equals(computer)) {
-                globalFreeThread -= run.getSimulator().getRequiredThread();
-                globalFreeMemory -= run.getSimulator().getRequiredMemory();
+                globalFreeThread -= run.getExecutable().getRequiredThread();
+                globalFreeMemory -= run.getExecutable().getRequiredMemory();
               }
             } catch (RunNotFoundException e) {
             }
@@ -165,7 +165,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
           if (isSubmittable(targetComputer, job)) {
             try {
-              job.replaceHost(targetComputer);
+              job.replaceComputer(targetComputer);
             } catch (RunNotFoundException e) {
               WarnLogMessage.issue(e);
               job.remove();

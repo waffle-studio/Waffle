@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.InternalHashedLinkData;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.State;
 import org.json.JSONObject;
@@ -15,15 +16,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.util.*;
 
 public class RunNode implements DataDirectory, PropertyFile {
   public static final String KEY_EXPECTED_NAME = "expected_name";
   public static final String KEY_PROPERTY = "property";
-  public static final String KEY_RUN = "run";
+  public static final String KEY_RUN = "RUN";
   public static final String KEY_STATE = "state";
   public static final String KEY_NOTE_TXT = "note.txt";
   public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
@@ -107,11 +106,12 @@ public class RunNode implements DataDirectory, PropertyFile {
     return simpleName;
   }
 
-  public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(KEY_RUN);
+  public static Path getBaseDirectoryPath(Workspace workspace) {
+    return workspace.getDirectoryPath().resolve(KEY_RUN);
   }
 
-  public static RunNode getInstanceByName(Project project, Path path) {
+  public static RunNode getInstance(Path path) {
+    Workspace workspace;
     Path instancePath = getBaseDirectoryPath(project).resolve(path);
     RunNode runNode = null;
     if (Files.exists(instancePath.resolve(ParallelRunNode.KEY_PARALLEL))) {
@@ -133,21 +133,13 @@ public class RunNode implements DataDirectory, PropertyFile {
     return runNode;
   }
 
-  public static RunNode getRootInstance(Project project) {
-    Path path = getBaseDirectoryPath(project);
-    RunNode runNode = getInstanceByName(project, path);
+  public static RunNode getRootInstance(Workspace workspace) {
+    Path path = getBaseDirectoryPath(workspace);
+    RunNode runNode = getInstance(path);
     if (runNode == null) {
-      runNode = new InclusiveRunNode(project, path);
+      runNode = new InclusiveRunNode(path);
     }
     return runNode;
-  }
-
-  public static RunNode getInstance(Project project, String id) {
-    Path path = InternalHashedLinkData.getDataPath(project, RunNode.class.getName(), id);
-    if (path == null) {
-      return null;
-    }
-    return getInstanceByName(project, path.toAbsolutePath());
   }
 
   public ArrayList<RunNode> getList() {
@@ -174,7 +166,7 @@ public class RunNode implements DataDirectory, PropertyFile {
 
     for (File file : getDirectoryPath().toFile().listFiles()) {
       if (file.isDirectory()) {
-        list.add(getInstanceByName(project, file.toPath().toAbsolutePath()));
+        list.add(getInstance(project, file.toPath().toAbsolutePath()));
       }
     }
 
@@ -195,7 +187,7 @@ public class RunNode implements DataDirectory, PropertyFile {
       }
     } catch (IOException e) { }
 
-    return getInstanceByName(project, Paths.get(".").resolve( getBaseDirectoryPath(project).relativize(path) ).getParent());
+    return getInstance(project, Paths.get(".").resolve( getBaseDirectoryPath(project).relativize(path) ).getParent());
   }
 
   private String generateUniqueName(String name) {

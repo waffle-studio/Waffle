@@ -5,11 +5,12 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import jp.tkms.waffle.exception.*;
@@ -62,7 +63,7 @@ abstract public class AbstractSubmitter {
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
   abstract public String exec(String command) throws FailedToControlRemoteException;
   abstract public void putText(Job job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
-  abstract public String getFileContents(SimulatorRun run, Path path) throws FailedToTransferFileException;
+  abstract public String getFileContents(ExecutableRun run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
   abstract public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException;
 
@@ -105,7 +106,7 @@ abstract public class AbstractSubmitter {
   }
 
   public State update(Job job) throws RunNotFoundException {
-    SimulatorRun run = job.getRun();
+    ExecutableRun run = job.getRun();
     try {
       processXstat(job, exec(xstatCommand(job)));
     } catch (FailedToControlRemoteException e) {
@@ -127,65 +128,65 @@ abstract public class AbstractSubmitter {
   }
 
   protected void prepareJob(Job job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    SimulatorRun run = job.getRun();
+    ExecutableRun run = job.getRun();
     run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
-    run.getSimulator().updateVersionId();
+    //run.getSimulator().updateVersionId();
 
     putText(job, BATCH_FILE, makeBatchFileText(job));
     putText(job, EXIT_STATUS_FILE, "-2");
 
-    for (String extractorName : run.getSimulator().getExtractorNameList()) {
+    for (String extractorName : run.getExecutable().getExtractorNameList()) {
       new RubyParameterExtractor().extract(this, run, extractorName);
     }
     putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    if (! exists(getSimulatorBinDirectory(job).toAbsolutePath())) {
-      Path binPath = run.getSimulator().getBinDirectory().toAbsolutePath();
-      transferFilesToRemote(binPath, getSimulatorBinDirectory(job).toAbsolutePath());
+    if (! exists(getExecutableBaseDirectory(job).toAbsolutePath())) {
+      Path binPath = run.getExecutable().getBaseDirectory().toAbsolutePath();
+      transferFilesToRemote(binPath, getExecutableBaseDirectory(job).toAbsolutePath());
     }
 
-    Path work = run.getWorkPath();
+    Path work = run.getBasePath();
     transferFilesToRemote(work, getRunDirectory(run).resolve(work.getFileName()));
 
     job.setState(State.Prepared);
     InfoLogMessage.issue(job.getRun(), "was prepared");
   }
 
-  public Path getWorkDirectory(SimulatorRun run) throws FailedToControlRemoteException {
-    return getRunDirectory(run).resolve(SimulatorRun.WORKING_DIR);
+  public Path getBaseDirectory(ExecutableRun run) throws FailedToControlRemoteException {
+    return getRunDirectory(run).resolve(Executable.BASE);
   }
 
-  public Path getRunDirectory(SimulatorRun run) throws FailedToControlRemoteException {
-    Computer computer = run.getActualHost();
-    Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(RUN_DIR).resolve(run.getId());
+  public Path getRunDirectory(ExecutableRun run) throws FailedToControlRemoteException {
+    Computer computer = run.getActualComputer();
+    Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(run.getLocalDirectoryPath());
 
     createDirectories(path);
 
     return path;
   }
 
-  Path getSimulatorBinDirectory(Job job) throws FailedToControlRemoteException, RunNotFoundException {
-    return parseHomePath(job.getHost().getWorkBaseDirectory()).resolve(SIMULATOR_DIR).resolve(job.getRun().getSimulator().getName());
+  Path getExecutableBaseDirectory(Job job) throws FailedToControlRemoteException, RunNotFoundException {
+    return parseHomePath(job.getComputer().getWorkBaseDirectory()).resolve(job.getRun().getExecutable().getLocalDirectoryPath());
   }
 
   String makeBatchFileText(Job job) throws FailedToControlRemoteException, RunNotFoundException {
-    SimulatorRun run = job.getRun();
+    ExecutableRun run = job.getRun();
     JSONArray localSharedList = run.getLocalSharedList();
 
     String text = "#!/bin/sh\n" +
       "\n" +
-      "export WAFFLE_REMOTE='" + getSimulatorBinDirectory(job) + "'\n" +
+      "export WAFFLE_REMOTE='" + getExecutableBaseDirectory(job) + "'\n" +
       "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
-      "mkdir -p " + getWorkDirectory(run) +"\n" +
-      "cd " + getWorkDirectory(run) + "\n" +
+      "mkdir -p " + getBaseDirectory(run) +"\n" +
+      "cd " + getBaseDirectory(run) + "\n" +
       "export WAFFLE_WORKING_DIR=`pwd`\n" +
-      "cd '" + getSimulatorBinDirectory(job) + "'\n" +
-      "chmod a+x '" + run.getSimulator().getCommand() + "' >/dev/null 2>&1\n" +
+      "cd '" + getExecutableBaseDirectory(job) + "'\n" +
+      "chmod a+x '" + run.getExecutable().getCommand() + "' >/dev/null 2>&1\n" +
       "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
       "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
-      "export WAFFLE_LOCAL_SHARED=\"" + job.getHost().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getName() + "\"\n" +
+      "export WAFFLE_LOCAL_SHARED=\"" + job.getComputer().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getName() + "\"\n" +
       "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
       "cd \"${WAFFLE_WORKING_DIR}\"\n";
 
@@ -196,7 +197,7 @@ abstract public class AbstractSubmitter {
 
     text += makeEnvironmentCommandText(job);
 
-    text += "\n" + run.getSimulator().getCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
+    text += "\n" + run.getExecutable().getCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
       "EXIT_STATUS=$?\n";
 
     for (int i = 0; i < localSharedList.length(); i++) {
@@ -229,7 +230,7 @@ abstract public class AbstractSubmitter {
 
   String makeEnvironmentCommandText(Job job) throws RunNotFoundException {
     String text = "";
-    for (Map.Entry<String, Object> entry : job.getHost().getEnvironments().toMap().entrySet()) {
+    for (Map.Entry<String, Object> entry : job.getComputer().getEnvironments().toMap().entrySet()) {
       text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
     }
     for (Map.Entry<String, Object> entry : job.getRun().getEnvironments().toMap().entrySet()) {
@@ -243,20 +244,20 @@ abstract public class AbstractSubmitter {
   }
 
   String xsubCommand(Job job) throws FailedToControlRemoteException, RunNotFoundException {
-    Computer computer = job.getHost();
+    Computer computer = job.getComputer();
     return "XSUB_COMMAND=`which " + getXsubBinDirectory(computer) + "xsub`; " +
       "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
       "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + computer.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
   }
 
   String xstatCommand(Job job) {
-    Computer computer = job.getHost();
+    Computer computer = job.getComputer();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
       + getXsubBinDirectory(computer) + "xstat " + job.getJobId();
   }
 
   String xdelCommand(Job job) {
-    Computer computer = job.getHost();
+    Computer computer = job.getComputer();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
       + getXsubBinDirectory(computer) + "xdel " + job.getJobId();
   }
@@ -320,7 +321,7 @@ abstract public class AbstractSubmitter {
 
             boolean isNoException = true;
             try {
-              for (String collectorName : job.getRun().getSimulator().getCollectorNameList()) {
+              for (String collectorName : job.getRun().getExecutable().getCollectorNameList()) {
                 try {
                   new RubyResultCollector().collect(this, job.getRun(), collectorName);
                 } catch (Exception | Error e) {
@@ -357,11 +358,11 @@ abstract public class AbstractSubmitter {
     // nothing to do
   }
 
-  Path getContentsPath(SimulatorRun run, Path path) throws FailedToControlRemoteException {
+  Path getContentsPath(ExecutableRun run, Path path) throws FailedToControlRemoteException {
     if (path.isAbsolute()) {
       return path;
     }
-    return getWorkDirectory(run).resolve(path);
+    return getBaseDirectory(run).resolve(path);
   }
 
   public static String getXsubBinDirectory(Computer computer) {
@@ -401,18 +402,18 @@ abstract public class AbstractSubmitter {
   }
 
   protected boolean isSubmittable(Computer computer, Job next, ArrayList<Job>... lists) {
-    SimulatorRun nextRun = null;
+    ExecutableRun nextRun = null;
     try {
       if (next != null) {
         nextRun = next.getRun();
       }
     } catch (RunNotFoundException e) {
     }
-    double thread = (nextRun == null ? 0.0: nextRun.getSimulator().getRequiredThread());
+    double thread = (nextRun == null ? 0.0: nextRun.getExecutable().getRequiredThread());
     for (ArrayList<Job> list : lists) {
       thread += list.stream().mapToDouble(o->o.getRequiredThread()).sum();
     }
-    double memory = (nextRun == null ? 0.0: nextRun.getSimulator().getRequiredMemory());
+    double memory = (nextRun == null ? 0.0: nextRun.getExecutable().getRequiredMemory());
     for (ArrayList<Job> list : lists) {
       memory += list.stream().mapToDouble(o->o.getRequiredMemory()).sum();
     }

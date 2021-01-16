@@ -16,15 +16,16 @@ import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
 import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
 import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
-import jp.tkms.waffle.web.updater.SystemUpdater;
 import spark.Spark;
 
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.TimeZone;
 import java.util.concurrent.*;
 import java.util.stream.IntStream;
 
@@ -47,6 +48,8 @@ public class Main {
   private static Thread pollingThreadWalkerThread;
   private static Thread gcInvokerThread;
   private static Thread commandLineThread;
+  public static SimpleDateFormat DATE_FORMAT_FOR_WAFFLE_ID = new SimpleDateFormat("yyyyMMddHHmmss");
+  public static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
   public static void main(String[] args) {
     //NOTE: for https://bugs.openjdk.java.net/browse/JDK-8246714
@@ -54,6 +57,8 @@ public class Main {
     URLConnection.setDefaultUseCaches("jar", false);
 
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
+    DATE_FORMAT_FOR_WAFFLE_ID.setTimeZone(TimeZone.getTimeZone("GMT+9"));
+    DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT+9"));
 
     //Check already running process
     try {

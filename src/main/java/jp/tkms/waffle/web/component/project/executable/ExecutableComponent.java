@@ -123,7 +123,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 Html.span("right badge badge-secondary", null, "test run")
               ),
               Html.div(null,
-                Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", executable.getBinDirectory().toString()),
+                Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", executable.getBaseDirectory().toString()),
                 //Lte.readonlyTextInput("Version ID", executable.getVersionId()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getCommand(), errors),
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
@@ -249,7 +249,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (File child : executable.getBinDirectory().toFile().listFiles()) {
+              for (File child : executable.getBaseDirectory().toFile().listFiles()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(child.getName());
                   }

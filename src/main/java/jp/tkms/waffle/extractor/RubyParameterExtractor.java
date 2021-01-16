@@ -1,6 +1,6 @@
 package jp.tkms.waffle.extractor;
 
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.RubyScript;
@@ -10,10 +10,10 @@ import org.jruby.embed.EvalFailedException;
 
 public class RubyParameterExtractor extends AbstractParameterExtractor {
   @Override
-  public void extract(AbstractSubmitter submitter, SimulatorRun run, String extractorName) {
+  public void extract(AbstractSubmitter submitter, ExecutableRun run, String extractorName) {
     RubyScript.process((container) -> {
       try {
-        container.runScriptlet(run.getSimulator().getExtractorScript(extractorName));
+        container.runScriptlet(run.getExecutable().getExtractorScript(extractorName));
         container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_parameter_extract", run);
       } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);
@@ -27,7 +27,7 @@ public class RubyParameterExtractor extends AbstractParameterExtractor {
       "end";
   }
 
-  private String getInitScript(SimulatorRun run) {
+  private String getInitScript(ExecutableRun run) {
     return ResourceFile.getContents("/ruby_init.rb");
   }
 }

@@ -1,6 +1,6 @@
 package jp.tkms.waffle.collector;
 
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.Remote;
 import jp.tkms.waffle.data.util.ResourceFile;
@@ -11,10 +11,10 @@ import org.jruby.embed.EvalFailedException;
 
 public class RubyResultCollector extends AbstractResultCollector {
   @Override
-  public void collect(AbstractSubmitter submitter, SimulatorRun run, String collectorName) {
+  public void collect(AbstractSubmitter submitter, ExecutableRun run, String collectorName) {
     RubyScript.process((container) -> {
       try {
-        container.runScriptlet(run.getSimulator().getCollectorScript(collectorName));
+        container.runScriptlet(run.getExecutable().getCollectorScript(collectorName));
         Remote remote = new Remote(run, submitter);
         container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_result_collect", run, remote);
       } catch (EvalFailedException e) {
@@ -29,7 +29,7 @@ public class RubyResultCollector extends AbstractResultCollector {
       "end";
   }
 
-  private String getInitScript(SimulatorRun run) {
+  private String getInitScript(ExecutableRun run) {
     return ResourceFile.getContents("/ruby_init.rb");
   }
 }

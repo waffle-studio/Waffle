@@ -2,7 +2,7 @@ package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -159,7 +159,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(SimulatorRun run, Path path) {
+  public String getFileContents(ExecutableRun run, Path path) {
     try {
       return session.getText(getContentsPath(run, path).toString(), "");
     } catch (IOException | FailedToControlRemoteException e) {

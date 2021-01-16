@@ -1,7 +1,7 @@
 package jp.tkms.waffle.data.log.message;
 
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.WaffleException;
 
 public class WarnLogMessage extends LogMessage {
@@ -17,16 +17,16 @@ public class WarnLogMessage extends LogMessage {
     new WarnLogMessage(getStackTrace(e)).printMessage();
   }
 
-  public static void issue(SimulatorRun run, Throwable e) {
-    new WarnLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + getStackTrace(e)).printMessage();
+  public static void issue(ExecutableRun run, Throwable e) {
+    new WarnLogMessage("Run(" + run.getLocalDirectoryPath().toString() + ") " + getStackTrace(e)).printMessage();
   }
 
   public static void issue(WaffleException e) {
     new WarnLogMessage(e.getMessage()).printMessage();
   }
 
-  public static void issue(SimulatorRun run, String message) {
-    new WarnLogMessage("Run(" + run.getProject().getName() + "/" + run.getId() + ") " + message).printMessage();
+  public static void issue(ExecutableRun run, String message) {
+    new WarnLogMessage("Run(" + run.getLocalDirectoryPath().toString() + ") " + message).printMessage();
   }
 
   public static void issue(Computer computer, String message) {
@@ -37,7 +37,7 @@ public class WarnLogMessage extends LogMessage {
     issue(computer, getStackTrace(e));
   }
 
-  public static void issue(SimulatorRun run, WaffleException e) {
+  public static void issue(ExecutableRun run, WaffleException e) {
     issue(run, e.getMessage());
   }
 }
