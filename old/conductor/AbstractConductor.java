@@ -3,20 +3,21 @@ package jp.tkms.waffle.conductor;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
+import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 abstract public class AbstractConductor {
-  abstract protected void mainProcess(ConductorRun entity);
-  abstract protected void eventHandler(ConductorRun entity, AbstractRun run);
-  abstract protected void finalizeProcess(ConductorRun entity);
-  abstract protected void suspendProcess(ConductorRun entity);
+  abstract protected void mainProcess(ProcedureRun entity);
+  abstract protected void eventHandler(ProcedureRun entity, AbstractRun run);
+  abstract protected void finalizeProcess(ProcedureRun entity);
+  abstract protected void suspendProcess(ProcedureRun entity);
   abstract public String defaultScriptName();
   abstract public void prepareConductor(Conductor conductor);
 
-  private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
-  private static HashMap<ConductorRun, AbstractConductor> runningInstance = new HashMap<>();
+  //private static HashMap<String, AbstractConductor> instanceMap = new HashMap<>();
+  //private static HashMap<ConductorRun, AbstractConductor> runningInstance = new HashMap<>();
 
   public AbstractConductor() {
   }

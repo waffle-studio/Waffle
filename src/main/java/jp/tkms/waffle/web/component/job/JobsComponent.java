@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.component.job;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
@@ -103,7 +104,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Job job : Job.getList()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                  SimulatorRun run = job.getRun();
+                  ExecutableRun run = job.getRun();
                   try {
                     return new Lte.TableRow(
                       Html.a(RunComponent.getUrl(job.getRun()), job.getHexCode()),
@@ -112,8 +113,8 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         job.getProject().getName()
                       ),
                       Html.a(
-                        ExecutableComponent.getUrl(run.getSimulator()),
-                        run.getSimulator().getName()
+                        ExecutableComponent.getUrl(run.getExecutable()),
+                        run.getExecutable().getName()
                       ),
                       Html.a(
                         ComputersComponent.getUrl(null, job.getComputer()),

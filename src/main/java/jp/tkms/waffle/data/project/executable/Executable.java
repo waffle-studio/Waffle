@@ -1,18 +1,18 @@
 package jp.tkms.waffle.data.project.executable;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
+import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,7 +30,8 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
   public static final String KEY_COLLECTOR = "COLLECTOR";
   public static final String KEY_OUTPUT_JSON = "_output.json";
-  private static final String KEY_DEFAULT_PARAMETERS = "DEFAULT_PARAMETERS";
+  private static final String DEFAULT_PARAMETERS_JSON_FILE = "DEFAULT_PARAMETERS" + Constants.EXT_JSON;
+  private static final String DUMMY_RESULTS_JSON_FILE = "DUMMY_RESULTS" + Constants.EXT_JSON;
   public static final String KEY_TESTRUN = "testrun";
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
@@ -38,14 +39,14 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String BASE = "BASE";
 
   private static final String KEY_COMMAND = "command";
+  private static final String DEFAULT_PROCESSOR_CLASS = "jp.tkms.waffle.script.ruby.RubyScriptProcessor";
 
   private String name = null;
   private String command = null;
   private String defaultParameters = null;
-  private String versionId = null;
+  private String dummyResults = null;
   private Double requiredThread = null;
   private Double requiredMemory = null;
-  private long lastGitCheckTimestamp = 0;
 
   public Executable(Project project, String name) {
     super(project);
@@ -103,7 +104,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     }
 
     if (getCommand() == null) {
-      setSimulatorCommand("");
+      setCommand("");
     }
 
     if (getExtractorNameList() == null) {
@@ -115,6 +116,15 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       createCollector(KEY_OUTPUT_JSON);
       updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
     }
+
+    if (!Files.exists(getDirectoryPath().resolve(DEFAULT_PARAMETERS_JSON_FILE))) {
+      getDefaultParameters();
+    }
+
+    if (!Files.exists(getDirectoryPath().resolve(DUMMY_RESULTS_JSON_FILE))) {
+      getDummyResults();
+    }
+
 
     /*
     if (! Files.exists(getDirectoryPath().resolve(".git"))) {
@@ -147,6 +157,10 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     }
   }
    */
+
+  public String getScriptProcessorName() {
+    return DEFAULT_PROCESSOR_CLASS;
+  }
 
   private void deleteDirectory(File file) {
     File[] contents = file.listFiles();
@@ -241,7 +255,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public Path getBaseDirectory() {
-    return getDirectoryPath().resolve(BASE).toAbsolutePath();
+    return getDirectoryPath().resolve(BASE).toAbsolutePath().normalize();
   }
 
   public String getCommand() {
@@ -253,7 +267,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     return command;
   }
 
-  public void setSimulatorCommand(String command) {
+  public void setCommand(String command) {
     this.command = command;
     setToProperty(KEY_COMMAND, this.command);
   }
@@ -288,11 +302,11 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
   public JSONObject getDefaultParameters() {
     if (defaultParameters == null) {
-      defaultParameters = getFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON);
+      defaultParameters = getFileContents(DEFAULT_PARAMETERS_JSON_FILE);
       if (defaultParameters.equals("")) {
         defaultParameters = "{}";
-        createNewFile(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON);
-        updateFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON, defaultParameters);
+        createNewFile(DEFAULT_PARAMETERS_JSON_FILE);
+        updateFileContents(DEFAULT_PARAMETERS_JSON_FILE, defaultParameters);
       }
     }
     return new JSONObject(defaultParameters);
@@ -301,7 +315,28 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public void setDefaultParameters(String json) {
     try {
       defaultParameters = new JSONObject(json).toString(2);
-      updateFileContents(KEY_DEFAULT_PARAMETERS + Constants.EXT_JSON, defaultParameters);
+      updateFileContents(DEFAULT_PARAMETERS_JSON_FILE, defaultParameters);
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
+  }
+
+  public JSONObject getDummyResults() {
+    if (dummyResults == null) {
+      dummyResults = getFileContents(DUMMY_RESULTS_JSON_FILE);
+      if (dummyResults.equals("")) {
+        dummyResults = "{}";
+        createNewFile(DUMMY_RESULTS_JSON_FILE);
+        updateFileContents(DUMMY_RESULTS_JSON_FILE, dummyResults);
+      }
+    }
+    return new JSONObject(dummyResults);
+  }
+
+  public void setDummyResults(String json) {
+    try {
+      dummyResults = new JSONObject(json).toString(2);
+      updateFileContents(DUMMY_RESULTS_JSON_FILE, dummyResults);
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
@@ -325,7 +360,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     if (! Files.exists(path)) {
       try {
         FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(new RubyParameterExtractor().contentsTemplate());
+        filewriter.write(ScriptProcessor.getProcessor(getScriptProcessorName()).extractorTemplate());
         filewriter.close();
       } catch (IOException e) {
         e.printStackTrace();
@@ -414,7 +449,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     if (! Files.exists(path)) {
       try {
         FileWriter filewriter = new FileWriter(path.toFile());
-        filewriter.write(new RubyResultCollector().contentsTemplate());
+        filewriter.write(ScriptProcessor.getProcessor(getScriptProcessorName()).collectorTemplate());
         filewriter.close();
       } catch (IOException e) {
         e.printStackTrace();

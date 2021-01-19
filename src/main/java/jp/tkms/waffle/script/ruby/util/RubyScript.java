@@ -1,8 +1,8 @@
-package jp.tkms.waffle.data.util;
+package jp.tkms.waffle.script.ruby.util;
 
-import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.util.ResourceFile;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
@@ -71,7 +71,7 @@ public class RubyScript {
       try {
         container = new ScriptingContainer(LocalContextScope.THREADSAFE);
         try {
-          container.runScriptlet(RubyConductor.getInitScript());
+          container.runScriptlet(getInitScript());
           process.accept(container);
         } catch (EvalFailedException e) {
           ErrorLogMessage.issue(e);
@@ -107,7 +107,7 @@ public class RubyScript {
       try {
         container = getScriptingContainer();
         try {
-          container.runScriptlet(RubyConductor.getInitScript());
+          container.runScriptlet(getInitScript());
           process.accept(container);
         } catch (EvalFailedException e) {
           ErrorLogMessage.issue(e);
@@ -130,5 +130,9 @@ public class RubyScript {
 
   public static String debugReport() {
     return RubyScript.class.getSimpleName() + " : cacheSize=" + containersQueue.size() + ", runningCount=" + runningCount;
+  }
+
+  public static String getInitScript() {
+    return ResourceFile.getContents("/ruby_init.rb");
   }
 }

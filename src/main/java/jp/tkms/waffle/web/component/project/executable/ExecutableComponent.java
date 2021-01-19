@@ -2,8 +2,8 @@ package jp.tkms.waffle.web.component.project.executable;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
-import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -11,7 +11,6 @@ import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import spark.Spark;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 public class ExecutableComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Executable";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
-  private static final String KEY_UPDATE_PARAMETERS = "update-parameters";
+  private static final String KEY_DUMMY_RESULTS = "dummy_results";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_RUN = "run";
   private static final String KEY_COMPUTER = "computer";
@@ -47,10 +46,11 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ExecutableComponent());
-    Spark.post(getUrl(null, "update"), new ExecutableComponent(Mode.Update));
-    Spark.post(getUrl(null, KEY_UPDATE_PARAMETERS), new ExecutableComponent(Mode.UpdateParameters));
-    Spark.get(getUrl(null, KEY_RUN), new ExecutableComponent(Mode.TestRun));
-    Spark.post(getUrl(null, KEY_RUN), new ExecutableComponent(Mode.TestRun));
+    Spark.post(getUrl(null, Mode.Update), new ExecutableComponent(Mode.Update));
+    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ExecutableComponent(Mode.UpdateDefaultParameters));
+    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ExecutableComponent(Mode.UpdateDummyResults));
+    Spark.get(getUrl(null, Mode.TestRun), new ExecutableComponent(Mode.TestRun));
+    Spark.post(getUrl(null, Mode.TestRun), new ExecutableComponent(Mode.TestRun));
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();
@@ -61,8 +61,8 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
       + (executable == null ? "/:" + KEY_SIMULATOR : '/' + executable.getName());
   }
 
-  public static String getUrl(Executable executable, String mode) {
-    return getUrl(executable) + "/@" + mode;
+  public static String getUrl(Executable executable, Mode mode) {
+    return getUrl(executable) + "/@" + mode.name();
   }
 
   @Override
@@ -71,18 +71,30 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     executable = Executable.getInstance(project, request.params(KEY_SIMULATOR));
 
     switch (mode) {
-      case Update:
-        updateSimulator();
+      case Update: {
+        executable.setCommand(request.queryParams("sim_cmd"));
+        executable.setRequiredThread(Double.parseDouble(request.queryParams("req_t")));
+        executable.setRequiredMemory(Double.parseDouble(request.queryParams("req_m")));
+        response.redirect(getUrl(executable));
         break;
-      case UpdateParameters:
-        updateDefaultParameters();
+      }
+      case UpdateDefaultParameters: {
+        executable.setDefaultParameters(request.queryParams(KEY_DEFAULT_PARAMETERS));
+        response.redirect(getUrl(executable));
         break;
-      case TestRun:
+      }
+      case UpdateDummyResults: {
+        executable.setDefaultParameters(request.queryParams(KEY_DUMMY_RESULTS));
+        response.redirect(getUrl(executable));
+        break;
+      }
+      case TestRun: {
         if (isPost()) {
           runSimulator();
         }
         renderTestRun();
         break;
+      }
       default:
         renderSimulator();
         break;
@@ -117,9 +129,9 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content +=
-          Html.form(getUrl(executable, "update"), Html.Method.Post,
+          Html.form(getUrl(executable, Mode.Update), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Properties",
-              Html.a(getUrl(executable, KEY_RUN),
+              Html.a(getUrl(executable, Mode.TestRun),
                 Html.span("right badge badge-secondary", null, "test run")
               ),
               Html.div(null,
@@ -174,8 +186,8 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         String defaultParametersText = executable.getDefaultParameters().toString(2);
 
         content +=
-          Html.form(getUrl(executable, KEY_UPDATE_PARAMETERS), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "Default Parameters",
+          Html.form(getUrl(executable, Mode.UpdateDefaultParameters), Html.Method.Post,
+            Lte.card(Html.fasIcon("list-ol") + "Default Parameters",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -187,7 +199,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
           );
 
         content += Lte.card(Html.fasIcon("file-import") + "Parameter Extractors",
-          Html.a(ParameterExtractorComponent.getStaticUrl(executable, "add"), Html.fasIcon("plus-square")),
+          Html.a(ParameterExtractorComponent.getStaticUrl(executable, "add"), Lte.badge("primary", null,  Html.fasIcon("plus-square") + "NEW")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -212,8 +224,21 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
           })
           , null, null, "p-0");
 
+        content +=
+          Html.form(getUrl(executable, Mode.UpdateDummyResults), Html.Method.Post,
+            Lte.card(Html.fasIcon("list-ol") + "Dummy Results",
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formJsonEditorGroup(KEY_DUMMY_RESULTS, null, "tree", executable.getDummyResults().toString(), null)
+                )
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop", null)
+          );
+
         content += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
-          Html.a(ResultCollectorComponent.getStaticUrl(executable, "add"), Html.fasIcon("plus-square")),
+          Html.a(ResultCollectorComponent.getStaticUrl(executable, "add"), Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -291,14 +316,14 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
-        SimulatorRun latestRun = null;
+        ExecutableRun latestRun = null;
         try {
           latestRun = executable.getLatestTestRun();
         } catch (RunNotFoundException e) { }
 
         if (latestRun != null) {
 
-          SimulatorRun finalLatestRun = latestRun;
+          ExecutableRun finalLatestRun = latestRun;
           content += Lte.card(Html.fasIcon("poll-h") + "Latest Run", null,
             Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
@@ -313,6 +338,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+                /*
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getName()),
@@ -320,6 +346,8 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                     Html.spanWithId(finalLatestRun.getId() + "-badge", finalLatestRun.getState().getStatusBadge())
                   );
                 }));
+
+                 */
                 return list;
               }
             })
@@ -327,7 +355,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         }
 
         content +=
-          Html.form(getUrl(executable, "run"), Html.Method.Post,
+          Html.form(getUrl(executable, Mode.TestRun), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "TestRun",
               null,
               Lte.divRow(
@@ -346,21 +374,12 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
   }
 
   void runSimulator() {
+    /*
     SimulatorRun run = executable.postTestRun(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
     response.redirect(RunComponent.getUrl(project, run.getUuid()));
+
+     */
   }
 
-  void updateSimulator() {
-    executable.setSimulatorCommand(request.queryParams("sim_cmd"));
-    executable.setRequiredThread(Double.parseDouble(request.queryParams("req_t")));
-    executable.setRequiredMemory(Double.parseDouble(request.queryParams("req_m")));
-    response.redirect(getUrl(executable));
-  }
-
-  void updateDefaultParameters() {
-    executable.setDefaultParameters(request.queryParams(KEY_DEFAULT_PARAMETERS));
-    response.redirect(getUrl(executable));
-  }
-
-  public enum Mode {Default, Update, UpdateParameters, TestRun}
+  public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun}
 }

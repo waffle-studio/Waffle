@@ -8,12 +8,11 @@ import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
 import jp.tkms.waffle.web.component.misc.SystemComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
-import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.updater.AbstractUpdater;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.util.RubyScript;
+import jp.tkms.waffle.script.ruby.util.RubyScript;
 
 import java.util.ArrayList;
 import java.util.Map;

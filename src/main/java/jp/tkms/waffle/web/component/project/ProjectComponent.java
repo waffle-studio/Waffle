@@ -12,7 +12,6 @@ import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
@@ -196,7 +195,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             null
           );
         } else {
-          ArrayList<ActorRun> notFinishedList = new ArrayList<>();
+          //ArrayList<ActorRun> notFinishedList = new ArrayList<>();
           /*
           for (Actor notFinished : Actor.getNotFinishedList(project)) {
             if (!notFinished.isRoot()) {
@@ -255,9 +254,10 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                       new Lte.TableValue("text-align:right;",
                         Html.span(null, null,
                           Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getName()))),
+                          "gfhgfhjg"/*
                           Html.a(ConductorComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
                             Html.span("right badge badge-secondary", null, "run")
-                          ),
+                          )*/,
                           Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + finalRunningCount + ")")
                         )
                       ));

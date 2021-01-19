@@ -1,7 +1,7 @@
 package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.data.web.BrowserMessage;
-import jp.tkms.waffle.data.util.RubyScript;
+import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import spark.Spark;
 

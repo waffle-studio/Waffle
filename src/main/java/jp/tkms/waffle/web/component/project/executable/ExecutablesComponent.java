@@ -106,7 +106,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
 
   private void addSimulator() {
     Executable executable = Executable.create(project, request.queryParams("name"));
-    executable.setSimulatorCommand("");
+    executable.setCommand("");
     response.redirect(ExecutableComponent.getUrl(executable));
   }
 

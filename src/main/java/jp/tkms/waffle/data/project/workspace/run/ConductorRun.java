@@ -11,7 +11,7 @@ public class ConductorRun extends AbstractRun {
   public static final String JSON_FILE = CONDUCTOR_RUN + Constants.EXT_JSON;
 
   public ConductorRun(Workspace workspace, Path path) {
-    super(workspace, path);
+    super(workspace, null, path);
   }
 
   @Override

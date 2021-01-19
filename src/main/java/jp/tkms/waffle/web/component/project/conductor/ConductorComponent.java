@@ -2,13 +2,13 @@ package jp.tkms.waffle.web.component.project.conductor;
 
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
-import jp.tkms.waffle.conductor.RubyConductor;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.util.FileName;
@@ -34,8 +34,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   private Project project;
   private Conductor conductor;
-  private ActorRun parent;
-  private SimulatorRun baseRun;
+  //private ActorRun parent;
+  //private SimulatorRun baseRun;
   public ConductorComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -47,6 +47,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ConductorComponent());
+    /*
     Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
     Spark.get(getUrl(null, "prepare", null, null), new ConductorComponent(Mode.Prepare));
     Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
@@ -54,13 +55,16 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, "update-listener-script"), new ConductorComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, "new-listener"), new ConductorComponent(Mode.NewListener));
+
+     */
   }
 
   public static String getUrl(Conductor conductor) {
-    return "/actorGroup/"
-      + (conductor == null ? ":project/:id" : conductor.getProject().getName() + '/' + conductor.getName());
+    return ProjectComponent.getUrl((conductor == null ? null : conductor.getProject())) + "/" + Conductor.CONDUCTOR + "/"
+      + (conductor == null ? ":name" : conductor.getName());
   }
 
+  /*
   public static String getUrl(Conductor conductor, String mode, ActorRun parent) {
     return getUrl(conductor) + '/' + mode + '/'
       + (parent == null ? ":parent" : parent.getId());
@@ -72,8 +76,10 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       + '/' + (base == null ? ":base" : base.getId());
   }
 
-  public static String getUrl(Conductor conductor, String mode) {
-    return getUrl(conductor) + '/' + mode;
+   */
+
+  public static String getUrl(Conductor conductor, Mode mode) {
+    return getUrl(conductor) + "/@" + mode.name();
   }
 
   @Override
@@ -84,18 +90,22 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
     if (mode == Mode.Prepare) {
       if (conductor.checkSyntax()) {
+        /*
         parent = ActorRun.getInstance(project, request.params("parent"));
         try {
           baseRun = SimulatorRun.getInstance(project, request.params("base"));
         } catch (RunNotFoundException e) {
           baseRun = null;
         }
+
+         */
         renderPrepareForm();
       } else {
         response.redirect(getUrl(conductor));
       }
     } else if (mode == Mode.Run) {
 
+      /*
       parent = ActorRun.getInstance(project, request.params("parent"));
       String newRunNodeName = "" + request.queryParams(KEY_NAME);
       ActorRun actorRun = ActorRun.createActorGroupRun(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, conductor);
@@ -103,6 +113,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         actorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
       actorRun.start(null, true);
+
+       */
       response.redirect(ProjectComponent.getUrl(project));
 
     } else if (mode == Mode.UpdateArguments) {
@@ -204,6 +216,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             "};"
         );
 
+        /*
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
             Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
@@ -279,6 +292,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             );
         }
 
+         */
+
         return content;
       }
     }.render(this);
@@ -332,6 +347,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String name = conductor.getName() + '_' + LocalDateTime.now().toString();
         String variables = conductor.getDefaultVariables().toString();
 
+        /*
         if (baseRun != null) {
           name = baseRun.getName();
           RunNode parent = baseRun.getRunNode().getParent();
@@ -358,6 +374,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               ,Lte.formSubmitButton("primary", "Run"), "card-info", null
             )
           );
+
+         */
 
         return content;
       }

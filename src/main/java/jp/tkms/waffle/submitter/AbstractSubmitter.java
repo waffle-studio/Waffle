@@ -2,7 +2,6 @@ package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.collector.RubyResultCollector;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
@@ -12,8 +11,8 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.extractor.RubyParameterExtractor;
 import jp.tkms.waffle.exception.*;
+import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,7 +29,6 @@ import java.util.concurrent.Future;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
-  protected static final String SIMULATOR_DIR = "simulator";
   protected static final String BATCH_FILE = "batch.sh";
   protected static final String ARGUMENTS_FILE = "arguments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
@@ -137,7 +135,7 @@ abstract public class AbstractSubmitter {
     putText(job, EXIT_STATUS_FILE, "-2");
 
     for (String extractorName : run.getExecutable().getExtractorNameList()) {
-      new RubyParameterExtractor().extract(this, run, extractorName);
+      ScriptProcessor.getProcessor(run.getExecutable().getScriptProcessorName()).processExtractor(this, run, extractorName);
     }
     putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
     //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
@@ -323,7 +321,7 @@ abstract public class AbstractSubmitter {
             try {
               for (String collectorName : job.getRun().getExecutable().getCollectorNameList()) {
                 try {
-                  new RubyResultCollector().collect(this, job.getRun(), collectorName);
+                  ScriptProcessor.getProcessor(job.getRun().getExecutable().getScriptProcessorName()).processCollector(this, job.getRun(), collectorName);
                 } catch (Exception | Error e) {
                   isNoException = false;
                   job.setState(State.Excepted);

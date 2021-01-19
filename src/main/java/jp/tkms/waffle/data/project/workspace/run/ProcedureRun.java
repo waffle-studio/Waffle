@@ -10,8 +10,10 @@ public class ProcedureRun extends AbstractRun {
   public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
   public static final String JSON_FILE = PROCEDURE_RUN + Constants.EXT_JSON;
 
-  public ProcedureRun(Workspace workspace, Path path) {
-    super(workspace, path);
+  private AbstractRun parentRun = null;
+
+  public ProcedureRun(Workspace workspace, AbstractRun parent, Path path) {
+    super(workspace, parent, path);
   }
 
   @Override
@@ -19,9 +21,9 @@ public class ProcedureRun extends AbstractRun {
     return getDirectoryPath().resolve(JSON_FILE);
   }
 
-  public static ProcedureRun create(ConductorRun parent, String expectedName) {
+  public static ProcedureRun create(AbstractRun parent, String expectedName) {
     String name = expectedName;
-    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent.getDirectoryPath().resolve(name));
+    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name));
     return instance;
   }
 

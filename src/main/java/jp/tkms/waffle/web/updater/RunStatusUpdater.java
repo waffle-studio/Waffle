@@ -1,7 +1,7 @@
 package jp.tkms.waffle.web.updater;
 
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.template.Html;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.data.util.State;
 
 public class RunStatusUpdater extends AbstractUpdater {
@@ -64,7 +64,7 @@ public class RunStatusUpdater extends AbstractUpdater {
   public RunStatusUpdater() {
   }
 
-  public RunStatusUpdater(SimulatorRun run) {
-    super("'" + run.getId() + "'", "'" + run.getState().toString() + "'");
+  public RunStatusUpdater(ExecutableRun run) {
+    super("'" + run.getLocalDirectoryPath().toString() + "'", "'" + run.getState().toString() + "'");
   }
 }

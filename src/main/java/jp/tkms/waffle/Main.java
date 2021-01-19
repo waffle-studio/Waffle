@@ -4,7 +4,7 @@ import jp.tkms.waffle.data.job.JobStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
-import jp.tkms.waffle.data.util.RubyScript;
+import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
@@ -65,7 +65,8 @@ public class Main {
       if (Constants.PID_FILE.toFile().exists()) {
         if (Runtime.getRuntime().exec("kill -0 " + new String(Files.readAllBytes(Constants.PID_FILE))).waitFor() == 0) {
           System.err.println("The WAFFLE on '" + Constants.WORK_DIR + "' is already running.");
-          System.err.println("You should hibernate it if you want startup WAFFLE in this console.");
+          System.err.println("You should hibernate it if you want startup WAFFLE on this console.");
+          System.err.println("(If you want to force startup, delete '" + Constants.PID_FILE.toString() + "'.)");
           aliveFlag = false;
           System.exit(1);
         }

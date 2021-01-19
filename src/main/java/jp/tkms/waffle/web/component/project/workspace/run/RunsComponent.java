@@ -7,10 +7,7 @@ import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.project.workspace.run.ParallelRunNode;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.workspace.run.RunNode;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRunNode;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
@@ -26,7 +23,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
   private Project project;
-  private RunNode runNode;
+  //private RunNode runNode;
   public RunsComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -38,14 +35,18 @@ public class RunsComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new RunsComponent());
+    /*
     Spark.get(getUrl(null, null), new RunsComponent());
     Spark.post(getUrl(null, null, Mode.UpdateNote), new RunsComponent(Mode.UpdateNote));
+
+     */
   }
 
   public static String getUrl(Project project) {
     return ProjectComponent.getUrl(project) + "/RUN/" + (project == null ? ":id" : ROOT_NAME);
   }
 
+  /*
   public static String getUrl(Project project, RunNode node) {
     return ProjectComponent.getUrl(project) + "/RUN/" + (project == null ? ":id" : node.getId());
   }
@@ -54,16 +55,21 @@ public class RunsComponent extends AbstractAccessControlledComponent {
     return getUrl(project, node) + "/@" + mode.name();
   }
 
+
+   */
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
+    /*
     if (requestedId.equals(ROOT_NAME)){
       runNode = RunNode.getRootInstance(project);
     } else {
       runNode = RunNode.getInstance(project, requestedId);
     }
+
+     */
 
     if (mode.equals(Mode.UpdateNote)) {
       updateNote();
@@ -90,6 +96,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectComponent.getUrl(project), project.getName())
         ));
         ArrayList<String> runNodeList = new ArrayList<>();
+        /*
         RunNode parent = runNode.getParent();
         if (parent == null) {
           breadcrumb.add("Runs");
@@ -104,6 +111,8 @@ public class RunsComponent extends AbstractAccessControlledComponent {
           breadcrumb.addAll(runNodeList);
           breadcrumb.add(runNode.getSimpleName());
         }
+
+         */
 
         return breadcrumb;
       }
@@ -141,6 +150,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
         }
          */
 
+        /*
         String note = runNode.getNote();
         contents +=
           Html.form(getUrl( project, runNode, Mode.UpdateNote), Html.Method.Post,
@@ -154,6 +164,8 @@ public class RunsComponent extends AbstractAccessControlledComponent {
               ,Lte.formSubmitButton("success", "Update")
               , ("".equals(note) ? "collapsed-card" : null), null)
           );
+
+         */
 
         contents += Lte.card(null, null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
@@ -170,6 +182,7 @@ public class RunsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              /*
               for (RunNode child : runNode.getList()) {
                 if (child instanceof SimulatorRunNode) {
                   list.add(Main.interfaceThreadPool.submit(() ->{
@@ -193,6 +206,8 @@ public class RunsComponent extends AbstractAccessControlledComponent {
                   );
                 }
               }
+
+               */
               return list;
             }
           })
@@ -236,8 +251,11 @@ public class RunsComponent extends AbstractAccessControlledComponent {
   }
 
   void updateNote() {
+    /*
     runNode.setNote(request.queryParamOrDefault(KEY_NOTE, ""));
     response.redirect(getUrl(project, runNode));
+
+     */
   }
 
   public enum Mode {Default, UpdateNote}

@@ -8,7 +8,6 @@ import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.data.web.BrowserMessage;
 import org.jruby.Ruby;
 import org.jruby.embed.*;
 
@@ -69,7 +68,6 @@ public class RubyConductor extends CycleConductor {
 
   @Override
   protected void suspendProcess(ConductorRun entity) {
-
   }
 
   @Override

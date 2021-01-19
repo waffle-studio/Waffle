@@ -4,7 +4,7 @@ end
 class Computer < Java::jp.tkms.waffle.data.computer.Computer
 end
 
-class ActorGroup < Java::jp.tkms.waffle.data.project.conductor.Conductor
+class Conductor < Java::jp.tkms.waffle.data.project.conductor.Conductor
 end
 
 class ConductorArgument
@@ -21,11 +21,11 @@ class ConductorArgument
     end
 end
 
-class Actor < Java::jp.tkms.waffle.data.project.workspace.run.ActorRun
-end
+#class Actor < Java::jp.tkms.waffle.data.project.workspace.run.ActorRun
+#end
 
-class SimulatorRun < Java::jp.tkms.waffle.data.project.workspace.run.SimulatorRun
-end
+#class SimulatorRun < Java::jp.tkms.waffle.data.project.workspace.run.SimulatorRun
+#end
 
 class Registry < Java::jp.tkms.waffle.data.project.Registry
 end
@@ -72,6 +72,7 @@ class TemplateArgument
     end
 end
 
+=begin
 class Hub < Java::jp.tkms.waffle.data.util.Hub
     def initialize(conductorRun, run, template)
         super(conductorRun, run, template)
@@ -146,6 +147,7 @@ def exec_listener_template_script(conductorRun, run)
         next listener_script(hub, run)
     end
 end
+=end
 
 def parameter_extract(run)
 end

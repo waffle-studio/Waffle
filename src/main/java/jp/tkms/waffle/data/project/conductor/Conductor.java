@@ -19,7 +19,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class Conductor extends ProjectData implements DataDirectory, PropertyFile {
-  protected static final String KEY_CONDUCTOR = "CONDUCTOR";
+  public static final String CONDUCTOR = "CONDUCTOR";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_ACTOR = "actor";
   public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
@@ -44,11 +44,11 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(KEY_CONDUCTOR + Constants.EXT_JSON);
+    return getDirectoryPath().resolve(CONDUCTOR + Constants.EXT_JSON);
   }
 
   public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(KEY_CONDUCTOR);
+    return project.getDirectoryPath().resolve(CONDUCTOR);
   }
 
   public static Conductor getInstance(Project project, String name) {

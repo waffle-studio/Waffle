@@ -5,6 +5,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
@@ -55,8 +56,8 @@ public class ExecutableRun extends AbstractRun {
   private JSONObject environments = null;
   private JSONArray arguments = null;
 
-  public ExecutableRun(Workspace workspace, Path path) {
-    super(workspace, path);
+  public ExecutableRun(Workspace workspace, ProcedureRun parent, Path path) {
+    super(workspace, parent, path);
   }
 
   @Override
@@ -66,13 +67,12 @@ public class ExecutableRun extends AbstractRun {
 
   public static ExecutableRun create(ProcedureRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
     String name = parent.generateUniqueFileName(expectedName);
-    return new ExecutableRun(parent.getWorkspace(), parent.getDirectoryPath().resolve(name))
+    return new ExecutableRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name))
       .setParentRun(parent).setExecutable(executable).setComputer(computer).setExpectedName(expectedName);
   }
 
   public static ExecutableRun getInstance(String localPathString) {
     return null;
-
   }
 
   public void start() {

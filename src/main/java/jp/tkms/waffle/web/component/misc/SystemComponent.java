@@ -2,21 +2,17 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
-import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
-import jp.tkms.waffle.data.util.RubyScript;
+import jp.tkms.waffle.script.ruby.util.RubyScript;
 import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.Future;
 
 import static jp.tkms.waffle.web.template.Html.*;
 

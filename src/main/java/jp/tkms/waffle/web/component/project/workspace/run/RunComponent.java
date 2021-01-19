@@ -14,12 +14,8 @@ import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
-import jp.tkms.waffle.data.project.workspace.run.ActorRun;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.workspace.run.RunNode;
-import jp.tkms.waffle.data.project.workspace.run.SimulatorRun;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
-import jp.tkms.waffle.exception.RunNotFoundException;
 import spark.Spark;
 
 import java.nio.file.Files;
@@ -52,7 +48,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, Mode.ReCheck), new RunComponent(Mode.ReCheck));
   }
 
-  public static String getUrl(SimulatorRun run) {
+  public static String getUrl(ExecutableRun run) {
     if (run != null) {
       return run.getLocalDirectoryPath().toString();
     } else {
@@ -60,7 +56,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     }
   }
 
-  public static String getUrl(SimulatorRun run, Mode mode) {
+  public static String getUrl(ExecutableRun run, Mode mode) {
     return getUrl(run) + "/@" + mode.name();
   }
 
@@ -73,15 +69,18 @@ public class RunComponent extends AbstractAccessControlledComponent {
     project = Project.getInstance(request.params("project"));
     String requestedId = request.params("id");
 
+    /*
     try {
-      run = SimulatorRun.getInstance(project, requestedId);
+      run = ExecutableRun.getInstance(project, requestedId);
     } catch (RunNotFoundException e) {
       return;
     }
 
+     */
+
     switch (mode) {
       case ReCheck:
-        run.recheck();
+        //run.recheck();
         response.redirect(RunComponent.getUrl(run));
         return;
     }
@@ -93,7 +92,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return (run.getName() == null || "".equals(run.getName()) ? run.getDirectoryPath().toString() : run.getName());
+        return "dsadsad";//(run.getName() == null || "".equals(run.getName()) ? run.getDirectoryPath().toString() : run.getName());
       }
 
       @Override
@@ -104,15 +103,18 @@ public class RunComponent extends AbstractAccessControlledComponent {
           Html.a(RunsComponent.getUrl(project), "Runs")
         ));
         ArrayList<String> runNodeList = new ArrayList<>();
+        /*
         RunNode parent = run.getRunNode().getParent();
         while (parent != null) {
           runNodeList.add(Html.a(RunsComponent.getUrl(project, parent), parent.getSimpleName()));
           parent = parent.getParent();
         }
         runNodeList.remove(runNodeList.size() -1);
+
+         */
         Collections.reverse(runNodeList);
         breadcrumb.addAll(runNodeList);
-        breadcrumb.add(run.getName());
+        //breadcrumb.add(run.getName());
         return breadcrumb;
       }
 
@@ -133,12 +135,15 @@ public class RunComponent extends AbstractAccessControlledComponent {
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Status", run.getState().getStatusBadge());}));
+                /*
                 if (run.getActorGroup() != null) {
                   list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
                 } else {
                   list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", "No Conductor");}));
                 }
-                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Simulator", Html.a(ExecutableComponent.getUrl(run.getSimulator()), run.getSimulator().getName()));}));
+
+                 */
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Executable", Html.a(ExecutableComponent.getUrl(run.getExecutable()), run.getExecutable().getName()));}));
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer", (run.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(null, run.getComputer()), run.getComputer().getName())));}));
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + run.getExitStatus()
                   + (run.getExitStatus() == -2
@@ -153,6 +158,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
             })
           , null, null, "p-0");
 
+        /*
         if (run.getVariablesStoreSize() <= Constants.HUGE_FILE_SIZE) {
           content += Lte.card(Html.fasIcon("list-alt") + "Variables",
             Lte.cardToggleButton(true),
@@ -176,6 +182,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
               Html.span("right badge badge-secondary", null, "run by this variables")
             )), "collapsed-card", null);
         }
+
+         */
 
         String parametersAndResults = "";
 

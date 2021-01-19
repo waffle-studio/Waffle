@@ -21,11 +21,24 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   private Path path;
   private JSONArray finalizers = null;
   private JSONArray callstack = null;
-  private ConductorRun finalizerReferenceOwner = null;
+  private ConductorRun owner = null;
+  private AbstractRun parent = null;
 
-  public AbstractRun(Workspace workspace, Path path) {
+  public AbstractRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace);
     this.path = path;
+    this.parent = parent;
+    if (parent == null) {
+      this.owner = (ConductorRun) this;
+    } else if (parent instanceof ConductorRun) {
+      this.owner = (ConductorRun) parent;
+    } else {
+      this.owner = parent.getOwner();
+    }
+  }
+
+  public ConductorRun getOwner() {
+    return owner;
   }
 
   protected String generateUniqueFileName(String name) {
@@ -75,6 +88,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   }
 
   public void addFinalizer(String key) {
+    /*
     ConductorRun referenceOwner = getOwner();
     if (this instanceof ConductorRun) {
       if (((ConductorRun)this).isActorGroupRun()) {
@@ -84,15 +98,12 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     ConductorRun actorRun = ConductorRun.create(getRunNode(),
       (ConductorRun)(this instanceof ExecutableRun || (this instanceof ConductorRun && ((ConductorRun)this).isActorGroupRun())
         ? getParentActor() : this), referenceOwner, key);
+    ProcedureRun procedureRun = ProcedureRun.create(this, )
     ArrayList<String> finalizers = getFinalizers();
     finalizers.add(actorRun.getDirectoryPath().toString());
     setFinalizers(finalizers);
+     */
   }
-
-  protected void setFinalizerReference(ConductorRun actorRun) {
-    this.finalizerReferenceOwner = actorRun;
-  }
-
 
   @Override
   public Path getDirectoryPath() {
