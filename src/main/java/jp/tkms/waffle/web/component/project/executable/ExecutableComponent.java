@@ -183,7 +183,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
          */
 
-        String defaultParametersText = executable.getDefaultParameters().toString(2);
+        //String defaultParametersText = executable.getDefaultParameters().toString(2);
 
         content +=
           Html.form(getUrl(executable, Mode.UpdateDefaultParameters), Html.Method.Post,

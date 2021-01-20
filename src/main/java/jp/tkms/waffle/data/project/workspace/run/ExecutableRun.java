@@ -76,6 +76,8 @@ public class ExecutableRun extends AbstractRun {
   }
 
   public void start() {
+    putParametersByJson(executable.getDefaultParameters().toString());
+    putResultsByJson(executable.getDummyResults().toString());
     Job.addRun(this);
   }
 
