@@ -28,7 +28,6 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     super(project);
     this.name = name;
     initialise();
-    System.out.println(getDirectoryPath());
   }
 
   public String getName() {

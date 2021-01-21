@@ -17,7 +17,6 @@ import java.util.Arrays;
 import static jp.tkms.waffle.data.project.executable.Executable.KEY_COLLECTOR;
 
 public class ResultCollectorComponent extends AbstractAccessControlledComponent {
-  public static final String KEY_REMOVE = "remove";
   private Mode mode;
 
   private Project project;
@@ -34,23 +33,23 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   }
 
   static public void register() {
+    Spark.get(getStaticUrl(null, Mode.Add), new ResultCollectorComponent(Mode.Add));
+    Spark.post(getStaticUrl(null, Mode.Add), new ResultCollectorComponent(Mode.Add));
     Spark.get(getUrl(null, null), new ResultCollectorComponent());
-    Spark.get(getStaticUrl(null, "add"), new ResultCollectorComponent(Mode.Add));
-    Spark.post(getStaticUrl(null, "add"), new ResultCollectorComponent(Mode.Add));
-    Spark.post(getUrl(null, null, "update"), new ResultCollectorComponent(Mode.Update));
-    Spark.get(getUrl(null, null, KEY_REMOVE), new ResultCollectorComponent(Mode.Remove));
+    Spark.post(getUrl(null, null, Mode.Update), new ResultCollectorComponent(Mode.Update));
+    Spark.get(getUrl(null, null, Mode.Remove), new ResultCollectorComponent(Mode.Remove));
   }
 
-  public static String getStaticUrl(Executable executable, String mode) {
-    return ExecutableComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/@" + (mode == null ? ":mode" : mode);
+  public static String getStaticUrl(Executable executable, Mode mode) {
+    return ExecutableComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/@" + (mode == null ? ":mode" : mode.name());
   }
 
   public static String getUrl(Executable executable, String name) {
     return ExecutableComponent.getUrl(executable) + "/" + KEY_COLLECTOR + "/" + (name == null ? ":name" : name + ".rb");
   }
 
-  public static String getUrl(Executable executable, String name, String mode) {
-    return getUrl(executable, name) + "/@" + mode;
+  public static String getUrl(Executable executable, String name, Mode mode) {
+    return getUrl(executable, name) + "/@" + mode.name();
   }
 
   @Override
@@ -106,7 +105,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getUrl(executable, collectorName, "update"), Html.Method.Post,
+        content += Html.form(getUrl(executable, collectorName, Mode.Update), Html.Method.Post,
           Lte.card(Html.fasIcon("tasks") + "Properties", null,
             Html.div(null,
               Lte.formInputGroup("text", "name", "Name", "Name", collectorName, errors),
@@ -116,7 +115,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
           )
         );
 
-        content += Html.form(getUrl(executable, collectorName, KEY_REMOVE), Html.Method.Get,
+        content += Html.form(getUrl(executable, collectorName, Mode.Remove), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Html.div(null,
@@ -163,7 +162,7 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content += Html.form(getStaticUrl(executable,  "add"), Html.Method.Post,
+        content += Html.form(getStaticUrl(executable,  Mode.Add), Html.Method.Post,
           Lte.card(Html.fasIcon("tasks") + "Properties",
             null,
             Html.div(null,

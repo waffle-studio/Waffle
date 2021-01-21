@@ -135,7 +135,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 Html.span("right badge badge-secondary", null, "test run")
               ),
               Html.div(null,
-                Lte.readonlyTextInputWithCopyButton("Simulator Bin Directory", executable.getBaseDirectory().toString()),
+                Lte.readonlyTextInputWithCopyButton("Executable Bin Directory (BASE)", executable.getBaseDirectory().toString()),
                 //Lte.readonlyTextInput("Version ID", executable.getVersionId()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getCommand(), errors),
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
@@ -185,21 +185,8 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
         //String defaultParametersText = executable.getDefaultParameters().toString(2);
 
-        content +=
-          Html.form(getUrl(executable, Mode.UpdateDefaultParameters), Html.Method.Post,
-            Lte.card(Html.fasIcon("list-ol") + "Default Parameters",
-              Lte.cardToggleButton(false),
-              Lte.divRow(
-                Lte.divCol(Lte.DivSize.F12,
-                  Lte.formJsonEditorGroup(KEY_DEFAULT_PARAMETERS, null, "tree", executable.getDefaultParameters().toString(), null)
-                )
-              ),
-              Lte.formSubmitButton("success", "Update"),
-              "collapsed-card.stop", null)
-          );
-
         content += Lte.card(Html.fasIcon("file-import") + "Parameter Extractors",
-          Html.a(ParameterExtractorComponent.getStaticUrl(executable, "add"), Lte.badge("primary", null,  Html.fasIcon("plus-square") + "NEW")),
+          Html.a(ParameterExtractorComponent.getStaticUrl(executable, ParameterExtractorComponent.Mode.Add), Lte.badge("primary", null,  Html.fasIcon("plus-square") + "NEW")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -214,7 +201,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 for (String extractorName : nameList) {
                   list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
-                        Html.a(ParameterExtractorComponent.getUrl(executable, extractorName), null, null, extractorName));
+                        Html.a(ParameterExtractorComponent.getUrl(executable, extractorName), null, null, Html.fasIcon("file") + extractorName));
                     }
                   ));
                 }
@@ -222,23 +209,10 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, null, "p-0");
-
-        content +=
-          Html.form(getUrl(executable, Mode.UpdateDummyResults), Html.Method.Post,
-            Lte.card(Html.fasIcon("list-ol") + "Dummy Results",
-              Lte.cardToggleButton(false),
-              Lte.divRow(
-                Lte.divCol(Lte.DivSize.F12,
-                  Lte.formJsonEditorGroup(KEY_DUMMY_RESULTS, null, "tree", executable.getDummyResults().toString(), null)
-                )
-              ),
-              Lte.formSubmitButton("success", "Update"),
-              "collapsed-card.stop", null)
-          );
+          , null, "card-secondary", "p-0");
 
         content += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
-          Html.a(ResultCollectorComponent.getStaticUrl(executable, "add"), Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")),
+          Html.a(ResultCollectorComponent.getStaticUrl(executable, ResultCollectorComponent.Mode.Add), Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")),
           Lte.table(null, new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
@@ -253,7 +227,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 for (String collectorName : nameList) {
                   list.add(Main.interfaceThreadPool.submit(() -> {
                       return new Lte.TableRow(
-                        Html.a(ResultCollectorComponent.getUrl(executable, collectorName), null, null, collectorName));
+                        Html.a(ResultCollectorComponent.getUrl(executable, collectorName), null, null, Html.fasIcon("file") + collectorName));
                     }
                   ));
                 }
@@ -261,9 +235,35 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, null, "p-0");
+          , null, "card-secondary", "p-0");
 
-        content += Lte.card(Html.fasIcon("file") + "Files in Simulator Bin Directory",
+        content +=
+          Html.form(getUrl(executable, Mode.UpdateDefaultParameters), Html.Method.Post,
+            Lte.card(Html.fasIcon("list-ol") + "Default Parameters",
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formJsonEditorGroup(KEY_DEFAULT_PARAMETERS, null, "tree", executable.getDefaultParameters().toString(), null)
+                )
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop card-secondary", null)
+          );
+
+        content +=
+          Html.form(getUrl(executable, Mode.UpdateDummyResults), Html.Method.Post,
+            Lte.card(Html.fasIcon("list-ol") + "Dummy Results",
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formJsonEditorGroup(KEY_DUMMY_RESULTS, null, "tree", executable.getDummyResults().toString(), null)
+                )
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop card-secondary", null)
+          );
+
+        content += Lte.card(Html.fasIcon("file") + "Files in Executable Bin Directory (BASE)",
           Lte.cardToggleButton(false),
           Lte.table("table-sm", new Lte.Table() {
             @Override
@@ -280,10 +280,16 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                   }
                 ));
               }
+              if (list.isEmpty()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", "Empty"));
+                  }
+                ));
+              }
               return list;
             }
           })
-          , null, "collapsed-card.stop", "p-0");
+          , null, "collapsed-card.stop card-secondary", "p-0");
 
         return content;
       }
