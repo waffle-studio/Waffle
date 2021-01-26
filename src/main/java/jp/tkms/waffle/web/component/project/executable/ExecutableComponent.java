@@ -206,6 +206,12 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                   ));
                 }
               }
+              if (list.isEmpty()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", Html.fasIcon("receipt") + "Empty"));
+                  }
+                ));
+              }
               return list;
             }
           })
@@ -231,6 +237,12 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                     }
                   ));
                 }
+              }
+              if (list.isEmpty()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", Html.fasIcon("receipt") + "Empty"));
+                  }
+                ));
               }
               return list;
             }
@@ -282,7 +294,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               }
               if (list.isEmpty()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", "Empty"));
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", Html.fasIcon("receipt") + "Empty"));
                   }
                 ));
               }
