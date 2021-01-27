@@ -9,7 +9,6 @@ import jp.tkms.waffle.data.util.WaffleId;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class ArchivedExecutable extends Executable {
   private Workspace workspace;
@@ -19,6 +18,7 @@ public class ArchivedExecutable extends Executable {
     super(workspace.getProject(), name);
     this.workspace = workspace;
     this.id = id;
+    initialise();
   }
 
   public ArchivedExecutable(Workspace workspace, String name) {

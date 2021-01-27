@@ -429,6 +429,8 @@ abstract public class AbstractSubmitter {
     runningJobList.clear();
     cancelJobList.clear();
 
+    
+
     for (Job job : jobList) {
       try {
         switch (job.getState(true)) {

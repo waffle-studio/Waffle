@@ -47,7 +47,7 @@ public class WaffleId {
   }
 
   private static long getCurrentTime() {
-    return Long.getLong(Main.DATE_FORMAT_FOR_WAFFLE_ID.format(System.currentTimeMillis()));
+    return Long.valueOf(Main.DATE_FORMAT_FOR_WAFFLE_ID.format(System.currentTimeMillis()));
   }
 
   public static WaffleId newId() {

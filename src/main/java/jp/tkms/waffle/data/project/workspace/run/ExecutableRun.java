@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
@@ -17,6 +18,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.plaf.ComponentUI;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +32,6 @@ public class ExecutableRun extends AbstractRun {
   public static final String RESULTS_JSON_FILE = "RESULTS" + Constants.EXT_JSON;
   public static final String ARGUMENTS_JSON_FILE = "ARGUMENTS" + Constants.EXT_JSON;
   public static final String KEY_ENVIRONMENTS = "environments";
-  private static final String KEY_PARENT_RUN = "parent_run";
   private static final String KEY_EXECUTABLE = "executable";
   private static final String KEY_COMPUTER = "computer";
   private static final String KEY_ACTUAL_COMPUTER = "actual_computer";
@@ -44,7 +45,7 @@ public class ExecutableRun extends AbstractRun {
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_JOB_ID = "job_id";
 
-  private ProcedureRun parentRun = null;
+  //private ProcedureRun parentRun = null;
   private ArchivedExecutable executable = null;
   private Computer computer = null;
   private Computer actualComputer = null;
@@ -67,11 +68,29 @@ public class ExecutableRun extends AbstractRun {
 
   public static ExecutableRun create(ProcedureRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
     String name = parent.generateUniqueFileName(expectedName);
-    return new ExecutableRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name))
-      .setParentRun(parent).setExecutable(executable).setComputer(computer).setExpectedName(expectedName);
+    ExecutableRun run = new ExecutableRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name));
+    run.setParent(parent);
+    run.setExecutable(executable);
+    run.setComputer(computer);
+    run.setExpectedName(expectedName);
+    return run;
   }
 
   public static ExecutableRun getInstance(String localPathString) {
+    Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
+    String[] splitPath = localPathString.split(File.separator, 5);
+    if (Files.exists(jsonPath) && splitPath.length == 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
+      try {
+        Project project = Project.getInstance(splitPath[1]);
+        Workspace workspace = Workspace.getInstance(project, splitPath[3]);
+        JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
+        String parentPath = jsonObject.getString(KEY_PARENT_RUN);
+        ProcedureRun parent = ProcedureRun.getInstance(workspace, parentPath);
+        return new ExecutableRun(workspace, parent, jsonPath.getParent());
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
     return null;
   }
 
@@ -122,13 +141,6 @@ public class ExecutableRun extends AbstractRun {
     return getStringFromProperty(KEY_REMOTE_WORKING_DIR);
   }
 
-
-  private ExecutableRun setParentRun(ProcedureRun parentRun) {
-    this.parentRun = parentRun;
-    setToProperty(KEY_PARENT_RUN, parentRun.getLocalDirectoryPath().toString());
-    return this;
-  }
-
   public String getExpectedName() {
     if (expectedName == null) {
       expectedName = getStringFromProperty(KEY_EXPECTED_NAME);
@@ -136,23 +148,19 @@ public class ExecutableRun extends AbstractRun {
     return expectedName;
   }
 
-  private ExecutableRun setExecutable(ArchivedExecutable executable) {
+  private void setExecutable(ArchivedExecutable executable) {
     this.executable = executable;
     setToProperty(KEY_EXECUTABLE, executable.getArchiveName());
-    return this;
   }
 
-  private ExecutableRun setComputer(Computer computer) {
+  private void setComputer(Computer computer) {
     this.computer = computer;
     setToProperty(KEY_COMPUTER, computer.getName());
-    return this;
   }
 
-  private ExecutableRun setExpectedName(String expectedName) {
+  private void setExpectedName(String expectedName) {
     this.expectedName = expectedName;
     setToProperty(KEY_EXPECTED_NAME, expectedName);
-    setActualComputer(computer);
-    return this;
   }
 
   public void setExitStatus(int exitStatus) {

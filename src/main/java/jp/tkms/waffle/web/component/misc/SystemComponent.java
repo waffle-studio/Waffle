@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -10,6 +11,8 @@ import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import spark.Spark;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -19,7 +22,7 @@ import static jp.tkms.waffle.web.template.Html.*;
 public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache}
+  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill}
 
   public SystemComponent(Mode mode) {
     this.mode = mode;
@@ -32,6 +35,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(Mode.Update), new SystemComponent(Mode.Update));
     Spark.get(getUrl(Mode.DebugReport), new SystemComponent(Mode.DebugReport));
     Spark.get(getUrl(Mode.ReduceRubyContainerCache), new SystemComponent(Mode.ReduceRubyContainerCache));
+    Spark.get(getUrl(Mode.Kill), new SystemComponent(Mode.Kill));
   }
 
   public static String getUrl() {
@@ -65,6 +69,13 @@ public class SystemComponent extends AbstractAccessControlledComponent {
         break;
       case DebugReport:
         renderDebugReport();
+        break;
+      case Kill:
+        try {
+          Runtime.getRuntime().exec("kill -9 " + Main.PID);
+        } catch (IOException e) {
+          ErrorLogMessage.issue(e);
+        }
         break;
       default:
         renderSystem();

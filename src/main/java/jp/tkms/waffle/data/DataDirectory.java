@@ -83,7 +83,7 @@ public interface DataDirectory {
   default void copyDirectory(File src, File dest) throws IOException {
     if (src.isDirectory()) {
       if (!dest.exists()) {
-        dest.mkdir();
+        Files.createDirectories(dest.toPath());
       }
       String files[] = src.list();
       for (String file : files) {

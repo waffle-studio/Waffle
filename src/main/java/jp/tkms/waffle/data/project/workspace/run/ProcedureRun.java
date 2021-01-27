@@ -1,16 +1,19 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
+import org.json.JSONObject;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ProcedureRun extends AbstractRun {
   public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
   public static final String JSON_FILE = PROCEDURE_RUN + Constants.EXT_JSON;
-
-  private AbstractRun parentRun = null;
 
   public ProcedureRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace, parent, path);
@@ -25,6 +28,23 @@ public class ProcedureRun extends AbstractRun {
     String name = expectedName;
     ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name));
     return instance;
+  }
+
+  public static ProcedureRun getInstance(Workspace workspace, String localPathString) {
+    Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
+
+    if (Files.exists(jsonPath)) {
+      try {
+        JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
+        String parentPath = jsonObject.getString(KEY_PARENT_RUN);
+        AbstractRun parent = AbstractRun.getInstance(workspace, parentPath);
+        return new ProcedureRun(workspace, parent, jsonPath.getParent());
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    return null;
   }
 
   public static ProcedureRun getTestRunProcedureRun(ArchivedExecutable executable) {

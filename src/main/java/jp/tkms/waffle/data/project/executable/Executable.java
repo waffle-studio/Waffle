@@ -51,7 +51,10 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public Executable(Project project, String name) {
     super(project);
     this.name = name;
-    initialise();
+
+    if (this.getClass().getConstructors()[0].getDeclaringClass().equals(Executable.class)) {
+      initialise();
+    }
   }
 
   public String getName() {
@@ -95,7 +98,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     return executable;
   }
 
-  private void initialise() {
+  protected void initialise() {
     try {
       Files.createDirectories(getDirectoryPath());
       Files.createDirectories(getBaseDirectory());

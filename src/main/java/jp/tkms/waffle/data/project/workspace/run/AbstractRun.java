@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.project.workspace.Workspace;
@@ -17,6 +18,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public static final String KEY_NOTE_TXT = "note.txt";
   public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
   protected static final String KEY_FINALIZER = "finalizer";
+  protected static final String KEY_PARENT_RUN = "parent_run";
 
   private Path path;
   private JSONArray finalizers = null;
@@ -27,7 +29,8 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public AbstractRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace);
     this.path = path;
-    this.parent = parent;
+    setToProperty("class", getClass().getConstructors()[0].getDeclaringClass().getSimpleName());
+    setParent(parent);
     if (parent == null) {
       this.owner = (ConductorRun) this;
     } else if (parent instanceof ConductorRun) {
@@ -35,6 +38,24 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     } else {
       this.owner = parent.getOwner();
     }
+  }
+
+  public static AbstractRun getInstance(Workspace workspace, String localPathString) {
+    if (workspace == null || localPathString == null) {
+      return null;
+    }
+
+    Path basePath = Constants.WORK_DIR.resolve(localPathString);
+
+    if (Files.exists(basePath.resolve(ConductorRun.JSON_FILE))) {
+      return ConductorRun.getInstance(workspace, localPathString);
+    } else if (Files.exists(basePath.resolve(ProcedureRun.JSON_FILE))) {
+      return ProcedureRun.getInstance(workspace, localPathString);
+    } else if (Files.exists(basePath.resolve(ExecutableRun.JSON_FILE))) {
+      return ExecutableRun.getInstance(localPathString);
+    }
+
+    return null;
   }
 
   public ConductorRun getOwner() {
@@ -69,6 +90,12 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     return getFileContents(KEY_ERROR_NOTE_TXT);
   }
 
+  public void setParent(AbstractRun parent) {
+    this.parent = parent;
+    if (parent != null) {
+      setToProperty(KEY_PARENT_RUN, parent.getLocalDirectoryPath().toString());
+    }
+  }
 
   public ArrayList<String> getFinalizers() {
     if (finalizers == null) {

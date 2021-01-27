@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -90,18 +91,18 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
       }
       case TestRun: {
         if (isPost()) {
-          runSimulator();
+          runExecutableAsTestRun();
         }
         renderTestRun();
         break;
       }
       default:
-        renderSimulator();
+        renderExecutable();
         break;
     }
   }
 
-  private void renderSimulator() throws ProjectNotFoundException {
+  private void renderExecutable() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -391,12 +392,9 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  void runSimulator() {
-    /*
-    SimulatorRun run = executable.postTestRun(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
-    response.redirect(RunComponent.getUrl(project, run.getUuid()));
-
-     */
+  void runExecutableAsTestRun() {
+    ExecutableRun run = executable.postTestRun(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
+    response.redirect(RunComponent.getUrl(run));
   }
 
   public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun}

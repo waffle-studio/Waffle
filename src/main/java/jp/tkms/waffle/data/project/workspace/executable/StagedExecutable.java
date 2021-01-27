@@ -18,6 +18,7 @@ public class StagedExecutable extends Executable {
   public StagedExecutable(Workspace workspace, String name) {
     super(workspace.getProject(), name);
     this.workspace = workspace;
+    initialise();
   }
 
   public ArchivedExecutable getEntity() {
@@ -32,7 +33,8 @@ public class StagedExecutable extends Executable {
     String name = executable.getName();
 
     if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
-      return new StagedExecutable(workspace, name);
+      StagedExecutable stagedExecutable = new StagedExecutable(workspace, name);
+      return stagedExecutable;
     }
 
     if (executable != null) {
@@ -46,6 +48,7 @@ public class StagedExecutable extends Executable {
       ArchivedExecutable archivedExecutable = ArchivedExecutable.create(stagedExecutable);
       stagedExecutable.createNewFile(ARCHIVE_ID);
       stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getHexCode());
+      return stagedExecutable;
     }
 
     return null;
