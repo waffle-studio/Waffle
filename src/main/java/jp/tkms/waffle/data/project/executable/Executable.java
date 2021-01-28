@@ -32,7 +32,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String KEY_OUTPUT_JSON = "_output.json";
   private static final String DEFAULT_PARAMETERS_JSON_FILE = "DEFAULT_PARAMETERS" + Constants.EXT_JSON;
   private static final String DUMMY_RESULTS_JSON_FILE = "DUMMY_RESULTS" + Constants.EXT_JSON;
-  public static final String KEY_TESTRUN = "testrun";
+  public static final String TESTRUN = ".TESTRUN";
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
 
@@ -163,16 +163,6 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
   public String getScriptProcessorName() {
     return DEFAULT_PROCESSOR_CLASS;
-  }
-
-  private void deleteDirectory(File file) {
-    File[] contents = file.listFiles();
-    if (contents != null) {
-      for (File f : contents) {
-        deleteDirectory(f);
-      }
-    }
-    file.delete();
   }
 
   public synchronized void updateVersionId() {
@@ -496,13 +486,15 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public ExecutableRun postTestRun(Computer computer, String parametersJsonText) {
     ExecutableRun executableRun = ExecutableRun.createTestRun(this, computer);
     executableRun.putParametersByJson(parametersJsonText);
-    setToProperty(KEY_TESTRUN, executableRun.getLocalDirectoryPath().toString());
+    createNewFile(TESTRUN);
+    updateFileContents(TESTRUN, executableRun.getLocalDirectoryPath().toString());
     executableRun.start();
     return executableRun;
   }
 
   public ExecutableRun getLatestTestRun() throws RunNotFoundException {
-    return ExecutableRun.getInstance(getStringFromProperty(KEY_TESTRUN));
+    createNewFile(TESTRUN);
+    return ExecutableRun.getInstance(getFileContents(TESTRUN));
   }
 
   JSONObject propertyStoreCache = null;

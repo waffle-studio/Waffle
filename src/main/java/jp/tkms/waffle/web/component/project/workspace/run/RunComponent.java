@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
@@ -23,7 +24,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.UUID;
 import java.util.concurrent.Future;
 
 public class RunComponent extends AbstractAccessControlledComponent {
@@ -50,7 +50,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(ExecutableRun run) {
     if (run != null) {
-      return run.getLocalDirectoryPath().toString();
+      return '/' + run.getLocalDirectoryPath().toString();
     } else {
       return WorkspaceComponent.getUrl(null, null) + "/*";
     }
@@ -66,17 +66,15 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() throws ProjectNotFoundException {
-    project = Project.getInstance(request.params("project"));
-    String requestedId = request.params("id");
+    project = Project.getInstance(request.params(ProjectComponent.KEY_PROJECT));
+    workspace = Workspace.getInstance(project, request.params(WorkspaceComponent.KEY_WORKSPACE));
+    String localPathString = request.uri().substring(1);
 
-    /*
     try {
-      run = ExecutableRun.getInstance(project, requestedId);
+      run = ExecutableRun.getInstance(localPathString);
     } catch (RunNotFoundException e) {
       return;
     }
-
-     */
 
     switch (mode) {
       case ReCheck:
@@ -92,15 +90,16 @@ public class RunComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "dsadsad";//(run.getName() == null || "".equals(run.getName()) ? run.getDirectoryPath().toString() : run.getName());
+        return run.getName();
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
+          Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(RunsComponent.getUrl(project), "Runs")
+          Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
+          Html.a(WorkspaceComponent.getUrl(project, workspace), workspace.getName())
         ));
         ArrayList<String> runNodeList = new ArrayList<>();
         /*
@@ -124,7 +123,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
         content += Html.javascript("var run_id = '" + run.getLocalDirectoryPath().toString() + "';");
 
-        content += Lte.card(Html.fasIcon("info-circle") + "Status", null,
+        content += Lte.card(Html.fasIcon("info-circle") + "Properties", null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
@@ -218,7 +217,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 Lte.readonlyTextAreaGroup("", null, run.getFileContents(Constants.STDOUT_FILE))
               )
             )
-            , null, "collapsed-card", null);
+            , null, "collapsed-card.stop", null);
         }
 
         if (Files.exists(run.getDirectoryPath().resolve(Constants.STDERR_FILE))) {
@@ -229,7 +228,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
                 Lte.readonlyTextAreaGroup("", null, run.getFileContents(Constants.STDERR_FILE))
               )
             )
-            , null, "collapsed-card", null);
+            , null, "collapsed-card.stop", null);
         }
 
         return content;

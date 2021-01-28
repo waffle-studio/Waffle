@@ -74,6 +74,7 @@ public class JobStore {
   }
 
   public void save() throws IOException {
+    /*
     InfoLogMessage.issue("Waiting for the job store to release");
     synchronized (jobMap) {
       GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(getFilePath().toFile()));
@@ -84,9 +85,11 @@ public class JobStore {
       output.close();
       InfoLogMessage.issue("The snapshot of job store saved");
     }
+     */
   }
 
   public static JobStore load() {
+    InfoLogMessage.issue("Loading the snapshot of job store");
     JobStore data = null;
     try {
       GZIPInputStream inputStream = new GZIPInputStream(new FileInputStream(getFilePath().toFile()));

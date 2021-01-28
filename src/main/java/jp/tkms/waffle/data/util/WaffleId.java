@@ -12,8 +12,8 @@ public class WaffleId {
     this.id = id;
   }
 
-  public WaffleId(String hexCode) {
-    this.id = Long.decode("0x" + hexCode);
+  public WaffleId(String reversedHexCode) {
+    this.id = Long.decode("0x" + new StringBuffer(reversedHexCode).reverse().toString());
   }
 
   public WaffleId() {
@@ -29,8 +29,8 @@ public class WaffleId {
     return id;
   }
 
-  public String getHexCode() {
-    return Long.toHexString(id);
+  public String getReversedHexCode() {
+    return new StringBuffer(Long.toHexString(id)).reverse().toString();
   }
 
   @Override

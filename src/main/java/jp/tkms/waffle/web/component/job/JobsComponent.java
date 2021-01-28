@@ -121,9 +121,9 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         job.getComputer().getName()
                       ),
                       job.getJobId(),
-                      Html.spanWithId(job.getId() + "-badge", job.getState().getStatusBadge()),
+                      Html.spanWithId(job.getPath().toString() + "-badge", job.getState().getStatusBadge()),
                       Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
-                    ).setAttributes(new Html.Attributes(Html.value("id", job.getId() + "-jobrow")));
+                    ).setAttributes(new Html.Attributes(Html.value("id", job.getPath().toString() + "-jobrow")));
                   } catch (Exception e) {
                     WarnLogMessage.issue(e);
                     return new Lte.TableRow("");

@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.util.WaffleId;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ArchivedExecutable extends Executable {
   private Workspace workspace;
@@ -34,6 +35,14 @@ public class ArchivedExecutable extends Executable {
       return null;
     }
     return archivedExecutable;
+  }
+
+  public static ArchivedExecutable getInstanceOrCreate(StagedExecutable stagedExecutable, ArchivedExecutable comparison) {
+    if (stagedExecutable.hasNotDifference(comparison, Paths.get(StagedExecutable.ARCHIVE_ID))) {
+      return comparison;
+    } else {
+      return create(stagedExecutable);
+    }
   }
 
   public static ArchivedExecutable getInstance(Workspace workspace, String name, WaffleId id) {
@@ -64,7 +73,7 @@ public class ArchivedExecutable extends Executable {
   }
 
   public static String getArchiveName(String name, WaffleId id) {
-    return name + "-" + id.getHexCode();
+    return name + "-" + id.getReversedHexCode();
   }
 
   @Override

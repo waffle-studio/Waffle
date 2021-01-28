@@ -265,7 +265,7 @@ public class Lte {
           element("button", new Attributes(value("class", "btn btn-falt btn-secondary"),
             value("type", "button"),
             value("id", uuid.toString().concat("_")),
-            value("onclick", "document.getElementById('" + uuid.toString() + "').select();document.execCommand('copy');toastr.info('Copied');")), fasIcon("clipboard"))
+            value("onclick", "document.getElementById('" + uuid.toString() + "').select();document.execCommand('copy');toastr.info('Copied');")), farIcon("clipboard"))
         )
       )
     );

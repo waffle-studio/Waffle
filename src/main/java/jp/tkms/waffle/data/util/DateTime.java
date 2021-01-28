@@ -31,4 +31,12 @@ public class DateTime {
     }
     return dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
   }
+
+  public static long getCurrentEpoch() {
+    return ZonedDateTime.now().toEpochSecond();
+  }
+
+  public static long getEmptyEpoch() {
+    return -1;
+  }
 }

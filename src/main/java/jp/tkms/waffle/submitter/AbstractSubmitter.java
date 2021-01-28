@@ -175,15 +175,15 @@ abstract public class AbstractSubmitter {
 
     String text = "#!/bin/sh\n" +
       "\n" +
-      "export WAFFLE_REMOTE='" + getExecutableBaseDirectory(job) + "'\n" +
+      "export WAFFLE_BASE='" + getExecutableBaseDirectory(job) + "'\n" +
       "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
-      "mkdir -p " + getBaseDirectory(run) +"\n" +
-      "cd " + getBaseDirectory(run) + "\n" +
+      "mkdir -p '" + getBaseDirectory(run) +"'\n" +
+      "cd '" + getBaseDirectory(run) + "'\n" +
       "export WAFFLE_WORKING_DIR=`pwd`\n" +
       "cd '" + getExecutableBaseDirectory(job) + "'\n" +
       "chmod a+x '" + run.getExecutable().getCommand() + "' >/dev/null 2>&1\n" +
       "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
-      "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
+      "cd \"${WAFFLE_BATCH_WORKING_DIR}\"\n" +
       "export WAFFLE_LOCAL_SHARED=\"" + job.getComputer().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + run.getProject().getName() + "\"\n" +
       "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
       "cd \"${WAFFLE_WORKING_DIR}\"\n";
@@ -195,7 +195,7 @@ abstract public class AbstractSubmitter {
 
     text += makeEnvironmentCommandText(job);
 
-    text += "\n" + run.getExecutable().getCommand() + " >${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + " 2>${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + " `cat ${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "`\n" +
+    text += "\n" + run.getExecutable().getCommand() + " >\"${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + "\" 2>\"${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + "\" `cat \"${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "\"`\n" +
       "EXIT_STATUS=$?\n";
 
     for (int i = 0; i < localSharedList.length(); i++) {
@@ -203,7 +203,7 @@ abstract public class AbstractSubmitter {
       text += makeLocalSharingPostCommandText(a.getString(0), a.getString(1));
     }
 
-    text += "\n" + "cd ${WAFFLE_BATCH_WORKING_DIR}\n" +
+    text += "\n" + "cd \"${WAFFLE_BATCH_WORKING_DIR}\"\n" +
       "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" +
       "\n";
 
@@ -429,7 +429,7 @@ abstract public class AbstractSubmitter {
     runningJobList.clear();
     cancelJobList.clear();
 
-    
+
 
     for (Job job : jobList) {
       try {

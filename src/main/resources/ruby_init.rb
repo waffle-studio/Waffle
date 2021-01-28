@@ -153,7 +153,7 @@ def parameter_extract(run)
 end
 
 def exec_parameter_extract(run)
-    Dir.chdir(run.getWorkPath().toString()) do
+    Dir.chdir(run.getBasePath().toString()) do
         parameter_extract(run)
     end
 end
@@ -162,7 +162,7 @@ def result_collect(run, remote)
 end
 
 def exec_result_collect(run, remote)
-    Dir.chdir(run.getWorkPath().toString()) do
+    Dir.chdir(run.getBasePath().toString()) do
         result_collect(run, remote)
     end
 end

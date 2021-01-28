@@ -14,6 +14,8 @@ import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.web.updater.RunStatusUpdater;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -72,11 +74,22 @@ public class ExecutableRun extends AbstractRun {
     run.setParent(parent);
     run.setExecutable(executable);
     run.setComputer(computer);
+    run.setActualComputer(computer);
     run.setExpectedName(expectedName);
+    run.setState(State.Created);
+    run.setToProperty(KEY_EXIT_STATUS, -1);
+    run.setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
+    run.setToProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch());
+    run.setToProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch());
+    try {
+      Files.createDirectories(run.getBasePath());
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
     return run;
   }
 
-  public static ExecutableRun getInstance(String localPathString) {
+  public static ExecutableRun getInstance(String localPathString) throws RunNotFoundException {
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
     String[] splitPath = localPathString.split(File.separator, 5);
     if (Files.exists(jsonPath) && splitPath.length == 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
@@ -91,7 +104,7 @@ public class ExecutableRun extends AbstractRun {
         ErrorLogMessage.issue(e);
       }
     }
-    return null;
+    throw new RunNotFoundException();
   }
 
   public void start() {
@@ -138,7 +151,7 @@ public class ExecutableRun extends AbstractRun {
   }
 
   public String getRemoteWorkingDirectoryLog() {
-    return getStringFromProperty(KEY_REMOTE_WORKING_DIR);
+    return getStringFromProperty(KEY_REMOTE_WORKING_DIR, "");
   }
 
   public String getExpectedName() {
@@ -170,7 +183,7 @@ public class ExecutableRun extends AbstractRun {
 
   public int getExitStatus() {
     if (exitStatus == null) {
-      exitStatus = getIntFromProperty(KEY_EXIT_STATUS);
+      exitStatus = getIntFromProperty(KEY_EXIT_STATUS, -2);
     }
     return exitStatus;
   }
@@ -210,7 +223,9 @@ public class ExecutableRun extends AbstractRun {
   }
 
   public void setState(State state) {
-    //TODO:
+    setToProperty(KEY_STATE, state.ordinal());
+
+    new RunStatusUpdater(this);
   }
   public boolean isRunning() {
     State state = getState();
@@ -222,15 +237,15 @@ public class ExecutableRun extends AbstractRun {
   }
 
   public DateTime getCreatedDateTime() {
-    return new DateTime(getLongFromProperty(KEY_CREATED_AT));
+    return new DateTime(getLongFromProperty(KEY_CREATED_AT, DateTime.getEmptyEpoch()));
   }
 
   public DateTime getSubmittedDateTime() {
-    return new DateTime(getLongFromProperty(KEY_SUBMITTED_AT));
+    return new DateTime(getLongFromProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch()));
   }
 
   public DateTime getFinishedDateTime() {
-    return new DateTime(getLongFromProperty(KEY_FINISHED_AT));
+    return new DateTime(getLongFromProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch()));
   }
 
   public Path getBasePath() {
@@ -239,7 +254,7 @@ public class ExecutableRun extends AbstractRun {
 
   public static ExecutableRun createTestRun(Executable executable, Computer computer) {
     Workspace workspace = Workspace.getTestRunWorkspace(executable.getProject());
-    ArchivedExecutable archivedExecutable = StagedExecutable.getInstance(workspace, executable).getEntity();
+    ArchivedExecutable archivedExecutable = StagedExecutable.getInstance(workspace, executable, true).getEntity();
     ProcedureRun procedureRun = ProcedureRun.getTestRunProcedureRun(archivedExecutable);
     return create(procedureRun, Main.DATE_FORMAT.format(System.currentTimeMillis()), archivedExecutable, computer);
   }

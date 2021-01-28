@@ -30,28 +30,37 @@ public class StagedExecutable extends Executable {
   }
 
   public static StagedExecutable getInstance(Workspace workspace, Executable executable) {
+    return getInstance(workspace, executable, false);
+  }
+
+  public static StagedExecutable getInstance(Workspace workspace, Executable executable, boolean forceStaging) {
+    StagedExecutable stagedExecutable = null;
     String name = executable.getName();
 
     if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
-      StagedExecutable stagedExecutable = new StagedExecutable(workspace, name);
-      return stagedExecutable;
+      stagedExecutable = new StagedExecutable(workspace, name);
     }
 
-    if (executable != null) {
+    if (executable != null && (forceStaging || stagedExecutable == null)) {
+      ArchivedExecutable currentArchived = null;
       try {
+        if (stagedExecutable != null) {
+          currentArchived = stagedExecutable.getEntity();
+          stagedExecutable.deleteDirectory();
+        }
         executable.copyDirectory(getDirectoryPath(workspace, name));
+        Files.deleteIfExists(getDirectoryPath(workspace, name).resolve(Executable.TESTRUN));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
         return null;
       }
-      StagedExecutable stagedExecutable = new StagedExecutable(workspace, name);
-      ArchivedExecutable archivedExecutable = ArchivedExecutable.create(stagedExecutable);
+      stagedExecutable = new StagedExecutable(workspace, name);
+      ArchivedExecutable archivedExecutable = ArchivedExecutable.getInstanceOrCreate(stagedExecutable, currentArchived);
       stagedExecutable.createNewFile(ARCHIVE_ID);
-      stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getHexCode());
-      return stagedExecutable;
+      stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getReversedHexCode());
     }
 
-    return null;
+    return stagedExecutable;
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name) {

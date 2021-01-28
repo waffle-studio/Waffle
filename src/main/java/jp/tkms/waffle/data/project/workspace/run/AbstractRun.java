@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.WorkspaceData;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.exception.RunNotFoundException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -40,7 +41,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     }
   }
 
-  public static AbstractRun getInstance(Workspace workspace, String localPathString) {
+  public static AbstractRun getInstance(Workspace workspace, String localPathString) throws RunNotFoundException {
     if (workspace == null || localPathString == null) {
       return null;
     }
@@ -70,6 +71,10 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
       uniqueName = name + '_' + count++;
     }
     return uniqueName;
+  }
+
+  public String getName() {
+    return getDirectoryPath().getFileName().toString();
   }
 
   public void setNote(String text) {

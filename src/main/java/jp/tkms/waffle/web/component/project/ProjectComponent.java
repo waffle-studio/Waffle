@@ -24,6 +24,8 @@ import static jp.tkms.waffle.web.template.Html.*;
 
 public class ProjectComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Project";
+  public static final String PROJECTS = "Projects";
+  public static final String KEY_PROJECT = "project";
 
   public enum Mode {Default, NotFound, EditConstModel, AddConductor}
   Mode mode;
@@ -54,7 +56,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project) {
-    return "/" + Project.PROJECT + "/" + (project == null ? ":project" : project.getName());
+    return "/" + Project.PROJECT + "/" + (project == null ? ':' + KEY_PROJECT : project.getName());
   }
 
   public static String getUrl(Project project, String mode) {
@@ -65,7 +67,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   public void controller() throws ProjectNotFoundException {
     Mode mode = this.mode;
 
-    requestedId = request.params("project");
+    requestedId = request.params(KEY_PROJECT);
     project = Project.getInstance(requestedId);
 
     if (project == null) {

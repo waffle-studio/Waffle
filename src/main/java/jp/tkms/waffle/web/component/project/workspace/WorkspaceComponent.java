@@ -18,6 +18,7 @@ package jp.tkms.waffle.web.component.project.workspace;
 
 public class WorkspaceComponent extends AbstractAccessControlledComponent {
   public static final String WORKSPACES = "Workspaces";
+  public static final String KEY_WORKSPACE = "workspace";
 
   private Project project;
   private Workspace workspace;
@@ -35,13 +36,13 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Project project, Workspace workspace) {
-    return ProjectComponent.getUrl(project) + "/" + Workspace.WORKSPACE + "/" + (workspace == null ? ":name" : workspace.getName());
+    return ProjectComponent.getUrl(project) + "/" + Workspace.WORKSPACE + "/" + (workspace == null ? ':' + KEY_WORKSPACE : workspace.getName());
   }
 
   @Override
   public void controller() throws ProjectNotFoundException {
-    project = Project.getInstance(request.params("project"));
-    String name = request.params("name");
+    project = Project.getInstance(request.params(ProjectComponent.KEY_PROJECT));
+    String name = request.params(KEY_WORKSPACE);
 
     if (name == null) {
       renderWorkspaceList();

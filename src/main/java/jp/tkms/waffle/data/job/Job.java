@@ -10,7 +10,6 @@ import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 
-import java.lang.reflect.Executable;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -42,7 +41,7 @@ public class Job {
   }
 
   public String getHexCode() {
-    return id.getHexCode();
+    return id.getReversedHexCode();
   }
 
   public static Job getInstance(String id) {
