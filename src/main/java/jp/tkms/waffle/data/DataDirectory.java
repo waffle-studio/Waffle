@@ -26,6 +26,7 @@ public interface DataDirectory {
   int EOF = -1;
   int CHECKING_OMIT_TIME = 30000;
   Cache<String, Long> differenceCheckLog = new InstanceCache<Long>(Long.class, 1000, CHECKING_OMIT_TIME / 10).getCacheStore();
+  Cache<String, String> differenceCheckLog2 = new InstanceCache<String>(String.class, 1000).getCacheStore();
 
   Path getDirectoryPath();
 
@@ -162,6 +163,9 @@ public interface DataDirectory {
       System.out.println("OK1");
 
       differenceCheckLog.put(getDirectoryPath().toString(), Long.valueOf(System.currentTimeMillis()));
+      System.out.println(differenceCheckLog2.get("test"));
+      differenceCheckLog2.put("test", "ok");
+      System.out.println(differenceCheckLog2.get("test"));
 
       if (ownFileMap.size() != targetFileMap.size()) {
         return false;
