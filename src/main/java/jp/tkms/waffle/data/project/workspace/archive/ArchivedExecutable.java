@@ -53,7 +53,7 @@ public class ArchivedExecutable extends Executable {
   }
 
   public static ArchivedExecutable getInstance(Workspace workspace, String name) {
-    return getInstance(workspace, name.replaceFirst("-.+?$", ""), new WaffleId(name.replaceFirst("^.+-", "")));
+    return getInstance(workspace, name.replaceFirst("-.+?$", ""), WaffleId.valueOf(name.replaceFirst("^.+-", "")));
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name, WaffleId id) {

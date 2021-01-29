@@ -26,7 +26,7 @@ public class StagedExecutable extends Executable {
   }
 
   public WaffleId getEntityId() {
-    return new WaffleId(getFileContents(ARCHIVE_ID));
+    return WaffleId.valueOf(getFileContents(ARCHIVE_ID));
   }
 
   public static StagedExecutable getInstance(Workspace workspace, Executable executable) {

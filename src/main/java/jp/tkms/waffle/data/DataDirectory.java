@@ -1,32 +1,24 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.util.InstanceCache;
 import org.ehcache.Cache;
-import org.jruby.RubyProcess;
 
 import java.io.*;
-import java.nio.channels.ScatteringByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.*;
 
 public interface DataDirectory {
   int EOF = -1;
-  int CHECKING_OMIT_TIME = 30000;
-  Cache<String, Long> differenceCheckLog = new InstanceCache<Long>(Long.class, 1000, CHECKING_OMIT_TIME / 10).getCacheStore();
-  Cache<String, String> differenceCheckLog2 = new InstanceCache<String>(String.class, 1000).getCacheStore();
+  int CHECKING_OMIT_TIME = 3000;
+  Cache<String, Long> previousDifferenceCheckTimeMap = new InstanceCache<Long>(Long.class, 1000, CHECKING_OMIT_TIME / 1000).getCacheStore();
 
   Path getDirectoryPath();
 
@@ -129,8 +121,7 @@ public interface DataDirectory {
   }
 
   default boolean hasNotDifference(DataDirectory target, Path... ignoringPaths) {
-    long s = System.currentTimeMillis();
-    Long previousCheckTime = differenceCheckLog.get(getDirectoryPath().toString());
+    Long previousCheckTime = previousDifferenceCheckTimeMap.get(getDirectoryPath().toString());
 
     if (target != null && Files.isDirectory(getDirectoryPath()) && Files.isDirectory(target.getDirectoryPath())) {
       HashMap<Path, File> ownFileMap = getFileMap(getDirectoryPath(), getDirectoryPath().toFile());
@@ -141,34 +132,33 @@ public interface DataDirectory {
         targetFileMap.remove(path);
       }
 
-      System.out.println(previousCheckTime + "  " + System.currentTimeMillis() );
+      if (ownFileMap.size() != targetFileMap.size()) {
+        return false;
+      }
+
+      previousDifferenceCheckTimeMap.put(getDirectoryPath().toString(), Long.valueOf(System.currentTimeMillis()));
+
       if (previousCheckTime != null && previousCheckTime.longValue() + CHECKING_OMIT_TIME > System.currentTimeMillis() ) {
-        System.out.println("OK");
         boolean detected = false;
         for (Map.Entry<Path, File> entry : ownFileMap.entrySet()) {
-          if (entry.getValue().lastModified() != targetFileMap.get(entry.getKey()).lastModified()) {
-            detected = true;
-            break;
+          if (entry.getKey().equals(Paths.get(".").normalize())) {
+            continue;
           }
-          if (entry.getValue().length() != targetFileMap.get(entry.getKey()).length()) {
+
+          File ownFile = entry.getValue();
+          File targetFile = targetFileMap.get(entry.getKey());
+
+          if (targetFile == null || !ownFile.exists() || !targetFile.exists() ||
+            ownFile.lastModified() != targetFile.lastModified() ||
+            ownFile.length() != targetFile.length()
+          ) {
             detected = true;
             break;
           }
         }
         if (!detected) {
-          System.out.println(System.currentTimeMillis() - s);
           return true;
         }
-      }
-      System.out.println("OK1");
-
-      differenceCheckLog.put(getDirectoryPath().toString(), Long.valueOf(System.currentTimeMillis()));
-      System.out.println(differenceCheckLog2.get("test"));
-      differenceCheckLog2.put("test", "ok");
-      System.out.println(differenceCheckLog2.get("test"));
-
-      if (ownFileMap.size() != targetFileMap.size()) {
-        return false;
       }
 
       try {

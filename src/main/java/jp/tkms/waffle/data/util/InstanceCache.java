@@ -2,10 +2,12 @@ package jp.tkms.waffle.data.util;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 
 import java.time.Duration;
@@ -19,7 +21,7 @@ public class InstanceCache<T> {
 
     cacheStore = cacheManager.createCache(type.getName(),
       CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, type,
-        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(size, MemoryUnit.MB).build())
+        ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(size, MemoryUnit.MB).build())
         .withExpiry(ExpiryPolicyBuilder.noExpiration()).build());
   }
 
@@ -28,7 +30,7 @@ public class InstanceCache<T> {
 
     cacheStore = cacheManager.createCache(type.getName(),
       CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, type,
-        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(size, MemoryUnit.MB).build())
+        ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(size, MemoryUnit.MB).build())
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(sec))).build());
   }
 

@@ -225,6 +225,17 @@ public class ExecutableRun extends AbstractRun {
   public void setState(State state) {
     setToProperty(KEY_STATE, state.ordinal());
 
+    switch (state) {
+      case Submitted:
+        setToProperty(KEY_SUBMITTED_AT, DateTime.getCurrentEpoch());
+        break;
+      case Canceled:
+      case Excepted:
+      case Failed:
+      case Finished:
+        setToProperty(KEY_FINISHED_AT, DateTime.getCurrentEpoch());
+    }
+
     new RunStatusUpdater(this);
   }
   public boolean isRunning() {

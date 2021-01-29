@@ -12,8 +12,12 @@ public class WaffleId {
     this.id = id;
   }
 
-  public WaffleId(String reversedHexCode) {
-    this.id = Long.decode("0x" + new StringBuffer(reversedHexCode).reverse().toString());
+  public static WaffleId valueOf(String reversedHexCode) {
+    reversedHexCode = reversedHexCode.trim();
+    if ("".equals(reversedHexCode) || reversedHexCode == null) {
+      return null;
+    }
+    return new WaffleId(Long.decode("0x" + new StringBuffer(reversedHexCode).reverse().toString()));
   }
 
   public WaffleId() {
