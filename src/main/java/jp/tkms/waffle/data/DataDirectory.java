@@ -3,6 +3,9 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.util.InstanceCache;
+import org.ehcache.Cache;
+import org.jruby.RubyProcess;
 
 import java.io.*;
 import java.nio.channels.ScatteringByteChannel;
@@ -10,6 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +24,8 @@ import java.util.concurrent.*;
 
 public interface DataDirectory {
   int EOF = -1;
+  int CHECKING_OMIT_TIME = 30000;
+  Cache<String, Long> differenceCheckLog = new InstanceCache<Long>(Long.class, 1000, CHECKING_OMIT_TIME / 10).getCacheStore();
 
   Path getDirectoryPath();
 
@@ -99,8 +107,10 @@ public interface DataDirectory {
         File destFile = new File(dest, file);
         copyDirectory(srcFile, destFile);
       }
+      dest.setLastModified(src.lastModified());
     }else{
       Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+      dest.setLastModified(src.lastModified());
     }
   }
 
@@ -118,6 +128,9 @@ public interface DataDirectory {
   }
 
   default boolean hasNotDifference(DataDirectory target, Path... ignoringPaths) {
+    long s = System.currentTimeMillis();
+    Long previousCheckTime = differenceCheckLog.get(getDirectoryPath().toString());
+
     if (target != null && Files.isDirectory(getDirectoryPath()) && Files.isDirectory(target.getDirectoryPath())) {
       HashMap<Path, File> ownFileMap = getFileMap(getDirectoryPath(), getDirectoryPath().toFile());
       HashMap<Path, File> targetFileMap = getFileMap(target.getDirectoryPath(), target.getDirectoryPath().toFile());
@@ -126,6 +139,29 @@ public interface DataDirectory {
         ownFileMap.remove(path);
         targetFileMap.remove(path);
       }
+
+      System.out.println(previousCheckTime + "  " + System.currentTimeMillis() );
+      if (previousCheckTime != null && previousCheckTime.longValue() + CHECKING_OMIT_TIME > System.currentTimeMillis() ) {
+        System.out.println("OK");
+        boolean detected = false;
+        for (Map.Entry<Path, File> entry : ownFileMap.entrySet()) {
+          if (entry.getValue().lastModified() != targetFileMap.get(entry.getKey()).lastModified()) {
+            detected = true;
+            break;
+          }
+          if (entry.getValue().length() != targetFileMap.get(entry.getKey()).length()) {
+            detected = true;
+            break;
+          }
+        }
+        if (!detected) {
+          System.out.println(System.currentTimeMillis() - s);
+          return true;
+        }
+      }
+      System.out.println("OK1");
+
+      differenceCheckLog.put(getDirectoryPath().toString(), Long.valueOf(System.currentTimeMillis()));
 
       if (ownFileMap.size() != targetFileMap.size()) {
         return false;
