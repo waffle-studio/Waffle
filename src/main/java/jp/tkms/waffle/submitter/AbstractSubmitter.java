@@ -433,6 +433,11 @@ abstract public class AbstractSubmitter {
 
     for (Job job : jobList) {
       try {
+        if (!job.exists() && job.getRun().isRunning()) {
+          job.cancel();
+          WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+          continue;
+        }
         switch (job.getState(true)) {
           case Created:
             if (isSubmittable(computer, null, createdJobList, preparedJobList)) {
@@ -466,7 +471,7 @@ abstract public class AbstractSubmitter {
           cancel(job);
         } catch (RunNotFoundException ex) { }
         job.remove();
-        WarnLogMessage.issue("SimulatorRun(" + job.getId() + ") is not found; The job was removed." );
+        WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
       }
 
       if (Main.hibernateFlag) { break; }

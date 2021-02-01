@@ -2,12 +2,12 @@ package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
+import jp.tkms.waffle.data.util.PathSemaphore;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -35,7 +35,7 @@ public class ProcedureRun extends AbstractRun {
 
     if (Files.exists(jsonPath)) {
       try {
-        JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
+        JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
         String parentPath = jsonObject.getString(KEY_PARENT_RUN);
         AbstractRun parent = AbstractRun.getInstance(workspace, parentPath);
         return new ProcedureRun(workspace, parent, jsonPath.getParent());

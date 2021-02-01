@@ -20,6 +20,10 @@ public class WaffleId {
     return new WaffleId(Long.decode("0x" + new StringBuffer(reversedHexCode).reverse().toString()));
   }
 
+  public static WaffleId valueOf(long id) {
+    return new WaffleId(id);
+  }
+
   public WaffleId() {
     long time = getCurrentTime();
     if (time != currentTime) {
@@ -31,6 +35,11 @@ public class WaffleId {
 
   public long getId() {
     return id;
+  }
+
+  @Override
+  public String toString() {
+    return String.valueOf(id);
   }
 
   public String getReversedHexCode() {

@@ -77,6 +77,7 @@ public class PollingThread extends Thread {
       InfoLogMessage.issue(computer, "was scanned");
       synchronized (runningSubmitterSet) {
         runningSubmitterSet.remove(computer);
+        /*
         if (runningSubmitterSet.isEmpty()) {
           try {
             Main.jobStore.save();
@@ -84,6 +85,7 @@ public class PollingThread extends Thread {
             ErrorLogMessage.issue(e);
           }
         }
+         */
       }
     } while (Job.getList(computer).size() > 0);
 

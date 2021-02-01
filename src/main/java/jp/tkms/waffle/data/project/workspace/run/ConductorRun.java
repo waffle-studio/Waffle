@@ -4,6 +4,8 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
+import jp.tkms.waffle.data.util.PathSemaphore;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import org.json.JSONObject;
 
 import java.nio.file.Files;
@@ -39,7 +41,7 @@ public class ConductorRun extends AbstractRun {
 
     if (Files.exists(jsonPath)) {
       try {
-        JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
+        JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
         AbstractRun parent = null;
         if (jsonObject.keySet().contains(KEY_PARENT_RUN)) {
           String parentPath = jsonObject.getString(KEY_PARENT_RUN);
@@ -47,7 +49,7 @@ public class ConductorRun extends AbstractRun {
         }
         return new ConductorRun(workspace, parent, jsonPath.getParent());
       } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+        ErrorLogMessage.issue(jsonPath.toString() + " : " + ErrorLogMessage.getStackTrace(e));
       }
     }
 

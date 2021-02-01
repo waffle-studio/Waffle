@@ -1,7 +1,8 @@
 package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.FileBuffer;
+import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.data.util.PathSemaphore;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -25,7 +26,7 @@ public interface PropertyFile {
         Path storePath = getPropertyStorePath();
         String json = "{}";
         if (Files.exists(storePath)) {
-          json = FileBuffer.read(storePath);
+          json = StringFileUtil.read(storePath);
         }
         try {
           if (!"".equals(json)) {
@@ -53,7 +54,7 @@ public interface PropertyFile {
     synchronized (this) {
       if (getPropertyStoreCache() != null) {
         Path storePath = getPropertyStorePath();
-        FileBuffer.write(storePath, getPropertyStoreCache().toString(2));
+        StringFileUtil.write(storePath, getPropertyStoreCache().toString(2));
       }
     }
   }

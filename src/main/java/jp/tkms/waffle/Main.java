@@ -121,12 +121,6 @@ public class Main {
     InfoLogMessage.issue("Web port is " + port);
 
     try {
-      jobStore = JobStore.load();
-    } catch (Exception e) {
-      ErrorLogMessage.issue(e);
-    }
-
-    try {
       fileWatchService = FileSystems.getDefault().newWatchService();
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
@@ -151,6 +145,12 @@ public class Main {
       }
     };
     fileWatcherThread.start();
+
+    try {
+      jobStore = JobStore.load();
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
 
     staticFiles.location("/static");
 
@@ -268,11 +268,13 @@ public class Main {
         } catch (Throwable e) {}
         System.out.println("(3/7) System common threads stopped");
 
+        /*
         try {
           jobStore.save();
         } catch (IOException e) {
           ErrorLogMessage.issue(e);
         }
+         */
         System.out.println("(4/7) Job store stopped");
 
         Spark.stop();

@@ -1,22 +1,24 @@
 package jp.tkms.waffle.data.job;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WaffleId;
+import org.json.JSONObject;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class JobStore {
+  public static final String TASK = "TASK";
+
   private LinkedHashMap<WaffleId, Job> jobMap;
   private LinkedHashMap<String, ArrayList<Job>> computerJobListMap;
 
@@ -25,7 +27,7 @@ public class JobStore {
     computerJobListMap = new LinkedHashMap<>();
   }
 
-  public Job getJob(UUID id) {
+  public Job getJob(WaffleId id) {
     synchronized (jobMap) {
       return jobMap.get(id.toString());
     }
@@ -48,7 +50,7 @@ public class JobStore {
     }
   }
 
-  public boolean contains(UUID id) {
+  public boolean contains(WaffleId id) {
     synchronized (jobMap) {
       return jobMap.containsKey(id);
     }
@@ -73,37 +75,39 @@ public class JobStore {
     }
   }
 
-  public void save() throws IOException {
-    /*
-    InfoLogMessage.issue("Waiting for the job store to release");
-    synchronized (jobMap) {
-      GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(getFilePath().toFile()));
-      Kryo kryo = new Kryo();
-      Output output = new Output(outputStream);
-      kryo.writeObject(output, this);
-      output.flush();
-      output.close();
-      InfoLogMessage.issue("The snapshot of job store saved");
-    }
-     */
-  }
-
   public static JobStore load() {
     InfoLogMessage.issue("Loading the snapshot of job store");
-    JobStore data = null;
+    JobStore jobStore = new JobStore();
+
     try {
-      GZIPInputStream inputStream = new GZIPInputStream(new FileInputStream(getFilePath().toFile()));
-      Kryo kryo = new Kryo();
-      Input input = new Input(inputStream);
-      data = kryo.readObject(input, JobStore.class);
-      input.close();
-    } catch (Exception e) {
-      data = new JobStore();
+      Files.createDirectories(getDirectoryPath());
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
     }
-    return data;
+
+    for (File computerDir : getDirectoryPath().toFile().listFiles()) {
+      if (computerDir.isDirectory()) {
+        Computer computer = Computer.getInstance(computerDir.getName());
+        if (computer != null) {
+          Arrays.stream(computerDir.listFiles()).sorted().forEach(file -> {
+            try {
+              JSONObject jsonObject = new JSONObject(Files.readString(file.toPath()));
+              WaffleId id = WaffleId.valueOf(jsonObject.getLong(Job.KEY_ID));
+              Path path = Paths.get(jsonObject.getString(Job.KEY_PATH));
+              String computerName = computerDir.getName();
+              jobStore.register(new Job(id, path, computerName));
+            } catch (Exception e) {
+              WarnLogMessage.issue(file.toPath().toString() + " is broken : " + e.getMessage());
+            }
+          });
+        }
+      }
+    }
+
+    return jobStore;
   }
 
-  public static Path getFilePath() {
-    return Constants.WORK_DIR.resolve(".jobstore.dat");
+  public static Path getDirectoryPath() {
+    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(TASK);
   }
 }

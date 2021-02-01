@@ -1,7 +1,10 @@
 package jp.tkms.waffle.data.job;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.WaffleId;
@@ -9,27 +12,41 @@ import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
+import org.json.JSONObject;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class Job {
+public class Job implements PropertyFile {
+  private static final String KEY_ERROR_COUNT = "error_count";
+  public static final String KEY_PATH = "path";
+  public static final String KEY_COMPUTER = "computer";
+  public static final String KEY_ID = "id";
+
   private WaffleId id = null;
   private Path path = null;
   private String computerName = null;
   private String jobId = "";
   private State state = null;
-  private int errorCount = 0;
+  private Integer errorCount = null;
   private Double requiredThread = null;
   private Double requiredMemory = null;
 
-  public Job() {}
-
   public Job(Path path, Computer computer) {
-    this.id = WaffleId.newId();
+    this(WaffleId.newId(), path, computer.getName());
+  }
+
+  public Job(WaffleId id, Path path, String computerName) {
+    this.id = id;
     this.path = path;
-    this.computerName = computer.getName();
+    this.computerName = computerName;
+
+    setToProperty(KEY_ID, id.getId());
+    setToProperty(KEY_PATH, path.normalize().toString());
+    setToProperty(KEY_COMPUTER, computerName);
   }
 
   public WaffleId getId() {
@@ -44,8 +61,8 @@ public class Job {
     return id.getReversedHexCode();
   }
 
-  public static Job getInstance(String id) {
-    return Main.jobStore.getJob(UUID.fromString(id));
+  public static Job getInstance(String idHexCode) {
+    return Main.jobStore.getJob(WaffleId.valueOf(idHexCode));
   }
 
   public static ArrayList<Job> getList() {
@@ -76,8 +93,20 @@ public class Job {
     }
   }
 
+  public boolean exists() {
+    return Files.exists(getPropertyStorePath());
+  }
+
   public void remove() {
     Main.jobStore.remove(id);
+    try {
+      Path storePath = getPropertyStorePath();
+      if (Files.exists(storePath)) {
+        Files.delete(storePath);
+      }
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
@@ -124,7 +153,8 @@ public class Job {
   }
 
   public void incrementErrorCount() {
-    errorCount += 1;
+    errorCount = getErrorCount() + 1;
+    setToProperty(KEY_ERROR_COUNT, errorCount);
   }
 
   public Project getProject() throws RunNotFoundException {
@@ -162,6 +192,24 @@ public class Job {
   }
 
   public int getErrorCount() {
+    if (errorCount == null) {
+      errorCount = getIntFromProperty(KEY_ERROR_COUNT, 0);
+    }
     return errorCount;
+  }
+
+  @Override
+  public Path getPropertyStorePath() {
+    return JobStore.getDirectoryPath().resolve(computerName).resolve(id.getId() + Constants.EXT_JSON);
+  }
+
+  JSONObject propertyStoreCache = null;
+  @Override
+  public JSONObject getPropertyStoreCache() {
+    return propertyStoreCache;
+  }
+  @Override
+  public void setPropertyStoreCache(JSONObject cache) {
+    propertyStoreCache = cache;
   }
 }
