@@ -51,8 +51,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     ExecutableComponent.register();
     ConductorComponent.register();
     WorkspaceComponent.register();
-    RunsComponent.register();
-    RunComponent.register();
   }
 
   public static String getUrl(Project project) {
@@ -194,7 +192,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             Html.a(getUrl(project, "add_conductor"), null, null,
               Html.fasIcon("plus-square") + "Add Conductors"
             ),
-            null
+            null, "card-warning card-outline", null
           );
         } else {
           //ArrayList<ActorRun> notFinishedList = new ArrayList<>();

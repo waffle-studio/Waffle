@@ -1,4 +1,6 @@
-WAFFLE is released under an BSD 3-Clause License.
+@@@@@ THIS LICENSE DESCRIPTION IS NOT YET COMPLETED FILLING @@@@@
+
+WAFFLE is released under the BSD 3-Clause License.
 This text file include the licence description of WAFFLE and libraries.
 
 # Main License : WAFFLE

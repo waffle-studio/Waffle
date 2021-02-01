@@ -15,11 +15,11 @@ public class StringFileUtil {
         Files.createDirectories(directoryPath);
       }
 
-      PathSemaphore pathSemaphore = PathSemaphore.acquire(path);
-      FileWriter filewriter = new FileWriter(path.toFile());
-      filewriter.write(contents);
-      filewriter.close();
-      pathSemaphore.release();
+      synchronized (PathLocker.getLocker(path)) {
+        FileWriter fileWriter = new FileWriter(path.toFile());
+        fileWriter.write(contents);
+        fileWriter.close();
+      }
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
@@ -28,9 +28,9 @@ public class StringFileUtil {
   public static String read(Path path) {
     String contents;
     try {
-      PathSemaphore pathSemaphore = PathSemaphore.acquire(path);
-      contents = new String(Files.readAllBytes(path));
-      pathSemaphore.release();
+      synchronized (PathLocker.getLocker(path)) {
+        contents = new String(Files.readAllBytes(path));
+      }
     } catch (IOException e) {
       contents = "";
     }

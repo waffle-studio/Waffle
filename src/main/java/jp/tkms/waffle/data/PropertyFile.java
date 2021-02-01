@@ -2,7 +2,6 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.StringFileUtil;
-import jp.tkms.waffle.data.util.PathSemaphore;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

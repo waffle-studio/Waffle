@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.Future;
 
 public class LogsComponent extends AbstractAccessControlledComponent {
+  public static final String KEY_LOGNAME = "logname";
   private final int logBundleSize = 50;
   private Mode mode;
 
@@ -30,7 +31,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new LogsComponent());
+    Spark.get(getUrl(true), new LogsComponent());
     Spark.get(getUrl(Mode.GetOld), new LogsComponent(Mode.GetOld));
   }
 
@@ -38,8 +39,16 @@ public class LogsComponent extends AbstractAccessControlledComponent {
     return getUrl() + "@" + mode.name();
   }
 
+  public static String getUrl(boolean isTemplate) {
+    if (isTemplate) {
+      return "/LOG/:" + KEY_LOGNAME;
+    } else {
+      return "/LOG/" + Log.getDatabasePath().getFileName().toString();
+    }
+  }
+
   public static String getUrl() {
-    return "/LOG/" + Log.getDatabasePath().getFileName().toString();
+    return getUrl(false);
   }
 
   @Override
@@ -48,6 +57,10 @@ public class LogsComponent extends AbstractAccessControlledComponent {
       int from = Integer.valueOf(request.queryParamOrDefault("from", "0"));
       renderOldLog(from);
     } else {
+      if (!Log.getDatabasePath().getFileName().toString().equals(request.params(KEY_LOGNAME))) {
+        response.redirect(getUrl());
+        return;
+      }
       renderList();
     }
   }

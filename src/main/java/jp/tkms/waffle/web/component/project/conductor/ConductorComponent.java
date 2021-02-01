@@ -23,6 +23,7 @@ import static jp.tkms.waffle.web.template.Html.value;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Conductor";
+  public static final String CONDUCTORS = "Conductors";
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";

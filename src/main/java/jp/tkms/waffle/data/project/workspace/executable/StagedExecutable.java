@@ -1,14 +1,17 @@
 package jp.tkms.waffle.data.project.workspace.executable;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
+import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.WaffleId;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 public class StagedExecutable extends Executable {
   public static final String ARCHIVE_ID = ".ARCHIVE_ID";
@@ -27,6 +30,19 @@ public class StagedExecutable extends Executable {
 
   public WaffleId getEntityId() {
     return WaffleId.valueOf(getFileContents(ARCHIVE_ID));
+  }
+
+  public static ArrayList<StagedExecutable> getList(Workspace workspace) {
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(workspace), name -> {
+      return getInstance(workspace, name.toString());
+    });
+  }
+
+  public static StagedExecutable getInstance(Workspace workspace, String name) {
+    if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
+      return new StagedExecutable(workspace, name);
+    }
+    return null;
   }
 
   public static StagedExecutable getInstance(Workspace workspace, Executable executable) {
@@ -63,8 +79,12 @@ public class StagedExecutable extends Executable {
     return stagedExecutable;
   }
 
+  public static Path getBaseDirectoryPath(Workspace workspace) {
+    return workspace.getDirectoryPath().resolve(EXECUTABLE);
+  }
+
   public static Path getDirectoryPath(Workspace workspace, String name) {
-    return workspace.getDirectoryPath().resolve(EXECUTABLE).resolve(name);
+    return getBaseDirectoryPath(workspace).resolve(name);
   }
 
   public Workspace getWorkspace() {

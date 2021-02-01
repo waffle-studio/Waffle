@@ -168,7 +168,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, null, "p-0");
+          , null, "card-info card-outline", "p-0");
       }
     }.render(this);
   }

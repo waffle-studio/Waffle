@@ -17,7 +17,7 @@ import java.util.concurrent.*;
 
 public interface DataDirectory {
   int EOF = -1;
-  int CHECKING_OMIT_TIME = 3000;
+  int CHECKING_OMIT_TIME = 30000;
   Cache<String, Long> previousDifferenceCheckTimeMap = new InstanceCache<Long>(Long.class, 1000, CHECKING_OMIT_TIME / 1000).getCacheStore();
 
   Path getDirectoryPath();

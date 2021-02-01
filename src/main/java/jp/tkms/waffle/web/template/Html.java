@@ -64,6 +64,10 @@ public class Html {
     return element("div", new Attributes(value("id", id)), values);
   }
 
+  public static String section(String classValue, String... values) {
+    return elementWithClass("section", classValue, values);
+  }
+
   public static String h1(String classValue, String... values) {
     return elementWithClass("h1", classValue, values);
   }

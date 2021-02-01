@@ -4,7 +4,6 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
-import jp.tkms.waffle.data.util.PathSemaphore;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import org.json.JSONObject;
 

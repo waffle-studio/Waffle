@@ -28,14 +28,13 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   private static final String KEY_DUMMY_RESULTS = "dummy_results";
   private static final String KEY_PARAMETERS = "parameters";
-  private static final String KEY_RUN = "run";
   private static final String KEY_COMPUTER = "computer";
-  private static final String KEY_SIMULATOR = "simulator";
+  protected static final String KEY_EXECUTABLE = "executable";
 
-  private Mode mode;
+  protected Mode mode;
 
-  private Project project;
-  private Executable executable;
+  protected Project project;
+  protected Executable executable;
   public ExecutableComponent(Mode mode) {
     super();
     this.mode = mode;
@@ -45,7 +44,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     this(Mode.Default);
   }
 
-  static public void register() {
+  public static void register() {
     Spark.get(getUrl(null), new ExecutableComponent());
     Spark.post(getUrl(null, Mode.Update), new ExecutableComponent(Mode.Update));
     Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ExecutableComponent(Mode.UpdateDefaultParameters));
@@ -59,17 +58,21 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(Executable executable) {
     return ExecutablesComponent.getUrl(executable == null ? null : executable.getProject())
-      + (executable == null ? "/:" + KEY_SIMULATOR : '/' + executable.getName());
+      + (executable == null ? "/:" + KEY_EXECUTABLE : '/' + executable.getName());
   }
 
   public static String getUrl(Executable executable, Mode mode) {
     return getUrl(executable) + "/@" + mode.name();
   }
 
+  protected Executable getExecutableEntity() {
+    return Executable.getInstance(project, request.params(KEY_EXECUTABLE));
+  }
+
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
-    executable = Executable.getInstance(project, request.params(KEY_SIMULATOR));
+    executable = getExecutableEntity();
 
     switch (mode) {
       case Update: {
@@ -102,25 +105,33 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     }
   }
 
+  protected String renderSubTitle() {
+    return TITLE;
+  }
+
+  protected ArrayList<String> renderPageBreadcrumb() {
+    return new ArrayList<String>(Arrays.asList(
+      Html.a(ProjectsComponent.getUrl(), "Projects"),
+      Html.a(ProjectComponent.getUrl(project), project.getName()),
+      Html.a(ExecutablesComponent.getUrl(project), "Simulators")
+    ));
+  }
+
   private void renderExecutable() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return TITLE;
-      }
-
-      @Override
-      protected String pageSubTitle() {
         return executable.getName();
       }
 
       @Override
+      protected String pageSubTitle() {
+        return renderSubTitle();
+      }
+
+      @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(ExecutablesComponent.getUrl(project), "Simulators")
-        ));
+        return renderPageBreadcrumb();
       }
 
       @Override
@@ -142,7 +153,9 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
                 Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors)
               ),
-              Lte.formSubmitButton("success", "Update")
+              Lte.formSubmitButton("success", "Update"),
+              "card-outline card-info"
+              , null
             )
           );
 
@@ -216,7 +229,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, "card-secondary", "p-0");
+          , null, "card-secondary card-outline", "p-0");
 
         content += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
           Html.a(ResultCollectorComponent.getStaticUrl(executable, ResultCollectorComponent.Mode.Add), Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")),
@@ -248,7 +261,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, "card-secondary", "p-0");
+          , null, "card-secondary card-outline", "p-0");
 
         content +=
           Html.form(getUrl(executable, Mode.UpdateDefaultParameters), Html.Method.Post,
@@ -260,7 +273,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
-              "collapsed-card.stop card-secondary", null)
+              "collapsed-card.stop card-secondary card-outline", null)
           );
 
         content +=
@@ -273,7 +286,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 )
               ),
               Lte.formSubmitButton("success", "Update"),
-              "collapsed-card.stop card-secondary", null)
+              "collapsed-card.stop card-secondary card-outline", null)
           );
 
         content += Lte.card(Html.fasIcon("file") + "Files in Executable Bin Directory (BASE)",
@@ -302,7 +315,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, "collapsed-card.stop card-secondary", "p-0");
+          , null, "collapsed-card.stop card-secondary card-outline", "p-0");
 
         return content;
       }
