@@ -82,14 +82,18 @@ public interface DataDirectory {
   }
 
   default Path getLocalDirectoryPath() {
-    return Constants.WORK_DIR.relativize(getDirectoryPath());
+    return toLocalDirectoryPath(getDirectoryPath());
+  }
+
+  static Path toLocalDirectoryPath(Path path) {
+    return Constants.WORK_DIR.relativize(path);
   }
 
   default void copyDirectory(Path dest) throws IOException {
     copyDirectory(getDirectoryPath().toFile(), dest.toFile());
   }
 
-  default void copyDirectory(File src, File dest) throws IOException {
+  static void copyDirectory(File src, File dest) throws IOException {
     if (src.isDirectory()) {
       if (!dest.exists()) {
         Files.createDirectories(dest.toPath());
@@ -111,7 +115,7 @@ public interface DataDirectory {
     deleteDirectory(getDirectoryPath().toFile());
   }
 
-  default void deleteDirectory(File target) {
+  static void deleteDirectory(File target) {
     if (target.isDirectory() && !Files.isSymbolicLink(target.toPath())) {
       for (File file : target.listFiles()) {
         deleteDirectory(file);
@@ -186,7 +190,7 @@ public interface DataDirectory {
     return false;
   }
 
-  default HashMap getFileMap(Path rootPath, File target) {
+  static HashMap getFileMap(Path rootPath, File target) {
     HashMap<Path, File> fileMap = new HashMap<>();
     fileMap.put(rootPath.normalize().relativize(target.toPath().normalize()), target);
     if (target.isDirectory()) {

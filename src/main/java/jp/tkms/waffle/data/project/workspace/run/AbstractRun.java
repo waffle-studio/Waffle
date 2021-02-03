@@ -3,16 +3,22 @@ package jp.tkms.waffle.data.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.WorkspaceData;
+import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
+import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile {
   public static final String RUN = "RUN";
@@ -57,6 +63,81 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     }
 
     return null;
+  }
+
+  public static ArrayList<AbstractRun> getList(Workspace workspace) {
+    Path basePath = getBaseDirectoryPath(workspace);
+    /*
+    return new ChildElementsArrayList().getList(basePath, name -> {
+      try {
+        return getInstance(workspace, DataDirectory.toLocalDirectoryPath(basePath.resolve(name.toString())).toString());
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+      return null;
+    });
+     */
+
+    ArrayList<AbstractRun> abstractRunList = new ArrayList<>();
+    try {
+      Files.list(basePath).sorted(
+        Comparator.comparingLong(path -> {
+          try {
+            return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+          } catch (IOException e) {
+            return 0;
+          }
+        })
+      ).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          try {
+            abstractRunList.add(getInstance(workspace, DataDirectory.toLocalDirectoryPath(path).toString()));
+          } catch (RunNotFoundException e) {
+            ErrorLogMessage.issue(e);
+          }
+        }
+      });
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    return abstractRunList;
+  }
+
+  public ArrayList<AbstractRun> getList() {
+    /*
+    return new ChildElementsArrayList().getList(getDirectoryPath(), name -> {
+      try {
+        return getInstance(getWorkspace(), DataDirectory.toLocalDirectoryPath(getDirectoryPath().resolve(name.toString())).toString());
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+      return null;
+    });
+     */
+
+    ArrayList<AbstractRun> abstractRunList = new ArrayList<>();
+    try {
+      Files.list(getDirectoryPath()).sorted(
+        Comparator.comparingLong(path -> {
+          try {
+            return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+          } catch (IOException e) {
+            return 0;
+          }
+        })
+      ).forEach(path -> {
+        if (Files.isDirectory(path)) {
+          try {
+            abstractRunList.add(getInstance(getWorkspace(), DataDirectory.toLocalDirectoryPath(path).toString()));
+          } catch (RunNotFoundException e) {
+            ErrorLogMessage.issue(e);
+          }
+        }
+      });
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    return abstractRunList;
   }
 
   public ConductorRun getOwner() {
@@ -135,6 +216,10 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     finalizers.add(actorRun.getDirectoryPath().toString());
     setFinalizers(finalizers);
      */
+  }
+
+  public static Path getBaseDirectoryPath(Workspace workspace) {
+    return workspace.getDirectoryPath().resolve(RUN);
   }
 
   @Override

@@ -81,6 +81,12 @@ public class LogsComponent extends AbstractAccessControlledComponent {
 
   private void renderList() {
     new MainTemplate() {
+
+      @Override
+      protected boolean enableParentLink() {
+        return false;
+      }
+
       @Override
       protected ArrayList<Map.Entry<String, String>> pageNavigation() {
         return null;

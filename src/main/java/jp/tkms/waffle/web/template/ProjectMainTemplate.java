@@ -1,12 +1,9 @@
 package jp.tkms.waffle.web.template;
 
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
-import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
-import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
 
 import java.util.ArrayList;

@@ -80,6 +80,10 @@ abstract public class MainTemplate extends AbstractTemplate {
                   div("row mb-2",
                     div("col-sm-6",
                       h1(null,
+                        (enableParentLink() ?
+                        element("small", null,
+                          a("javascript:gotoParent();", span(null, new Attributes(value("style", "color:#ffc107;")), fasIcon("caret-square-up")))
+                        ) : ""),
                         pageTitle(),
                         element("small", null,
                           (pageSubTitle() != "" ? " / " + pageSubTitle() : "")
@@ -111,7 +115,10 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/toastr.min.js"))),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
-            "var cid=" + BrowserMessage.getCurrentRowId() + ";" +
+            "var gotoParent = function() {" +
+              "window.location.href = window.location.href.replace(/^(.*)\\/.*$/,'$1');" +
+              "};" +
+              "var cid=" + BrowserMessage.getCurrentRowId() + ";" +
               "var loadBrowserMessage = function() {" +
               "simpleget('" + BrowserMessageComponent.getUrl("") + "' + cid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
@@ -334,6 +341,10 @@ abstract public class MainTemplate extends AbstractTemplate {
     nav.add(Html.spanWithId("ruby-running-status", Lte.formSubmitButton("danger",Html.fasIcon("spinner", "fa-pulse") + "Script Running"),
       Html.javascript("var rubyRunningStatus=function(status){if(status){document.getElementById('ruby-running-status').style.display='inline';}else{document.getElementById('ruby-running-status').style.display='none';}};rubyRunningStatus(" + (RubyScript.hasRunning()?"true":"false") + ");")));
     return nav;
+  }
+
+  protected boolean enableParentLink() {
+    return true;
   }
 
   protected abstract ArrayList<Map.Entry<String, String>> pageNavigation();

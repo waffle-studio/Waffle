@@ -1,19 +1,17 @@
 package jp.tkms.waffle.web.component.project.workspace;
 
   import jp.tkms.waffle.Main;
-  import jp.tkms.waffle.data.project.conductor.Conductor;
-  import jp.tkms.waffle.data.project.executable.Executable;
   import jp.tkms.waffle.data.project.workspace.Workspace;
   import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
+  import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
+  import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
   import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
   import jp.tkms.waffle.web.component.project.ProjectComponent;
   import jp.tkms.waffle.web.component.project.ProjectsComponent;
   import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
-  import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
   import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
   import jp.tkms.waffle.web.component.project.workspace.executable.StagedExecutableComponent;
   import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
-  import jp.tkms.waffle.web.component.project.workspace.run.RunsComponent;
   import jp.tkms.waffle.web.template.Html;
   import jp.tkms.waffle.web.template.Lte;
   import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -41,7 +39,6 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, null), new WorkspaceComponent());
 
     StagedExecutableComponent.register();
-    RunsComponent.register();
     RunComponent.register();
   }
 
@@ -142,7 +139,6 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Workspace> workspaceList = Workspace.getList(project);
         /*
         if (executableList.size() <= 0) {
           return Lte.card(null, null,
@@ -160,15 +156,13 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
               Lte.table("table-condensed", new Lte.Table() {
                 @Override
                 public ArrayList<Lte.TableValue> tableHeaders() {
-                  ArrayList<Lte.TableValue> list = new ArrayList<>();
-                  list.add(new Lte.TableValue("", "Name1"));
-                  return list;
+                  return null;
                 }
 
                 @Override
                 public ArrayList<Future<Lte.TableRow>> tableRows() {
                   ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                  for (Workspace workspace : workspaceList) {
+                  for (Workspace workspace : Workspace.getList(project)) {
                     list.add(Main.interfaceThreadPool.submit(() -> {
                         return new Lte.TableRow(
                           Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
@@ -204,43 +198,32 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                 , null, "card-info card-outline", "p-0")
             ),
             Html.section("col-lg-6",
-              Lte.card(Html.fasIcon("project-diagram") + RunsComponent.TITLE, null,
+              Lte.card(Html.fasIcon("project-diagram") + RunComponent.RUNS, null,
                 Lte.table("table-condensed", new Lte.Table() {
                   @Override
                   public ArrayList<Lte.TableValue> tableHeaders() {
-                    ArrayList<Lte.TableValue> list = new ArrayList<>();
-                    list.add(new Lte.TableValue("", "Name3"));
-                    return list;
+                    return null;
                   }
 
                   @Override
                   public ArrayList<Future<Lte.TableRow>> tableRows() {
                     ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                    for (Workspace workspace : workspaceList) {
+                    for (AbstractRun abstractRun : AbstractRun.getList(workspace)) {
                       list.add(Main.interfaceThreadPool.submit(() -> {
-                          return new Lte.TableRow(
-                            Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
+                          if (abstractRun instanceof ExecutableRun) {
+                            return new Lte.TableRow(
+                              Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
+                          } else {
+                            return new Lte.TableRow(
+                              Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
+                          }
                         }
                       ));
                     }
-                  for (Workspace workspace : workspaceList) {
-                    list.add(Main.interfaceThreadPool.submit(() -> {
-                        return new Lte.TableRow(
-                          Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
-                      }
-                    ));
+                    return list;
                   }
-                  for (Workspace workspace : workspaceList) {
-                    list.add(Main.interfaceThreadPool.submit(() -> {
-                        return new Lte.TableRow(
-                          Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
-                      }
-                    ));
-                  }
-                  return list;
-                }
-              })
-              , null, "card-danger card-outline", "p-0")
+                })
+                , null, "card-danger card-outline", "p-0")
             )
           ));
       }

@@ -92,6 +92,12 @@ public class SystemComponent extends AbstractAccessControlledComponent {
 
   void renderSystem() {
     new MainTemplate() {
+
+      @Override
+      protected boolean enableParentLink() {
+        return false;
+      }
+
       @Override
       protected ArrayList<Map.Entry<String, String>> pageNavigation() {
         return null;

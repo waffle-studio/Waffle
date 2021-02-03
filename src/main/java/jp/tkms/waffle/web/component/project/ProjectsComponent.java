@@ -107,6 +107,12 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
   private void renderProjectList() {
     new MainTemplate() {
+
+      @Override
+      protected boolean enableParentLink() {
+        return false;
+      }
+
       @Override
       protected ArrayList<Map.Entry<String, String>> pageNavigation() {
         return null;
