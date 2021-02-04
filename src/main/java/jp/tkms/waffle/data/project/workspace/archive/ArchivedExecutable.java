@@ -73,7 +73,7 @@ public class ArchivedExecutable extends Executable {
   }
 
   public static String getArchiveName(String name, WaffleId id) {
-    return name + "-" + id.getReversedHexCode();
+    return name + "-" + id.getReversedBase36Code();
   }
 
   @Override

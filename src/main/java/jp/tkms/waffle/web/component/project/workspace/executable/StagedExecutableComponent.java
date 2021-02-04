@@ -6,7 +6,6 @@ import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
-import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import spark.Spark;
@@ -60,9 +59,26 @@ public class StagedExecutableComponent extends ExecutableComponent {
   }
 
   @Override
+  protected String renderTool() {
+    String value = "";
+      /*
+    Html.a(getUrl((StagedExecutable) executable, Mode.TestRun),
+      Html.span("right badge badge-secondary", null, "TEST RUN")
+    );
+       */
+    Executable parent = Executable.getInstance(project, executable.getName());
+    if (parent != null) {
+      value += "&nbsp;" + Html.a(ExecutableComponent.getUrl(parent),
+        Html.span("right badge badge-info", null, Html.fasIcon("layer-group") + "Base Executable")
+      );
+    }
+    return value;
+  }
+
+  @Override
   protected ArrayList<String> renderPageBreadcrumb() {
     return new ArrayList<String>(Arrays.asList(
-      Html.a(ProjectsComponent.getUrl(), "Projects"),
+      Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),
       Html.a(ProjectComponent.getUrl(project), project.getName()),
       Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
       Html.a(WorkspaceComponent.getUrl(project, workspace), workspace.getName())

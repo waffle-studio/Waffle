@@ -15,6 +15,9 @@ import java.util.*;
 import java.util.concurrent.Future;
 
 public class ComputersComponent extends AbstractAccessControlledComponent {
+  public static final String COMPUTERS = "Computers";
+  public static final String COMPUTER = "Computer";
+
   private static final String KEY_WORKBASE = "work_base_dir";
   private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_POLLING = "polling_interval";
@@ -48,7 +51,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(Mode.New), new ComputersComponent(Mode.New));
     Spark.post(getUrl(Mode.New), new ComputersComponent(Mode.New));
     Spark.get(getUrl(null, null), new ComputersComponent());
-    Spark.post(getUrl(Mode.Update, null), new ComputersComponent(Mode.Update));
+    Spark.post(getUrl(null, Mode.Update), new ComputersComponent(Mode.Update));
   }
 
   public static String getUrl() {
@@ -59,8 +62,12 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     return "/COMPUTER/@" + mode.name();
   }
 
-  public static String getUrl(Mode mode, Computer computer) {
-    return "/COMPUTER/" + (computer == null ? ":name" : computer.getName()) + (mode == null ? "" : "/@" + mode.name());
+  public static String getUrl(Computer computer) {
+    return "/COMPUTER/" + (computer == null ? ":name" : computer.getName());
+  }
+
+  public static String getUrl(Computer computer, Mode mode) {
+    return getUrl(computer) + (mode == null ? "" : "/@" + mode.name());
   }
 
   @Override
@@ -103,19 +110,19 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTitle() {
-        return "Computers";
+        return "@New";
       }
 
       @Override
       protected String pageSubTitle() {
-        return "@New";
+        return COMPUTERS;
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ComputersComponent.getUrl(), "Computers"),
-          "New"));
+          Html.a(ComputersComponent.getUrl(), COMPUTERS),
+          "@New"));
       }
 
       @Override
@@ -155,13 +162,13 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTitle() {
-        return "Computers";
+        return COMPUTERS;
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          "Computers"));
+          COMPUTERS));
       }
 
       @Override
@@ -190,7 +197,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               for (Computer computer : Computer.getList()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
-                    Html.a(ComputersComponent.getUrl(null, computer), null, null,  computer.getName()),
+                    Html.a(ComputersComponent.getUrl(computer), null, null,  computer.getName()),
                     String.valueOf(Job.getList(computer).size()),
                     computer.getState().getStatusBadge()
                   );
@@ -206,7 +213,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
 
   private void addComputer() {
     Computer computer = Computer.create(request.queryParams("name"), submitterTypeMap.get(request.queryParams("type")));
-    response.redirect(ComputersComponent.getUrl(null, computer));
+    response.redirect(ComputersComponent.getUrl(computer));
   }
 
   private void renderComputer() {
@@ -218,18 +225,18 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTitle() {
-        return "Computer";
+        return computer.getName();
       }
 
       @Override
       protected String pageSubTitle() {
-        return computer.getName();
+        return COMPUTER;
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ComputersComponent.getUrl(), "Computers"),
+          Html.a(ComputersComponent.getUrl(), COMPUTERS),
           computer.getName()
         ));
       }
@@ -247,7 +254,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               Html.fasIcon("info-circle") + "You can install Xsub on "
                 + (computer.getXsubDirectory().equals("") ? "~/xsub" : computer.getXsubDirectory()) + " from here.")));
         }
-        content += Html.form(getUrl(Mode.Update, computer), Html.Method.Post,
+        content += Html.form(getUrl(computer, Mode.Update), Html.Method.Post,
           Lte.card(Html.fasIcon("terminal") + "Properties",
             computer.getState().getStatusBadge(),
             Html.div(null,
@@ -284,6 +291,6 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
     computer.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));
     computer.update();
-    response.redirect(getUrl(null, computer));
+    response.redirect(getUrl(computer));
   }
 }

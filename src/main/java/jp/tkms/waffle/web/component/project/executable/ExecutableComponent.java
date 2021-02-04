@@ -4,6 +4,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
@@ -113,8 +114,14 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     return new ArrayList<String>(Arrays.asList(
       Html.a(ProjectsComponent.getUrl(), "Projects"),
       Html.a(ProjectComponent.getUrl(project), project.getName()),
-      Html.a(ExecutablesComponent.getUrl(project), "Simulators")
+      Html.a(ExecutablesComponent.getUrl(project), ExecutablesComponent.EXECUTABLES)
     ));
+  }
+
+  protected String renderTool() {
+    return Html.a(getUrl(executable, Mode.TestRun),
+      Html.span("right badge badge-secondary", null, "TEST RUN")
+    );
   }
 
   private void renderExecutable() throws ProjectNotFoundException {
@@ -143,9 +150,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         content +=
           Html.form(getUrl(executable, Mode.Update), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Properties",
-              Html.a(getUrl(executable, Mode.TestRun),
-                Html.span("right badge badge-secondary", null, "test run")
-              ),
+              renderTool(),
               Html.div(null,
                 Lte.readonlyTextInputWithCopyButton("Executable Bin Directory (BASE)", executable.getBaseDirectory().toString()),
                 //Lte.readonlyTextInput("Version ID", executable.getVersionId()),
@@ -331,17 +336,12 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return "TestRun";
+        return "Test Run";
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "Simulators",
-          executable.getName()
-        ));
+        return renderPageBreadcrumb();
       }
 
       @Override
@@ -356,13 +356,13 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         if (latestRun != null) {
 
           ExecutableRun finalLatestRun = latestRun;
-          content += Lte.card(Html.fasIcon("poll-h") + "Latest Run", null,
+          content += Lte.card(Html.fasIcon("poll-h") + "Latest Test Run", null,
             Lte.table("table-condensed table-sm", new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
                 ArrayList<Lte.TableValue> list = new ArrayList<>();
-                list.add(new Lte.TableValue("width:6.5em;", "ID"));
-                list.add(new Lte.TableValue("", "Host"));
+                list.add(new Lte.TableValue("", "Name"));
+                list.add(new Lte.TableValue("", "Computer"));
                 list.add(new Lte.TableValue("width:2em;", ""));
                 return list;
               }
@@ -370,16 +370,18 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                /*
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
-                    Html.a(RunComponent.getUrl(project, finalLatestRun.getUuid()), finalLatestRun.getName()),
-                    (finalLatestRun.getComputer() == null ? "NotFound" : finalLatestRun.getComputer().getName()),
-                    Html.spanWithId(finalLatestRun.getId() + "-badge", finalLatestRun.getState().getStatusBadge())
+                    Html.a(RunComponent.getUrl(finalLatestRun), finalLatestRun.getName()),
+                    (finalLatestRun.getComputer() == null ? "NotFound" :
+                      Html.a(
+                        ComputersComponent.getUrl(finalLatestRun.getComputer()),
+                        finalLatestRun.getComputer().getName()
+                      )
+                    ),
+                    Html.spanWithId(finalLatestRun.getLocalDirectoryPath().toString() + "-badge", finalLatestRun.getState().getStatusBadge())
                   );
                 }));
-
-                 */
                 return list;
               }
             })
@@ -388,11 +390,11 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(executable, Mode.TestRun), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "TestRun",
+            Lte.card(Html.fasIcon("terminal") + "Test Run",
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formSelectGroup(KEY_COMPUTER, "Host", Computer.getViableList().stream().map(computer -> computer.getName()).collect(Collectors.toList()), null),
+                  Lte.formSelectGroup(KEY_COMPUTER, ComputersComponent.COMPUTER, Computer.getViableList().stream().map(computer -> computer.getName()).collect(Collectors.toList()), null),
                   Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", executable.getDefaultParameters().toString(2), null)
                 )
               )

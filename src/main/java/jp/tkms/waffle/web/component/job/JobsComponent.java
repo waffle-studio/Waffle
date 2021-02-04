@@ -123,7 +123,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         run.getExecutable().getName()
                       ),
                       Html.a(
-                        ComputersComponent.getUrl(null, job.getComputer()),
+                        ComputersComponent.getUrl(job.getComputer()),
                         job.getComputer().getName()
                       ),
                       job.getJobId(),

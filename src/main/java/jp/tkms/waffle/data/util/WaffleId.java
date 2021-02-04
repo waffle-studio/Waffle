@@ -4,6 +4,8 @@ import jp.tkms.waffle.Main;
 import java.util.Objects;
 
 public class WaffleId {
+  private static final int RADIX = 36;
+
   private static long currentTime = getCurrentTime();
   private static long serialNumber = 0;
   private long id;
@@ -12,12 +14,12 @@ public class WaffleId {
     this.id = id;
   }
 
-  public static WaffleId valueOf(String reversedHexCode) {
-    reversedHexCode = reversedHexCode.trim();
-    if ("".equals(reversedHexCode) || reversedHexCode == null) {
+  public static WaffleId valueOf(String reversedBase36Code) {
+    reversedBase36Code = reversedBase36Code.trim().toLowerCase();
+    if ("".equals(reversedBase36Code) || reversedBase36Code == null) {
       return null;
     }
-    return new WaffleId(Long.decode("0x" + new StringBuffer(reversedHexCode).reverse().toString()));
+    return new WaffleId(Long.valueOf(new StringBuffer(reversedBase36Code).reverse().toString(), RADIX).longValue());
   }
 
   public static WaffleId valueOf(long id) {
@@ -42,8 +44,8 @@ public class WaffleId {
     return String.valueOf(id);
   }
 
-  public String getReversedHexCode() {
-    return new StringBuffer(Long.toHexString(id)).reverse().toString();
+  public String getReversedBase36Code() {
+    return new StringBuffer(Long.toString(id, RADIX)).reverse().toString().toUpperCase();
   }
 
   @Override

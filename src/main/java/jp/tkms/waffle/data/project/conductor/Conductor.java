@@ -6,13 +6,15 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
+import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.script.ScriptProcessor;
+import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,11 +22,10 @@ import java.util.*;
 
 public class Conductor extends ProjectData implements DataDirectory, PropertyFile {
   public static final String CONDUCTOR = "CONDUCTOR";
-  private static final String KEY_DEFAULT_VARIABLES = "default_variables";
-  private static final String KEY_ACTOR = "actor";
-  public static final String KEY_REPRESENTATIVE_ACTOR = "representative_actor";
-  private static final String RUBY_ACTOR_TEMPLATE_RB = "/ruby_actor_template.rb";
-  public static final String KEY_REPRESENTATIVE_ACTOR_NAME = "#";
+  private static final String KEY_DEFAULT_VARIABLES = "DEFAULT_VARIABLES";
+  private static final String KEY_CHILD = "CHILD";
+  public static final String KEY_MAIN_PROCEDURE = "MAIN_PROCEDURE";
+  public static final String KEY_MAIN_PROCEDURE_NAME = "#";
 
   private static final HashMap<String, Conductor> instanceMap = new HashMap<>();
 
@@ -67,23 +68,9 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static ArrayList<Conductor> getList(Project project) {
-    ArrayList<Conductor> conductorList = new ArrayList<>();
-
-    if (!Files.exists(getBaseDirectoryPath(project))) {
-      for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
-        if (file.isDirectory()) {
-          conductorList.add(getInstance(project, file.getName()));
-        }
-      }
-    } else {
-      try {
-        Files.createDirectories(getBaseDirectoryPath(project));
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-
-    return conductorList;
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), name -> {
+      return getInstance(project, name.toString());
+    });
   }
 
   public static Conductor create(Project project, String name) {
@@ -104,22 +91,22 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
       ErrorLogMessage.issue(e);
     }
 
-    if (! Files.exists(getRepresentativeActorScriptPath())) {
+    if (! Files.exists(getMainProcedureScriptPath())) {
       updateRepresentativeActorScript(null);
     }
 
-    if (! Files.exists(getDirectoryPath().resolve(KEY_ACTOR))) {
+    if (! Files.exists(getDirectoryPath().resolve(KEY_CHILD))) {
       try {
-        Files.createDirectories(getDirectoryPath().resolve(KEY_ACTOR));
+        Files.createDirectories(getDirectoryPath().resolve(KEY_CHILD));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
     }
 
     try {
-      getArrayFromProperty(KEY_ACTOR);
+      getArrayFromProperty(KEY_CHILD);
     } catch (Exception e) {
-      putNewArrayToProperty(KEY_ACTOR);
+      putNewArrayToProperty(KEY_CHILD);
     }
   }
 
@@ -128,30 +115,30 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
-  public Path getRepresentativeActorScriptPath() {
-    return getDirectoryPath().resolve(KEY_REPRESENTATIVE_ACTOR + Constants.EXT_RUBY);
+  public Path getMainProcedureScriptPath() {
+    return getDirectoryPath().resolve(KEY_MAIN_PROCEDURE + Constants.EXT_RUBY);
   }
 
-  public String getRepresentativeActorScript() {
-    return getFileContents(getRepresentativeActorScriptPath());
+  public String getMainProcedureScript() {
+    return getFileContents(getMainProcedureScriptPath());
   }
 
-  public Path getActorScriptPath(String name) {
-    return getDirectoryPath().resolve(KEY_ACTOR).resolve(name + Constants.EXT_RUBY);
+  public Path getChildProcedureScriptPath(String name) {
+    return getDirectoryPath().resolve(KEY_CHILD).resolve(name);
   }
 
-  public String getActorScript(String name) {
-    return getFileContents(getActorScriptPath(name));
+  public String getChildProcedureScript(String name) {
+    return getFileContents(getChildProcedureScriptPath(name));
   }
 
-  public List<String> getActorNameList() {
+  public List<String> getChildProcedureNameList() {
     List<String> list = null;
     try {
-      JSONArray array = getArrayFromProperty(KEY_ACTOR);
+      JSONArray array = getArrayFromProperty(KEY_CHILD);
       list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
       for (String name : list) {
-        if (! Files.exists(getActorScriptPath(name))) {
-          removeFromArrayOfProperty(KEY_ACTOR, name);
+        if (! Files.exists(getChildProcedureScriptPath(name))) {
+          removeFromArrayOfProperty(KEY_CHILD, name);
         }
       }
     } catch (JSONException e) {
@@ -187,24 +174,30 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     }
   }
 
-  public void createNewActor(String name) {
-    Path path = getActorScriptPath(name);
+  public String createNewChildProcedure(String name) {
+    if (!ScriptProcessor.classNameMap.containsKey(name.replaceFirst("^.*\\.", "."))) {
+      name = name + RubyScriptProcessor.EXTENSION;
+    }
+
+    Path path = getChildProcedureScriptPath(name);
     createNewFile(path);
-    updateFileContents(path, ResourceFile.getContents(RUBY_ACTOR_TEMPLATE_RB));
-    putToArrayOfProperty(KEY_ACTOR, name);
+    updateFileContents(path, ScriptProcessor.getProcessor(path).procedureTemplate());
+    putToArrayOfProperty(KEY_CHILD, name);
+
+    return name;
   }
 
   public void updateActorScript(String name, String script) {
-    updateFileContents(getActorScriptPath(name), script);
+    updateFileContents(getChildProcedureScriptPath(name), script);
   }
 
   public void updateRepresentativeActorScript(String contents) {
-    Path path = getRepresentativeActorScriptPath();
+    Path path = getMainProcedureScriptPath();
     if (Files.exists(path)) {
       updateFileContents(path, contents);
     } else {
       createNewFile(path);
-      updateFileContents(path, ResourceFile.getContents(RUBY_ACTOR_TEMPLATE_RB));
+      updateFileContents(path, ScriptProcessor.getProcessor(path).procedureTemplate());
     }
   }
 

@@ -130,7 +130,21 @@ public class RunComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return "Runs";
+        if (abstractRun != null) {
+          return abstractRun.getName();
+        }
+        return "Root Run";
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        if (abstractRun != null) {
+          if (abstractRun instanceof ProcedureRun) {
+            return "ProcedureRun";
+          }
+          return "ConductorRun";
+        }
+        return super.pageSubTitle();
       }
 
       @Override
@@ -328,6 +342,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
       }
 
       @Override
+      protected String pageSubTitle() {
+        return "ExecutableRun";
+      }
+
+      @Override
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),
@@ -379,7 +398,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
                  */
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Executable", Html.a(ExecutableComponent.getUrl(executableRun.getExecutable()), executableRun.getExecutable().getName()));}));
-                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer", (executableRun.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(null, executableRun.getComputer()), executableRun.getComputer().getName())));}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer", (executableRun.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(executableRun.getComputer()), executableRun.getComputer().getName())));}));
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + executableRun.getExitStatus()
                   + (executableRun.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(executableRun, Mode.ReCheck),

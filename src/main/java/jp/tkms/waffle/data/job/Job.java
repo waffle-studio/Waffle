@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.UUID;
 
 public class Job implements PropertyFile {
   private static final String KEY_ERROR_COUNT = "error_count";
@@ -58,7 +57,7 @@ public class Job implements PropertyFile {
   }
 
   public String getHexCode() {
-    return id.getReversedHexCode();
+    return id.getReversedBase36Code();
   }
 
   public static Job getInstance(String idHexCode) {

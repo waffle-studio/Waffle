@@ -41,9 +41,9 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ProjectComponent());
-    Spark.get(getUrl(null, "edit_const_model"), new ProjectComponent());
-    Spark.get(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
-    Spark.post(getUrl(null, "add_conductor"), new ProjectComponent(Mode.AddConductor));
+    Spark.get(getUrl(null, Mode.EditConstModel), new ProjectComponent());
+    Spark.get(getUrl(null, Mode.AddConductor), new ProjectComponent(Mode.AddConductor));
+    Spark.post(getUrl(null, Mode.AddConductor), new ProjectComponent(Mode.AddConductor));
 
     ExecutablesComponent.register();
     ExecutableComponent.register();
@@ -55,8 +55,8 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     return "/" + Project.PROJECT + "/" + (project == null ? ':' + KEY_PROJECT : project.getName());
   }
 
-  public static String getUrl(Project project, String mode) {
-    return getUrl(project) + "/@" + mode;
+  public static String getUrl(Project project, Mode mode) {
+    return getUrl(project) + "/@" + mode.name();
   }
 
   @Override
@@ -139,7 +139,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         return
-          Html.form(getUrl(project, "add_conductor"), Html.Method.Post,
+          Html.form(getUrl(project, Mode.AddConductor), Html.Method.Post,
             Lte.card("New Conductor", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
@@ -157,12 +157,12 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return TITLE;
+        return project.getName();
       }
 
       @Override
       protected String pageSubTitle() {
-        return project.getName();
+        return TITLE;
       }
 
       @Override
@@ -187,7 +187,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         if (conductorList.size() <= 0) {
           content += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
-            Html.a(getUrl(project, "add_conductor"), null, null,
+            Html.a(getUrl(project, Mode.AddConductor), null, null,
               Html.fasIcon("plus-square") + "Add Conductors"
             ),
             null, "card-warning card-outline", null
@@ -203,8 +203,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             }
           }
 
-           */
-
           content += Html.element("script", new Attributes(value("type", "text/javascript")),
               "var updateConductorJobNum = function(c,n) {" +
               "if (n > 0) {" +
@@ -215,18 +213,16 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               "}" +
               "};"
           );
+           */
 
-          content += Lte.card(Html.fasIcon("user-tie") + "ActorGroups",
-            Html.a(getUrl(project, "add_conductor"),
-              null, null, Html.fasIcon("plus-square") + "NEW"
+          content += Lte.card(Html.fasIcon("user-tie") + ConductorComponent.CONDUCTORS,
+            Html.a(getUrl(project, Mode.AddConductor),
+              null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
             ),
             Lte.table(null, new Lte.Table() {
               @Override
               public ArrayList<Lte.TableValue> tableHeaders() {
-                ArrayList<Lte.TableValue> list = new ArrayList<>();
-                list.add(new Lte.TableValue("width:8em;", "ID"));
-                list.add(new Lte.TableValue("", "Name"));
-                return list;
+                return null;
               }
 
               @Override
@@ -247,24 +243,31 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
                     return new Lte.TableRow(
                       new Lte.TableValue("",
                         Html.a(ConductorComponent.getUrl(conductor),
-                          null, null, conductor.getName())),
-                      new Lte.TableValue("", conductor.getName()),
+                          null, null, conductor.getName()
+                        )),
+                      new Lte.TableValue("text-align:right;",
+                        Html.a(ConductorComponent.getUrl(conductor, ConductorComponent.Mode.Prepare),
+                          Html.span("right badge badge-secondary", null, "RUN")
+                        )
+                      /*,
                       new Lte.TableValue("text-align:right;",
                         Html.span(null, null,
-                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getName()))),
-                          "gfhgfhjg"/*
+                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getLocalDirectoryPath().toString())))
+                          ,
+                          "gfhgfhjg"
                           Html.a(ConductorComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
                             Html.span("right badge badge-secondary", null, "run")
-                          )*/,
-                          Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + finalRunningCount + ")")
+                          ),
+                          Html.javascript("updateConductorJobNum('" + conductor.getLocalDirectoryPath().toString() + "'," + finalRunningCount + ")")
                         )
-                      ));
+                      )*/)
+                    );
                   } ));
                 }
                 return list;
               }
             })
-            , null, null, "p-0");
+            , null, "card-warning card-outline", "p-0");
         }
 
         return content;

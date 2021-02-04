@@ -78,7 +78,6 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        ArrayList<Workspace> workspaceList = Workspace.getList(project);
         /*
         if (executableList.size() <= 0) {
           return Lte.card(null, null,
@@ -101,7 +100,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Workspace workspace : workspaceList) {
+              for (Workspace workspace : Workspace.getList(project)) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
@@ -111,7 +110,30 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, "card-danger card-outline", "p-0");
+          , null, "card-danger card-outline", "p-0")
+        + Lte.card( Html.fasIcon("eye-slash") + "Hidden Workspaces", Lte.cardToggleButton(true),
+          Lte.table("table-condensed", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              ArrayList<Lte.TableValue> list = new ArrayList<>();
+              list.add(new Lte.TableValue("", "Name"));
+              return list;
+            }
+
+            @Override
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              for (Workspace workspace : Workspace.getHiddenList(project)) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(
+                      Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
+                  }
+                ));
+              }
+              return list;
+            }
+          })
+          , null, "collapsed-card card-secondary card-outline", "p-0");
       }
     }.render(this);
   }

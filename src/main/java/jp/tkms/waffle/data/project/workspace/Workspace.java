@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
+import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import org.json.JSONObject;
@@ -55,7 +56,13 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static ArrayList<Workspace> getList(Project project) {
-    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), name -> {
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), ChildElementsArrayList.Mode.OnlyNormal, name -> {
+      return getInstance(project, name.toString());
+    });
+  }
+
+  public static ArrayList<Workspace> getHiddenList(Project project) {
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), ChildElementsArrayList.Mode.OnlyHidden, name -> {
       return getInstance(project, name.toString());
     });
   }
@@ -74,12 +81,13 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static Workspace create(Project project, String name) {
-    return createForce(project, FileName.removeRestrictedCharacters(name));
+    return createForce(project, FileName.generateUniqueFileName(getBaseDirectoryPath(project), name));
   }
 
   private void initialise() {
     try {
       Files.createDirectories(getDirectoryPath());
+      Files.createDirectories(getDirectoryPath().resolve(AbstractRun.RUN));
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }

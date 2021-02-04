@@ -73,80 +73,80 @@ class TemplateArgument
 end
 
 =begin
-class Hub < Java::jp.tkms.waffle.data.util.Hub
-    def initialize(conductorRun, run, template)
-        super(conductorRun, run, template)
-        @store = get_store(registry, conductorRun.id)
-        @template_argument =  get_template_argument(registry, conductorRun.id)
+    class Hub < Java::jp.tkms.waffle.data.util.Hub
+        def initialize(conductorRun, run, template)
+            super(conductorRun, run, template)
+            @store = get_store(registry, conductorRun.id)
+            @template_argument =  get_template_argument(registry, conductorRun.id)
+        end
+
+        def close
+        #TODO: check with depth
+            registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+            registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
+            super
+            registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
+            registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
+        end
+
+        def loadConductorTemplate(name)
+            super
+            @template_argument
+        end
+
+        def loadListenerTemplate(name)
+            super
+            @template_argument
+        end
+
+        def p
+            @template_argument.p
+        end
+
+        def f
+            @template_argument.f
+        end
     end
 
-    def close
-    #TODO: check with depth
-        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
-        registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
-        super
-        registry.set(".S:" + conductorRun.id, Marshal.dump(@store))
-        registry.set(".TA:" + conductorRun.id, Marshal.dump(@template_argument))
+    def exec_process(conductorRun, run, &block)
+        result = true
+        hub = Hub.new(conductorRun, run, nil)
+        result = block.call(hub)
+        hub.close
+        return result
     end
 
-    def loadConductorTemplate(name)
-        super
-        @template_argument
+    def exec_conductor_script(conductorRun)
+        exec_process conductorRun, conductorRun do | hub |
+            next conductor_script(hub, conductorRun)
+        end
     end
 
-    def loadListenerTemplate(name)
-        super
-        @template_argument
+    def exec_listener_script(conductorRun, run)
+        exec_process conductorRun, run do | hub |
+            next listener_script(hub, run)
+        end
     end
 
-    def p
-        @template_argument.p
+    def exec_template_process(conductorRun, run, template, &block)
+        result = true
+        hub = Hub.new(conductorRun, run, template)
+        result = block.call(hub)
+        hub.close
+        return result
     end
 
-    def f
-        @template_argument.f
+    def exec_conductor_template_script(conductorRun, conductorTemplate)
+        exec_template_process conductorRun, conductorRun, conductorTemplate do | hub |
+            next conductor_script(hub, conductorRun)
+        end
     end
-end
 
-def exec_process(conductorRun, run, &block)
-    result = true
-    hub = Hub.new(conductorRun, run, nil)
-    result = block.call(hub)
-    hub.close
-    return result
-end
-
-def exec_conductor_script(conductorRun)
-    exec_process conductorRun, conductorRun do | hub |
-        next conductor_script(hub, conductorRun)
+    def exec_listener_template_script(conductorRun, run)
+        exec_template_process conductorRun, run, nil do | hub |
+            next listener_script(hub, run)
+        end
     end
-end
-
-def exec_listener_script(conductorRun, run)
-    exec_process conductorRun, run do | hub |
-        next listener_script(hub, run)
-    end
-end
-
-def exec_template_process(conductorRun, run, template, &block)
-    result = true
-    hub = Hub.new(conductorRun, run, template)
-    result = block.call(hub)
-    hub.close
-    return result
-end
-
-def exec_conductor_template_script(conductorRun, conductorTemplate)
-    exec_template_process conductorRun, conductorRun, conductorTemplate do | hub |
-        next conductor_script(hub, conductorRun)
-    end
-end
-
-def exec_listener_template_script(conductorRun, run)
-    exec_template_process conductorRun, run, nil do | hub |
-        next listener_script(hub, run)
-    end
-end
 =end
 
 def parameter_extract(run)
@@ -157,6 +157,7 @@ def exec_parameter_extract(run)
         parameter_extract(run)
     end
 end
+#module_function :exec_parameter_extract
 
 def result_collect(run, remote)
 end
@@ -166,6 +167,7 @@ def exec_result_collect(run, remote)
         result_collect(run, remote)
     end
 end
+#module_function :exec_result_collect
 
 class ActorWrapper
     def initialize(actorRun)
@@ -230,9 +232,10 @@ def exec_actor_script(instance, caller)
     return result
 end
 
+
 class Java::JavaLang::Object
     def is_group?()
-        return self.is_a?(Java::JavaUtil::HashMap)
+        return self.is_a?(Java::JavaUtil::Map)
     end
 end
 

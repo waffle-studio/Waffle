@@ -1,23 +1,30 @@
 package jp.tkms.waffle.web.component.project.conductor;
 
+import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
-import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
-import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.data.util.FileName;
 import spark.Spark;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import static jp.tkms.waffle.web.template.Html.value;
 
@@ -27,11 +34,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_MAIN_SCRIPT = "main_script";
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
-  private static final String KEY_LISTENER = "listener";
-  private static final String KEY_EXT_RUBY = ".rb";
   private static final String KEY_LISTENER_NAME = "listener_name";
   private static final String KEY_NAME = "Name";
+  private static final String NEW_WORKSPACE = "[Create new workspace]";
   private Mode mode;
+
+  public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure}
 
   private Project project;
   private Conductor conductor;
@@ -47,37 +55,24 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
+    Spark.get(getUrl(), new ConductorComponent(Mode.List));
     Spark.get(getUrl(null), new ConductorComponent());
-    /*
-    Spark.get(getUrl(null, "prepare", null), new ConductorComponent(Mode.Prepare));
-    Spark.get(getUrl(null, "prepare", null, null), new ConductorComponent(Mode.Prepare));
-    Spark.post(getUrl(null, "run", null), new ConductorComponent(Mode.Run));
-    Spark.post(getUrl(null, "update-arguments"), new ConductorComponent(Mode.UpdateArguments));
-    Spark.post(getUrl(null, "update-main-script"), new ConductorComponent(Mode.UpdateMainScript));
-    Spark.post(getUrl(null, "update-listener-script"), new ConductorComponent(Mode.UpdateListenerScript));
-    Spark.post(getUrl(null, "new-listener"), new ConductorComponent(Mode.NewListener));
+    Spark.get(getUrl(null, Mode.Prepare), new ConductorComponent(Mode.Prepare));
+    Spark.post(getUrl(null, Mode.Run), new ConductorComponent(Mode.Run));
+    Spark.post(getUrl(null, Mode.UpdateArguments), new ConductorComponent(Mode.UpdateArguments));
+    Spark.post(getUrl(null, Mode.UpdateMainScript), new ConductorComponent(Mode.UpdateMainScript));
+    Spark.post(getUrl(null, Mode.UpdateListenerScript), new ConductorComponent(Mode.UpdateListenerScript));
+    Spark.post(getUrl(null, Mode.NewChildProcedure), new ConductorComponent(Mode.NewChildProcedure));
+  }
 
-     */
+  public static String getUrl() {
+    return ProjectComponent.getUrl(null) + "/" + Conductor.CONDUCTOR;
   }
 
   public static String getUrl(Conductor conductor) {
     return ProjectComponent.getUrl((conductor == null ? null : conductor.getProject())) + "/" + Conductor.CONDUCTOR + "/"
-      + (conductor == null ? ":name" : conductor.getName());
+      + (conductor == null ? ":" + KEY_NAME : conductor.getName());
   }
-
-  /*
-  public static String getUrl(Conductor conductor, String mode, ActorRun parent) {
-    return getUrl(conductor) + '/' + mode + '/'
-      + (parent == null ? ":parent" : parent.getId());
-  }
-
-  public static String getUrl(Conductor conductor, String mode, ActorRun parent, SimulatorRun base) {
-    return getUrl(conductor) + '/' + mode
-      + '/' + (parent == null ? ":parent" : parent.getId())
-      + '/' + (base == null ? ":base" : base.getId());
-  }
-
-   */
 
   public static String getUrl(Conductor conductor, Mode mode) {
     return getUrl(conductor) + "/@" + mode.name();
@@ -87,10 +82,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
 
-    conductor = Conductor.getInstance(project, request.params("id"));
+    if (Mode.List.equals(mode)) {
+      renderConductors();
+    } else {
+      conductor = Conductor.getInstance(project, request.params(KEY_NAME));
 
-    if (mode == Mode.Prepare) {
-      if (conductor.checkSyntax()) {
+      if (mode == Mode.Prepare) {
+        if (conductor.checkSyntax()) {
         /*
         parent = ActorRun.getInstance(project, request.params("parent"));
         try {
@@ -100,11 +98,20 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         }
 
          */
-        renderPrepareForm();
-      } else {
-        response.redirect(getUrl(conductor));
-      }
-    } else if (mode == Mode.Run) {
+          renderPrepareForm();
+        } else {
+          response.redirect(getUrl(conductor));
+        }
+      } else if (mode == Mode.Run) {
+
+        String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
+        String newRunName = "" + request.queryParams(KEY_NAME);
+        Workspace workspace = null;
+        if (NEW_WORKSPACE.equals(workspaceName)) {
+          workspace = Workspace.create(project, newRunName);
+        } else {
+          workspace = Workspace.getInstance(project, workspaceName);
+        }
 
       /*
       parent = ActorRun.getInstance(project, request.params("parent"));
@@ -114,45 +121,45 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         actorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
       }
       actorRun.start(null, true);
-
        */
-      response.redirect(ProjectComponent.getUrl(project));
 
-    } else if (mode == Mode.UpdateArguments) {
-      if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-        conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
+        if (workspace == null) {
+          response.redirect(LogsComponent.getUrl());
+        } else {
+          response.redirect(WorkspaceComponent.getUrl(workspace.getProject(), workspace));
+        }
+      } else if (mode == Mode.UpdateArguments) {
+        if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+          conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
+        }
+        response.redirect(getUrl(conductor));
+      } else if (mode == Mode.UpdateMainScript) {
+        if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
+          conductor.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
+        }
+        response.redirect(getUrl(conductor));
+      } else if (mode == Mode.NewChildProcedure) {
+        if (request.queryMap().hasKey(KEY_NAME)) {
+          conductor.createNewChildProcedure(request.queryParams(KEY_NAME));
+        }
+        response.redirect(getUrl(conductor));
+      } else if (mode == Mode.UpdateListenerScript) {
+        if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
+          conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
+        }
+        response.redirect(getUrl(conductor));
+      } else {
+        renderConductor();
       }
-      response.redirect(getUrl(conductor));
-    } else if (mode == Mode.UpdateMainScript) {
-      if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-        conductor.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
-      }
-      response.redirect(getUrl(conductor));
-    } else if (mode == Mode.NewListener) {
-      if (request.queryMap().hasKey(KEY_NAME)) {
-        conductor.createNewActor(request.queryParams(KEY_NAME));
-      }
-      response.redirect(getUrl(conductor));
-    } else if (mode == Mode.UpdateListenerScript) {
-      if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-        conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
-      }
-      response.redirect(getUrl(conductor));
-    } else {
-      renderConductor();
     }
   }
 
-  private void renderConductor() throws ProjectNotFoundException {
+
+  private void renderConductors() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return TITLE;
-      }
-
-      @Override
-      protected String pageSubTitle() {
-        return conductor.getName();
+        return CONDUCTORS;
       }
 
       @Override
@@ -160,7 +167,92 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "ActorGroups"
+          CONDUCTORS
+        ));
+      }
+
+      @Override
+      protected String pageTool() {
+        return Html.a(ProjectComponent.getUrl(project, ProjectComponent.Mode.AddConductor),
+          null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
+        );
+      }
+
+      @Override
+      protected String pageContent() {
+        String content = Lte.card(null, null,
+          Lte.table(null, new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              return null;
+            }
+
+            @Override
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              for (Conductor conductor : Conductor.getList(project)) {
+                int runningCount = 0;
+                  /*
+                  for (Actor notFinished : notFinishedList) {
+                    if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {
+                      runningCount += 1;
+                    }
+                  }
+                   */
+
+                int finalRunningCount = runningCount;
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                  return new Lte.TableRow(
+                    new Lte.TableValue("",
+                      Html.a(ConductorComponent.getUrl(conductor),
+                        null, null, conductor.getName()
+                      )),
+                    new Lte.TableValue("text-align:right;",
+                      Html.a(ConductorComponent.getUrl(conductor, ConductorComponent.Mode.Prepare),
+                        Html.span("right badge badge-secondary", null, "RUN")
+                      )
+                      /*,
+                      new Lte.TableValue("text-align:right;",
+                        Html.span(null, null,
+                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getLocalDirectoryPath().toString())))
+                          ,
+                          "gfhgfhjg"
+                          Html.a(ConductorComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
+                            Html.span("right badge badge-secondary", null, "run")
+                          ),
+                          Html.javascript("updateConductorJobNum('" + conductor.getLocalDirectoryPath().toString() + "'," + finalRunningCount + ")")
+                        )
+                      )*/)
+                  );
+                } ));
+              }
+              return list;
+            }
+          })
+          , null, "card-warning card-outline", "p-0");
+        return content;
+      }
+  }.render(this);
+}
+
+  private void renderConductor() throws ProjectNotFoundException {
+    new ProjectMainTemplate(project) {
+      @Override
+      protected String pageTitle() {
+        return conductor.getName();
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return TITLE;
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          Html.a(ProjectsComponent.getUrl(), "Projects"),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          CONDUCTORS
         ));
       }
 
@@ -217,12 +309,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             "};"
         );
 
-        /*
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
             Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
-            Html.a(getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
-              Html.span("right badge badge-secondary", null, "run")
+            Html.a(getUrl(conductor, Mode.Prepare),
+              Html.span("right badge badge-secondary", null, "RUN")
             ),
             null,
             Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
@@ -233,7 +324,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           , null, "collapsed-card.stop", null);
 
         content +=
-          Html.form(getUrl(conductor, "update-arguments"), Html.Method.Post,
+          Html.form(getUrl(conductor, Mode.UpdateArguments), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Default Variables",
               Lte.cardToggleButton(false),
               Lte.divRow(
@@ -245,15 +336,15 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop", null)
           );
 
-        String mainScriptSyntaxError = RubyConductor.checkSyntax(conductor.getRepresentativeActorScriptPath());
+        String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
         content +=
-          Html.form(getUrl(conductor, "update-main-script"), Html.Method.Post,
+          Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "# (Main Script)",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getRepresentativeActorScript(), errors),
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainProcedureScript(), errors),
                   getGuideHtml()
                 )
               ),
@@ -262,8 +353,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           );
 
         content +=
-          Html.form(getUrl(conductor, "new-listener"), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "New Listener",
+          Html.form(getUrl(conductor, Mode.NewChildProcedure), Html.Method.Post,
+            Lte.card(Html.fasIcon("terminal") + "New Procedure",
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -274,26 +365,24 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               , "collapsed-card", null)
           );
 
-        for (String listenerName : conductor.getActorNameList()) {
-          Path path = conductor.getActorScriptPath(listenerName);
-          String scriptSyntaxError = RubyConductor.checkSyntax(path);
+        for (String listenerName : conductor.getChildProcedureNameList()) {
+          Path path = conductor.getChildProcedureScriptPath(listenerName);
+          String scriptSyntaxError = ScriptProcessor.getProcessor(path).checkSyntax(path);
           content +=
-            Html.form(getUrl(conductor, "update-listener-script"), Html.Method.Post,
+            Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
               Lte.card(Html.fasIcon("terminal") + listenerName + " (Event Listener)",
                 Lte.cardToggleButton(false),
                 Lte.divRow(
                   Lte.divCol(Lte.DivSize.F12,
                     Html.inputHidden(KEY_LISTENER_NAME, listenerName),
                     ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getActorScript(listenerName), errors)
+                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getChildProcedureScript(listenerName), errors)
                   )
                 ),
                 Lte.formSubmitButton("success", "Update"),
                 "collapsed-card.stop", null)
             );
         }
-
-         */
 
         return content;
       }
@@ -323,12 +412,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return TITLE;
+        return conductor.getName();
       }
 
       @Override
       protected String pageSubTitle() {
-        return conductor.getName();
+        return TITLE;
       }
 
       @Override
@@ -345,26 +434,26 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
-        String name = conductor.getName() + '_' + LocalDateTime.now().toString();
+        String name = conductor.getName() + '_' + Main.DATE_FORMAT.format(System.currentTimeMillis());
         String variables = conductor.getDefaultVariables().toString();
 
-        /*
-        if (baseRun != null) {
-          name = baseRun.getName();
-          RunNode parent = baseRun.getRunNode().getParent();
-          while (parent != null) {
-            name = parent.getSimpleName() + "_" + name;
-            parent = parent.getParent();
-          }
-          name = name + '_' + LocalDateTime.now().toString();
-          variables = baseRun.getVariables().toString();
-        }
-
         content +=
-          Html.form(getUrl(conductor, "run", parent), Html.Method.Post,
+          Html.form(getUrl(conductor, Mode.Run), Html.Method.Post,
             Lte.card(Html.fasIcon("feather-alt") + "Prepare",
               null,
               Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formSelectGroup(WorkspaceComponent.WORKSPACE, WorkspaceComponent.WORKSPACE +
+                      Html.span("text-danger", null, "(If you select an existing Workspace, the StagedConductor will be replaced even though it is running.)")
+                    ,
+                    new ArrayList<>() {
+                      {
+                        add(NEW_WORKSPACE);
+                        addAll(Workspace.getList(project).stream().map(workspace -> workspace.getName()).collect(Collectors.toList()));
+                      }
+                    }
+                    , null)
+                  ),
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(name), null)
                 ),
@@ -376,8 +465,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             )
           );
 
-         */
-
         return content;
       }
     }.render(this);
@@ -386,6 +473,4 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private ArrayList<Lte.FormError> checkCreateProjectFormError() {
     return new ArrayList<>();
   }
-
-  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewListener}
 }

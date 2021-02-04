@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data.project.workspace.executable;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
@@ -73,7 +72,7 @@ public class StagedExecutable extends Executable {
       stagedExecutable = new StagedExecutable(workspace, name);
       ArchivedExecutable archivedExecutable = ArchivedExecutable.getInstanceOrCreate(stagedExecutable, currentArchived);
       stagedExecutable.createNewFile(ARCHIVE_ID);
-      stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getReversedHexCode());
+      stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getReversedBase36Code());
     }
 
     return stagedExecutable;
