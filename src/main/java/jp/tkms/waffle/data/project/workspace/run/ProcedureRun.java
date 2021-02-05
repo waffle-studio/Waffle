@@ -14,6 +14,16 @@ public class ProcedureRun extends AbstractRun {
   public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
   public static final String JSON_FILE = PROCEDURE_RUN + Constants.EXT_JSON;
 
+  @Override
+  public void start() {
+
+  }
+
+  @Override
+  public void finish() {
+
+  }
+
   public ProcedureRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace, parent, path);
   }

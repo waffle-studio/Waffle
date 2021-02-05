@@ -2,7 +2,7 @@ package jp.tkms.waffle.data.project.workspace;
 
 import jp.tkms.waffle.data.project.ProjectData;
 
-public class WorkspaceData extends ProjectData {
+public class WorkspaceData extends ProjectData implements HasWorkspace{
   private Workspace workspace;
 
   public WorkspaceData(Workspace workspace) {

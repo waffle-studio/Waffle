@@ -13,12 +13,9 @@ import jp.tkms.waffle.exception.RunNotFoundException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Comparator;
 
 abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile {
   public static final String RUN = "RUN";
@@ -32,6 +29,9 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   private JSONArray callstack = null;
   private ConductorRun owner = null;
   private AbstractRun parent = null;
+
+  public abstract void start();
+  public abstract void finish();
 
   public AbstractRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace);

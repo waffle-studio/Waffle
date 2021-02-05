@@ -104,12 +104,14 @@ public class ExecutableRun extends AbstractRun {
     throw new RunNotFoundException();
   }
 
+  @Override
   public void start() {
     putParametersByJson(executable.getDefaultParameters().toString());
     putResultsByJson(executable.getDummyResults().toString());
     Job.addRun(this);
   }
 
+  @Override
   public void finish() {
 
   }
@@ -262,7 +264,7 @@ public class ExecutableRun extends AbstractRun {
 
   public static ExecutableRun createTestRun(Executable executable, Computer computer) {
     Workspace workspace = Workspace.getTestRunWorkspace(executable.getProject());
-    ArchivedExecutable archivedExecutable = StagedExecutable.getInstance(workspace, executable, true).getEntity();
+    ArchivedExecutable archivedExecutable = StagedExecutable.getInstance(workspace, executable, true).getArchivedInstance();
     ProcedureRun procedureRun = ProcedureRun.getTestRunProcedureRun(archivedExecutable);
     return create(procedureRun, Main.DATE_FORMAT.format(System.currentTimeMillis()), archivedExecutable, computer);
   }

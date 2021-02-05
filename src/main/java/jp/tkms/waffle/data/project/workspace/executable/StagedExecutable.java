@@ -2,33 +2,24 @@ package jp.tkms.waffle.data.project.workspace.executable;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.HasArchivedInstance;
+import jp.tkms.waffle.data.project.workspace.HasWorkspace;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
-import jp.tkms.waffle.data.util.WaffleId;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-public class StagedExecutable extends Executable {
-  public static final String ARCHIVE_ID = ".ARCHIVE_ID";
-
+public class StagedExecutable extends Executable implements HasWorkspace, HasArchivedInstance<ArchivedExecutable> {
   Workspace workspace;
 
   public StagedExecutable(Workspace workspace, String name) {
     super(workspace.getProject(), name);
     this.workspace = workspace;
     initialise();
-  }
-
-  public ArchivedExecutable getEntity() {
-    return ArchivedExecutable.getInstance(workspace, getName(), getEntityId());
-  }
-
-  public WaffleId getEntityId() {
-    return WaffleId.valueOf(getFileContents(ARCHIVE_ID));
   }
 
   public static ArrayList<StagedExecutable> getList(Workspace workspace) {
@@ -60,7 +51,7 @@ public class StagedExecutable extends Executable {
       ArchivedExecutable currentArchived = null;
       try {
         if (stagedExecutable != null) {
-          currentArchived = stagedExecutable.getEntity();
+          currentArchived = stagedExecutable.getArchivedInstance();
           stagedExecutable.deleteDirectory();
         }
         executable.copyDirectory(getDirectoryPath(workspace, name));
@@ -86,6 +77,7 @@ public class StagedExecutable extends Executable {
     return getBaseDirectoryPath(workspace).resolve(name);
   }
 
+  @Override
   public Workspace getWorkspace() {
     return workspace;
   }
@@ -93,5 +85,10 @@ public class StagedExecutable extends Executable {
   @Override
   public Path getDirectoryPath() {
     return getDirectoryPath(workspace, getName());
+  }
+
+  @Override
+  public ArchivedExecutable getArchivedInstance() {
+    return ArchivedExecutable.getInstance(workspace, getName(), getArchiveId());
   }
 }

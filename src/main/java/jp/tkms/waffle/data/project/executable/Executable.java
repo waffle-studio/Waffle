@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Executable extends ProjectData implements DataDirectory, PropertyFile {
+public class Executable extends ProjectData implements DataDirectory, PropertyFile, HasName {
   public static final String EXECUTABLE = "EXECUTABLE";
   public static final String KEY_EXTRACTOR = "EXTRACTOR";
   public static final String KEY_COMMAND_ARGUMENTS = "command arguments";
@@ -57,6 +57,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     }
   }
 
+  @Override
   public String getName() {
     return name;
   }

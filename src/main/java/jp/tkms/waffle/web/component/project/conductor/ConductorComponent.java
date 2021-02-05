@@ -1,17 +1,18 @@
 package jp.tkms.waffle.web.component.project.conductor;
 
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
-import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -20,7 +21,6 @@ import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
 import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -35,14 +35,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_LISTENER_SCRIPT = "listener_script";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_LISTENER_NAME = "listener_name";
-  private static final String KEY_NAME = "Name";
+  public static final String KEY_CONDUCTOR = "conductor";
   private static final String NEW_WORKSPACE = "[Create new workspace]";
   private Mode mode;
 
   public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure}
 
-  private Project project;
-  private Conductor conductor;
+  protected Project project;
+  protected Conductor conductor;
   //private ActorRun parent;
   //private SimulatorRun baseRun;
   public ConductorComponent(Mode mode) {
@@ -71,11 +71,15 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(Conductor conductor) {
     return ProjectComponent.getUrl((conductor == null ? null : conductor.getProject())) + "/" + Conductor.CONDUCTOR + "/"
-      + (conductor == null ? ":" + KEY_NAME : conductor.getName());
+      + (conductor == null ? ":" + KEY_CONDUCTOR : conductor.getName());
   }
 
   public static String getUrl(Conductor conductor, Mode mode) {
     return getUrl(conductor) + "/@" + mode.name();
+  }
+
+  protected Conductor getConductorEntity() {
+    return Conductor.getInstance(project, request.params(KEY_CONDUCTOR));
   }
 
   @Override
@@ -85,7 +89,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     if (Mode.List.equals(mode)) {
       renderConductors();
     } else {
-      conductor = Conductor.getInstance(project, request.params(KEY_NAME));
+      conductor = Conductor.getInstance(project, request.params(KEY_CONDUCTOR));
 
       if (mode == Mode.Prepare) {
         if (conductor.checkSyntax()) {
@@ -105,7 +109,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       } else if (mode == Mode.Run) {
 
         String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
-        String newRunName = "" + request.queryParams(KEY_NAME);
+        String newRunName = "" + request.queryParams(KEY_CONDUCTOR);
         Workspace workspace = null;
         if (NEW_WORKSPACE.equals(workspaceName)) {
           workspace = Workspace.create(project, newRunName);
@@ -126,6 +130,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         if (workspace == null) {
           response.redirect(LogsComponent.getUrl());
         } else {
+          ConductorRun conductorRun = ConductorRun.create(workspace, conductor, newRunName);
+          conductorRun.start();
+
           response.redirect(WorkspaceComponent.getUrl(workspace.getProject(), workspace));
         }
       } else if (mode == Mode.UpdateArguments) {
@@ -139,8 +146,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         }
         response.redirect(getUrl(conductor));
       } else if (mode == Mode.NewChildProcedure) {
-        if (request.queryMap().hasKey(KEY_NAME)) {
-          conductor.createNewChildProcedure(request.queryParams(KEY_NAME));
+        if (request.queryMap().hasKey(KEY_CONDUCTOR)) {
+          conductor.createNewChildProcedure(request.queryParams(KEY_CONDUCTOR));
         }
         response.redirect(getUrl(conductor));
       } else if (mode == Mode.UpdateListenerScript) {
@@ -154,6 +161,23 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     }
   }
 
+
+  protected String renderSubTitle() {
+    return TITLE;
+  }
+
+  protected ArrayList<String> renderPageBreadcrumb() {
+    return new ArrayList<String>(Arrays.asList(
+      Html.a(ProjectsComponent.getUrl(), "Projects"),
+      Html.a(ProjectComponent.getUrl(project), project.getName()),
+      "Conductors",
+      Html.a(ConductorComponent.getUrl(conductor), conductor.getName())
+    ));
+  }
+
+  protected String renderTool() {
+    return "";
+  }
 
   private void renderConductors() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
@@ -232,8 +256,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           , null, "card-warning card-outline", "p-0");
         return content;
       }
-  }.render(this);
-}
+    }.render(this);
+  }
 
   private void renderConductor() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
@@ -358,7 +382,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_NAME, KEY_NAME, "", "", errors)
+                  Lte.formInputGroup("text", KEY_CONDUCTOR, KEY_CONDUCTOR, "", "", errors)
                 )
               )
               , Lte.formSubmitButton("primary", "Create")
@@ -417,17 +441,17 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageSubTitle() {
-        return TITLE;
+        return renderSubTitle();
       }
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "Conductors",
-          Html.a(ConductorComponent.getUrl(conductor), conductor.getName())
-        ));
+        return renderPageBreadcrumb();
+      }
+
+      @Override
+      protected String pageTool() {
+        return renderTool();
       }
 
       @Override
@@ -455,7 +479,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                     , null)
                   ),
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_NAME, "Name", "name", FileName.removeRestrictedCharacters(name), null)
+                  Lte.formInputGroup("text", KEY_CONDUCTOR, "Name", "name", FileName.removeRestrictedCharacters(name), null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form", variables, null)

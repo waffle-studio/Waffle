@@ -179,6 +179,13 @@ public interface PropertyFile {
     }
   }
 
+  default void removeFromProperty(String key) {
+    synchronized (this) {
+      getPropertyStore().remove(key);
+      updatePropertyStore();
+    }
+  }
+
   default void setToProperty(String key, String value) {
     synchronized (this) {
       getPropertyStore().put(key, value);

@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.project.workspace;
 
   import jp.tkms.waffle.Main;
   import jp.tkms.waffle.data.project.workspace.Workspace;
+  import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
   import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
   import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
   import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
@@ -10,6 +11,7 @@ package jp.tkms.waffle.web.component.project.workspace;
   import jp.tkms.waffle.web.component.project.ProjectsComponent;
   import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
   import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
+  import jp.tkms.waffle.web.component.project.workspace.conductor.StagedConductorComponent;
   import jp.tkms.waffle.web.component.project.workspace.executable.StagedExecutableComponent;
   import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
   import jp.tkms.waffle.web.template.Html;
@@ -107,6 +109,12 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                   }
                 ));
               }
+              if (list.isEmpty()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
+                  }
+                ));
+              }
               return list;
             }
           })
@@ -127,6 +135,12 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
+                  }
+                ));
+              }
+              if (list.isEmpty()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                   }
                 ));
               }
@@ -184,10 +198,16 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                 @Override
                 public ArrayList<Future<Lte.TableRow>> tableRows() {
                   ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                  for (Workspace workspace : Workspace.getList(project)) {
+                  for (StagedConductor conductor : StagedConductor.getList(workspace)) {
                     list.add(Main.interfaceThreadPool.submit(() -> {
                         return new Lte.TableRow(
-                          Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
+                          Html.a(StagedConductorComponent.getUrl(conductor), null, null, conductor.getName()));
+                      }
+                    ));
+                  }
+                  if (list.isEmpty()) {
+                    list.add(Main.interfaceThreadPool.submit(() -> {
+                        return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                       }
                     ));
                   }
@@ -197,8 +217,6 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
               , null, "card-warning card-outline", "p-0")
               , Lte.card(Html.fasIcon("layer-group") + "Staged" + ExecutablesComponent.EXECUTABLES, null,
                 Lte.table("table-condensed", new Lte.Table() {
-                  ArrayList<StagedExecutable> executableList = StagedExecutable.getList(workspace);
-
                   @Override
                   public ArrayList<Lte.TableValue> tableHeaders() {
                     return null;
@@ -207,10 +225,16 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                   @Override
                   public ArrayList<Future<Lte.TableRow>> tableRows() {
                     ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                    for (StagedExecutable executable : executableList) {
+                    for (StagedExecutable executable : StagedExecutable.getList(workspace)) {
                       list.add(Main.interfaceThreadPool.submit(() -> {
                           return new Lte.TableRow(
                             Html.a(StagedExecutableComponent.getUrl(executable), null, null, executable.getName()));
+                        }
+                      ));
+                    }
+                    if (list.isEmpty()) {
+                      list.add(Main.interfaceThreadPool.submit(() -> {
+                          return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                         }
                       ));
                     }
@@ -239,6 +263,12 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                             return new Lte.TableRow(
                               Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
                           }
+                        }
+                      ));
+                    }
+                    if (list.isEmpty()) {
+                      list.add(Main.interfaceThreadPool.submit(() -> {
+                          return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                         }
                       ));
                     }

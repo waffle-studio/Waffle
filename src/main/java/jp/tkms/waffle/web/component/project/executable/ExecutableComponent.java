@@ -227,7 +227,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               }
               if (list.isEmpty()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", Html.fasIcon("receipt") + "Empty"));
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                   }
                 ));
               }
@@ -259,7 +259,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               }
               if (list.isEmpty()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", Html.fasIcon("receipt") + "Empty"));
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                   }
                 ));
               }
@@ -313,7 +313,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               }
               if (list.isEmpty()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(new Lte.TableValue("text-align:center;", Html.fasIcon("receipt") + "Empty"));
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                   }
                 ));
               }

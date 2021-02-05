@@ -2,10 +2,12 @@ package jp.tkms.waffle.data.project.conductor;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
+import jp.tkms.waffle.data.HasName;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ResourceFile;
@@ -20,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Conductor extends ProjectData implements DataDirectory, PropertyFile {
+public class Conductor extends ProjectData implements DataDirectory, PropertyFile, HasName {
   public static final String CONDUCTOR = "CONDUCTOR";
   private static final String KEY_DEFAULT_VARIABLES = "DEFAULT_VARIABLES";
   private static final String KEY_CHILD = "CHILD";
@@ -35,10 +37,13 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   public Conductor(Project project, String name) {
     super(project);
     this.name = name;
-    instanceMap.put(name, this);
-    initialise();
+
+    if (this.getClass().getConstructors()[0].getDeclaringClass().equals(Conductor.class)) {
+      initialise();
+    }
   }
 
+  @Override
   public String getName() {
     return name;
   }
@@ -84,7 +89,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     return conductor;
   }
 
-  private void initialise() {
+  protected void initialise() {
     try {
       Files.createDirectories(getDirectoryPath());
     } catch (IOException e) {

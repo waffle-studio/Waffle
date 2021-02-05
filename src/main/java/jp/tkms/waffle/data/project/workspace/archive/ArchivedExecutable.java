@@ -2,6 +2,7 @@ package jp.tkms.waffle.data.project.workspace.archive;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.HasWorkspace;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.WaffleId;
@@ -11,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class ArchivedExecutable extends Executable {
+public class ArchivedExecutable extends Executable implements HasWorkspace, ArchivedEntity {
   private Workspace workspace;
   private WaffleId id;
 
@@ -57,23 +58,17 @@ public class ArchivedExecutable extends Executable {
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name, WaffleId id) {
-    return workspace.getDirectoryPath().resolve(Workspace.ARCHIVE).resolve(EXECUTABLE).resolve(getArchiveName(name, id));
+    return workspace.getDirectoryPath().resolve(Workspace.ARCHIVE).resolve(EXECUTABLE).resolve(ArchivedEntity.getArchiveName(name, id));
   }
 
-  public Workspace getWorkspace() {
-    return workspace;
-  }
-
+  @Override
   public WaffleId getId() {
     return id;
   }
 
-  public String getArchiveName() {
-    return getArchiveName(getName(), id);
-  }
-
-  public static String getArchiveName(String name, WaffleId id) {
-    return name + "-" + id.getReversedBase36Code();
+  @Override
+  public Workspace getWorkspace() {
+    return workspace;
   }
 
   @Override
