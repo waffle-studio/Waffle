@@ -3,10 +3,10 @@ package jp.tkms.waffle.data.util;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 
-public enum HostState {
+public enum ComputerState {
   Viable, Unviable, KeyNotFound, UnsupportedKey, XsubNotFound, Stopped;
 
-  public static HostState valueOf(int i) {
+  public static ComputerState valueOf(int i) {
     return values()[i];
   }
 

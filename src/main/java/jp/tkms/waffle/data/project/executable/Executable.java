@@ -399,6 +399,10 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     List<String> list = null;
     try {
       JSONArray array = getArrayFromProperty(KEY_EXTRACTOR);
+      if (array == null) {
+        putNewArrayToProperty(KEY_EXTRACTOR);
+        array = new JSONArray();
+      }
       list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
       for (String name : list) {
         if (! Files.exists(getExtractorScriptPath(name))) {
@@ -414,6 +418,10 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     List<String> list = null;
     try {
       JSONArray array = getArrayFromProperty(KEY_COLLECTOR);
+      if (array == null) {
+        putNewArrayToProperty(KEY_COLLECTOR);
+        array = new JSONArray();
+      }
       list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
       for (String name : list) {
         if (! Files.exists(getCollectorScriptPath(name))) {

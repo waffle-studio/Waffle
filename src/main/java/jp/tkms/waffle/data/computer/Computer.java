@@ -11,7 +11,7 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.submitter.*;
 import org.json.JSONObject;
@@ -136,7 +136,7 @@ public class Computer implements DataDirectory, PropertyFile {
 
     initializeWorkDirectory();
 
-    if (getState() == null) { setState(HostState.Unviable); }
+    if (getState() == null) { setState(ComputerState.Unviable); }
     if (getXsubDirectory() == null) { setXsubDirectory(""); }
     if (getWorkBaseDirectory() == null) { setWorkBaseDirectory("/tmp/waffle"); }
     if (getMaximumNumberOfThreads() == null) { setMaximumNumberOfThreads(1.0); }
@@ -148,7 +148,7 @@ public class Computer implements DataDirectory, PropertyFile {
     ArrayList<Computer> list = new ArrayList<>();
 
     for (Computer computer : getList()) {
-      if (computer.getState().equals(HostState.Viable)) {
+      if (computer.getState().equals(ComputerState.Viable)) {
         list.add(computer);
       }
     }
@@ -183,16 +183,16 @@ public class Computer implements DataDirectory, PropertyFile {
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
       setXsubTemplate(jsonObject);
       setParameters(getParameters());
-      setState(HostState.Viable);
+      setState(ComputerState.Viable);
       setMessage("");
     } catch (NotFoundXsubException e) {
       setMessage("bin/xsub is not found in " + ("".equals(getXsubDirectory()) ? "$PATH" : getXsubDirectory()));
-      setState(HostState.XsubNotFound);
+      setState(ComputerState.XsubNotFound);
     } catch (RuntimeException | WaffleException e) {
       String message = e.getMessage();
       if (message.startsWith("java.io.FileNotFoundException: ")) {
         message = message.replaceFirst("java\\.io\\.FileNotFoundException: ", "");
-        setState(HostState.KeyNotFound);
+        setState(ComputerState.KeyNotFound);
       } else if (message.startsWith("invalid privatekey: ")) {
         if (getParameters().keySet().contains(SshSubmitter.KEY_IDENTITY_FILE)) {
           String keyPath = getParameters().getString(SshSubmitter.KEY_IDENTITY_FILE);
@@ -202,7 +202,7 @@ public class Computer implements DataDirectory, PropertyFile {
           try {
             if (!"".equals(keyPath) && (new String(Files.readAllBytes(Paths.get(keyPath)))).indexOf("OPENSSH PRIVATE KEY") > 0) {
               message = keyPath + " is a OpenSSH private key type and WAFFLE does not supported the key type";
-              setState(HostState.UnsupportedKey);
+              setState(ComputerState.UnsupportedKey);
             }
           } catch (IOException ioException) {
             ErrorLogMessage.issue(ioException);
@@ -213,7 +213,7 @@ public class Computer implements DataDirectory, PropertyFile {
         message = message.replaceFirst("USERAUTH fail", "probably, invalid key passphrase (identity_pass)");
         message = message.replaceFirst("java\\.net\\.UnknownHostException: (.*)", "$1 is unknown host");
         message = message.replaceFirst("java\\.net\\.ConnectException: Connection refused \\(Connection refused\\)", "Connection refused (could not connect to the SSH server)");
-        setState(HostState.Unviable);
+        setState(ComputerState.Unviable);
       }
       setMessage(message);
     }
@@ -227,16 +227,16 @@ public class Computer implements DataDirectory, PropertyFile {
     return getStringFromProperty(KEY_MESSAGE, "");
   }
 
-  private void setState(HostState state) {
+  private void setState(ComputerState state) {
     setToProperty(KEY_STATE, state.ordinal());
   }
 
-  public HostState getState() {
-    Integer state = getIntFromProperty(KEY_STATE, HostState.Unviable.ordinal());
+  public ComputerState getState() {
+    Integer state = getIntFromProperty(KEY_STATE, ComputerState.Unviable.ordinal());
     if (state == null) {
       return null;
     }
-    return HostState.valueOf(state);
+    return ComputerState.valueOf(state);
   }
 
   public boolean isLocal() {

@@ -26,6 +26,7 @@ public class StagedConductorComponent extends ConductorComponent {
   }
 
   public static void register() {
+    Spark.get(getUrl(), new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace));
     Spark.get(getUrl(null), new StagedConductorComponent());
     Spark.get(getUrl(null, Mode.Prepare), new StagedConductorComponent(Mode.Prepare));
     Spark.post(getUrl(null, Mode.Run), new StagedConductorComponent(Mode.Run));
@@ -33,6 +34,10 @@ public class StagedConductorComponent extends ConductorComponent {
     Spark.post(getUrl(null, Mode.UpdateMainScript), new StagedConductorComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, Mode.UpdateListenerScript), new StagedConductorComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, Mode.NewChildProcedure), new StagedConductorComponent(Mode.NewChildProcedure));
+  }
+
+  protected static String getUrl() {
+    return WorkspaceComponent.getUrl(null, null) + "/" + Conductor.CONDUCTOR;
   }
 
   public static String getUrl(StagedConductor conductor) {

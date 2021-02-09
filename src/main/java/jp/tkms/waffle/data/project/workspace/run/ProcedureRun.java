@@ -1,31 +1,70 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.Registry;
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
+import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
+import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
+import jp.tkms.waffle.data.util.ComputerState;
+import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 public class ProcedureRun extends AbstractRun {
   public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
   public static final String JSON_FILE = PROCEDURE_RUN + Constants.EXT_JSON;
+  public static final String KEY_CONDUCTOR = "conductor";
+  public static final String KEY_PROCEDURE_NAME = "procedure_name";
+
+  private ArchivedConductor conductor;
+  private String procedureName;
+  private Registry registry;
+
+  public ProcedureRun(Workspace workspace, AbstractRun parent, Path path, ArchivedConductor conductor, String procedureName) {
+    super(workspace, parent, path);
+    setConductor(conductor);
+    setProcedureName(procedureName);
+    registry = new Registry(getWorkspace());
+  }
 
   @Override
   public void start() {
+    start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL);
+  }
 
+  public void start(ScriptProcessor.ProcedureMode mode) {
+    started();
+    setState(State.Running);
+    getParent().registerChildActiveRun(this);
+    if (conductor != null) {
+      if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
+        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, conductor.getMainProcedureScript());
+      } else {
+        ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, conductor.getChildProcedureScript(procedureName));
+      }
+    }
+    if (getChildrenRunSize() <= 0) {
+      reportFinishedRun(null);
+    }
   }
 
   @Override
   public void finish() {
-
-  }
-
-  public ProcedureRun(Workspace workspace, AbstractRun parent, Path path) {
-    super(workspace, parent, path);
+    setState(State.Finalizing);
+    processFinalizers();
+    getResponsible().reportFinishedRun(this);
+    setState(State.Finished);
   }
 
   @Override
@@ -33,9 +72,15 @@ public class ProcedureRun extends AbstractRun {
     return getDirectoryPath().resolve(JSON_FILE);
   }
 
-  public static ProcedureRun create(AbstractRun parent, String expectedName) {
+  public Registry getRegistry() {
+    return registry;
+  }
+
+  public static ProcedureRun create(AbstractRun parent, String expectedName, ArchivedConductor conductor, String procedureName) {
     String name = expectedName;
-    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name));
+    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name), conductor, procedureName);
+    instance.setState(State.Created);
+    instance.updateResponsible();
     return instance;
   }
 
@@ -45,9 +90,9 @@ public class ProcedureRun extends AbstractRun {
     if (Files.exists(jsonPath)) {
       try {
         JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-        String parentPath = jsonObject.getString(KEY_PARENT_RUN);
-        AbstractRun parent = AbstractRun.getInstance(workspace, parentPath);
-        return new ProcedureRun(workspace, parent, jsonPath.getParent());
+        AbstractRun parent = AbstractRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_RUN));
+        ArchivedConductor conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
+        return new ProcedureRun(workspace, parent, jsonPath.getParent(), conductor, jsonObject.getString(KEY_PROCEDURE_NAME));
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }
@@ -57,6 +102,101 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public static ProcedureRun getTestRunProcedureRun(ArchivedExecutable executable) {
-    return create(ConductorRun.getTestRunConductorRun(executable), executable.getArchiveName());
+    return create(ConductorRun.getTestRunConductorRun(executable), executable.getArchiveName(), null, null);
+  }
+
+  public void setConductor(ArchivedConductor conductor) {
+    this.conductor = conductor;
+    if (conductor != null) {
+      setToProperty(KEY_CONDUCTOR, conductor.getArchiveName());
+    } else {
+      removeFromProperty(KEY_CONDUCTOR);
+    }
+  }
+
+  public void setProcedureName(String procedureName) {
+    this.procedureName = procedureName;
+    if (procedureName != null) {
+      setToProperty(KEY_PROCEDURE_NAME, procedureName);
+    } else {
+      removeFromProperty(KEY_PROCEDURE_NAME);
+    }
+  }
+
+  private ArrayList<AbstractRun> transactionRunList = new ArrayList<>();
+
+  public ConductorRun createConductorRun(String conductorName, String name) {
+    Conductor conductor = Conductor.find(getProject(), conductorName);
+    if (conductor == null) {
+      throw new RuntimeException("Conductor\"(" + conductorName + "\") is not found");
+    }
+
+    ConductorRun conductorRun = ConductorRun.create(this, conductor, name);
+    transactionRunList.add(conductorRun);
+
+    return conductorRun;
+  }
+
+  public ExecutableRun createExecutableRun(String executableName, String computerName, String name) {
+    Executable executable = Executable.getInstance(getProject(), executableName);
+    if (executable == null) {
+      throw new RuntimeException("Executable(\"" + executableName + "\") is not found");
+    }
+    Computer computer = Computer.find(computerName);
+    if (computer == null) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not found");
+    }
+    //computer.update();
+    if (! computer.getState().equals(ComputerState.Viable)) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not viable");
+    }
+
+    ExecutableRun executableRun = ExecutableRun.create(this, name, executable, computer);
+    transactionRunList.add(executableRun);
+
+    return executableRun;
+  }
+
+  public void commit() {
+    /*
+    //TODO: do refactor
+    if (conductorTemplate != null) {
+      RubyScript.process((container) -> {
+        String script = listenerTemplate.getScript();
+        try {
+          container.runScriptlet(RubyConductor.getListenerTemplateScript());
+          container.runScriptlet(script);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_conductor_template_script", this, conductorTemplate);
+        } catch (Exception e) {
+          WarnLogMessage.issue(e);
+          getRunNode().appendErrorNote(e.getMessage());
+        }
+      });
+    } else if (listenerTemplate != null) {
+      RubyScript.process((container) -> {
+        String script = listenerTemplate.getScript();
+        try {
+          container.runScriptlet(RubyConductor.getListenerTemplateScript());
+          container.runScriptlet(script);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_listener_template_script", this, this);
+        } catch (Exception e) {
+          WarnLogMessage.issue(e);
+          getRunNode().appendErrorNote(e.getMessage());
+        }
+      });
+    }
+
+    if (transactionRunList.size() > 1) {
+      getRunNode().switchToParallel();
+    }
+     */
+
+    for (AbstractRun createdRun : transactionRunList) {
+      if (! createdRun.isStarted()) {
+        createdRun.start();
+      }
+    }
+
+    transactionRunList.clear();
   }
 }

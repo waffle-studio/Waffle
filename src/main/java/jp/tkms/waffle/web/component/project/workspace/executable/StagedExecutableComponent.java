@@ -1,12 +1,15 @@
 package jp.tkms.waffle.web.component.project.workspace.executable;
 
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
+import jp.tkms.waffle.web.component.project.workspace.conductor.StagedConductorComponent;
 import jp.tkms.waffle.web.template.Html;
 import spark.Spark;
 
@@ -26,12 +29,17 @@ public class StagedExecutableComponent extends ExecutableComponent {
   }
 
   public static void register() {
+    Spark.get(getUrl(), new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace));
     Spark.get(getUrl(null), new StagedExecutableComponent());
     Spark.post(getUrl(null, Mode.Update), new StagedExecutableComponent(Mode.Update));
     Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new StagedExecutableComponent(Mode.UpdateDefaultParameters));
     Spark.post(getUrl(null, Mode.UpdateDummyResults), new StagedExecutableComponent(Mode.UpdateDummyResults));
     Spark.get(getUrl(null, Mode.TestRun), new StagedExecutableComponent(Mode.TestRun));
     Spark.post(getUrl(null, Mode.TestRun), new StagedExecutableComponent(Mode.TestRun));
+  }
+
+  protected static String getUrl() {
+    return WorkspaceComponent.getUrl(null, null) + "/" + Executable.EXECUTABLE;
   }
 
   public static String getUrl(StagedExecutable executable) {

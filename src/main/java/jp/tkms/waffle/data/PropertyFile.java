@@ -81,6 +81,29 @@ public interface PropertyFile {
     }
   }
 
+  default Boolean getBooleanFromProperty(String key) {
+    synchronized (this) {
+      try {
+        return getPropertyStore().getBoolean(key);
+      } catch (Exception e) {
+      }
+      return null;
+    }
+  }
+
+  default Boolean getBooleanFromProperty(String key, Boolean defaultValue) {
+    synchronized (this) {
+      Boolean value = getBooleanFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
+        if (value != null) {
+          setToProperty(key, defaultValue);
+        }
+      }
+      return value;
+    }
+  }
+
   default Integer getIntFromProperty(String key) {
     synchronized (this) {
       try {
@@ -175,7 +198,10 @@ public interface PropertyFile {
 
   default JSONArray getArrayFromProperty(String key) {
     synchronized (this) {
-      return getPropertyStore().getJSONArray(key);
+      if (getPropertyStore().keySet().contains(key)) {
+        return getPropertyStore().getJSONArray(key);
+      }
+      return null;
     }
   }
 
@@ -187,6 +213,13 @@ public interface PropertyFile {
   }
 
   default void setToProperty(String key, String value) {
+    synchronized (this) {
+      getPropertyStore().put(key, value);
+      updatePropertyStore();
+    }
+  }
+
+  default void setToProperty(String key, boolean value) {
     synchronized (this) {
       getPropertyStore().put(key, value);
       updatePropertyStore();

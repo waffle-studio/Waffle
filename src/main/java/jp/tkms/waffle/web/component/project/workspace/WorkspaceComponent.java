@@ -30,10 +30,18 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   public static final String WORKSPACE = "Workspaces";
   public static final String KEY_WORKSPACE = "workspace";
 
+  public enum Mode {Default, RedirectToWorkspace}
+  private Mode mode;
+
   private Project project;
   private Workspace workspace;
 
+  public WorkspaceComponent(Mode mode) {
+    this.mode = mode;
+  }
+
   public WorkspaceComponent() {
+    this(Mode.Default);
   }
 
   static public void register() {
@@ -41,6 +49,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, null), new WorkspaceComponent());
 
     StagedExecutableComponent.register();
+    StagedConductorComponent.register();
     RunComponent.register();
   }
 
@@ -60,7 +69,11 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
       renderWorkspaceList();
     } else {
       workspace = Workspace.getInstance(project, request.params(KEY_WORKSPACE));
-      renderWorkspace();
+      if (mode.equals(Mode.RedirectToWorkspace)) {
+        response.redirect(getUrl(project, workspace));
+      } else {
+        renderWorkspace();
+      }
     }
   }
 
@@ -91,7 +104,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         }
          */
         return Lte.card(null, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
@@ -120,7 +133,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
           })
           , null, "card-danger card-outline", "p-0")
         + Lte.card( Html.fasIcon("eye-slash") + "Hidden Workspaces", Lte.cardToggleButton(true),
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
@@ -281,6 +294,4 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
       }
     }.render(this);
   }
-
-  public enum Mode {Default}
 }

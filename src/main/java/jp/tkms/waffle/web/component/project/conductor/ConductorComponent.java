@@ -3,7 +3,6 @@ package jp.tkms.waffle.web.component.project.conductor;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
-import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.util.FileName;
@@ -12,7 +11,6 @@ import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
-import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -65,7 +63,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, Mode.NewChildProcedure), new ConductorComponent(Mode.NewChildProcedure));
   }
 
-  public static String getUrl() {
+  protected static String getUrl() {
     return ProjectComponent.getUrl(null) + "/" + Conductor.CONDUCTOR;
   }
 
@@ -89,7 +87,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     if (Mode.List.equals(mode)) {
       renderConductors();
     } else {
-      conductor = Conductor.getInstance(project, request.params(KEY_CONDUCTOR));
+      conductor = getConductorEntity();
 
       if (mode == Mode.Prepare) {
         if (conductor.checkSyntax()) {
@@ -176,7 +174,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   }
 
   protected String renderTool() {
-    return "";
+    return Html.a(ConductorComponent.getUrl(conductor, ConductorComponent.Mode.Prepare),
+      Html.span("right badge badge-secondary", null, "RUN")
+    );
   }
 
   private void renderConductors() throws ProjectNotFoundException {
@@ -273,11 +273,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          CONDUCTORS
-        ));
+        return renderPageBreadcrumb();
       }
 
       @Override
@@ -335,11 +331,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Html.span(null, null,
-            Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
-            Html.a(getUrl(conductor, Mode.Prepare),
-              Html.span("right badge badge-secondary", null, "RUN")
-            ),
-            null,
+            //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
+            renderTool(),
             Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
           ),
           Html.div(null,
@@ -363,7 +356,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
         content +=
           Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "# (Main Script)",
+            Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_ALIAS + " (Main Script)",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -447,11 +440,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return renderPageBreadcrumb();
-      }
-
-      @Override
-      protected String pageTool() {
-        return renderTool();
       }
 
       @Override

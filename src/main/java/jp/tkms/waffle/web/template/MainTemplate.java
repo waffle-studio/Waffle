@@ -174,11 +174,11 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    tabTrigger: 'instance.loadListenerTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = instance.createSimulatorRun(\"${2:simulator name}\", \"${3:computer name}\")', \n" +
+              "                    content: '${1:run} = instance.createExecutableRun(\"${2:simulator name}\", \"${3:computer name}\")', \n" +
               "                    tabTrigger: 'instance.createSimulatorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = instance.createActorGroupRun(\"${2:actor group name}\")', \n" +
+              "                    content: '${1:run} = instance.createConductorRun(\"${2:actor group name}\")', \n" +
               "                    tabTrigger: 'instance.createActorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +

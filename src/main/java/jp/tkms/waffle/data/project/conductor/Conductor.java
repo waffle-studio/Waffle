@@ -7,10 +7,8 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
-import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 import org.json.JSONArray;
@@ -26,8 +24,9 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   public static final String CONDUCTOR = "CONDUCTOR";
   private static final String KEY_DEFAULT_VARIABLES = "DEFAULT_VARIABLES";
   private static final String KEY_CHILD = "CHILD";
-  public static final String KEY_MAIN_PROCEDURE = "MAIN_PROCEDURE";
-  public static final String KEY_MAIN_PROCEDURE_NAME = "#";
+  public static final String MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE.rb";
+  public static final String KEY_MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE";
+  public static final String MAIN_PROCEDURE_ALIAS = "#";
 
   private static final HashMap<String, Conductor> instanceMap = new HashMap<>();
 
@@ -121,7 +120,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public Path getMainProcedureScriptPath() {
-    return getDirectoryPath().resolve(KEY_MAIN_PROCEDURE + Constants.EXT_RUBY);
+    return getDirectoryPath().resolve(getStringFromProperty(KEY_MAIN_PROCEDURE_FILENAME, MAIN_PROCEDURE_FILENAME));
   }
 
   public String getMainProcedureScript() {
@@ -180,7 +179,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public String createNewChildProcedure(String name) {
-    if (!ScriptProcessor.classNameMap.containsKey(name.replaceFirst("^.*\\.", "."))) {
+    if (!ScriptProcessor.CLASS_NAME_MAP.containsKey(name.replaceFirst("^.*\\.", "."))) {
       name = name + RubyScriptProcessor.EXTENSION;
     }
 

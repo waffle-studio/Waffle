@@ -8,7 +8,7 @@ import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.data.util.ComputerState;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -85,7 +85,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     if (targetComputers != null) {
       for (Object object : targetComputers.toList()) {
         Computer targetComputer = Computer.getInstance(object.toString());
-        if (targetComputer != null && targetComputer.getState().equals(HostState.Viable)) {
+        if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           num += targetComputer.getMaximumNumberOfThreads();
         }
       }
@@ -102,7 +102,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     if (targetComputers != null) {
       for (Object object : targetComputers.toList()) {
         Computer targetComputer = Computer.getInstance(object.toString());
-        if (targetComputer != null && targetComputer.getState().equals(HostState.Viable)) {
+        if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           size += targetComputer.getAllocableMemorySize();
         }
       }
@@ -129,7 +129,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     if (targetComputers != null) {
       for (Object object : targetComputers.toList()) {
         Computer targetComputer = Computer.getInstance(object.toString());
-        if (targetComputer != null && targetComputer.getState().equals(HostState.Viable)) {
+        if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           passableComputerList.add(targetComputer);
 
           for (Job job : Job.getList(targetComputer)) {

@@ -4,7 +4,7 @@ import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 
 public enum State {
-  Created, Prepared, Submitted, Running, Finished, Failed, Excepted, Cancel, Canceled, None;
+  Created, Prepared, Submitted, Running, Finalizing, Finished, Failed, Excepted, Cancel, Canceled, None;
 
   public static State valueOf(int i) {
     return values()[i];
@@ -25,6 +25,8 @@ public enum State {
       case Running:
         return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Finished:
+        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
+      case Finalizing:
         return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Failed:
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), name());

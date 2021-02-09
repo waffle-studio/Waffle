@@ -27,7 +27,7 @@ end
 #class SimulatorRun < Java::jp.tkms.waffle.data.project.workspace.run.SimulatorRun
 #end
 
-class Registry < Java::jp.tkms.waffle.data.project.Registry
+class Registry < Java::jp.tkms.waffle.data.project.workspace.Registry
 end
 
 def self.system_restart()
@@ -35,8 +35,7 @@ def self.system_restart()
 end
 
 def self.alert(text)
-    puts "alert: " + text.to_s
-    Java::jp.tkms.waffle.data.web.BrowserMessage.addMessage("toastr.info('" + text.to_s.gsub("[']", "\"") + "');")
+    Java::jp.tkms.waffle.data.log.message.DebugLogMessage.issue("alert: " + text.to_s);
 end
 
 def get_store(registry, entity_id)
@@ -189,12 +188,20 @@ class ActorWrapper
         @instance.id
     end
 
-    def createActorGroupRun(name)
-        @instance.createActorGroupRun(name)
+    def createConductorRun(conductor_name, name)
+        @instance.createConductorRun(conductor_name, name)
     end
 
-    def createSimulatorRun(name, computerName)
-        @instance.createSimulatorRun(name, computerName)
+    def createConductorRun(conductor_name)
+        @instance.createConductorRun(conductor_name, conductor_name)
+    end
+
+    def createExecutableRun(executable_name, computer_name, name)
+        @instance.createExecutableRun(executable_name, computer_name, name)
+    end
+
+    def createExecutableRun(executable_name, computer_name)
+        @instance.createExecutableRun(executable_name, computer_name, executable_name)
     end
 
     def addFinalizer(name)
@@ -224,10 +231,26 @@ class ActorWrapper
     end
 end
 
-def exec_actor_script(instance, caller)
+def exec_procedure_when_start_or_finished_all(instance, caller)
     result = true
     local_instance = ActorWrapper.new(instance)
-    result = actor_script(local_instance, caller)
+    result = procedure_when_start_or_finished_all(local_instance, caller)
+    local_instance.close
+    return result
+end
+
+def exec_procedure_when_contain_fault(instance, caller)
+    result = true
+    local_instance = ActorWrapper.new(instance)
+    result = procedure_when_contain_fault(local_instance, caller)
+    local_instance.close
+    return result
+end
+
+def exec_procedure_when_appealed(instance, caller)
+    result = true
+    local_instance = ActorWrapper.new(instance)
+    result = procedure_when_appealed(local_instance, caller)
     local_instance.close
     return result
 end

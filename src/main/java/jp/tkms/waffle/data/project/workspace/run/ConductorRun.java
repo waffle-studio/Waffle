@@ -7,7 +7,9 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
+import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONObject;
 
 import java.nio.file.Files;
@@ -22,12 +24,26 @@ public class ConductorRun extends AbstractRun {
 
   @Override
   public void start() {
-
+    started();
+    setState(State.Running);
+    if (conductor != null) {
+      ProcedureRun procedureRun = ProcedureRun.create(this, getName(), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
+      procedureRun.start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL);
+    }
+    if (getParent() != null) {
+      getParent().registerChildActiveRun(this);
+    }
+    //reportFinishedRun(null);
   }
 
   @Override
   public void finish() {
-
+    setState(State.Finalizing);
+    processFinalizers();
+    if (getResponsible() != this) {
+      getResponsible().reportFinishedRun(this);
+    }
+    setState(State.Finished);
   }
 
   public ConductorRun(Workspace workspace, ArchivedConductor conductor, AbstractRun parent, Path path) {
@@ -44,25 +60,34 @@ public class ConductorRun extends AbstractRun {
     }
   }
 
+  public ArchivedConductor getConductor() {
+    return conductor;
+  }
+
   @Override
   public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(JSON_FILE);
   }
 
+  private static ConductorRun create(Workspace workspace, ArchivedConductor conductor, AbstractRun parent, Path path) {
+    ConductorRun instance = new ConductorRun(workspace, conductor, parent, path);
+    instance.setState(State.Created);
+    instance.updateResponsible();
+    return instance;
+  }
+
   public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedName) {
     String name = expectedName;
-    ConductorRun instance = new ConductorRun(workspace,
+    return create(workspace,
       (conductor == null ? null : StagedConductor.getInstance(workspace, conductor).getArchivedInstance()),
       null, workspace.getDirectoryPath().resolve(AbstractRun.RUN).resolve(name));
-    return instance;
   }
 
   public static ConductorRun create(ProcedureRun parent, Conductor conductor, String expectedName) {
     String name = expectedName;
-    ConductorRun instance = new ConductorRun(parent.getWorkspace(),
+    return create(parent.getWorkspace(),
       StagedConductor.getInstance(parent.getWorkspace(), conductor).getArchivedInstance(),
       parent, parent.getDirectoryPath().resolve(name));
-    return instance;
   }
 
   public static ConductorRun getInstance(Workspace workspace, String localPathString) {

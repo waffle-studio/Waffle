@@ -35,7 +35,6 @@ public class ExecutableRun extends AbstractRun {
   private static final String KEY_COMPUTER = "computer";
   private static final String KEY_ACTUAL_COMPUTER = "actual_computer";
   private static final String KEY_EXPECTED_NAME = "expected_name";
-  private static final String KEY_STATE = "state";
   public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
   private static final String KEY_LOCAL_SHARED = "local_shared";
   private static final String KEY_CREATED_AT = "created_at";
@@ -83,7 +82,12 @@ public class ExecutableRun extends AbstractRun {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
+    run.updateResponsible();
     return run;
+  }
+
+  public static ExecutableRun create(ProcedureRun parent, String expectedName, Executable executable, Computer computer) {
+    return create(parent, expectedName, StagedExecutable.getInstance(parent.getWorkspace(), executable).getArchivedInstance(), computer);
   }
 
   public static ExecutableRun getInstance(String localPathString) throws RunNotFoundException {
@@ -106,14 +110,23 @@ public class ExecutableRun extends AbstractRun {
 
   @Override
   public void start() {
-    putParametersByJson(executable.getDefaultParameters().toString());
-    putResultsByJson(executable.getDummyResults().toString());
+    started();
+    getParent().registerChildActiveRun(this);
+    try {
+      putParametersByJson(executable.getDefaultParameters().toString());
+      putResultsByJson(executable.getDummyResults().toString());
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
     Job.addRun(this);
   }
 
   @Override
   public void finish() {
-
+    setState(State.Finalizing);
+    processFinalizers();
+    getResponsible().reportFinishedRun(this);
+    setState(State.Finished);
   }
 
   public ArchivedExecutable getExecutable() {
@@ -128,13 +141,6 @@ public class ExecutableRun extends AbstractRun {
       computer = Computer.getInstance(getStringFromProperty(KEY_COMPUTER));
     }
     return computer;
-  }
-
-  public State getState() {
-    if (state == null) {
-      state = State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
-    }
-    return state;
   }
 
   public void setJobId(String jobId) {
@@ -221,8 +227,9 @@ public class ExecutableRun extends AbstractRun {
     return actualComputer;
   }
 
+  @Override
   public void setState(State state) {
-    setToProperty(KEY_STATE, state.ordinal());
+    super.setState(state);
 
     switch (state) {
       case Submitted:
@@ -233,17 +240,10 @@ public class ExecutableRun extends AbstractRun {
       case Failed:
       case Finished:
         setToProperty(KEY_FINISHED_AT, DateTime.getCurrentEpoch());
+        finish();
     }
 
     new RunStatusUpdater(this);
-  }
-  public boolean isRunning() {
-    State state = getState();
-    return (state.equals(State.Created)
-      || state.equals(State.Prepared)
-      || state.equals(State.Submitted)
-      || state.equals(State.Running)
-    );
   }
 
   public DateTime getCreatedDateTime() {

@@ -4,31 +4,42 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.WorkspaceData;
-import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
+import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
 abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile {
   public static final String RUN = "RUN";
-  public static final String KEY_NOTE_TXT = "note.txt";
-  public static final String KEY_ERROR_NOTE_TXT = "error_note.txt";
+  public static final String KEY_NOTE_TXT = "NOTE.txt";
+  public static final String KEY_ERROR_NOTE_TXT = "ERROR_NOTE.txt";
+  protected static final String KEY_CLASS = "class";
   protected static final String KEY_FINALIZER = "finalizer";
   protected static final String KEY_PARENT_RUN = "parent_run";
+  protected static final String KEY_CHILDREN_RUN = "children_run";
+  protected static final String KEY_ACTIVE_CHILDREN_RUN = "active_children_run";
+  public static final String KEY_RESPONSIBLE_RUN = "responsible_run";
+  protected static final String KEY_STATE = "state";
+  protected static final String KEY_STARTED = "started";
 
   private Path path;
-  private JSONArray finalizers = null;
+  private State state = null;
   private JSONArray callstack = null;
   private ConductorRun owner = null;
   private AbstractRun parent = null;
+  private AbstractRun responsible = null;
 
   public abstract void start();
   public abstract void finish();
@@ -36,7 +47,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public AbstractRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace);
     this.path = path;
-    setToProperty("class", getClass().getConstructors()[0].getDeclaringClass().getSimpleName());
+    setToProperty(KEY_CLASS, getClass().getConstructors()[0].getDeclaringClass().getSimpleName());
     setParent(parent);
     if (parent == null) {
       this.owner = (ConductorRun) this;
@@ -88,6 +99,97 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     });
   }
 
+  public State getState() {
+    if (state == null) {
+      state = State.valueOf(getIntFromProperty(KEY_STATE, State.Created.ordinal()));
+    }
+    return state;
+  }
+
+  protected void setState(State state) {
+    this.state = state;
+    setToProperty(KEY_STATE, state.ordinal());
+  }
+
+  public boolean isRunning() {
+    State state = getState();
+    return (state.equals(State.Created)
+      || state.equals(State.Prepared)
+      || state.equals(State.Submitted)
+      || state.equals(State.Running)
+      || state.equals(State.Finalizing)
+    );
+  }
+
+  public AbstractRun getParent() {
+    return parent;
+  }
+
+  protected void setResponsible(AbstractRun responsible) {
+    this.responsible = responsible;
+    setToProperty(KEY_RESPONSIBLE_RUN, responsible.getLocalDirectoryPath().toString());
+  }
+
+  protected void updateResponsible() {
+    AbstractRun candidate = this;
+    if (getParent() != null) {
+      candidate = getParent();
+      while (!candidate.isRunning() || candidate.getState().equals(State.Finalizing)) {
+        candidate = candidate.getResponsible();
+      }
+    }
+    setResponsible(candidate);
+  }
+
+  public AbstractRun getResponsible() {
+    if (responsible == null) {
+      try {
+        responsible = getInstance(getWorkspace(), getStringFromProperty(KEY_RESPONSIBLE_RUN));
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+    return responsible;
+  }
+
+  public int registerChildActiveRun(AbstractRun abstractRun) {
+    if (getArrayFromProperty(KEY_CHILDREN_RUN) == null) {
+      putNewArrayToProperty(KEY_CHILDREN_RUN);
+    }
+    if (getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN) == null) {
+      putNewArrayToProperty(KEY_ACTIVE_CHILDREN_RUN);
+    }
+    putToArrayOfProperty(KEY_CHILDREN_RUN, abstractRun.getId());
+    putToArrayOfProperty(KEY_ACTIVE_CHILDREN_RUN, abstractRun.getId());
+    return getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN).length();
+  }
+
+  private int removeChildActiveRun(AbstractRun abstractRun) {
+    if (getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN) != null) {
+      if (abstractRun != null) {
+        removeFromArrayOfProperty(KEY_ACTIVE_CHILDREN_RUN, abstractRun.getId());
+      }
+      return getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN).length();
+    }
+    return 0;
+  }
+
+  public int reportFinishedRun(AbstractRun abstractRun) {
+    int remaining = removeChildActiveRun(abstractRun);
+    if (remaining <= 0) {
+      finish();
+    }
+    return remaining;
+  }
+
+  protected int getChildrenRunSize() {
+    JSONArray jsonArray = getArrayFromProperty(KEY_CHILDREN_RUN);
+    if (jsonArray != null) {
+      return jsonArray.length();
+    }
+    return 0;
+  }
+
   public ConductorRun getOwner() {
     return owner;
   }
@@ -104,6 +206,18 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
 
   public String getName() {
     return getDirectoryPath().getFileName().toString();
+  }
+
+  public String getId() {
+    return getLocalDirectoryPath().toString();
+  }
+
+  protected void started() {
+    setToProperty(KEY_STARTED, true);
+  }
+
+  public boolean isStarted() {
+    return getBooleanFromProperty(KEY_STARTED, false);
   }
 
   public void setNote(String text) {
@@ -132,23 +246,57 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   }
 
   public ArrayList<String> getFinalizers() {
-    if (finalizers == null) {
-      finalizers = new JSONArray(getStringFromProperty(KEY_FINALIZER, "[]"));
+    if (getArrayFromProperty(KEY_FINALIZER) == null) {
+      putNewArrayToProperty(KEY_FINALIZER);
     }
-    ArrayList<String> stringList = new ArrayList<>();
-    for (Object o : finalizers.toList()) {
-      stringList.add(o.toString());
+    ArrayList<String> finalizers = new ArrayList<>();
+    for (Object o : getArrayFromProperty(KEY_FINALIZER)) {
+      finalizers.add(o.toString());
     }
-    return stringList;
+    return finalizers;
   }
 
+  /*
   public void setFinalizers(ArrayList<String> finalizers) {
+    if (getArrayFromProperty(KEY_FINALIZER) == null) {
+      putNewArrayToProperty(KEY_FINALIZER);
+    }
     this.finalizers = new JSONArray(finalizers);
     String finalizersJson = this.finalizers.toString();
     setToProperty(KEY_FINALIZER, finalizersJson);
   }
+   */
 
   public void addFinalizer(String key) {
+    if (getArrayFromProperty(KEY_FINALIZER) == null) {
+      putNewArrayToProperty(KEY_FINALIZER);
+    }
+
+    ArchivedConductor conductor = getOwner().getConductor();
+    String procedureName = null;
+    String procedureKey = null;
+    if (key.equals(Conductor.MAIN_PROCEDURE_ALIAS)) {
+      procedureName = conductor.getMainProcedureScriptPath().getFileName().toString();
+      procedureKey = Conductor.MAIN_PROCEDURE_ALIAS;
+    } else {
+      List<String> childProcedureNameList = conductor.getChildProcedureNameList();
+
+      if (childProcedureNameList.contains(key)) {
+        procedureName = key;
+      } else {
+        for (String ext : ScriptProcessor.CLASS_NAME_MAP.keySet()) {
+          String candidate = key + ext;
+          if (childProcedureNameList.contains(candidate)) {
+            procedureName = candidate;
+            procedureKey = candidate;
+            break;
+          }
+        }
+      }
+    }
+    ProcedureRun finalizerRun = ProcedureRun.create(this, procedureName, conductor, procedureKey);
+    putToArrayOfProperty(KEY_FINALIZER, finalizerRun.getLocalDirectoryPath().toString());
+
     /*
     ConductorRun referenceOwner = getOwner();
     if (this instanceof ConductorRun) {
@@ -164,6 +312,14 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     finalizers.add(actorRun.getDirectoryPath().toString());
     setFinalizers(finalizers);
      */
+  }
+
+  protected void processFinalizers() {
+    for (String localPath : getFinalizers()) {
+      ProcedureRun finalizer = ProcedureRun.getInstance(getWorkspace(), localPath);
+      finalizer.updateResponsible();
+      finalizer.start();
+    }
   }
 
   public static Path getBaseDirectoryPath(Workspace workspace) {

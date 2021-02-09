@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.component.project.executable;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
@@ -32,6 +33,8 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
   private static final String KEY_COMPUTER = "computer";
   protected static final String KEY_EXECUTABLE = "executable";
 
+  public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun, List}
+
   protected Mode mode;
 
   protected Project project;
@@ -46,6 +49,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
   }
 
   public static void register() {
+    //Spark.get(getUrl(), new ExecutableComponent(Mode.List));
     Spark.get(getUrl(null), new ExecutableComponent());
     Spark.post(getUrl(null, Mode.Update), new ExecutableComponent(Mode.Update));
     Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ExecutableComponent(Mode.UpdateDefaultParameters));
@@ -55,6 +59,10 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();
+  }
+
+  protected static String getUrl() {
+    return ProjectComponent.getUrl(null) + "/" + Executable.EXECUTABLE;
   }
 
   public static String getUrl(Executable executable) {
@@ -411,6 +419,4 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     ExecutableRun run = executable.postTestRun(Computer.find(request.queryParams(KEY_COMPUTER)), request.queryParams(KEY_PARAMETERS));
     response.redirect(RunComponent.getUrl(run));
   }
-
-  public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun}
 }

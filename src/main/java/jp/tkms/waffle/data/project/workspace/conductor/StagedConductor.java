@@ -84,6 +84,11 @@ public class StagedConductor extends Conductor implements HasWorkspace, HasArchi
   }
 
   @Override
+  public Path getDirectoryPath() {
+    return getDirectoryPath(workspace, getName());
+  }
+
+  @Override
   public ArchivedConductor getArchivedInstance() {
     return ArchivedConductor.getInstance(workspace, getName(), getArchiveId());
   }

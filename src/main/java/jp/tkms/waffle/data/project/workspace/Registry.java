@@ -1,4 +1,4 @@
-package jp.tkms.waffle.data.project;
+package jp.tkms.waffle.data.project.workspace;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
@@ -14,18 +14,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Registry extends ProjectData implements Map<Object, Object>, DataDirectory {
+public class Registry extends WorkspaceData implements Map<Object, Object>, DataDirectory {
   protected static final String KEY_REGISTRY = "registry";
   private static final String KEY_VALUE = "value";
 
-  public Registry(Project project) {
-    super(project);
+  public Registry(Workspace workspace) {
+    super(workspace);
   }
 
-  public static ArrayList<KeyValue> getList(Project project) {
+  public static ArrayList<KeyValue> getList(Workspace workspace) {
     ArrayList<KeyValue> keyValueList = new ArrayList<>();
 
-    for (File file : getBaseDirectoryPath(project).toFile().listFiles()) {
+    for (File file : getBaseDirectoryPath(workspace).toFile().listFiles()) {
       if (file.isFile()) {
         try {
           keyValueList.add(new KeyValue(file.getName(), Files.readString(file.toPath())));
@@ -39,15 +39,15 @@ public class Registry extends ProjectData implements Map<Object, Object>, DataDi
   }
 
   public ArrayList<KeyValue> getList() {
-    return getList(getProject());
+    return getList(getWorkspace());
   }
 
-  static Object get(Project project, String key, ValueType type, Object defaultValue) {
+  static Object get(Workspace workspace, String key, ValueType type, Object defaultValue) {
     Object result = null;
 
-    Path path = getBaseDirectoryPath(project).resolve(key);
+    Path path = getBaseDirectoryPath(workspace).resolve(key.replaceAll("/", "#"));
     if (Files.exists(path)) {
-      synchronized (project) {
+      synchronized (workspace) {
         try {
           if (ValueType.Integer.equals(type)) {
             result = Integer.valueOf(Files.readString(path));
@@ -69,17 +69,17 @@ public class Registry extends ProjectData implements Map<Object, Object>, DataDi
   }
 
   public Object get(String key) {
-    return get(getProject(), key, null, null);
+    return get(getWorkspace(), key, null, null);
   }
 
   public Object get(String key, Object defaultValue) {
-    return get(getProject(), key, null, defaultValue);
+    return get(getWorkspace(), key, null, defaultValue);
   }
 
-  static void set(Project project, String key, Object value) {
+  static void set(Workspace workspace, String key, Object value) {
     if (value != null) {
-      synchronized (project) {
-        Path path = getBaseDirectoryPath(project).resolve(key);
+      synchronized (workspace) {
+        Path path = getBaseDirectoryPath(workspace).resolve(key.replaceAll("/", "#"));
         if (!Files.exists(path)) {
           try {
             Files.createDirectories(path.getParent());
@@ -100,39 +100,39 @@ public class Registry extends ProjectData implements Map<Object, Object>, DataDi
   }
 
   public void set(String key, Object value) {
-    set(getProject(), key, value);
+    set(getWorkspace(), key, value);
   }
 
-  public static String getString(Project project, String key, String defaultValue) {
-    return (String)get(project, key, ValueType.String, defaultValue);
+  public static String getString(Workspace workspace, String key, String defaultValue) {
+    return (String)get(workspace, key, ValueType.String, defaultValue);
   }
 
   public String getString(String key, String defaultValue) {
-    return getString(getProject(), key, defaultValue);
+    return getString(getWorkspace(), key, defaultValue);
   }
 
-  public static Integer getInteger(Project project, String key, Integer defaultValue) {
-    return (Integer) get(project, key, ValueType.Integer, defaultValue);
+  public static Integer getInteger(Workspace workspace, String key, Integer defaultValue) {
+    return (Integer) get(workspace, key, ValueType.Integer, defaultValue);
   }
 
   public Integer getInteger(String key, Integer defaultValue) {
-    return getInteger(getProject(), key, defaultValue);
+    return getInteger(getWorkspace(), key, defaultValue);
   }
 
-  public static Double getDouble(Project project, String key, Double defaultValue) {
-    return (Double) get(project, key, ValueType.Double, defaultValue);
+  public static Double getDouble(Workspace workspace, String key, Double defaultValue) {
+    return (Double) get(workspace, key, ValueType.Double, defaultValue);
   }
 
   public Double getDouble(String key, Double defaultValue) {
-    return getDouble(getProject(), key, defaultValue);
+    return getDouble(getWorkspace(), key, defaultValue);
   }
 
-  public static Boolean getBoolean(Project project, String key, Boolean defaultValue) {
-    return (Boolean) get(project, key, ValueType.Boolean, defaultValue);
+  public static Boolean getBoolean(Workspace workspace, String key, Boolean defaultValue) {
+    return (Boolean) get(workspace, key, ValueType.Boolean, defaultValue);
   }
 
   public Boolean getBoolean(String key, Boolean defaultValue) {
-    return getBoolean(getProject(), key, defaultValue);
+    return getBoolean(getWorkspace(), key, defaultValue);
   }
 
   @Override
@@ -202,11 +202,11 @@ public class Registry extends ProjectData implements Map<Object, Object>, DataDi
 
   @Override
   public Path getDirectoryPath() {
-    return getBaseDirectoryPath(getProject());
+    return getBaseDirectoryPath(getWorkspace());
   }
 
-  public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(Constants.DOT_INTERNAL).resolve(KEY_REGISTRY);
+  public static Path getBaseDirectoryPath(Workspace workspace) {
+    return workspace.getDirectoryPath().resolve(Constants.DOT_INTERNAL).resolve(KEY_REGISTRY);
   }
 
   public static class KeyValue extends AbstractMap.SimpleEntry<String, String> {

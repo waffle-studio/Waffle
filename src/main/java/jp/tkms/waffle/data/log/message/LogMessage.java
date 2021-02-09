@@ -7,7 +7,7 @@ import java.io.StringWriter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LogMessage extends Throwable {
+public abstract class LogMessage extends Throwable {
   public static ExecutorService threadPool = Executors.newFixedThreadPool(16);
 
   String message;

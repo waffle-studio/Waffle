@@ -53,8 +53,8 @@ public class ArchivedConductor extends Conductor implements HasWorkspace, Archiv
     return null;
   }
 
-  public static ArchivedConductor getInstance(Workspace workspace, String name) {
-    return getInstance(workspace, name.replaceFirst("-.+?$", ""), WaffleId.valueOf(name.replaceFirst("^.+-", "")));
+  public static ArchivedConductor getInstance(Workspace workspace, String archiveName) {
+    return getInstance(workspace, archiveName.replaceFirst("-.+?$", ""), WaffleId.valueOf(archiveName.replaceFirst("^.+-", "")));
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name, WaffleId id) {

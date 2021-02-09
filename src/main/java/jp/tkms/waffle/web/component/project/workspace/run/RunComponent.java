@@ -50,7 +50,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getRootUrl(null), new RunComponent(Mode.Root));
+    Spark.get(getRootUrl(null), new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace));
     Spark.get(getUrl(null), new RunComponent());
     Spark.get(getUrl(null, Mode.ReCheck), new RunComponent(Mode.ReCheck));
     Spark.get(getUrl(null, Mode.UpdateNote), new RunComponent(Mode.UpdateNote));
@@ -250,17 +250,12 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
                     }
 
-                    String state = State.None.getStatusBadge();
-                    if (run instanceof ExecutableRun) {
-                      state = ((ExecutableRun) run).getState().getStatusBadge();
-                    }
-
                     return new Lte.TableRow(
                       //new Lte.TableValue(null, (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
                       new Lte.TableValue(null, icon),
                       new Lte.TableValue(null, Html.a(getUrl(run), null, null, run.getName())),
                       new Lte.TableValue("max-width:0;", Html.div("hide-overflow", run.getNote())),
-                      new Lte.TableValue(null, Html.spanWithId(run.getLocalDirectoryPath().toString() + "-badge", state))
+                      new Lte.TableValue(null, Html.spanWithId(run.getLocalDirectoryPath().toString() + "-badge", run.getState().getStatusBadge()))
                     );
                   })
                 );

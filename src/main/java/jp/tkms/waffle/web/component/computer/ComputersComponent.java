@@ -7,7 +7,7 @@ import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
-import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.data.util.ComputerState;
 import org.json.JSONObject;
 import spark.Spark;
 
@@ -248,7 +248,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += ("".equals(computer.getMessage()) ? "" : Lte.errorNoticeTextAreaGroup(computer.getMessage()));
-        if (computer.getState().equals(HostState.XsubNotFound)) {
+        if (computer.getState().equals(ComputerState.XsubNotFound)) {
           content += Lte.divRow(Lte.divCol(Lte.DivSize.F12,
             Html.a(ComputersComponent.getUrl(),
               Html.fasIcon("info-circle") + "You can install Xsub on "

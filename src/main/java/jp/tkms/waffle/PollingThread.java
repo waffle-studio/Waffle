@@ -3,13 +3,11 @@ package jp.tkms.waffle;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
-import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.HostState;
+import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -100,10 +98,10 @@ public class PollingThread extends Thread {
   synchronized public static void startup() {
     if (!Main.hibernateFlag) {
       for (Computer computer : Computer.getList()) {
-        if (computer.getState().equals(HostState.Viable)) {
+        if (computer.getState().equals(ComputerState.Viable)) {
           if (!threadMap.containsKey(computer.getName()) && Job.hasJob(computer)) {
             computer.update();
-            if (computer.getState().equals(HostState.Viable)) {
+            if (computer.getState().equals(ComputerState.Viable)) {
               PollingThread pollingThread = new PollingThread(computer);
               threadMap.put(computer.getName(), pollingThread);
               pollingThread.start();
