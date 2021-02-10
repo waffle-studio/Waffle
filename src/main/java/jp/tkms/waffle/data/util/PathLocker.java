@@ -1,14 +1,12 @@
 package jp.tkms.waffle.data.util;
 
-
-import org.ehcache.Cache;
-
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Map;
 
-public class PathLocker extends Object implements Serializable {
-  private static Cache<String, PathLocker> lockerMap = new InstanceCache<PathLocker>(PathLocker.class, 2000, 3600).getCacheStore();
+public class PathLocker implements Serializable {
+  private static InstanceCache<String, PathLocker> lockerMap = new InstanceCache<>();
 
   private PathLocker() {
   }
@@ -30,7 +28,7 @@ public class PathLocker extends Object implements Serializable {
 
   public static void waitAllCachedFiles() {
     HashSet<String> allKeySet = new HashSet<>();
-    for (Cache.Entry<String, PathLocker> entry : lockerMap) {
+    for (Map.Entry<String, PathLocker> entry : lockerMap.getMap().entrySet()) {
       synchronized (entry.getValue()) {
         allKeySet.add(entry.getKey());
       }

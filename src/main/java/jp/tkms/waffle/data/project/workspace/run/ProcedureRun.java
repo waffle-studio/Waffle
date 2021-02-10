@@ -9,9 +9,8 @@ import jp.tkms.waffle.data.project.workspace.Registry;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
-import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
-import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.ComputerState;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.script.ScriptProcessor;
@@ -31,8 +30,11 @@ public class ProcedureRun extends AbstractRun {
   private String procedureName;
   private Registry registry;
 
+  private static final InstanceCache<String, ProcedureRun> instanceCache = new InstanceCache<>();
+
   public ProcedureRun(Workspace workspace, AbstractRun parent, Path path, ArchivedConductor conductor, String procedureName) {
     super(workspace, parent, path);
+    instanceCache.put(getLocalDirectoryPath().toString(), this);
     setConductor(conductor);
     setProcedureName(procedureName);
     registry = new Registry(getWorkspace());
@@ -46,7 +48,7 @@ public class ProcedureRun extends AbstractRun {
   public void start(ScriptProcessor.ProcedureMode mode) {
     started();
     setState(State.Running);
-    getParent().registerChildActiveRun(this);
+    getResponsible().registerChildActiveRun(this);
     if (conductor != null) {
       if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
         ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, conductor.getMainProcedureScript());
@@ -68,6 +70,11 @@ public class ProcedureRun extends AbstractRun {
   }
 
   @Override
+  protected Path getVariablesStorePath() {
+    return getParent().getVariablesStorePath();
+  }
+
+  @Override
   public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(JSON_FILE);
   }
@@ -77,28 +84,41 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public static ProcedureRun create(AbstractRun parent, String expectedName, ArchivedConductor conductor, String procedureName) {
-    String name = expectedName;
+    String name = parent.generateUniqueFileName(expectedName);
     ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name), conductor, procedureName);
     instance.setState(State.Created);
+    instance.getParent().registerChildRun(instance);
     instance.updateResponsible();
     return instance;
   }
 
   public static ProcedureRun getInstance(Workspace workspace, String localPathString) {
+    ProcedureRun instance = instanceCache.get(localPathString);
+    if (instance != null) {
+      return instance;
+    }
+
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
 
     if (Files.exists(jsonPath)) {
       try {
         JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
         AbstractRun parent = AbstractRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_RUN));
-        ArchivedConductor conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
-        return new ProcedureRun(workspace, parent, jsonPath.getParent(), conductor, jsonObject.getString(KEY_PROCEDURE_NAME));
+        ArchivedConductor conductor = null;
+        if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
+          conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
+        }
+        String procedureName = null;
+        if (jsonObject.keySet().contains(KEY_PROCEDURE_NAME)) {
+          procedureName = jsonObject.getString(KEY_PROCEDURE_NAME);
+        }
+        instance = new ProcedureRun(workspace, parent, jsonPath.getParent(), conductor, procedureName);
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }
     }
 
-    return null;
+    return instance;
   }
 
   public static ProcedureRun getTestRunProcedureRun(ArchivedExecutable executable) {

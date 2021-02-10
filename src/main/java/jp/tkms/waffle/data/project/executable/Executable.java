@@ -503,7 +503,8 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
   public ExecutableRun getLatestTestRun() throws RunNotFoundException {
     createNewFile(TESTRUN);
-    return ExecutableRun.getInstance(getFileContents(TESTRUN));
+    return null;//ExecutableRun.getInstance(getFileContents(TESTRUN));
+    //TODO:fix
   }
 
   JSONObject propertyStoreCache = null;

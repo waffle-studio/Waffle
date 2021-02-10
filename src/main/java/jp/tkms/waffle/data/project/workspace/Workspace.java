@@ -9,25 +9,29 @@ import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.InstanceCache;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Workspace extends ProjectData implements DataDirectory, PropertyFile {
+public class Workspace extends ProjectData implements DataDirectory, PropertyFile, Serializable {
   public static final String WORKSPACE = "WORKSPACE";
   public static final String JSON_FILE = WORKSPACE + Constants.EXT_JSON;
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
   public static final String ARCHIVE = ".ARCHIVE";
+
+  private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
 
   private String name = null;
 
   public Workspace(Project project, String name) {
     super(project);
     this.name = name;
+    instanceCache.put(getBaseDirectoryPath(project).resolve(name).toString(), this);
     initialise();
   }
 
@@ -46,6 +50,10 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
 
   public static Workspace getInstance(Project project, String name) {
     if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+      Workspace instance = instanceCache.get(getBaseDirectoryPath(project).resolve(name).toString());
+      if (instance != null) {
+        return instance;
+      }
       return new Workspace(project, name);
     }
     return null;

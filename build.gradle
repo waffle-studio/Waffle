@@ -53,7 +53,6 @@ dependencies {
 	compile 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
 	compile 'com.hierynomus:sshj:0.29.0'
 	compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.24.0'
-	compile group: 'org.ehcache', name: 'ehcache', version: '3.8.1'
 	compile 'com.carrotsearch:java-sizeof:0.0.5'
 	compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.3'
 	compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.3'

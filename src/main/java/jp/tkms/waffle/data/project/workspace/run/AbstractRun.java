@@ -4,24 +4,29 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.WorkspaceData;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
-abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile {
+abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile, Serializable {
   public static final String RUN = "RUN";
   public static final String KEY_NOTE_TXT = "NOTE.txt";
   public static final String KEY_ERROR_NOTE_TXT = "ERROR_NOTE.txt";
@@ -43,6 +48,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
 
   public abstract void start();
   public abstract void finish();
+  protected abstract Path getVariablesStorePath();
 
   public AbstractRun(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace);
@@ -71,6 +77,8 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
       return ProcedureRun.getInstance(workspace, localPathString);
     } else if (Files.exists(basePath.resolve(ExecutableRun.JSON_FILE))) {
       return ExecutableRun.getInstance(localPathString);
+    } else if (Files.exists(basePath.resolve(RunCapsule.JSON_FILE))) {
+      return RunCapsule.getInstance(workspace, localPathString);
     }
 
     return null;
@@ -107,6 +115,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   }
 
   protected void setState(State state) {
+    //System.out.println(state.name() + " : " + getId());
     this.state = state;
     setToProperty(KEY_STATE, state.ordinal());
   }
@@ -134,8 +143,14 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     AbstractRun candidate = this;
     if (getParent() != null) {
       candidate = getParent();
-      while (!candidate.isRunning() || candidate.getState().equals(State.Finalizing)) {
+      if (candidate instanceof RunCapsule) {
+        candidate = getParent().getParent();
+      }
+      while (!candidate.isRunning() || candidate.getState().equals(State.Finalizing) || candidate instanceof RunCapsule) {
         candidate = candidate.getResponsible();
+        if (candidate.getParent() == null) {
+          break;
+        }
       }
     }
     setResponsible(candidate);
@@ -149,25 +164,30 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
         ErrorLogMessage.issue(e);
       }
     }
+    if (responsible == null) {
+      ErrorLogMessage.issue(this.getId() + " : not specified responsible run (" + getStringFromProperty(KEY_RESPONSIBLE_RUN) + ")");
+    }
     return responsible;
   }
 
-  public int registerChildActiveRun(AbstractRun abstractRun) {
+  public void registerChildRun(AbstractRun abstractRun) {
     if (getArrayFromProperty(KEY_CHILDREN_RUN) == null) {
       putNewArrayToProperty(KEY_CHILDREN_RUN);
     }
+    putToArrayOfProperty(KEY_CHILDREN_RUN, getLocalDirectoryPath().relativize(abstractRun.getLocalDirectoryPath()).toString());
+  }
+
+  public void registerChildActiveRun(AbstractRun abstractRun) {
     if (getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN) == null) {
       putNewArrayToProperty(KEY_ACTIVE_CHILDREN_RUN);
     }
-    putToArrayOfProperty(KEY_CHILDREN_RUN, abstractRun.getId());
-    putToArrayOfProperty(KEY_ACTIVE_CHILDREN_RUN, abstractRun.getId());
-    return getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN).length();
+    putToArrayOfProperty(KEY_ACTIVE_CHILDREN_RUN, getLocalDirectoryPath().relativize(abstractRun.getLocalDirectoryPath()).toString());
   }
 
   private int removeChildActiveRun(AbstractRun abstractRun) {
     if (getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN) != null) {
       if (abstractRun != null) {
-        removeFromArrayOfProperty(KEY_ACTIVE_CHILDREN_RUN, abstractRun.getId());
+        removeFromArrayOfProperty(KEY_ACTIVE_CHILDREN_RUN, getLocalDirectoryPath().relativize(abstractRun.getLocalDirectoryPath()).toString());
       }
       return getArrayFromProperty(KEY_ACTIVE_CHILDREN_RUN).length();
     }
@@ -212,8 +232,10 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     return getLocalDirectoryPath().toString();
   }
 
-  protected void started() {
+  protected boolean started() {
+    boolean currentState = isStarted();
     setToProperty(KEY_STARTED, true);
+    return currentState;
   }
 
   public boolean isStarted() {
@@ -294,7 +316,8 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
         }
       }
     }
-    ProcedureRun finalizerRun = ProcedureRun.create(this, procedureName, conductor, procedureKey);
+    //ProcedureRun finalizerRun = ProcedureRun.create(this, procedureName, conductor, procedureKey);
+    ProcedureRun finalizerRun = ProcedureRun.create(getParent(), procedureName.replaceFirst("\\..*?$", ""), conductor, procedureKey);
     putToArrayOfProperty(KEY_FINALIZER, finalizerRun.getLocalDirectoryPath().toString());
 
     /*
@@ -340,4 +363,108 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public void setPropertyStoreCache(JSONObject cache) {
     propertyStoreCache = cache;
   }
+
+  protected void updateVariablesStore(JSONObject variables) {
+    //protected void updateParametersStore() {
+    if (! Files.exists(getDirectoryPath())) {
+      try {
+        Files.createDirectories(getDirectoryPath());
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    if (variables == null) {
+      variables = new JSONObject();
+    }
+
+    Path storePath = getVariablesStorePath();
+
+    try {
+      JSONWriter.writeValue(storePath, variables);
+      /*
+      FileWriter filewriter = new FileWriter(storePath.toFile());
+      filewriter.write(variables.toString(2));
+      filewriter.close();
+       */
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public long getVariablesStoreSize() {
+    return getVariablesStorePath().toFile().length();
+  }
+
+  private String getFromVariablesStore() {
+    Path storePath = getVariablesStorePath();
+    String json = "{}";
+    if (Files.exists(storePath)) {
+      try {
+        json = new String(Files.readAllBytes(storePath));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return json;
+  }
+
+  public void putVariables(JSONObject valueMap) {
+    getVariables(); // init.
+    JSONObject map = new JSONObject(getFromVariablesStore());
+    if (valueMap != null) {
+      for (String key : valueMap.keySet()) {
+        map.put(key, valueMap.get(key));
+        //parameters.put(key, valueMap.get(key));
+      }
+      updateVariablesStore(map);
+    }
+  }
+
+  public void putVariablesByJson(String json) {
+    try {
+      putVariables(new JSONObject(json));
+    } catch (Exception e) {
+      WarnLogMessage.issue(e);
+    }
+  }
+
+  public void putVariable(String key, Object value) {
+    JSONObject obj = new JSONObject();
+    obj.put(key, value);
+    putVariablesByJson(obj.toString());
+  }
+
+  public JSONObject getVariables() {
+    if (getOwner().getDirectoryPath().equals(getDirectoryPath())) {
+      //if (variables == null) {
+      return new JSONObject(getFromVariablesStore());
+      //}
+    }
+    return getOwner().getVariables();
+  }
+
+  public Object getVariable(String key) {
+    return getVariables().get(key);
+  }
+
+  private final HashMap<Object, Object> variablesMapWrapper  = new HashMap<Object, Object>() {
+    @Override
+    public Object get(Object key) {
+      return getVariable(key.toString());
+    }
+
+    @Override
+    public Object put(Object key, Object value) {
+      putVariable(key.toString(), value);
+      return value;
+    }
+
+    @Override
+    public String toString() {
+      return getVariables().toString();
+    }
+  };
+  public HashMap variables() { return variablesMapWrapper; }
+  public HashMap v() { return variablesMapWrapper; }
 }

@@ -129,6 +129,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           response.redirect(LogsComponent.getUrl());
         } else {
           ConductorRun conductorRun = ConductorRun.create(workspace, conductor, newRunName);
+          if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+            conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
+          }
           conductorRun.start();
 
           response.redirect(WorkspaceComponent.getUrl(workspace.getProject(), workspace));
@@ -177,6 +180,10 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return Html.a(ConductorComponent.getUrl(conductor, ConductorComponent.Mode.Prepare),
       Html.span("right badge badge-secondary", null, "RUN")
     );
+  }
+
+  protected Workspace pageWorkspace() {
+    return null;
   }
 
   private void renderConductors() throws ProjectNotFoundException {
@@ -274,6 +281,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return renderPageBreadcrumb();
+      }
+
+      @Override
+      protected Workspace pageWorkspace() {
+        return ConductorComponent.this.pageWorkspace();
       }
 
       @Override

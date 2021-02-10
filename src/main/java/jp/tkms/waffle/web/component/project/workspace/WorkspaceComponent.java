@@ -23,6 +23,7 @@ package jp.tkms.waffle.web.component.project.workspace;
 
   import java.util.ArrayList;
   import java.util.Arrays;
+  import java.util.Map;
   import java.util.concurrent.Future;
 
 public class WorkspaceComponent extends AbstractAccessControlledComponent {
@@ -184,6 +185,11 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(WorkspaceComponent.getUrl(project), WORKSPACES)
         ));
+      }
+
+      @Override
+      protected Workspace pageWorkspace() {
+        return workspace;
       }
 
       @Override

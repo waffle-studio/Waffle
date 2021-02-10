@@ -3,11 +3,13 @@ package jp.tkms.waffle.web.component.project.executable;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -22,6 +24,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -132,6 +135,10 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     );
   }
 
+  protected Workspace pageWorkspace() {
+    return null;
+  }
+
   private void renderExecutable() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
@@ -147,6 +154,11 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return renderPageBreadcrumb();
+      }
+
+      @Override
+      protected Workspace pageWorkspace() {
+        return ExecutableComponent.this.pageWorkspace();
       }
 
       @Override

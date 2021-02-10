@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.util.DateTime;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -118,7 +119,16 @@ public class Job implements PropertyFile {
     this.state = state;
     ExecutableRun run = getRun();
     if (run != null) {
-      run.setState(state);
+      switch (state) {
+        case Canceled:
+        case Excepted:
+        case Failed:
+        case Finished:
+          run.finish();
+          break;
+        default:
+          run.setState(state);
+      }
     }
   }
 

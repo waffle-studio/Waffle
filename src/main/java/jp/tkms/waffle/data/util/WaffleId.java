@@ -30,6 +30,8 @@ public class WaffleId {
     long time = getCurrentTime();
     if (time != currentTime) {
       serialNumber = 0;
+    } else {
+      serialNumber += 1;
     }
     currentTime = time;
     this.id = (time * 100000) + serialNumber;

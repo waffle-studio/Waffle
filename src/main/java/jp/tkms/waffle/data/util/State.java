@@ -3,8 +3,26 @@ package jp.tkms.waffle.data.util;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 
+import java.util.ArrayList;
+
 public enum State {
   Created, Prepared, Submitted, Running, Finalizing, Finished, Failed, Excepted, Cancel, Canceled, None;
+
+  static final ArrayList<State> displayPriority = new ArrayList<>() {
+    {
+      add(Running);
+      add(Created);
+      add(Prepared);
+      add(Submitted);
+      add(Finalizing);
+      add(Cancel);
+      add(Excepted);
+      add(Failed);
+      add(Canceled);
+      add(Finished);
+      add(None);
+    }
+  };
 
   public static State valueOf(int i) {
     return values()[i];
@@ -27,7 +45,7 @@ public enum State {
       case Finished:
         return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Finalizing:
-        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Failed:
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Excepted:
@@ -40,6 +58,14 @@ public enum State {
         return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
     }
     return null;
+  }
+
+  public State getHigh(State state) {
+    if (displayPriority.indexOf(this) < displayPriority.indexOf(state)) {
+      return this;
+    } else {
+      return state;
+    }
   }
 }
 

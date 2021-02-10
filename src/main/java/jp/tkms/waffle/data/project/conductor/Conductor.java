@@ -139,6 +139,10 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     List<String> list = null;
     try {
       JSONArray array = getArrayFromProperty(KEY_CHILD);
+      if (array == null) {
+        putNewArrayToProperty(KEY_CHILD);
+        array = new JSONArray();
+      }
       list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
       for (String name : list) {
         if (! Files.exists(getChildProcedureScriptPath(name))) {

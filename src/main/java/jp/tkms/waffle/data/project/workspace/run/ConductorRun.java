@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.script.ScriptProcessor;
@@ -18,20 +19,27 @@ import java.nio.file.Path;
 public class ConductorRun extends AbstractRun {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
   public static final String JSON_FILE = CONDUCTOR_RUN + Constants.EXT_JSON;
+  public static final String VARIABLES_JSON_FILE = "VARIABLES" + Constants.EXT_JSON;
   public static final String KEY_CONDUCTOR = "conductor";
 
   private ArchivedConductor conductor;
+
+  private static final InstanceCache<String, ConductorRun> instanceCache = new InstanceCache<>();
 
   @Override
   public void start() {
     started();
     setState(State.Running);
     if (conductor != null) {
-      ProcedureRun procedureRun = ProcedureRun.create(this, getName(), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
+
+      ProcedureRun procedureRun = ProcedureRun.create(this, Conductor.MAIN_PROCEDURE_FILENAME.replaceFirst("\\..*?$", ""), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
       procedureRun.start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL);
     }
     if (getParent() != null) {
-      getParent().registerChildActiveRun(this);
+      getParent().registerChildRun(this);
+    }
+    if (!getResponsible().getId().equals(getId())) {
+      getResponsible().registerChildActiveRun(this);
     }
     //reportFinishedRun(null);
   }
@@ -40,14 +48,20 @@ public class ConductorRun extends AbstractRun {
   public void finish() {
     setState(State.Finalizing);
     processFinalizers();
-    if (getResponsible() != this) {
+    if (!getResponsible().getId().equals(getId())) {
       getResponsible().reportFinishedRun(this);
     }
     setState(State.Finished);
   }
 
+  @Override
+  protected Path getVariablesStorePath() {
+    return getDirectoryPath().resolve(VARIABLES_JSON_FILE);
+  }
+
   public ConductorRun(Workspace workspace, ArchivedConductor conductor, AbstractRun parent, Path path) {
     super(workspace, parent, path);
+    instanceCache.put(getLocalDirectoryPath().toString(), this);
     setConductor(conductor);
   }
 
@@ -73,6 +87,9 @@ public class ConductorRun extends AbstractRun {
     ConductorRun instance = new ConductorRun(workspace, conductor, parent, path);
     instance.setState(State.Created);
     instance.updateResponsible();
+    if (conductor != null) {
+      instance.putVariables(conductor.getDefaultVariables());
+    }
     return instance;
   }
 
@@ -84,13 +101,18 @@ public class ConductorRun extends AbstractRun {
   }
 
   public static ConductorRun create(ProcedureRun parent, Conductor conductor, String expectedName) {
-    String name = expectedName;
+    String name = parent.generateUniqueFileName(expectedName);
     return create(parent.getWorkspace(),
       StagedConductor.getInstance(parent.getWorkspace(), conductor).getArchivedInstance(),
       parent, parent.getDirectoryPath().resolve(name));
   }
 
   public static ConductorRun getInstance(Workspace workspace, String localPathString) {
+    ConductorRun instance = instanceCache.get(localPathString);
+    if (instance != null) {
+      return instance;
+    }
+
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
 
     if (Files.exists(jsonPath)) {
@@ -106,13 +128,13 @@ public class ConductorRun extends AbstractRun {
           String parentPath = jsonObject.getString(KEY_PARENT_RUN);
           parent = AbstractRun.getInstance(workspace, parentPath);
         }
-        return new ConductorRun(workspace, conductor, parent, jsonPath.getParent());
+        instance = new ConductorRun(workspace, conductor, parent, jsonPath.getParent());
       } catch (Exception e) {
         ErrorLogMessage.issue(jsonPath.toString() + " : " + ErrorLogMessage.getStackTrace(e));
       }
     }
 
-    return null;
+    return instance;
   }
 
   static ConductorRun getTestRunConductorRun(ArchivedExecutable executable) {

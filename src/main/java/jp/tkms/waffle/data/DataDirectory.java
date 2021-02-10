@@ -3,7 +3,6 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.util.InstanceCache;
-import org.ehcache.Cache;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,7 +17,7 @@ import java.util.concurrent.*;
 public interface DataDirectory {
   int EOF = -1;
   int CHECKING_OMIT_TIME = 30000;
-  Cache<String, Long> previousDifferenceCheckTimeMap = new InstanceCache<Long>(Long.class, 1000, CHECKING_OMIT_TIME / 1000).getCacheStore();
+  InstanceCache<String, Long> previousDifferenceCheckTimeMap = new InstanceCache<>(CHECKING_OMIT_TIME / 1000);
 
   Path getDirectoryPath();
 

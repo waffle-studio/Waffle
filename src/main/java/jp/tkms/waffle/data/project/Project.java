@@ -8,24 +8,24 @@ import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 
-public class Project implements DataDirectory {
+public class Project implements DataDirectory, Serializable {
   public static final String PROJECT = "PROJECT";
-  private static final HashMap<String, Project> instanceMap = new HashMap<>();
+  private static final InstanceCache<String, Project> instanceCache = new InstanceCache<>();
 
   protected String name;
 
   public Project(String name) {
     this.name = name;
-    instanceMap.put(this.name, this);
+    instanceCache.put(name, this);
     initialize();
   }
 
@@ -35,7 +35,7 @@ public class Project implements DataDirectory {
 
   public static Project getInstance(String name) {
     if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath().resolve(name))) {
-      Project project = instanceMap.get(name);
+      Project project = instanceCache.get(name);
       if (project == null) {
         project = new Project(name);
       }

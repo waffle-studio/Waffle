@@ -82,6 +82,11 @@ public class StagedConductorComponent extends ConductorComponent {
   }
 
   @Override
+  protected Workspace pageWorkspace() {
+    return workspace;
+  }
+
+  @Override
   protected ArrayList<String> renderPageBreadcrumb() {
     return new ArrayList<String>(Arrays.asList(
       Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),

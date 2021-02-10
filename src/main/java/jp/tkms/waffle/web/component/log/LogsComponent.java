@@ -18,7 +18,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
 
   private final String[][] quickLinkRegExps = {
     {"^Computer\\((.*)\\)", "<a href=\"/COMPUTER/$1\">Computer($1)</a>"},
-    {"^Run\\((.*)/(.*)\\)", "<a href=\"/$1/$2\">Run($2)</a>"}
+    {"^Run\\((.*/RUN)/(.*)\\)", "<a href=\"/$1/$2\">Run($2)</a>"}
   };
 
   public LogsComponent(Mode mode) {
@@ -31,12 +31,12 @@ public class LogsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(true), new LogsComponent());
     Spark.get(getUrl(Mode.GetOld), new LogsComponent(Mode.GetOld));
+    Spark.get(getUrl(true), new LogsComponent());
   }
 
   public static String getUrl(Mode mode) {
-    return getUrl() + "@" + mode.name();
+    return "/LOG/@" + mode.name();
   }
 
   public static String getUrl(boolean isTemplate) {

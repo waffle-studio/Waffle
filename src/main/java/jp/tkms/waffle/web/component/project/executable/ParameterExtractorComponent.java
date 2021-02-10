@@ -55,7 +55,7 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
-    executable = Executable.getInstance(project, request.params("simulator"));
+    executable = Executable.getInstance(project, request.params(ExecutableComponent.KEY_EXECUTABLE));
 
     switch (mode) {
       case Add:

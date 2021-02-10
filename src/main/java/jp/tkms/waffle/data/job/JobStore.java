@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WaffleId;
+import jp.tkms.waffle.exception.RunNotFoundException;
 import org.json.JSONObject;
 
 import java.io.File;

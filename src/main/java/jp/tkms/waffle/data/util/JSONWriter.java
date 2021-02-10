@@ -14,10 +14,14 @@ public class JSONWriter {
   final static ObjectWriter writer = new ObjectMapper().writer(new DefaultPrettyPrinter());
 
   public static void writeValue(Path path, JSONObject jsonObject) throws IOException {
-    writer.writeValue(path.toFile(), jsonObject.toMap());
+    synchronized (PathLocker.getLocker(path)) {
+      writer.writeValue(path.toFile(), jsonObject.toMap());
+    }
   }
 
   public static void writeValue(Path path, JSONArray jsonArray) throws IOException {
-    writer.writeValue(path.toFile(), jsonArray.toList());
+    synchronized (PathLocker.getLocker(path)) {
+      writer.writeValue(path.toFile(), jsonArray.toList());
+    }
   }
 }

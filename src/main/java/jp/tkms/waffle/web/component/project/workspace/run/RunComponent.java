@@ -3,10 +3,7 @@ package jp.tkms.waffle.web.component.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.workspace.Workspace;
-import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
-import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
-import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
+import jp.tkms.waffle.data.project.workspace.run.*;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
@@ -24,9 +21,11 @@ import spark.Spark;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 public class RunComponent extends AbstractAccessControlledComponent {
@@ -37,6 +36,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   private Project project;
   private Workspace workspace;
   private AbstractRun abstractRun;
+  private ArrayList<AbstractRun> runList = null;
 
   public enum Mode {Default, ReCheck, UpdateNote, Root}
 
@@ -112,6 +112,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
         return;
     }
 
+    runList = (abstractRun == null ? AbstractRun.getList(workspace) : abstractRun.getList());
+    if (Paths.get(request.uri()).relativize(Paths.get(request.headers("Referer").replaceFirst("^.*?/PROJECT/", "/PROJECT/"))).toString().contains("..") && runList.size() == 1) {
+      response.redirect(RunComponent.getUrl(runList.get(0)));
+    }
+
     renderRuns();
   }
 
@@ -141,10 +146,17 @@ public class RunComponent extends AbstractAccessControlledComponent {
         if (abstractRun != null) {
           if (abstractRun instanceof ProcedureRun) {
             return "ProcedureRun";
+          } else if (abstractRun instanceof RunCapsule) {
+            return "RunCapsule";
           }
           return "ConductorRun";
         }
         return super.pageSubTitle();
+      }
+
+      @Override
+      protected Workspace pageWorkspace() {
+        return workspace;
       }
 
       @Override
@@ -241,7 +253,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
 
-              for (AbstractRun run : (abstractRun == null ? AbstractRun.getList(workspace) : abstractRun.getList())) {
+              for (AbstractRun run : runList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     String icon = Html.farIcon("circle");
                     if (run instanceof ProcedureRun) {
@@ -339,6 +351,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageSubTitle() {
         return "ExecutableRun";
+      }
+
+      @Override
+      protected Workspace pageWorkspace() {
+        return workspace;
       }
 
       @Override

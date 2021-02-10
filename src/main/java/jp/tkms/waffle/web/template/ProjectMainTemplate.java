@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.template;
 
 import jp.tkms.waffle.data.project.Project;
+import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
@@ -24,10 +25,21 @@ public abstract class ProjectMainTemplate extends MainTemplate {
 
   @Override
   protected ArrayList<Map.Entry<String, String>> pageNavigation() {
-    return new ArrayList<Map.Entry<String, String>>(Arrays.asList(
-      Map.entry(Html.element("strong", null, project.getName()) + " | Conductors", ProjectComponent.getUrl(project)),
-      Map.entry(ExecutablesComponent.EXECUTABLES, ExecutablesComponent.getUrl(project)),
-      Map.entry(WorkspaceComponent.WORKSPACES, WorkspaceComponent.getUrl(project))
+    ArrayList<Map.Entry<String, String>> list = new ArrayList<Map.Entry<String, String>>(Arrays.asList(
+      Map.entry(Html.element("strong", null, project.getName()) + " | " + Html.fasIcon("user-tie") + "Conductors", ProjectComponent.getUrl(project)),
+      Map.entry( Html.fasIcon("layer-group") + ExecutablesComponent.EXECUTABLES, ExecutablesComponent.getUrl(project)),
+      Map.entry(Html.fasIcon("table") + WorkspaceComponent.WORKSPACES, WorkspaceComponent.getUrl(project))
     ));
+
+    Workspace workspace = pageWorkspace();
+    if(workspace != null) {
+      list.add(Map.entry(Html.element("strong", null, Html.fasIcon("chevron-right") + workspace.getName()) + "", WorkspaceComponent.getUrl(workspace.getProject(), workspace)));
+    }
+
+    return list;
+  }
+
+  protected Workspace pageWorkspace() {
+    return null;
   }
 }

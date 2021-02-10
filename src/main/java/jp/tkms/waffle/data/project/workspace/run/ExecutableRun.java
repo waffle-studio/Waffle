@@ -55,8 +55,11 @@ public class ExecutableRun extends AbstractRun {
   private JSONObject environments = null;
   private JSONArray arguments = null;
 
-  public ExecutableRun(Workspace workspace, ProcedureRun parent, Path path) {
+  private static final InstanceCache<String, ExecutableRun> instanceCache = new InstanceCache<>();
+
+  public ExecutableRun(Workspace workspace, RunCapsule parent, Path path) {
     super(workspace, parent, path);
+    instanceCache.put(getLocalDirectoryPath().toString(), this);
   }
 
   @Override
@@ -65,9 +68,10 @@ public class ExecutableRun extends AbstractRun {
   }
 
   public static ExecutableRun create(ProcedureRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
-    String name = parent.generateUniqueFileName(expectedName);
-    ExecutableRun run = new ExecutableRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name));
-    run.setParent(parent);
+    RunCapsule capsule = RunCapsule.create(parent, parent.generateUniqueFileName(expectedName));
+    String name = capsule.generateUniqueFileName(expectedName);
+    ExecutableRun run = new ExecutableRun(capsule.getWorkspace(), capsule, capsule.getDirectoryPath().resolve(name));
+    run.setParent(capsule);
     run.setExecutable(executable);
     run.setComputer(computer);
     run.setActualComputer(computer);
@@ -82,6 +86,7 @@ public class ExecutableRun extends AbstractRun {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
+    run.getParent().registerChildRun(run);
     run.updateResponsible();
     return run;
   }
@@ -91,6 +96,11 @@ public class ExecutableRun extends AbstractRun {
   }
 
   public static ExecutableRun getInstance(String localPathString) throws RunNotFoundException {
+    ExecutableRun instance = instanceCache.get(localPathString);
+    if (instance != null) {
+      return instance;
+    }
+
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
     String[] splitPath = localPathString.split(File.separator, 5);
     if (Files.exists(jsonPath) && splitPath.length == 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
@@ -99,19 +109,22 @@ public class ExecutableRun extends AbstractRun {
         Workspace workspace = Workspace.getInstance(project, splitPath[3]);
         JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
         String parentPath = jsonObject.getString(KEY_PARENT_RUN);
-        ProcedureRun parent = ProcedureRun.getInstance(workspace, parentPath);
-        return new ExecutableRun(workspace, parent, jsonPath.getParent());
+        RunCapsule capsule = RunCapsule.getInstance(workspace, parentPath);
+        instance = new ExecutableRun(workspace, capsule, jsonPath.getParent());
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }
+      return instance;
     }
     throw new RunNotFoundException();
   }
 
   @Override
   public void start() {
-    started();
-    getParent().registerChildActiveRun(this);
+    if (started()) {
+      return;
+    }
+    getResponsible().registerChildActiveRun(this);
     try {
       putParametersByJson(executable.getDefaultParameters().toString());
       putResultsByJson(executable.getDummyResults().toString());
@@ -127,6 +140,11 @@ public class ExecutableRun extends AbstractRun {
     processFinalizers();
     getResponsible().reportFinishedRun(this);
     setState(State.Finished);
+  }
+
+  @Override
+  protected Path getVariablesStorePath() {
+    return getParent().getVariablesStorePath();
   }
 
   public ArchivedExecutable getExecutable() {
@@ -240,7 +258,7 @@ public class ExecutableRun extends AbstractRun {
       case Failed:
       case Finished:
         setToProperty(KEY_FINISHED_AT, DateTime.getCurrentEpoch());
-        finish();
+        //finish();
     }
 
     new RunStatusUpdater(this);

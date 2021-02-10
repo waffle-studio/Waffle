@@ -44,7 +44,6 @@ We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
 ## Java Git
 ## SSHv2 library for Java
 ## Kryo
-## Ehcache
 ## Java SizeOf
 ## Jackson
 

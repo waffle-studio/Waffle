@@ -460,6 +460,8 @@ abstract public class AbstractSubmitter {
           case Cancel:
             cancelJobList.add(job);
             break;
+          case Finalizing:
+            WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") was under finalizing when system stopped; The task was removed." );
           case Finished:
           case Failed:
           case Excepted:
