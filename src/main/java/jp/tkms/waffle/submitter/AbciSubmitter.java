@@ -2,8 +2,9 @@ package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
@@ -60,8 +61,8 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   @Override
-  public State update(Job job) throws RunNotFoundException {
-    ExecutableRun run = job.getRun();
+  public State update(AbstractJob job) throws RunNotFoundException {
+    ComputerTask run = job.getRun();
     if (!updatedPackJson.containsKey(job.getJobId())) {
       updatedPackJson.put(job.getJobId(), exec(xstatCommand(job)));
     }
@@ -75,11 +76,11 @@ public class AbciSubmitter extends SshSubmitter {
   }
 
   @Override
-  public void processJobLists(Computer computer, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
+  public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
     updatedPackJson.clear();
 
     HashSet<String> cancelJobIdSet = new HashSet<>();
-    for (Job job : cancelJobList) {
+    for (AbstractJob job : cancelJobList) {
       cancelJobIdSet.add(job.getJobId());
       try {
         job.setState(State.Canceled);
@@ -88,7 +89,7 @@ public class AbciSubmitter extends SshSubmitter {
 
     submittedJobList.addAll(runningJobList);
     HashSet<String> jobIdSet = new HashSet<>();
-    for (Job job : submittedJobList) {
+    for (AbstractJob job : submittedJobList) {
       if (Main.hibernateFlag) { break; }
 
       try {
@@ -110,7 +111,7 @@ public class AbciSubmitter extends SshSubmitter {
       }
     }
 
-    for (Job job : cancelJobList) {
+    for (AbstractJob job : cancelJobList) {
       String jobId = job.getJobId();
       if (cancelJobIdSet.contains(jobId) && jobIdSet.contains(jobId)) {
         try {
@@ -120,9 +121,9 @@ public class AbciSubmitter extends SshSubmitter {
       }
     }
 
-    ArrayList<Job> queuedJobList = new ArrayList<>();
+    ArrayList<AbstractJob> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
-    for (Job job : createdJobList) {
+    for (AbstractJob job : createdJobList) {
       if (Main.hibernateFlag) { break; }
       try {
         if (queuedJobList.size() < getMaximumNumberOfThreads(computer)) {
@@ -157,7 +158,7 @@ public class AbciSubmitter extends SshSubmitter {
             "export -f run\n" +
             "xargs -n 1 -P 65535 -I{} sh -c 'run {}' << EOF\n");
 
-        for (Job job : queuedJobList) {
+        for (AbstractJob job : queuedJobList) {
           try {
             packBatchTextBuilder.append(getRunDirectory(job.getRun()) + "\n");
           } catch (RunNotFoundException e) {
@@ -174,7 +175,7 @@ public class AbciSubmitter extends SshSubmitter {
           putText(packId, PACK_BATCH_FILE, packBatchTextBuilder.toString());
           computer.setParameter("resource_type_num", getResourceText(queuedJobList.size()));
           String resultJson = exec(xsubCommand(packId) + " " + PACK_BATCH_FILE);
-          for (Job job : queuedJobList) {
+          for (AbstractJob job : queuedJobList) {
             try {
               processXsubSubmit(job, resultJson);
             } catch (Exception e) {

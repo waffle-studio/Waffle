@@ -1,8 +1,9 @@
 package jp.tkms.waffle.submitter;
 
 import com.jcraft.jsch.JSchException;
+import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
@@ -124,7 +125,7 @@ public class SshSubmitter extends AbstractSubmitter {
 
   @Override
   public void close() {
-    session.disconnect();
+    if (session != null) { session.disconnect(); }
     if (tunnelSession != null) { tunnelSession.disconnect(); }
   }
 
@@ -169,7 +170,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(Job job, Path path, String text) throws FailedToTransferFileException {
+  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException {
     try {
       session.putText(text, path.toString(), getRunDirectory(job.getRun()).toString());
     } catch (JSchException | FailedToControlRemoteException | RunNotFoundException e) {
@@ -187,7 +188,7 @@ public class SshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(ExecutableRun run, Path path) {
+  public String getFileContents(ComputerTask run, Path path) {
     try {
       return session.getText(getContentsPath(run, path).toString(), "");
     } catch (JSchException | FailedToControlRemoteException e) {

@@ -7,17 +7,16 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class ResourceFile {
   private static ResourceFile staticInstance = new ResourceFile();
 
-  private static final HashMap<String, String> instanceMap = new HashMap<>();
+  private static final InstanceCache<String, String> instanceCache = new InstanceCache<>();
 
   public static String getContents(String path) {
-    String candidate = instanceMap.get(path);
+    String candidate = instanceCache.get(path);
     if (candidate != null) {
       return candidate;
     }
@@ -37,7 +36,7 @@ public class ResourceFile {
       return "";
     }
 
-    instanceMap.put(path, contents.toString());
+    instanceCache.put(path, contents.toString());
     return contents.toString();
   }
 

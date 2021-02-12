@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data.log.message;
 
+import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.WaffleException;
@@ -17,15 +18,15 @@ public class WarnLogMessage extends LogMessage {
     new WarnLogMessage(getStackTrace(e)).printMessage();
   }
 
-  public static void issue(ExecutableRun run, Throwable e) {
+  public static void issue(ComputerTask run, Throwable e) {
     new WarnLogMessage("Run(" + run.getLocalDirectoryPath().toString() + ") " + getStackTrace(e)).printMessage();
   }
 
   public static void issue(WaffleException e) {
-    new WarnLogMessage(e.getMessage()).printMessage();
+    new WarnLogMessage(getStackTrace(e)).printMessage();
   }
 
-  public static void issue(ExecutableRun run, String message) {
+  public static void issue(ComputerTask run, String message) {
     new WarnLogMessage("Run(" + run.getLocalDirectoryPath().toString() + ") " + message).printMessage();
   }
 
@@ -37,7 +38,7 @@ public class WarnLogMessage extends LogMessage {
     issue(computer, getStackTrace(e));
   }
 
-  public static void issue(ExecutableRun run, WaffleException e) {
+  public static void issue(ComputerTask run, WaffleException e) {
     issue(run, e.getMessage());
   }
 }

@@ -1,16 +1,17 @@
 package jp.tkms.waffle.web.component.job;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
-import jp.tkms.waffle.data.job.Job;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -42,14 +43,14 @@ public class JobsComponent extends AbstractAccessControlledComponent {
     return "/jobs";
   }
 
-  public static String getUrl(Mode mode, Job job) {
+  public static String getUrl(Mode mode, ExecutableRunJob job) {
     return "/jobs/" + mode.name() + "/" + (job == null ? ":id" : job.getId());
   }
 
   @Override
   public void controller() {
     if (mode == Mode.Cancel) {
-      Job job = Job.getInstance(request.params("id"));
+      ExecutableRunJob job = ExecutableRunJob.getInstance(request.params("id"));
       if (job != null) {
         try {
           job.cancel();
@@ -97,8 +98,9 @@ public class JobsComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("width:6.5em;", "ID"));
               list.add(new Lte.TableValue("", "Project"));
-              list.add(new Lte.TableValue("", "Simulator"));
-              list.add(new Lte.TableValue("", "Host"));
+              list.add(new Lte.TableValue("", "Workspace"));
+              list.add(new Lte.TableValue("", "Executable"));
+              list.add(new Lte.TableValue("", "Computer"));
               list.add(new Lte.TableValue("width:5em;", "JobID"));
               list.add(new Lte.TableValue("width:3em;", ""));
               list.add(new Lte.TableValue("width:1em;", ""));
@@ -108,15 +110,19 @@ public class JobsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Job job : Job.getList()) {
+              for (ExecutableRunJob job : ExecutableRunJob.getList()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   ExecutableRun run = job.getRun();
                   try {
                     return new Lte.TableRow(
                       Html.a(RunComponent.getUrl(job.getRun()), job.getHexCode()),
                       Html.a(
-                        ProjectComponent.getUrl(job.getProject()),
-                        job.getProject().getName()
+                        ProjectComponent.getUrl(run.getProject()),
+                        run.getProject().getName()
+                      ),
+                      Html.a(
+                        WorkspaceComponent.getUrl(run.getProject(), run.getWorkspace()),
+                        run.getWorkspace().getName()
                       ),
                       Html.a(
                         ExecutableComponent.getUrl(run.getExecutable()),

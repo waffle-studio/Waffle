@@ -415,7 +415,6 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     if (valueMap != null) {
       for (String key : valueMap.keySet()) {
         map.put(key, valueMap.get(key));
-        //parameters.put(key, valueMap.get(key));
       }
       updateVariablesStore(map);
     }
@@ -432,16 +431,11 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public void putVariable(String key, Object value) {
     JSONObject obj = new JSONObject();
     obj.put(key, value);
-    putVariablesByJson(obj.toString());
+    putVariables(obj);
   }
 
   public JSONObject getVariables() {
-    if (getOwner().getDirectoryPath().equals(getDirectoryPath())) {
-      //if (variables == null) {
-      return new JSONObject(getFromVariablesStore());
-      //}
-    }
-    return getOwner().getVariables();
+    return new JSONObject(getFromVariablesStore());
   }
 
   public Object getVariable(String key) {

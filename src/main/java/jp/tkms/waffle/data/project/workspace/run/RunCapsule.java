@@ -1,26 +1,17 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.project.conductor.Conductor;
-import jp.tkms.waffle.data.project.executable.Executable;
-import jp.tkms.waffle.data.project.workspace.Registry;
 import jp.tkms.waffle.data.project.workspace.Workspace;
-import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
-import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
-import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
-import jp.tkms.waffle.script.ScriptProcessor;
-import jp.tkms.waffle.web.template.Html;
-import jp.tkms.waffle.web.template.Lte;
 import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class RunCapsule extends AbstractRun {
   public static final String CAPSULE = "CAPSULE";
@@ -31,6 +22,10 @@ public class RunCapsule extends AbstractRun {
   public RunCapsule(Workspace workspace, AbstractRun parent, Path path) {
     super(workspace, parent, path);
     instanceCache.put(getLocalDirectoryPath().toString(), this);
+  }
+
+  public static String debugReport() {
+    return RunCapsule.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
   @Override

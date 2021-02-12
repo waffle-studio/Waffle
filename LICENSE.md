@@ -4,7 +4,7 @@ WAFFLE is released under the BSD 3-Clause License.
 This text file include the licence description of WAFFLE and libraries.
 
 # Main License : WAFFLE
-Copyright (c) 2021, Waffle Developer Team
+Copyright (c) 2021, WAFFLE Developer Team
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

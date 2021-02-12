@@ -1,8 +1,10 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.data.job.JobStore;
+import jp.tkms.waffle.data.job.ExecutableRunTaskStore;
+import jp.tkms.waffle.data.job.SystemTaskStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
@@ -20,14 +22,14 @@ import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import spark.Spark;
 
 import java.io.*;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.net.*;
 import java.nio.file.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static spark.Spark.*;
@@ -43,7 +45,8 @@ public class Main {
   public static ExecutorService interfaceThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static ExecutorService systemThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static ExecutorService filesThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
-  public static JobStore jobStore = null;
+  public static SystemTaskStore systemTaskStore = null;
+  public static ExecutableRunTaskStore jobStore = null;
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
   private static Thread fileWatcherThread;
@@ -148,7 +151,13 @@ public class Main {
     fileWatcherThread.start();
 
     try {
-      jobStore = JobStore.load();
+      systemTaskStore = SystemTaskStore.load();
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
+
+    try {
+      jobStore = ExecutableRunTaskStore.load();
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
@@ -197,12 +206,12 @@ public class Main {
           } catch (InterruptedException e) {
             return;
           }
-          System.gc();
+          InstanceCache.gc();
         }
         return;
       }
     };
-    //gcInvokerThread.start();
+    gcInvokerThread.start();
 
     commandLineThread = new Thread("Waffle_CommandLine"){
       @Override

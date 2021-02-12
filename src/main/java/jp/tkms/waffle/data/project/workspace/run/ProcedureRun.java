@@ -19,6 +19,8 @@ import org.json.JSONObject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class ProcedureRun extends AbstractRun {
   public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
@@ -38,6 +40,10 @@ public class ProcedureRun extends AbstractRun {
     setConductor(conductor);
     setProcedureName(procedureName);
     registry = new Registry(getWorkspace());
+  }
+
+  public static String debugReport() {
+    return ProcedureRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
   @Override

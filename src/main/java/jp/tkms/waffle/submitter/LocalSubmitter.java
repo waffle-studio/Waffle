@@ -1,7 +1,8 @@
 package jp.tkms.waffle.submitter;
 
+import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
@@ -82,7 +83,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(Job job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
+  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(
         new FileWriter(getRunDirectory(job.getRun()) + File.separator + path)
@@ -95,7 +96,7 @@ public class LocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String getFileContents(ExecutableRun run, Path path) throws FailedToTransferFileException {
+  public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     String result = null;
     try {
       result = exec("cat " + getContentsPath(run, path));

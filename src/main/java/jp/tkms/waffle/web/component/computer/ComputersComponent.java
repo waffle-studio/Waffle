@@ -6,7 +6,7 @@ import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.util.ComputerState;
 import org.json.JSONObject;
 import spark.Spark;
@@ -198,7 +198,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     Html.a(ComputersComponent.getUrl(computer), null, null,  computer.getName()),
-                    String.valueOf(Job.getList(computer).size()),
+                    String.valueOf(ExecutableRunJob.getList(computer).size()),
                     computer.getState().getStatusBadge()
                   );
                 }));

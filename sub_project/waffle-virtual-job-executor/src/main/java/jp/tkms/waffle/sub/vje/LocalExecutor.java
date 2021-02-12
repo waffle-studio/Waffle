@@ -2,23 +2,13 @@ package jp.tkms.waffle.sub.vje;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 public class LocalExecutor extends AbstractExecutor {
   private HashMap<String, Thread> threadMap = new HashMap<>();
 
-  public LocalExecutor(int waitTime, int hesitationTime) throws IOException {
-    super(waitTime, hesitationTime);
+  public LocalExecutor(int timeout, int marginTime) throws IOException {
+    super(timeout, marginTime);
     checkJobs();
-  }
-
-  @Override
-  public void shutdown() {
-    super.shutdown();
-
-    threadMap.forEach( (k, t) -> {
-      t.interrupt();
-    });
   }
 
   @Override

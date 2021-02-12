@@ -1,8 +1,9 @@
 package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.PollingThread;
+import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
@@ -58,12 +59,12 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(Job job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
+  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
 
   }
 
   @Override
-  public String getFileContents(ExecutableRun run, Path path) throws FailedToTransferFileException {
+  public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     return null;
   }
 
@@ -112,8 +113,8 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void processJobLists(Computer computer, ArrayList<Job> createdJobList, ArrayList<Job> preparedJobList, ArrayList<Job> submittedJobList, ArrayList<Job> runningJobList, ArrayList<Job> cancelJobList) throws FailedToControlRemoteException {
-    for (Job job : cancelJobList) {
+  public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
+    for (AbstractJob job : cancelJobList) {
       try {
         cancel(job);
       } catch (RunNotFoundException e) {
@@ -132,12 +133,12 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
         if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           passableComputerList.add(targetComputer);
 
-          for (Job job : Job.getList(targetComputer)) {
+          for (AbstractJob job : getJobList(targetComputer)) {
             try {
-              ExecutableRun run = job.getRun();
+              ComputerTask run = job.getRun();
               if (run.getComputer().equals(computer)) {
-                globalFreeThread -= run.getExecutable().getRequiredThread();
-                globalFreeMemory -= run.getExecutable().getRequiredMemory();
+                globalFreeThread -= run.getRequiredThread();
+                globalFreeMemory -= run.getRequiredMemory();
               }
             } catch (RunNotFoundException e) {
             }
@@ -149,7 +150,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     int targetHostCursor = 0;
     if (globalFreeThread > 0.0 && globalFreeMemory > 0.0) {
       if (passableComputerList.size() > 0) {
-        for (Job job : createdJobList) {
+        for (AbstractJob job : createdJobList) {
           Computer targetComputer = passableComputerList.get(targetHostCursor);
 
           if (!isSubmittable(targetComputer, job)) {

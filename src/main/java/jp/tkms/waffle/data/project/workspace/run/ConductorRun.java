@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
@@ -15,6 +16,8 @@ import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class ConductorRun extends AbstractRun {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
@@ -25,6 +28,23 @@ public class ConductorRun extends AbstractRun {
   private ArchivedConductor conductor;
 
   private static final InstanceCache<String, ConductorRun> instanceCache = new InstanceCache<>();
+
+  public static String debugReport() {
+    return ConductorRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
+  }
+
+  public void start(boolean async) {
+    if (async) {
+      Main.systemThreadPool.submit(new Runnable() {
+        @Override
+        public void run() {
+          start();
+        }
+      });
+    } else {
+      start();
+    }
+  }
 
   @Override
   public void start() {

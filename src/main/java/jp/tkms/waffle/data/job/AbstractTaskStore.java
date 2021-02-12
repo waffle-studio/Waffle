@@ -1,13 +1,10 @@
 package jp.tkms.waffle.data.job;
 
-import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WaffleId;
-import jp.tkms.waffle.exception.RunNotFoundException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -15,32 +12,33 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 
-public class JobStore {
-  public static final String TASK = "TASK";
+public abstract class AbstractTaskStore<T extends AbstractJob> {
 
-  private LinkedHashMap<WaffleId, Job> jobMap;
-  private LinkedHashMap<String, ArrayList<Job>> computerJobListMap;
+  private LinkedHashMap<WaffleId, T> jobMap;
+  private LinkedHashMap<String, ArrayList<T>> computerJobListMap;
 
-  public JobStore() {
+  protected AbstractTaskStore() {
     jobMap = new LinkedHashMap<>();
     computerJobListMap = new LinkedHashMap<>();
   }
 
-  public Job getJob(WaffleId id) {
+  public T getJob(WaffleId id) {
     synchronized (jobMap) {
       return jobMap.get(id.toString());
     }
   }
 
-  public ArrayList<Job> getList() {
+  public ArrayList<T> getList() {
     synchronized (jobMap) {
       return new ArrayList<>(jobMap.values());
     }
   }
 
-  public ArrayList<Job> getList(Computer computer) {
+  public ArrayList<T> getList(Computer computer) {
     synchronized (jobMap) {
       ArrayList list = computerJobListMap.get(computer.getName());
       if (list == null) {
@@ -57,7 +55,7 @@ public class JobStore {
     }
   }
 
-  public void register(Job job) {
+  public void register(T job) {
     synchronized (jobMap) {
       jobMap.put(job.getId(), job);
       getList(job.getComputer()).add(job);
@@ -69,34 +67,33 @@ public class JobStore {
       return;
     }
     synchronized (jobMap) {
-      Job removedJob = jobMap.remove(id);
+      AbstractJob removedJob = jobMap.remove(id);
       if (removedJob != null) {
         getList(removedJob.getComputer()).remove(removedJob);
       }
     }
   }
 
-  public static JobStore load() {
+  protected static void load(AbstractTaskStore instance, Path directory, JobFactoryFunction<WaffleId, Path, String, AbstractJob> factory) {
     InfoLogMessage.issue("Loading the snapshot of job store");
-    JobStore jobStore = new JobStore();
 
     try {
-      Files.createDirectories(getDirectoryPath());
+      Files.createDirectories(directory);
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
 
-    for (File computerDir : getDirectoryPath().toFile().listFiles()) {
+    for (File computerDir : directory.toFile().listFiles()) {
       if (computerDir.isDirectory()) {
         Computer computer = Computer.getInstance(computerDir.getName());
         if (computer != null) {
           Arrays.stream(computerDir.listFiles()).sorted().forEach(file -> {
             try {
               JSONObject jsonObject = new JSONObject(Files.readString(file.toPath()));
-              WaffleId id = WaffleId.valueOf(jsonObject.getLong(Job.KEY_ID));
-              Path path = Paths.get(jsonObject.getString(Job.KEY_PATH));
+              WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTaskJob.KEY_ID));
+              Path path = Paths.get(jsonObject.getString(SystemTaskJob.KEY_PATH));
               String computerName = computerDir.getName();
-              jobStore.register(new Job(id, path, computerName));
+              instance.register(factory.apply(id, path, computerName));
             } catch (Exception e) {
               WarnLogMessage.issue(file.toPath().toString() + " is broken : " + e.getMessage());
             }
@@ -104,11 +101,10 @@ public class JobStore {
         }
       }
     }
-
-    return jobStore;
   }
 
-  public static Path getDirectoryPath() {
-    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(TASK);
+  @FunctionalInterface
+  public interface JobFactoryFunction<W, P, S, R> {
+    R apply(W id, P path, S computerName);
   }
 }

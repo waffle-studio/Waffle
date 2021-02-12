@@ -132,7 +132,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
             conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
           }
-          conductorRun.start();
+          conductorRun.start(true);
 
           response.redirect(WorkspaceComponent.getUrl(workspace.getProject(), workspace));
         }

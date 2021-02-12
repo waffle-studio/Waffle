@@ -3,6 +3,12 @@ package jp.tkms.waffle.web.component.misc;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
+import jp.tkms.waffle.data.project.workspace.run.RunCapsule;
+import jp.tkms.waffle.data.util.InstanceCache;
+import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -22,7 +28,7 @@ import static jp.tkms.waffle.web.template.Html.*;
 public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill}
+  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill, Gc}
 
   public SystemComponent(Mode mode) {
     this.mode = mode;
@@ -36,6 +42,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(Mode.DebugReport), new SystemComponent(Mode.DebugReport));
     Spark.get(getUrl(Mode.ReduceRubyContainerCache), new SystemComponent(Mode.ReduceRubyContainerCache));
     Spark.get(getUrl(Mode.Kill), new SystemComponent(Mode.Kill));
+    Spark.get(getUrl(Mode.Gc), new SystemComponent(Mode.Gc));
   }
 
   public static String getUrl() {
@@ -76,6 +83,10 @@ public class SystemComponent extends AbstractAccessControlledComponent {
         } catch (IOException e) {
           ErrorLogMessage.issue(e);
         }
+        break;
+      case Gc:
+        redirectToReferer();
+        InstanceCache.gc();
         break;
       default:
         renderSystem();
@@ -141,7 +152,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
           ,null, "card-primary", null
         ) +
         Lte.card(
-          "LICENSE : " + element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
+          "LICENSE : " + element("strong", null, "Copyright &copy; 2019 WAFFLE Developer Team"),
            null,
           element("pre", null, ResourceFile.getContents("/LICENSE.md"))
           ,null, "card-secondary", null
@@ -169,7 +180,14 @@ public class SystemComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        return Html.div(null, Html.div(null, RubyScript.debugReport(), " ", a(SystemComponent.getUrl(Mode.ReduceRubyContainerCache), "ReduceCache")) );
+        return div(null,
+          Html.div(null, Html.div(null, RubyScript.debugReport(), " ", a(SystemComponent.getUrl(Mode.ReduceRubyContainerCache), "ReduceCache")) ),
+          Html.div(null, Html.div(null, ConductorRun.debugReport()) ),
+          Html.div(null, Html.div(null, ProcedureRun.debugReport()) ),
+          Html.div(null, Html.div(null, RunCapsule.debugReport()) ),
+          Html.div(null, Html.div(null, ExecutableRun.debugReport()) ),
+          Html.div(null, Html.div(null, InstanceCache.debugReport() , " ", a(SystemComponent.getUrl(Mode.Gc), "GC")))
+          );
       }
     }.render(this);
   }

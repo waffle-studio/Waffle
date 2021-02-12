@@ -1,7 +1,7 @@
 package jp.tkms.waffle;
 
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -49,14 +49,14 @@ public class PollingThread extends Thread {
         runningSubmitterSet.add(computer);
       }
       if (submitter == null || !submitter.isConnected()) {
+        InfoLogMessage.issue(computer, "will be reconnected");
         if (submitter != null) {
           submitter.close();
         }
         try {
-          InfoLogMessage.issue(computer, "will be scanned");
           submitter = AbstractSubmitter.getInstance(computer).connect();
         } catch (Exception e) {
-          WarnLogMessage.issue(e);
+          WarnLogMessage.issue(e.getMessage());
           InfoLogMessage.issue(computer, "submitter closed");
           return;
         }
@@ -85,9 +85,9 @@ public class PollingThread extends Thread {
         }
          */
       }
-    } while (Job.getList(computer).size() > 0);
+    } while (ExecutableRunJob.getList(computer).size() > 0);
 
-    if (submitter != null && submitter.isConnected()) {
+    if (submitter != null) {
       submitter.close();
     }
     threadMap.remove(computer.getName());
@@ -99,7 +99,7 @@ public class PollingThread extends Thread {
     if (!Main.hibernateFlag) {
       for (Computer computer : Computer.getList()) {
         if (computer.getState().equals(ComputerState.Viable)) {
-          if (!threadMap.containsKey(computer.getName()) && Job.hasJob(computer)) {
+          if (!threadMap.containsKey(computer.getName()) && ExecutableRunJob.hasJob(computer)) {
             computer.update();
             if (computer.getState().equals(ComputerState.Viable)) {
               PollingThread pollingThread = new PollingThread(computer);

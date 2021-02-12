@@ -40,8 +40,12 @@ public class BrowserMessage {
   }
 
   public static void removeExpired() {
-    while (messageQueue.size() > 0 && (messageQueue.peek().timestamp + 10000) < System.currentTimeMillis()) {
-      messageQueue.poll();
+    try {
+      while (messageQueue.size() > 0 && (messageQueue.peek().timestamp + 10000) < System.currentTimeMillis()) {
+        messageQueue.poll();
+      }
+    } catch (Exception e) {
+      //NP : the case where exceptions occurs is when the DB is broken
     }
   }
 

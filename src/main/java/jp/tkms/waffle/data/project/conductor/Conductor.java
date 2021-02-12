@@ -28,7 +28,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   public static final String KEY_MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE";
   public static final String MAIN_PROCEDURE_ALIAS = "#";
 
-  private static final HashMap<String, Conductor> instanceMap = new HashMap<>();
+  private static final Map<String, Conductor> instanceMap = new WeakHashMap<>();
 
   private String name = null;
   private String defaultVariables = null;

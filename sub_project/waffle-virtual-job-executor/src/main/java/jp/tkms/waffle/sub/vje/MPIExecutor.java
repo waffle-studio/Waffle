@@ -3,8 +3,8 @@ package jp.tkms.waffle.sub.vje;
 import java.io.IOException;
 
 public class MPIExecutor extends AbstractExecutor{
-  public MPIExecutor(int waitTime, int hesitationTime) throws IOException {
-    super(waitTime, hesitationTime);
+  public MPIExecutor(int timeout, int marginTime) throws IOException {
+    super(timeout, marginTime);
     checkJobs();
   }
 }

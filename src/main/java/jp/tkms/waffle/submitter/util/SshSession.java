@@ -67,6 +67,7 @@ public class SshSession {
     int waitTime = 10;
     do {
       try {
+        if (session != null) { session.disconnect(); }
         session = jsch.getSession(username, host, port);
         session.setConfig("StrictHostKeyChecking", "no");
         session.connect();
@@ -98,10 +99,12 @@ public class SshSession {
   }
 
   public void disconnect() {
-    if (channelSftp != null && channelSftp.isConnected()) {
+    if (channelSftp != null) {
       channelSftp.disconnect();
     }
-    session.disconnect();
+    if (session != null) {
+      session.disconnect();
+    }
   }
 
   protected Channel openChannel(String type) throws JSchException {

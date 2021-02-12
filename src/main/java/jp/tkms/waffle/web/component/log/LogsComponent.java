@@ -18,7 +18,7 @@ public class LogsComponent extends AbstractAccessControlledComponent {
 
   private final String[][] quickLinkRegExps = {
     {"^Computer\\((.*)\\)", "<a href=\"/COMPUTER/$1\">Computer($1)</a>"},
-    {"^Run\\((.*/RUN)/(.*)\\)", "<a href=\"/$1/$2\">Run($2)</a>"}
+    {"^Run\\((PROJECT/)(.*?)(/WORKSPACE/)(.*?)(/RUN/)(.*)\\)", "<a href=\"/$1$2$3$4$5$6\">Run($2, $4, $6)</a>"}
   };
 
   public LogsComponent(Mode mode) {

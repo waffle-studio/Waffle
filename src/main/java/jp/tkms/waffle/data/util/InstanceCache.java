@@ -1,95 +1,70 @@
 package jp.tkms.waffle.data.util;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class InstanceCache<K,V> {
-  public static final int DEFAULT_EXPIRY_SECOND = 3600;
+public class InstanceCache<K extends Object, V extends Object> {
+  private static ArrayList<InstanceCache> cacheList = new ArrayList<>();
 
-  private HashMap<K,Instance<V>> instanceMap = new HashMap<>();
-  private Deque<K> removingQueue = new LinkedList<>();
-  private int expiry;
-
-  public InstanceCache(int expirySec) {
-    expiry = expirySec;
-  }
+  private Map<K, WeakReference<V>> map = new ConcurrentHashMap<>();
 
   public InstanceCache() {
-    this(DEFAULT_EXPIRY_SECOND);
+    cacheList.add(this);
   }
 
-  public V get(K key) {
-    synchronized (this) {
-      if (instanceMap.containsKey(key)) {
-        if (!key.equals(removingQueue.peekLast())) {
-          removingQueue.remove(key);
-          removingQueue.addLast(key);
+  public V get(Object key) {
+    if (map.containsKey(key)) {
+      return map.get(key).get();
+    }
+    return null;
+  }
+
+  public V put(K key, V value) {
+    map.put(key, new WeakReference<>(value));
+    return value;
+  }
+
+  public void remove(K key) {
+    map.remove(key);
+  }
+
+  public int size() {
+    return map.size();
+  }
+
+  public Set<K> keySet() {
+    return map.keySet();
+  }
+
+  public void removeAll(Collection<K> list) {
+    for (K key : list) {
+      remove(key);
+    }
+  }
+
+  public static void gc() {
+    System.gc();
+    ArrayList<Object> removingKeyList = new ArrayList();
+    for (InstanceCache cache : cacheList) {
+      synchronized (cache) {
+        removingKeyList.clear();
+        for (Object entry : cache.map.entrySet()) {
+          WeakReference<Object> reference = ((Map.Entry<Object, WeakReference<Object>>)entry).getValue();
+          if (reference == null || reference.get() == null) {
+            removingKeyList.add(((Map.Entry<Object, WeakReference<Object>>)entry).getKey());
+          }
         }
-        return (V) instanceMap.get(key).updateTimestamp().getEntity();
-      } else{
-        return null;
+        cache.removeAll(removingKeyList);
       }
     }
   }
 
-  public boolean put(K key, V instance) {
-    removeExpired();
-    synchronized (this) {
-      if (instanceMap.containsKey(key)) {
-        return false;
-      } else{
-        instanceMap.put(key, new Instance<>(instance));
-        return true;
-      }
+  public static String debugReport() {
+    int count = 0;
+    for (InstanceCache cache : cacheList) {
+      count += cache.size();
     }
-  }
-
-  public HashMap<K, V> getMap() {
-    synchronized (this) {
-      HashMap<K,V> map = new HashMap<>();
-      for (Map.Entry<K,Instance<V>> entry : instanceMap.entrySet()) {
-        map.put(entry.getKey(), entry.getValue().getEntity());
-      }
-      return map;
-    }
-  }
-
-  public void removeAll(Collection<K> keyList) {
-    synchronized (this) {
-      for (K key : keyList) {
-        instanceMap.remove(key);
-        removingQueue.remove(key);
-      }
-    }
-  }
-
-  private void removeExpired() {
-    synchronized (this) {
-      while (!removingQueue.isEmpty() && instanceMap.get(removingQueue.peekFirst()).isExpired()) {
-        instanceMap.remove(removingQueue.pollFirst());
-      }
-    }
-  }
-
-  class Instance<V> {
-    long lastAccess;
-    V entity;
-
-    Instance(V instance) {
-      entity = instance;
-      updateTimestamp();
-    }
-
-    Instance updateTimestamp() {
-      lastAccess = System.currentTimeMillis();
-      return this;
-    }
-
-    V getEntity() {
-      return entity;
-    }
-
-    boolean isExpired() {
-      return lastAccess + (expiry * 1000) < System.currentTimeMillis();
-    }
+    return InstanceCache.class.getSimpleName() + ": " + count;
   }
 }

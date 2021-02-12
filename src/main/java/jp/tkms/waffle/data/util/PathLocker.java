@@ -1,11 +1,15 @@
 package jp.tkms.waffle.data.util;
 
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+
 import java.io.Serializable;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.WeakHashMap;
 
-public class PathLocker implements Serializable {
+public class PathLocker {
   private static InstanceCache<String, PathLocker> lockerMap = new InstanceCache<>();
 
   private PathLocker() {
@@ -28,9 +32,9 @@ public class PathLocker implements Serializable {
 
   public static void waitAllCachedFiles() {
     HashSet<String> allKeySet = new HashSet<>();
-    for (Map.Entry<String, PathLocker> entry : lockerMap.getMap().entrySet()) {
-      synchronized (entry.getValue()) {
-        allKeySet.add(entry.getKey());
+    for (String key : lockerMap.keySet()) {
+      synchronized (getLocker(Paths.get(key))) {
+        allKeySet.add(key);
       }
     }
     lockerMap.removeAll(allKeySet);

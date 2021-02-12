@@ -60,43 +60,18 @@ public class RubyScript {
     }
   }
 
-  public static void processOld(Consumer<ScriptingContainer> process) {
-    boolean failed;
-    do {
-      synchronized (runningCount) {
-        runningCount += 1;
-      }
-      failed = false;
-      ScriptingContainer container = null;
-      try {
-        container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-        try {
-          container.runScriptlet(getInitScript());
-          process.accept(container);
-        } catch (EvalFailedException e) {
-          ErrorLogMessage.issue(e);
-        }
-        container.terminate();
-        container = null;
-      } catch (SystemCallError | LoadError e) {
-        failed = true;
-        if (! e.getMessage().matches("Unknown error")) {
-          failed = false;
-        }
-        WarnLogMessage.issue(e);
-        try { Thread.sleep(1000); } catch (InterruptedException ex) { }
-      } finally {
-        if (container != null) {
-          container.terminate();
-        }
-        synchronized (runningCount) {
-          runningCount -= 1;
-        }
-      }
-    } while (failed);
-  }
-
   public static void process(Consumer<ScriptingContainer> process) {
+    ScriptingContainerWrapper wrapper = new ScriptingContainerWrapper(process);
+    wrapper.start();
+    synchronized (wrapper) {
+      try {
+        wrapper.wait();
+      } catch (InterruptedException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    /*
     boolean failed;
     do {
       synchronized (runningCount) {
@@ -126,6 +101,7 @@ public class RubyScript {
         }
       }
     } while (failed);
+     */
   }
 
   public static String debugReport() {
@@ -134,5 +110,47 @@ public class RubyScript {
 
   public static String getInitScript() {
     return ResourceFile.getContents("/ruby_init.rb");
+  }
+
+  static class ScriptingContainerWrapper extends Thread {
+    Consumer<ScriptingContainer> process;
+
+    public ScriptingContainerWrapper(Consumer<ScriptingContainer> process) {
+      super(ScriptingContainerWrapper.class.getSimpleName());
+      this.process = process;
+    }
+
+    @Override
+    public void run() {
+      boolean failed;
+      do {
+        synchronized (runningCount) {
+          runningCount += 1;
+        }
+        failed = false;
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+        try {
+          try {
+            container.runScriptlet(getInitScript());
+            process.accept(container);
+          } catch (EvalFailedException e) {
+            ErrorLogMessage.issue(e);
+          }
+        } catch (SystemCallError | LoadError e) {
+          failed = true;
+          if (! e.getMessage().matches("Unknown error")) {
+            failed = false;
+          }
+          WarnLogMessage.issue(e);
+          try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+        } finally {
+          container.terminate();
+          container = null;
+          synchronized (runningCount) {
+            runningCount -= 1;
+          }
+        }
+      } while (failed);
+    }
   }
 }

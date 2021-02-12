@@ -2,6 +2,7 @@ package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
@@ -46,7 +47,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
   private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
 
-  private static final HashMap<String, Computer> instanceMap = new HashMap<>();
+  private static final InstanceCache<String, Computer> instanceCache = new InstanceCache<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
     SshSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class, AbciSubmitter.class
@@ -65,7 +66,7 @@ public class Computer implements DataDirectory, PropertyFile {
 
   public Computer(String name) {
     this.name = name;
-    instanceMap.put(name, this);
+    instanceCache.put(name, this);
 
     initialize();
 
@@ -98,7 +99,7 @@ public class Computer implements DataDirectory, PropertyFile {
 
   public static Computer getInstance(String name) {
     if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath().resolve(name))) {
-      Computer computer = instanceMap.get(name);
+      Computer computer = instanceCache.get(name);
       if (computer == null) {
         computer = new Computer(name);
       }

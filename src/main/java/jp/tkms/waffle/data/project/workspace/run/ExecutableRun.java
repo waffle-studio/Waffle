@@ -2,9 +2,12 @@ package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.job.AbstractJob;
+import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
@@ -12,7 +15,10 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.*;
+import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.script.ScriptProcessor;
+import jp.tkms.waffle.submitter.AbstractSubmitter;
 import jp.tkms.waffle.web.updater.RunStatusUpdater;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -23,8 +29,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
 
-public class ExecutableRun extends AbstractRun {
+public class ExecutableRun extends AbstractRun implements ComputerTask {
   public static final String EXECUTABLE_RUN = "EXECUTABLE_RUN";
   public static final String JSON_FILE = EXECUTABLE_RUN + Constants.EXT_JSON;
   public static final String PARAMETERS_JSON_FILE = "PARAMETERS" + Constants.EXT_JSON;
@@ -60,6 +68,10 @@ public class ExecutableRun extends AbstractRun {
   public ExecutableRun(Workspace workspace, RunCapsule parent, Path path) {
     super(workspace, parent, path);
     instanceCache.put(getLocalDirectoryPath().toString(), this);
+  }
+
+  public static String debugReport() {
+    return ExecutableRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
   @Override
@@ -131,7 +143,7 @@ public class ExecutableRun extends AbstractRun {
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
-    Job.addRun(this);
+    ExecutableRunJob.addRun(this);
   }
 
   @Override
@@ -163,6 +175,21 @@ public class ExecutableRun extends AbstractRun {
 
   public void setJobId(String jobId) {
     setToProperty(KEY_JOB_ID, jobId);
+  }
+
+  @Override
+  public double getRequiredThread() {
+    return getExecutable().getRequiredThread();
+  }
+
+  @Override
+  public double getRequiredMemory() {
+    return getExecutable().getRequiredMemory();
+  }
+
+  @Override
+  public String getCommand() {
+    return getExecutable().getCommand();
   }
 
   public String getJobId() {
@@ -278,6 +305,41 @@ public class ExecutableRun extends AbstractRun {
 
   public Path getBasePath() {
     return getDirectoryPath().resolve(Executable.BASE).toAbsolutePath();
+  }
+
+  @Override
+  public Path getBinPath() {
+    return getExecutable().getBaseDirectory().toAbsolutePath();
+  }
+
+  @Override
+  public Path getRemoteBinPath() {
+    return getExecutable().getLocalDirectoryPath();
+  }
+
+  @Override
+  public void specializedPreProcess(AbstractSubmitter submitter) {
+    for (String extractorName : getExecutable().getExtractorNameList()) {
+      ScriptProcessor.getProcessor(getExecutable().getScriptProcessorName()).processExtractor(submitter, this, extractorName);
+    }
+  }
+
+  @Override
+  public void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException {
+    boolean isNoException = true;
+    for (String collectorName : getExecutable().getCollectorNameList()) {
+      try {
+        ScriptProcessor.getProcessor(getExecutable().getScriptProcessorName()).processCollector(submitter, this, collectorName);
+      } catch (Exception | Error e) {
+        isNoException = false;
+        job.setState(State.Excepted);
+        appendErrorNote(LogMessage.getStackTrace(e));
+        WarnLogMessage.issue(e);
+      }
+    }
+    if (!isNoException) {
+      throw new OccurredExceptionsException();
+    }
   }
 
   public static ExecutableRun createTestRun(Executable executable, Computer computer) {
@@ -511,7 +573,7 @@ public class ExecutableRun extends AbstractRun {
 
   public JSONObject getResults() {
     //if (results == null) {
-    JSONObject results = new JSONObject(getFromResultsStore());
+    //JSONObject results = new JSONObject(getFromResultsStore());
     //}
     //return results;
     return new JSONObject(getFromResultsStore());

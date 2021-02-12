@@ -6,25 +6,66 @@ import java.nio.file.*;
 import java.util.HashSet;
 
 public abstract class AbstractExecutor {
-  protected static final String BATCH_FILE = "batch.sh";
-  public static final Path JOBS_PATH = Paths.get("jobs");
+  protected static final String BATCH_FILE = "./batch.sh";
+  public static final Path JOBS_PATH = Paths.get("JOBS");
+  public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
+  public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
 
   private WatchService fileWatchService = null;
   private HashSet<String> runningJobList = new HashSet<>();
   private Object objectLocker = new Object();
-  private int waitTime = 0;
-  private int hesitationTime = 0;
+  private int timeout = 0;
+  private int marginTime = 0;
+  private Thread aliveNotifier = new Thread() {
+    @Override
+    public void run() {
+      try {
+        Files.createDirectories(ALIVE_NOTIFIER_PATH);
+        for (File file : ALIVE_NOTIFIER_PATH.toFile().listFiles()) {
+          if (file.isFile()) {
+            file.delete();
+          }
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      long previous = update(null);
+      while (true) {
+        try {
+          sleep(1000);
+          previous = update(previous);
+        } catch (InterruptedException e) {
+          ALIVE_NOTIFIER_PATH.resolve(String.valueOf(previous)).toFile().delete();
+          return;
+        }
+      }
+    }
 
-  public AbstractExecutor(int waitTime, int hesitationTime) throws IOException {
-    this.waitTime = waitTime;
-    this.hesitationTime = hesitationTime;
+    private long update(Long previous) {
+      Long current = System.currentTimeMillis();
+      try {
+        if (previous != null) {
+          ALIVE_NOTIFIER_PATH.resolve(previous.toString()).toFile().delete();
+        }
+        ALIVE_NOTIFIER_PATH.resolve(current.toString()).toFile().createNewFile();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      return current;
+    }
+  };
+
+  public AbstractExecutor(int timeout, int marginTime) throws IOException {
+    aliveNotifier.start();
+    this.timeout = timeout;
+    this.marginTime = marginTime;
     Files.createDirectories(JOBS_PATH);
     fileWatchService = FileSystems.getDefault().newWatchService();
     JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
   }
 
   public void startPolling() {
-    Thread waitTimer = null;
+    Thread waitTimer = getWaitTimer();
     try {
       WatchKey watchKey = null;
       while ((watchKey = fileWatchService.take()) != null) {
@@ -32,27 +73,16 @@ public abstract class AbstractExecutor {
           waitTimer.interrupt();
           waitTimer = null;
         }
-        /*
+
         for (WatchEvent<?> event : watchKey.pollEvents()) {
-          Path path = (Path)watchKey.watchable();
-          System.out.println(path.toString());
+          System.out.println(event.kind().name() + " : " + event.context().toString());
         }
-         */
+
         checkJobs();
         watchKey.reset();
 
         if (runningJobList.isEmpty()) {
-          waitTimer = new Thread() {
-            @Override
-            public void run() {
-              try {
-                sleep(waitTime);
-                shutdown();
-              } catch (InterruptedException e) {
-              }
-            }
-          };
-          waitTimer.start();
+          waitTimer = getWaitTimer();
         }
       }
     } catch (InterruptedException | ClosedWatchServiceException e) {
@@ -61,6 +91,21 @@ public abstract class AbstractExecutor {
       }
       return;
     }
+  }
+
+  private Thread getWaitTimer() {
+    Thread waitTimer = new Thread() {
+      @Override
+      public void run() {
+        try {
+          sleep(timeout * 1000);
+          shutdown();
+        } catch (InterruptedException e) {
+        }
+      }
+    };
+    waitTimer.start();
+    return waitTimer;
   }
 
   public void shutdown() {
@@ -76,11 +121,11 @@ public abstract class AbstractExecutor {
 
     checkJobs();
 
-    for (int countDown = hesitationTime; countDown >= 0 && !runningJobList.isEmpty(); countDown--) {
+    for (int countDown = marginTime; countDown >= 0 && !runningJobList.isEmpty(); countDown--) {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        //NP
       }
     }
 
@@ -91,6 +136,12 @@ public abstract class AbstractExecutor {
         runningJobList.remove(jobName);
       }
     }
+
+    if (Main.shutdownTimer != null && Main.shutdownTimer.isAlive()) {
+      Main.shutdownTimer.interrupt();
+    }
+
+    aliveNotifier.interrupt();
   }
 
   protected void checkJobs() {
@@ -141,14 +192,17 @@ public abstract class AbstractExecutor {
         }
 
         try {
-          process = new ProcessBuilder().directory(Paths.get("..").resolve("..").resolve(jobName).toFile())
+          process = new ProcessBuilder().directory(Paths.get(Files.readString(JOBS_PATH.resolve(jobName)).trim()).toFile())
             .command(BATCH_FILE).start();
           process.waitFor();
         } catch (Exception e) {
           System.err.println("'" + jobName + "' was failed to execute.");
+          e.printStackTrace();
         }
 
         jobFinished(jobName);
+
+        System.err.println("'" + jobName + "' finished");
       }
 
       @Override
@@ -156,6 +210,7 @@ public abstract class AbstractExecutor {
         isCanceled = true;
         if (process != null) {
           process.destroyForcibly();
+          System.err.println("'" + jobName + "' canceled.");
         }
       }
     };
