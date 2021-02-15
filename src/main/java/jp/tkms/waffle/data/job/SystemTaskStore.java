@@ -12,7 +12,12 @@ public class SystemTaskStore extends AbstractTaskStore<SystemTaskJob> {
 
   public static SystemTaskStore load() {
     SystemTaskStore instance = new SystemTaskStore();
-    load(instance, getDirectoryPath(), (i, p, c)-> new SystemTaskJob(i, p, c));
+    load(instance, getDirectoryPath(), (p)->{
+      if (!p.toFile().isDirectory()) {
+        return null;
+      }
+      return p.resolve(SystemTaskJob.JSON_FILE);
+    }, (i, p, c)-> new SystemTaskJob(i, p, c));
     return instance;
   }
 

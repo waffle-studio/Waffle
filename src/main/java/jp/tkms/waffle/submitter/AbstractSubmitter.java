@@ -350,7 +350,7 @@ abstract public class AbstractSubmitter {
   }
 
   void processXdel(AbstractJob job, String json) throws RunNotFoundException {
-    // nothing to do
+    // nothing to do because the xdel does not need processing of its outputs currently
   }
 
   Path getContentsPath(ComputerTask run, Path path) throws FailedToControlRemoteException {

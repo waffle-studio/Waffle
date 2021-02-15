@@ -3,6 +3,7 @@ package jp.tkms.waffle.data.job;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.internal.SystemTaskRun;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class SystemTaskJob extends AbstractJob {
+  public static final String JSON_FILE = "TASK" + Constants.EXT_JSON;
 
   public SystemTaskJob(Path path, Computer computer) {
     this(WaffleId.newId(), path, computer.getName());
@@ -45,7 +47,7 @@ public class SystemTaskJob extends AbstractJob {
     return getList().size();
   }
 
-  public static void addRun(ExecutableRun run) {
+  public static void addRun(SystemTaskRun run) {
     SystemTaskJob job = new SystemTaskJob(run.getLocalDirectoryPath(), run.getComputer());
     Main.systemTaskStore.register(job);
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
@@ -68,7 +70,7 @@ public class SystemTaskJob extends AbstractJob {
   @Override
   public void setState(State state) throws RunNotFoundException {
     super.setState(state);
-    ExecutableRun run = getRun();
+    SystemTaskRun run = getRun();
     if (run != null) {
       switch (state) {
         case Canceled:
@@ -92,12 +94,12 @@ public class SystemTaskJob extends AbstractJob {
   }
 
   @Override
-  public ExecutableRun getRun() throws RunNotFoundException {
-    return ExecutableRun.getInstance(getPath().toString());
+  public SystemTaskRun getRun() throws RunNotFoundException {
+    return SystemTaskRun.getInstance(getPath().toString());
   }
 
   @Override
   public Path getPropertyStorePath() {
-    return SystemTaskStore.getDirectoryPath().resolve(getComputerName()).resolve(getId().getId() + Constants.EXT_JSON);
+    return SystemTaskStore.getDirectoryPath().resolve(getComputerName()).resolve(getId().getId() + "").resolve(JSON_FILE);
   }
 }

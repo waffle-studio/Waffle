@@ -8,6 +8,7 @@ import java.util.HashSet;
 public abstract class AbstractExecutor {
   protected static final String BATCH_FILE = "./batch.sh";
   public static final Path JOBS_PATH = Paths.get("JOBS");
+  public static final Path ENTITIES_PATH = Paths.get("ENTITIES");
   public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
 
@@ -111,6 +112,12 @@ public abstract class AbstractExecutor {
   public void shutdown() {
     System.err.println("Executor will shutdown");
 
+    try {
+      Files.createFile(LOCKOUT_FILE_PATH);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
     synchronized (objectLocker) {
       try {
         fileWatchService.close();
@@ -168,13 +175,19 @@ public abstract class AbstractExecutor {
 
   protected void jobRemoved(String jobName) {
     System.out.println("'" + jobName + "' was forcibly removed");
+    try {
+      Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
+      Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+    } catch (IOException e) {
+    }
   }
 
   protected void jobFinished(String jobName) {
     synchronized (objectLocker) {
       runningJobList.remove(jobName);
       try {
-        Files.delete(JOBS_PATH.resolve(jobName));
+        Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
+        Files.deleteIfExists(JOBS_PATH.resolve(jobName));
       } catch (IOException e) {
       }
     }
@@ -192,7 +205,7 @@ public abstract class AbstractExecutor {
         }
 
         try {
-          process = new ProcessBuilder().directory(Paths.get(Files.readString(JOBS_PATH.resolve(jobName)).trim()).toFile())
+          process = new ProcessBuilder().directory(Paths.get(Files.readString(ENTITIES_PATH.resolve(jobName)).trim()).toFile())
             .command(BATCH_FILE).start();
           process.waitFor();
         } catch (Exception e) {

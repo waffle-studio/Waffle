@@ -23,6 +23,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
+  private static final String KEY_NUMBER_OF_CALCULATION_NODE = "number_of_calculation_node";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ENVIRONMENTS = "environments";
   public enum Mode {Default, New, Update}
@@ -268,6 +269,8 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
                 "Maximum number of threads", "", computer.getMaximumNumberOfThreads().toString(), errors),
               Lte.formInputGroup("text", KEY_ALLOCABLE_MEMORY,
                 "Allocable memory size (GB)", "", computer.getAllocableMemorySize().toString(), errors),
+              Lte.formInputGroup("text", KEY_NUMBER_OF_CALCULATION_NODE,
+                "Number of calculation node", "", computer.getNumberOfCalculationNode().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", computer.getPollingInterval().toString(), errors),
               Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", computer.getEnvironments().toString(), null),
@@ -287,6 +290,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
     computer.setMaximumNumberOfThreads(Double.parseDouble(request.queryParams(KEY_MAX_THREADS)));
     computer.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));
+    computer.setNumberOfCalculationNode(Integer.parseInt(request.queryParams(KEY_NUMBER_OF_CALCULATION_NODE)));
     computer.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
     computer.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
     computer.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));

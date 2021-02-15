@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile, Serializable {
+abstract public class AbstractRun extends WorkspaceData implements DataDirectory, PropertyFile {
   public static final String RUN = "RUN";
   public static final String KEY_NOTE_TXT = "NOTE.txt";
   public static final String KEY_ERROR_NOTE_TXT = "ERROR_NOTE.txt";

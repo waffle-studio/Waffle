@@ -74,7 +74,7 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
     }
   }
 
-  protected static void load(AbstractTaskStore instance, Path directory, JobFactoryFunction<WaffleId, Path, String, AbstractJob> factory) {
+  protected static void load(AbstractTaskStore instance, Path directory, PathConvertorFunction<Path, Path> pathConvertor, JobFactoryFunction<WaffleId, Path, String, AbstractJob> factory) {
     InfoLogMessage.issue("Loading the snapshot of job store");
 
     try {
@@ -89,11 +89,14 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
         if (computer != null) {
           Arrays.stream(computerDir.listFiles()).sorted().forEach(file -> {
             try {
-              JSONObject jsonObject = new JSONObject(Files.readString(file.toPath()));
-              WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTaskJob.KEY_ID));
-              Path path = Paths.get(jsonObject.getString(SystemTaskJob.KEY_PATH));
-              String computerName = computerDir.getName();
-              instance.register(factory.apply(id, path, computerName));
+              Path jsonPath = pathConvertor.apply(file.toPath());
+              if (jsonPath != null) {
+                JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
+                WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTaskJob.KEY_ID));
+                Path path = Paths.get(jsonObject.getString(SystemTaskJob.KEY_PATH));
+                String computerName = computerDir.getName();
+                instance.register(factory.apply(id, path, computerName));
+              }
             } catch (Exception e) {
               WarnLogMessage.issue(file.toPath().toString() + " is broken : " + e.getMessage());
             }
@@ -106,5 +109,10 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
   @FunctionalInterface
   public interface JobFactoryFunction<W, P, S, R> {
     R apply(W id, P path, S computerName);
+  }
+
+  @FunctionalInterface
+  public interface PathConvertorFunction<C, P> {
+    C apply(P path);
   }
 }

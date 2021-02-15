@@ -38,6 +38,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
+  private static final String KEY_NUMBER_OF_CALCULATION_NODE = "number_of_calculation_node";
   private static final String KEY_SUBMITTER = "submitter";
   private static final String KEY_ENCRYPT_KEY = "encrypt_key";
   private static final String KEY_PARAMETERS = "parameters";
@@ -50,7 +51,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final InstanceCache<String, Computer> instanceCache = new InstanceCache<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
-    SshSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class, AbciSubmitter.class
+    SshSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class, AbciSubmitter.class, WrappedSshSubmitter.class
   ));
 
   private String name;
@@ -61,6 +62,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private Integer pollingInterval = null;
   private Double maximumNumberOfThreads = null;
   private Double allocableMemorySize = null;
+  private Integer numberOfCalculationNode = null;
   private JSONObject parameters = null;
   private JSONObject xsubTemplate = null;
 
@@ -78,6 +80,7 @@ public class Computer implements DataDirectory, PropertyFile {
         pollingInterval = null;
         maximumNumberOfThreads = null;
         allocableMemorySize = null;
+        numberOfCalculationNode = null;
         parameters = null;
         xsubTemplate = null;
         reloadPropertyStore();
@@ -143,6 +146,7 @@ public class Computer implements DataDirectory, PropertyFile {
     if (getMaximumNumberOfThreads() == null) { setMaximumNumberOfThreads(1.0); }
     if (getAllocableMemorySize() == null) { setAllocableMemorySize(1.0); }
     if (getPollingInterval() == null) { setPollingInterval(10); }
+    if (getNumberOfCalculationNode() == null) { setNumberOfCalculationNode(1); }
   }
 
   public static ArrayList<Computer> getViableList() {
@@ -396,6 +400,22 @@ public class Computer implements DataDirectory, PropertyFile {
     synchronized (this) {
       setToProperty(KEY_ALLOCABLE_MEMORY, allocableMemorySize);
       this.allocableMemorySize = allocableMemorySize;
+    }
+  }
+
+  public Integer getNumberOfCalculationNode() {
+    synchronized (this) {
+      if (numberOfCalculationNode == null) {
+        numberOfCalculationNode = getIntFromProperty(KEY_NUMBER_OF_CALCULATION_NODE);
+      }
+      return numberOfCalculationNode;
+    }
+  }
+
+  public void setNumberOfCalculationNode(Integer numberOfCalculationNode) {
+    synchronized (this) {
+      setToProperty(KEY_NUMBER_OF_CALCULATION_NODE, numberOfCalculationNode);
+      this.numberOfCalculationNode = numberOfCalculationNode;
     }
   }
 
