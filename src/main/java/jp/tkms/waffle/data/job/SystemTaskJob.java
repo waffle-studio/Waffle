@@ -17,8 +17,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class SystemTaskJob extends AbstractJob {
-  public static final String JSON_FILE = "TASK" + Constants.EXT_JSON;
-
   public SystemTaskJob(Path path, Computer computer) {
     this(WaffleId.newId(), path, computer.getName());
   }
@@ -54,6 +52,11 @@ public class SystemTaskJob extends AbstractJob {
   }
 
   @Override
+  public void setJobId(String jobId) throws RunNotFoundException {
+    super.setJobId(jobId);
+  }
+
+  @Override
   public void remove() {
     Main.systemTaskStore.remove(getId());
     try {
@@ -78,6 +81,7 @@ public class SystemTaskJob extends AbstractJob {
         case Failed:
         case Finished:
           run.finish();
+          run.setState(state);
           break;
         default:
           run.setState(state);
@@ -100,6 +104,6 @@ public class SystemTaskJob extends AbstractJob {
 
   @Override
   public Path getPropertyStorePath() {
-    return SystemTaskStore.getDirectoryPath().resolve(getComputerName()).resolve(getId().getId() + "").resolve(JSON_FILE);
+    return SystemTaskStore.getDirectoryPath().resolve(getComputerName()).resolve(getId().getId() + Constants.EXT_JSON);
   }
 }

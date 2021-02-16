@@ -61,6 +61,7 @@ public abstract class AbstractExecutor {
     this.timeout = timeout;
     this.marginTime = marginTime;
     Files.createDirectories(JOBS_PATH);
+    Files.createDirectories(ENTITIES_PATH);
     fileWatchService = FileSystems.getDefault().newWatchService();
     JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
   }
@@ -206,7 +207,7 @@ public abstract class AbstractExecutor {
 
         try {
           process = new ProcessBuilder().directory(Paths.get(Files.readString(ENTITIES_PATH.resolve(jobName)).trim()).toFile())
-            .command(BATCH_FILE).start();
+            .command("sh", BATCH_FILE).start();
           process.waitFor();
         } catch (Exception e) {
           System.err.println("'" + jobName + "' was failed to execute.");

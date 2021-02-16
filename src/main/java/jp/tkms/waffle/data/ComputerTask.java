@@ -16,8 +16,8 @@ public interface ComputerTask extends DataDirectory {
   Computer getComputer();
   String getJobId();
   void setJobId(String id);
-  double getRequiredThread();
-  double getRequiredMemory();
+  Double getRequiredThread();
+  Double getRequiredMemory();
   String getCommand();
   boolean isRunning();
   void setRemoteWorkingDirectoryLog(String pathString);

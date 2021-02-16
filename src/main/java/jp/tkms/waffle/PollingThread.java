@@ -2,6 +2,7 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.ExecutableRunJob;
+import jp.tkms.waffle.data.job.SystemTaskJob;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -85,7 +86,7 @@ public class PollingThread extends Thread {
         }
          */
       }
-    } while (ExecutableRunJob.getList(computer).size() > 0);
+    } while (ExecutableRunJob.getList(computer).size() + SystemTaskJob.getList(computer).size() > 0);
 
     if (submitter != null) {
       submitter.close();
@@ -99,7 +100,7 @@ public class PollingThread extends Thread {
     if (!Main.hibernateFlag) {
       for (Computer computer : Computer.getList()) {
         if (computer.getState().equals(ComputerState.Viable)) {
-          if (!threadMap.containsKey(computer.getName()) && ExecutableRunJob.hasJob(computer)) {
+          if (!threadMap.containsKey(computer.getName()) && (ExecutableRunJob.hasJob(computer) || SystemTaskJob.hasJob(computer))) {
             computer.update();
             if (computer.getState().equals(ComputerState.Viable)) {
               PollingThread pollingThread = new PollingThread(computer);

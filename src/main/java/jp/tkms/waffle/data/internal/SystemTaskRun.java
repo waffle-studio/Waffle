@@ -1,35 +1,22 @@
 package jp.tkms.waffle.data.internal;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.job.SystemTaskJob;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;
-import jp.tkms.waffle.data.project.workspace.Workspace;
-import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
-import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
-import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
-import jp.tkms.waffle.data.project.workspace.run.RunCapsule;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
-import jp.tkms.waffle.web.updater.RunStatusUpdater;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,8 +25,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile {
-  public static final String EXECUTABLE_RUN = "EXECUTABLE_RUN";
-  public static final String JSON_FILE = EXECUTABLE_RUN + Constants.EXT_JSON;
+  public static final String SYSTEM_TASK_RUN = "SYSTEM_TASK_RUN";
+  public static final String JSON_FILE = SYSTEM_TASK_RUN + Constants.EXT_JSON;
   public static final String PARAMETERS_JSON_FILE = "PARAMETERS" + Constants.EXT_JSON;
   public static final String RESULTS_JSON_FILE = "RESULTS" + Constants.EXT_JSON;
   public static final String ARGUMENTS_JSON_FILE = "ARGUMENTS" + Constants.EXT_JSON;
@@ -72,6 +59,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   private static final InstanceCache<String, SystemTaskRun> instanceCache = new InstanceCache<>();
 
   public SystemTaskRun(Path path) {
+    System.out.println(path);
     this.path = path;
     instanceCache.put(getLocalDirectoryPath().toString(), this);
   }
@@ -80,14 +68,15 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     return SystemTaskRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
+  JSONObject jsonObject = null;
   @Override
   public JSONObject getPropertyStoreCache() {
-    return null;
+    return jsonObject;
   }
 
   @Override
   public void setPropertyStoreCache(JSONObject cache) {
-
+    jsonObject = cache;
   }
 
   @Override
@@ -157,22 +146,22 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     setToProperty(KEY_JOB_ID, jobId);
   }
 
-  public void setRequiredThread(int requiredThread) {
+  public void setRequiredThread(double requiredThread) {
     setToProperty(KEY_REQUIRED_THREAD, requiredThread);
   }
 
-  public void setRequiredMemory(int requiredMemory) {
+  public void setRequiredMemory(double requiredMemory) {
     setToProperty(KEY_REQUIRED_MEMORY, requiredMemory);
   }
 
   @Override
-  public double getRequiredThread() {
-    return getIntFromProperty(KEY_REQUIRED_THREAD);
+  public Double getRequiredThread() {
+    return getDoubleFromProperty(KEY_REQUIRED_THREAD);
   }
 
   @Override
-  public double getRequiredMemory() {
-    return getIntFromProperty(KEY_REQUIRED_MEMORY);
+  public Double getRequiredMemory() {
+    return getDoubleFromProperty(KEY_REQUIRED_MEMORY);
   }
 
   public void setCommand(String command) {
@@ -234,6 +223,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   public void setState(State state) {
+    setToProperty(KEY_STATE, state.ordinal());
 
     switch (state) {
       case Submitted:
@@ -277,7 +267,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   @Override
   public Path getRemoteBinPath() {
-    return getLocalDirectoryPath().resolve(BASE);
+    return Constants.WORK_DIR.relativize(getBinPath().toAbsolutePath());
   }
 
   @Override

@@ -78,6 +78,7 @@ public class ExecutableRunJob extends AbstractJob {
         case Failed:
         case Finished:
           run.finish();
+          run.setState(state);
           break;
         default:
           run.setState(state);

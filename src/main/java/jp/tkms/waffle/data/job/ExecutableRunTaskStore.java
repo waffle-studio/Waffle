@@ -13,12 +13,7 @@ public class ExecutableRunTaskStore extends AbstractTaskStore<ExecutableRunJob> 
 
   public static ExecutableRunTaskStore load() {
     ExecutableRunTaskStore instance = new ExecutableRunTaskStore();
-    load(instance, getDirectoryPath(), (p)-> {
-      if (p.toFile().isDirectory()) {
-        return null;
-      }
-      return p;
-    }, (i, p, c)-> new ExecutableRunJob(i, p, c));
+    load(instance, getDirectoryPath(), (i, p, c)-> new ExecutableRunJob(i, p, c));
     return instance;
   }
 

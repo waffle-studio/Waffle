@@ -178,12 +178,12 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   }
 
   @Override
-  public double getRequiredThread() {
+  public Double getRequiredThread() {
     return getExecutable().getRequiredThread();
   }
 
   @Override
-  public double getRequiredMemory() {
+  public Double getRequiredMemory() {
     return getExecutable().getRequiredMemory();
   }
 

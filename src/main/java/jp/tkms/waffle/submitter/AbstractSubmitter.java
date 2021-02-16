@@ -569,7 +569,7 @@ abstract public class AbstractSubmitter {
           submit(job);
           submittedJobListForAggregation.add(job);
         }
-      } catch (WaffleException e) {
+      } catch (NullPointerException | WaffleException e) {
         WarnLogMessage.issue(e);
         try {
           job.setState(State.Excepted);
