@@ -54,7 +54,8 @@ public class ArchivedExecutable extends Executable implements HasWorkspace, Arch
   }
 
   public static ArchivedExecutable getInstance(Workspace workspace, String name) {
-    return getInstance(workspace, name.replaceFirst("-.+?$", ""), WaffleId.valueOf(name.replaceFirst("^.+-", "")));
+    int separatorIndex = name.lastIndexOf('-');
+    return getInstance(workspace, name.substring(0, separatorIndex), WaffleId.valueOf(name.substring(separatorIndex +1)));
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name, WaffleId id) {

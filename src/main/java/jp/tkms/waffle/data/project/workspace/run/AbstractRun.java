@@ -170,6 +170,27 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     return responsible;
   }
 
+  public ArrayList<ExecutableRun> getChildrenExecutableRunList() {
+    ArrayList<ExecutableRun> childExecutableRunList = new ArrayList<>();
+
+    if (getArrayFromProperty(KEY_CHILDREN_RUN) == null) {
+      putNewArrayToProperty(KEY_CHILDREN_RUN);
+    }
+
+    for (Object childName  : getArrayFromProperty(KEY_CHILDREN_RUN).toList()) {
+      try {
+        AbstractRun childRun = AbstractRun.getInstance(getWorkspace(), getLocalDirectoryPath().resolve(childName.toString()).toString());
+        if (childRun instanceof ExecutableRun) {
+          childExecutableRunList.add((ExecutableRun) childRun);
+        }
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    return childExecutableRunList;
+  }
+
   public void registerChildRun(AbstractRun abstractRun) {
     if (getArrayFromProperty(KEY_CHILDREN_RUN) == null) {
       putNewArrayToProperty(KEY_CHILDREN_RUN);
@@ -341,7 +362,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     for (String localPath : getFinalizers()) {
       ProcedureRun finalizer = ProcedureRun.getInstance(getWorkspace(), localPath);
       finalizer.updateResponsible();
-      finalizer.start();
+      finalizer.start(this);
     }
   }
 

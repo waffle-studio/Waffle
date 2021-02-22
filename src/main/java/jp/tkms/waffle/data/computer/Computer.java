@@ -2,6 +2,7 @@ package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.data.DataDirectory;
@@ -38,7 +39,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
-  private static final String KEY_NUMBER_OF_CALCULATION_NODE = "number_of_calculation_node";
+  private static final String KEY_MAX_JOBS = "maximum_jobs";
   private static final String KEY_SUBMITTER = "submitter";
   private static final String KEY_ENCRYPT_KEY = "encrypt_key";
   private static final String KEY_PARAMETERS = "parameters";
@@ -51,7 +52,13 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final InstanceCache<String, Computer> instanceCache = new InstanceCache<>();
 
   public static final ArrayList<Class<AbstractSubmitter>> submitterTypeList = new ArrayList(Arrays.asList(
-    SshSubmitter.class, LocalSubmitter.class, RoundRobinSubmitter.class, AbciSubmitter.class, WrappedSshSubmitter.class
+    JobNumberLimitedSshSubmitter.class,
+    ThreadAndMemoryLimitedSshSubmitter.class,
+    JobNumberLimitedLocalSubmitter.class,
+    MultiComputerSubmitter.class,
+    LoadBalancingSubmitter.class,
+    AbciSubmitter.class,
+    WrappedSshSubmitter.class
   ));
 
   private String name;
@@ -62,7 +69,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private Integer pollingInterval = null;
   private Double maximumNumberOfThreads = null;
   private Double allocableMemorySize = null;
-  private Integer numberOfCalculationNode = null;
+  private Integer maximumNumberOfJobs = null;
   private JSONObject parameters = null;
   private JSONObject xsubTemplate = null;
 
@@ -80,7 +87,7 @@ public class Computer implements DataDirectory, PropertyFile {
         pollingInterval = null;
         maximumNumberOfThreads = null;
         allocableMemorySize = null;
-        numberOfCalculationNode = null;
+        maximumNumberOfJobs = null;
         parameters = null;
         xsubTemplate = null;
         reloadPropertyStore();
@@ -146,7 +153,7 @@ public class Computer implements DataDirectory, PropertyFile {
     if (getMaximumNumberOfThreads() == null) { setMaximumNumberOfThreads(1.0); }
     if (getAllocableMemorySize() == null) { setAllocableMemorySize(1.0); }
     if (getPollingInterval() == null) { setPollingInterval(10); }
-    if (getNumberOfCalculationNode() == null) { setNumberOfCalculationNode(1); }
+    if (getMaximumNumberOfJobs() == null) { setMaximumNumberOfJobs(1); }
   }
 
   public static ArrayList<Computer> getViableList() {
@@ -199,8 +206,8 @@ public class Computer implements DataDirectory, PropertyFile {
         message = message.replaceFirst("java\\.io\\.FileNotFoundException: ", "");
         setState(ComputerState.KeyNotFound);
       } else if (message.startsWith("invalid privatekey: ")) {
-        if (getParameters().keySet().contains(SshSubmitter.KEY_IDENTITY_FILE)) {
-          String keyPath = getParameters().getString(SshSubmitter.KEY_IDENTITY_FILE);
+        if (getParameters().keySet().contains(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE)) {
+          String keyPath = getParameters().getString(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE);
           if (keyPath.indexOf('~') == 0) {
             keyPath = keyPath.replaceFirst("^~", System.getProperty("user.home"));
           }
@@ -403,19 +410,19 @@ public class Computer implements DataDirectory, PropertyFile {
     }
   }
 
-  public Integer getNumberOfCalculationNode() {
+  public Integer getMaximumNumberOfJobs() {
     synchronized (this) {
-      if (numberOfCalculationNode == null) {
-        numberOfCalculationNode = getIntFromProperty(KEY_NUMBER_OF_CALCULATION_NODE);
+      if (maximumNumberOfJobs == null) {
+        maximumNumberOfJobs = getIntFromProperty(KEY_MAX_JOBS);
       }
-      return numberOfCalculationNode;
+      return maximumNumberOfJobs;
     }
   }
 
-  public void setNumberOfCalculationNode(Integer numberOfCalculationNode) {
+  public void setMaximumNumberOfJobs(Integer maximumNumberOfJobs) {
     synchronized (this) {
-      setToProperty(KEY_NUMBER_OF_CALCULATION_NODE, numberOfCalculationNode);
-      this.numberOfCalculationNode = numberOfCalculationNode;
+      setToProperty(KEY_MAX_JOBS, maximumNumberOfJobs);
+      this.maximumNumberOfJobs = maximumNumberOfJobs;
     }
   }
 
@@ -469,7 +476,7 @@ public class Computer implements DataDirectory, PropertyFile {
         }
         parameters = getXsubParametersTemplate();
         try {
-          JSONObject jsonObject = AbstractSubmitter.getInstance(this).getDefaultParameters(this);
+          JSONObject jsonObject = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, this).getDefaultParameters(this);
           for (String key : jsonObject.toMap().keySet()) {
             parameters.put(key, jsonObject.getJSONObject(key));
           }
@@ -587,7 +594,7 @@ public class Computer implements DataDirectory, PropertyFile {
   public static void initializeWorkDirectory() {
     Data.initializeWorkDirectory();
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
-      Computer computer = create(KEY_LOCAL, LocalSubmitter.class.getCanonicalName());
+      Computer computer = create(KEY_LOCAL, JobNumberLimitedLocalSubmitter.class.getCanonicalName());
       Path xsubPath = Constants.WORK_DIR.resolve("xsub");
       if (! Files.exists(xsubPath)) {
         ResourceFile.unzip("/xsub.zip", Constants.WORK_DIR);

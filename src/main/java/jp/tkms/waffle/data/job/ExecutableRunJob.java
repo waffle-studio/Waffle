@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -90,7 +91,10 @@ public class ExecutableRunJob extends AbstractJob {
   public void replaceComputer(Computer computer) throws RunNotFoundException {
     getRun().setActualComputer(computer);
     Main.jobStore.remove(getId());
+    String jsonString = StringFileUtil.read(getPropertyStorePath());
+    remove();
     setComputerName(computer);
+    StringFileUtil.write(getPropertyStorePath(), jsonString);
     Main.jobStore.register(this);
   }
 

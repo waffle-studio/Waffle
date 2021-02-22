@@ -19,6 +19,8 @@ import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
 import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
 import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import org.slf4j.impl.SimpleLogger;
+import org.slf4j.impl.SimpleLoggerConfiguration;
 import spark.Spark;
 
 import java.io.*;
@@ -60,6 +62,10 @@ public class Main {
     //NOTE: for https://bugs.openjdk.java.net/browse/JDK-8246714
     URLConnection.setDefaultUseCaches("classloader", false);
     URLConnection.setDefaultUseCaches("jar", false);
+
+    //NOTE: for including slf4j to jar file
+    SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
+
 
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
     DATE_FORMAT_FOR_WAFFLE_ID.setTimeZone(TimeZone.getTimeZone("GMT+9"));

@@ -13,11 +13,14 @@ import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.submitter.WrappedSshSubmitter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,6 +50,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
   private static final String KEY_STATE = "state";
   private static final String BASE = "BASE";
+  private static final String KEY_CLASS = "class";
 
   private Path path;
   private Computer computer = null;
@@ -59,9 +63,9 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   private static final InstanceCache<String, SystemTaskRun> instanceCache = new InstanceCache<>();
 
   public SystemTaskRun(Path path) {
-    System.out.println(path);
     this.path = path;
     instanceCache.put(getLocalDirectoryPath().toString(), this);
+    setToProperty(KEY_CLASS, getClass().getName());
   }
 
   public static String debugReport() {
@@ -113,7 +117,29 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
     if (Files.exists(jsonPath)) {
       try {
-        instance = new SystemTaskRun(jsonPath.getParent());
+        Class<SystemTaskRun> clazz = SystemTaskRun.class;
+        try {
+          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
+          String className = jsonObject.getString(KEY_CLASS);
+          clazz = (Class<SystemTaskRun>) Class.forName(className);
+        } catch (ClassNotFoundException e) {
+          ErrorLogMessage.issue(e);
+        }
+
+        Constructor<SystemTaskRun> constructor;
+        try {
+          constructor = clazz.getConstructor(Path.class);
+        } catch (SecurityException | NoSuchMethodException e) {
+          ErrorLogMessage.issue(e);
+          return null;
+        }
+
+        try {
+          instance = constructor.newInstance(jsonPath.getParent());
+        } catch (IllegalArgumentException | ReflectiveOperationException e) {
+          ErrorLogMessage.issue(e);
+          return null;
+        }
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }

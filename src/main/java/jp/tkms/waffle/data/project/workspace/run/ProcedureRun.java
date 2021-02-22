@@ -48,18 +48,25 @@ public class ProcedureRun extends AbstractRun {
 
   @Override
   public void start() {
-    start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL);
+    start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, null);
   }
 
-  public void start(ScriptProcessor.ProcedureMode mode) {
+  public void start(AbstractRun caller) {
+    start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, caller);
+  }
+
+  public void start(ScriptProcessor.ProcedureMode mode, AbstractRun caller) {
     started();
     setState(State.Running);
     getResponsible().registerChildActiveRun(this);
+    if (caller == null) {
+      caller = this;
+    }
     if (conductor != null) {
       if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
-        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, conductor.getMainProcedureScript());
+        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, caller, conductor.getMainProcedureScript());
       } else {
-        ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, conductor.getChildProcedureScript(procedureName));
+        ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, caller, conductor.getChildProcedureScript(procedureName));
       }
     }
     if (getChildrenRunSize() <= 0) {

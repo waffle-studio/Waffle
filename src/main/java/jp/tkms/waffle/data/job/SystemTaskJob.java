@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.internal.SystemTaskRun;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -48,7 +49,8 @@ public class SystemTaskJob extends AbstractJob {
   public static void addRun(SystemTaskRun run) {
     SystemTaskJob job = new SystemTaskJob(run.getLocalDirectoryPath(), run.getComputer());
     Main.systemTaskStore.register(job);
-    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
+    //System.out.println(job.getPropertyStorePath().toString());
+    //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
   }
 
   @Override
@@ -93,7 +95,10 @@ public class SystemTaskJob extends AbstractJob {
   public void replaceComputer(Computer computer) throws RunNotFoundException {
     getRun().setActualComputer(computer);
     Main.systemTaskStore.remove(getId());
+    String jsonString = StringFileUtil.read(getPropertyStorePath());
+    remove();
     setComputerName(computer);
+    StringFileUtil.write(getPropertyStorePath(), jsonString);
     Main.systemTaskStore.register(this);
   }
 

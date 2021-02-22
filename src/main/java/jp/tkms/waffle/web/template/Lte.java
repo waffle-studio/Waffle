@@ -112,7 +112,7 @@ public class Lte {
 
 
   public static String formDataEditorGroup(String name, String label, String type,
-                                         String contents, ArrayList<FormError> errors) {
+                                         String contents, String snippetScript, ArrayList<FormError> errors) {
     String id = "input" + name;
     return div("form-group",
       (label != null ?
@@ -121,12 +121,18 @@ public class Lte {
         new Attributes(
           value("class", "form-control"),
           value("data-editor", type),
+          value("data-snippet", snippetScript),
           value("name", name),
           value("id", id)
         )
         , contents
       )
     );
+  }
+
+  public static String formDataEditorGroup(String name, String label, String type,
+                                           String contents, ArrayList<FormError> errors) {
+    return formDataEditorGroup(name, label, type, contents, "", errors);
   }
 
   public static String formJsonEditorGroup(String name, String label, String mode,

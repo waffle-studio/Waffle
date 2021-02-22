@@ -142,6 +142,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "  $('textarea[data-editor]').each(function() {\n" +
               "    var textarea = $(this);\n" +
               "    var mode = textarea.data('editor');\n" +
+              "    var snippetScript = textarea.data('snippet');\n" +
               "    var editDiv = $('<div>', {\n" +
               "      position: 'absolute',\n" +
               "      width: '100%',\n" +
@@ -155,9 +156,9 @@ abstract public class MainTemplate extends AbstractTemplate {
               "    editor.getSession().setMode(\"ace/mode/\" + mode);\n" +
               "    editor.setTheme(\"ace/theme/textmate\");\n" +
               "    editor.setOptions({enableBasicAutocompletion: true, enableSnippets: true, enableLiveAutocompletion: true, maxLines: Infinity});\n" +
-              "ace.config.loadModule('ace/snippets/snippets', function () {\n" +
+              "    ace.config.loadModule('ace/snippets/snippets', function () {\n" +
               "        var snippetManager = ace.require('ace/snippets').snippetManager; \n" +
-              "        ace.config.loadModule('ace/snippets/ruby', function(m) {\n" +
+              "        ace.config.loadModule('ace/snippets/' + mode, function(m) {\n" +
               "            if (m) { \n" +
               "                snippetManager.files.ruby = m;\n" +
               "                m.snippets = snippetManager.parseSnippetFile(m.snippetText);\n" +
@@ -174,15 +175,15 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    tabTrigger: 'instance.loadListenerTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = instance.createExecutableRun(\"${2:simulator name}\", \"${3:computer name}\")', \n" +
-              "                    tabTrigger: 'instance.createSimulatorRun' \n" +
+              "                    content: 'instance.createExecutableRun(\"${1:executable name}\", \"${2:computer name}\")', \n" +
+              "                    tabTrigger: 'instance.createExecutableRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: '${1:run} = instance.createConductorRun(\"${2:actor group name}\")', \n" +
-              "                    tabTrigger: 'instance.createActorRun' \n" +
+              "                    content: 'instance.createConductorRun(\"${1:conductor name}\")', \n" +
+              "                    tabTrigger: 'instance.createConductorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'addFinalizer(\"${1:listener name}\")', \n" +
+              "                    content: 'addFinalizer(\"${1:procedure name}\")', \n" +
               "                    tabTrigger: 'addFinalizer' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
@@ -193,6 +194,13 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    content: 'makeLocalShared(\"${1:key}\", \"${2:file}\")', \n" +
               "                    tabTrigger: 'makeLocalShared' \n" +
               "                });\n" +
+              "                var s = function(trigger, content) {\n" +
+              "                    m.snippets.push({ \n" +
+              "                        content: content, \n" +
+              "                        tabTrigger: trigger \n" +
+              "                    });\n" +
+              "                };\n" +
+              "                if (snippetScript != \"\") { eval(snippetScript); }" +
               "                snippetManager.register(m.snippets, m.scope); \n" +
               "            }\n" +
               "        });\n" +
@@ -214,7 +222,10 @@ abstract public class MainTemplate extends AbstractTemplate {
               "      width: '100%',\n" +
               "    }).insertBefore(textarea);\n" +
               "    textarea.css('display', 'none');\n" +
-              "    var editor = new JSONEditor(editDiv[0], {\"ace\":ace,\"language\":\"en\",\"statusBar\":false,\"navigationBar\":false,\"enableTransform\":false,\"enableSort\":false,\"search\": false,\"modes\":[mode,textmode]}, JSON.parse(textarea.val()));\n" +
+              "    var editor = new JSONEditor(editDiv[0], {\"ace\":ace,\"language\":\"en\",\"statusBar\":false," +
+              "\"navigationBar\":false,\"enableTransform\":false,\"enableSort\":false,\"search\": false," +
+              "\"autocomplete\":{getOptions:function(){return [];}}," +
+              "\"modes\":[mode,textmode]}, JSON.parse(textarea.val()));\n" +
               "    // copy back to textarea on form submit...\n" +
               "    textarea.closest('form').submit(function() {\n" +
               "      textarea.val(editor.getText());\n" +

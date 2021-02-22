@@ -100,6 +100,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     }
     run.getParent().registerChildRun(run);
     run.updateResponsible();
+    run.putParametersByJson(executable.getDefaultParameters().toString());
     return run;
   }
 
@@ -138,7 +139,6 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     }
     getResponsible().registerChildActiveRun(this);
     try {
-      putParametersByJson(executable.getDefaultParameters().toString());
       putResultsByJson(executable.getDummyResults().toString());
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
@@ -254,7 +254,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   public void makeLocalShared(String key, String remote) {
     localSharedList = getLocalSharedList();
     JSONArray entry = new JSONArray();
-    entry.put(key);
+    entry.put(FileName.removeRestrictedCharacters(key));
     entry.put(remote);
     localSharedList.put(entry);
     setToProperty(KEY_LOCAL_SHARED, this.localSharedList);

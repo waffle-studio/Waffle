@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class ResourceFile {
   private static ResourceFile staticInstance = new ResourceFile();
@@ -41,19 +42,16 @@ public class ResourceFile {
   }
 
   public static void unzip(String fileName, Path destPath) {
-    try (ZipFile zipFile = new ZipFile(new File(staticInstance.getClass().getResource(fileName).toURI()))) {
-      Enumeration<? extends ZipEntry> entries = zipFile.entries();
-      while (entries.hasMoreElements()) {
-        ZipEntry entry = entries.nextElement();
+    try (ZipInputStream zipInputStream = new ZipInputStream(staticInstance.getClass().getResourceAsStream(fileName))) {
+      ZipEntry entry = null;
+      while ((entry = zipInputStream.getNextEntry()) != null) {
         Path entryPath = destPath.resolve(entry.getName());
         if (entry.isDirectory()) {
           Files.createDirectories(entryPath);
         } else {
           Files.createDirectories(entryPath.getParent());
-          try (InputStream in = zipFile.getInputStream(entry)){
-            try (OutputStream out = new FileOutputStream(entryPath.toFile())){
-              IOUtils.copy(in, out);
-            }
+          try (OutputStream out = new FileOutputStream(entryPath.toFile())){
+            IOUtils.copy(zipInputStream, out);
           }
         }
       }

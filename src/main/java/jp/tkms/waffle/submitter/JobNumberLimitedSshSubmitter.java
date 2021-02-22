@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
-public class SshSubmitter extends AbstractSubmitter {
+public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   public static final String KEY_IDENTITY_FILE = "identity_file";
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
@@ -27,7 +27,7 @@ public class SshSubmitter extends AbstractSubmitter {
   SshSession tunnelSession;
   String home = null;
 
-  public SshSubmitter(Computer computer) {
+  public JobNumberLimitedSshSubmitter(Computer computer) {
     this.computer = computer;
   }
 

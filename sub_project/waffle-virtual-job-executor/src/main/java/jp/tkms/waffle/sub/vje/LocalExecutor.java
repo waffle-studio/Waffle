@@ -8,7 +8,7 @@ public class LocalExecutor extends AbstractExecutor {
 
   public LocalExecutor(int timeout, int marginTime) throws IOException {
     super(timeout, marginTime);
-    checkJobs();
+    //checkJobs();
   }
 
   @Override

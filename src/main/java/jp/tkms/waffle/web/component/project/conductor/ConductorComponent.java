@@ -1,8 +1,10 @@
 package jp.tkms.waffle.web.component.project.conductor;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.util.FileName;
@@ -330,6 +332,17 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
          */
 
+        String snippetScript = "";
+
+        snippetScript += "s('procedure:Main Procedure','#');";
+        snippetScript += "s('procedure:#','#');";
+        for (Executable executable : Executable.getList(project)) {
+          snippetScript += "s('executable:" + executable.getName() + "','" + executable.getName() + "');";
+        }
+        for (Computer computer : Computer.getViableList()) {
+          snippetScript += "s('computer:" + computer.getName() + "','" + computer.getName() + "');";
+        }
+
         content += Html.element("script", new Html.Attributes(value("type", "text/javascript")),
           "var updateConductorJobNum = function(c,n) {" +
             "if (n > 0) {" +
@@ -368,12 +381,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
         content +=
           Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_ALIAS + " (Main Script)",
+            Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_ALIAS + " (Main Procedure)",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
-                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainProcedureScript(), errors),
+                  Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainProcedureScript(), snippetScript, errors),
                   getGuideHtml()
                 )
               ),
@@ -399,13 +412,13 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           String scriptSyntaxError = ScriptProcessor.getProcessor(path).checkSyntax(path);
           content +=
             Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
-              Lte.card(Html.fasIcon("terminal") + listenerName + " (Event Listener)",
+              Lte.card(Html.fasIcon("terminal") + listenerName + " (Child Procedure)",
                 Lte.cardToggleButton(false),
                 Lte.divRow(
                   Lte.divCol(Lte.DivSize.F12,
                     Html.inputHidden(KEY_LISTENER_NAME, listenerName),
                     ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getChildProcedureScript(listenerName), errors)
+                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getChildProcedureScript(listenerName), snippetScript, errors)
                   )
                 ),
                 Lte.formSubmitButton("success", "Update"),
@@ -423,16 +436,16 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       Html.div(null, "<b style='color:green;'>以下，主要コマンド仮表示</b>"),
       Html.element("div", new Html.Attributes(Html.value("style", "padding-left:1em;font-size:0.8em;")),
         //Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
-        Html.div(null, "instance.loadConductorTemplate(\"&lt;NAME&gt;\")"),
-        Html.div(null, "instance.loadListenerTemplate(\"&lt;NAME&gt;\")"),
+        //Html.div(null, "instance.loadConductorTemplate(\"&lt;NAME&gt;\")"),
+        //Html.div(null, "instance.loadListenerTemplate(\"&lt;NAME&gt;\")"),
         Html.div(null, "instance.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
-        Html.div(null, "<b>[RUN(Simulation)]</b> = instance.createSimulatorRun(\"&lt;SIMULATOR_NAME&gt;\", \"&lt;HOST&gt;\")"),
-        Html.div(null, "<b>[RUN(Actor)]</b> = instance.createActorGroupRun(\"&lt;ACTOR_GROUP_NAME&gt;\")"),
+        Html.div(null, "<b>[RUN(Executable)]</b> = instance.createExecutableRun(\"&lt;EXECUTABLE_NAME&gt;\", \"&lt;HOST&gt;\")"),
+        Html.div(null, "<b>[RUN(Conductor)]</b> = instance.createConductorRun(\"&lt;CONDUCTOR_NAME&gt;\")"),
         Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
         Html.div(null, "instance.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
-        Html.div(null, "<b>[RUN(Simulation)]</b>.p[:&lt;NAME&gt;] = &lt;VALUE&gt;"),
-        Html.div(null, "<b>[RUN(Simulation)]</b>.makeLocalShared(\"&lt;KEY&gt\", \"&lt;REMOTE_FILE&gt\");"),
-        Html.div(null, "&lt;VALUE&gt = <b>[RUN(Simulation)]</b>.getResult(\"&lt;VALUE&gt\");")
+        Html.div(null, "<b>[RUN(Executable)]</b>.p[:&lt;KEY&gt;] = &lt;VALUE&gt"),
+        Html.div(null, "<b>[RUN(Executable)]</b>.makeLocalShared(\"&lt;KEY&gt\", \"&lt;REMOTE_FILE&gt\")"),
+        Html.div(null, "&lt;VALUE&gt = <b>[RUN(Executable)]</b>.getResult(\"&lt;KEY&gt\")")
       )
     );
   }

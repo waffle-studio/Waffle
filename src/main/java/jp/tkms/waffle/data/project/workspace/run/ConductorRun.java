@@ -53,7 +53,7 @@ public class ConductorRun extends AbstractRun {
     if (conductor != null) {
 
       ProcedureRun procedureRun = ProcedureRun.create(this, Conductor.MAIN_PROCEDURE_FILENAME.replaceFirst("\\..*?$", ""), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
-      procedureRun.start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL);
+      procedureRun.start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, getParent());
     }
     if (getParent() != null) {
       getParent().registerChildRun(this);

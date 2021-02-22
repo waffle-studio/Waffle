@@ -4,24 +4,22 @@ import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.ComputerState;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
-public class RoundRobinSubmitter extends AbstractSubmitter {
+public class MultiComputerSubmitter extends AbstractSubmitter {
   public static final String KEY_TARGET_COMPUTERS = "target_computers";
 
-
-
-  public RoundRobinSubmitter(Computer computer) {
+  public MultiComputerSubmitter(Computer computer) {
   }
 
   @Override
@@ -78,7 +76,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
   }
 
-  @Override
+  /*
   public double getMaximumNumberOfThreads(Computer computer) {
     double num = 0.0;
 
@@ -95,7 +93,6 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
     return (num < computer.getMaximumNumberOfThreads() ? num : computer.getMaximumNumberOfThreads());
   }
 
-  @Override
   public double getAllocableMemorySize(Computer computer) {
     double size = 0.0;
 
@@ -111,6 +108,7 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
     return (size < computer.getAllocableMemorySize() ? size : computer.getAllocableMemorySize());
   }
+   */
 
   @Override
   public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
@@ -124,8 +122,10 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
 
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
+    int globalFreeJobSlot = computer.getMaximumNumberOfJobs();
 
-    LinkedList<Computer> passableComputerList = new LinkedList<>();
+    /* Check global acceptability */
+    ArrayList<Computer> passableComputerList = new ArrayList<>();
     JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
     if (targetComputers != null) {
       for (Object object : targetComputers.toList()) {
@@ -133,12 +133,13 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
         if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           passableComputerList.add(targetComputer);
 
-          for (AbstractJob job : getJobList(targetComputer)) {
+          for (AbstractJob job : getJobList(PollingThread.Mode.Normal, targetComputer)) {
             try {
               ComputerTask run = job.getRun();
               if (run.getComputer().equals(computer)) {
                 globalFreeThread -= run.getRequiredThread();
                 globalFreeMemory -= run.getRequiredMemory();
+                globalFreeJobSlot -= 1;
               }
             } catch (RunNotFoundException e) {
             }
@@ -147,35 +148,28 @@ public class RoundRobinSubmitter extends AbstractSubmitter {
       }
     }
 
-    int targetHostCursor = 0;
-    if (globalFreeThread > 0.0 && globalFreeMemory > 0.0) {
+    if (globalFreeThread > 0.0 && globalFreeMemory > 0.0 && globalFreeJobSlot > 0 && passableComputerList.size() > 0) {
       if (passableComputerList.size() > 0) {
         for (AbstractJob job : createdJobList) {
+          int targetHostCursor = 0;
           Computer targetComputer = passableComputerList.get(targetHostCursor);
+          AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
 
-          if (!isSubmittable(targetComputer, job)) {
-            int startOfTargetHostCursor = targetHostCursor;
+          if (!targetSubmitter.isSubmittable(targetComputer, job)) {
             targetHostCursor += 1;
-            if (targetHostCursor >= passableComputerList.size()) {
-              targetHostCursor = 0;
-            }
-            do {
+            while (targetHostCursor < passableComputerList.size() && !targetSubmitter.isSubmittable(targetComputer, job)) {
               targetComputer = passableComputerList.get(targetHostCursor);
-            } while (targetHostCursor != startOfTargetHostCursor && !isSubmittable(targetComputer, job));
+              targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
+            }
           }
 
-          if (isSubmittable(targetComputer, job)) {
+          if (targetSubmitter.isSubmittable(targetComputer, job)) {
             try {
               job.replaceComputer(targetComputer);
             } catch (RunNotFoundException e) {
               WarnLogMessage.issue(e);
               job.remove();
             }
-          }
-
-          targetHostCursor += 1;
-          if (targetHostCursor >= passableComputerList.size()) {
-            targetHostCursor = 0;
           }
         }
       }

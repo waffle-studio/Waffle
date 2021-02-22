@@ -5,7 +5,6 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -20,7 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
-public class AbciSubmitter extends SshSubmitter {
+public class AbciSubmitter extends JobNumberLimitedSshSubmitter {
   protected static final String PACK_BATCH_FILE = "pack_batch.sh";
 
   HashMap<String, String> updatedPackJson = new HashMap<>();
@@ -70,9 +69,33 @@ public class AbciSubmitter extends SshSubmitter {
     return run.getState();
   }
 
+  /*
   @Override
   public double getMaximumNumberOfThreads(Computer computer) {
     return 40.0;
+  }
+   */
+
+  @Override
+  protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
+    ComputerTask nextRun = null;
+    try {
+      if (next != null) {
+        nextRun = next.getRun();
+      }
+    } catch (RunNotFoundException e) {
+    }
+    double thread = (nextRun == null ? 0.0: nextRun.getRequiredThread());
+    thread += list.stream().mapToDouble(o->o.getRequiredThread()).sum();
+    /*
+    double memory = (nextRun == null ? 0.0: nextRun.getRequiredMemory());
+    for (ArrayList<AbstractJob> list : lists) {
+      memory += list.stream().mapToDouble(o->o.getRequiredMemory()).sum();
+    }
+
+    return (thread <= getMaximumNumberOfThreads(computer) && memory <= getAllocableMemorySize(computer));
+     */
+    return thread <= 40.0;
   }
 
   @Override
@@ -126,7 +149,7 @@ public class AbciSubmitter extends SshSubmitter {
     for (AbstractJob job : createdJobList) {
       if (Main.hibernateFlag) { break; }
       try {
-        if (queuedJobList.size() < getMaximumNumberOfThreads(computer)) {
+        if (queuedJobList.size() < computer.getMaximumNumberOfThreads()) {
           prepareJob(job);
           queuedJobList.add(job);
         } else {
@@ -145,8 +168,8 @@ public class AbciSubmitter extends SshSubmitter {
       return;
     }
 
-    if (jobIdSet.size() < computer.getMaximumNumberOfThreads() && queuedJobList.size() > 0) {
-      if (queuedJobList.size() >= getMaximumNumberOfThreads(computer) || holdingJob == queuedJobList.size()) {
+    if (jobIdSet.size() < computer.getMaximumNumberOfJobs() && queuedJobList.size() > 0) {
+      if (queuedJobList.size() >= computer.getMaximumNumberOfThreads() || holdingJob == queuedJobList.size()) {
         UUID packId = UUID.randomUUID();
         StringBuilder packBatchTextBuilder = new StringBuilder();
         packBatchTextBuilder.append(

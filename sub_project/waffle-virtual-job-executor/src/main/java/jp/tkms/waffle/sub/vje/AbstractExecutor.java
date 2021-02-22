@@ -12,10 +12,12 @@ public abstract class AbstractExecutor {
   public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
 
-  private WatchService fileWatchService = null;
+  //private WatchService fileWatchService = null;
+  private boolean isAlive;
   private HashSet<String> runningJobList = new HashSet<>();
   private Object objectLocker = new Object();
   private int timeout = 0;
+  private int waitingTimeCounter = 0;
   private int marginTime = 0;
   private Thread aliveNotifier = new Thread() {
     @Override
@@ -57,16 +59,18 @@ public abstract class AbstractExecutor {
   };
 
   public AbstractExecutor(int timeout, int marginTime) throws IOException {
+    isAlive = true;
     aliveNotifier.start();
     this.timeout = timeout;
     this.marginTime = marginTime;
     Files.createDirectories(JOBS_PATH);
     Files.createDirectories(ENTITIES_PATH);
-    fileWatchService = FileSystems.getDefault().newWatchService();
-    JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
+    //fileWatchService = FileSystems.getDefault().newWatchService();
+    //JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
   }
 
   public void startPolling() {
+    /*
     Thread waitTimer = getWaitTimer();
     try {
       WatchKey watchKey = null;
@@ -93,8 +97,42 @@ public abstract class AbstractExecutor {
       }
       return;
     }
+     */
+    while (isAlive && waitingTimeCounter <= timeout) {
+      boolean isChanged = false;
+
+      for (File file : JOBS_PATH.toFile().listFiles()) {
+        if (!runningJobList.contains(file.getName())) {
+          isChanged = true;
+        }
+      }
+
+      for (String id : runningJobList) {
+        if (!JOBS_PATH.resolve(id).toFile().exists()) {
+          isChanged = true;
+        }
+      }
+
+      if (isChanged) {
+        checkJobs();
+      }
+
+      if (runningJobList.isEmpty()) {
+        waitingTimeCounter += 1;
+      } else {
+        waitingTimeCounter = 0;
+      }
+
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        isAlive = false;
+      }
+    }
+    shutdown();
   }
 
+  /*
   private Thread getWaitTimer() {
     Thread waitTimer = new Thread() {
       @Override
@@ -109,6 +147,7 @@ public abstract class AbstractExecutor {
     waitTimer.start();
     return waitTimer;
   }
+   */
 
   public void shutdown() {
     System.err.println("Executor will shutdown");
@@ -119,6 +158,7 @@ public abstract class AbstractExecutor {
       e.printStackTrace();
     }
 
+    /*
     synchronized (objectLocker) {
       try {
         fileWatchService.close();
@@ -126,6 +166,8 @@ public abstract class AbstractExecutor {
         e.printStackTrace();
       }
     }
+     */
+    isAlive = false;
 
     checkJobs();
 

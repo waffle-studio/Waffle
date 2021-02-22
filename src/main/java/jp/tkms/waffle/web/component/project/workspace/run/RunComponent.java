@@ -410,7 +410,15 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
                  */
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Executable", Html.a(ExecutableComponent.getUrl(executableRun.getExecutable()), executableRun.getExecutable().getName()));}));
-                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer", (executableRun.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(executableRun.getComputer()), executableRun.getComputer().getName())));}));
+                if (executableRun.getComputer() == executableRun.getActualComputer()) {
+                  list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer",
+                    (executableRun.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(executableRun.getComputer()), executableRun.getComputer().getName())));}));
+                } else {
+                  list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Computer",
+                    (executableRun.getActualComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(executableRun.getActualComputer()), executableRun.getActualComputer().getName())) +
+                    (executableRun.getComputer() == null ? "NotFound" : Html.a(ComputersComponent.getUrl(executableRun.getComputer()), "(" + executableRun.getComputer().getName() + ")"))
+                  );}));
+                }
                 list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Exit status", "" + executableRun.getExitStatus()
                   + (executableRun.getExitStatus() == -2
                   ? Html.a(RunComponent.getUrl(executableRun, Mode.ReCheck),

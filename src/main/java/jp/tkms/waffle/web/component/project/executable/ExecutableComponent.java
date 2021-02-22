@@ -100,7 +100,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         break;
       }
       case UpdateDummyResults: {
-        executable.setDefaultParameters(request.queryParams(KEY_DUMMY_RESULTS));
+        executable.setDummyResults(request.queryParams(KEY_DUMMY_RESULTS));
         response.redirect(getUrl(executable));
         break;
       }

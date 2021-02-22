@@ -17,9 +17,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-public class LocalSubmitter extends AbstractSubmitter {
+public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
-  public LocalSubmitter(Computer computer) {
+  public JobNumberLimitedLocalSubmitter(Computer computer) {
   }
 
   @Override

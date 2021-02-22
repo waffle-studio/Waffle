@@ -2,6 +2,7 @@ package jp.tkms.waffle.script.ruby;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
@@ -18,17 +19,17 @@ public class RubyScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_RUBY;
 
   @Override
-  public void processProcedure(ProcedureRun run, ProcedureMode mode, String script) {
+  public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script) {
     RubyScript.process((container) -> {
       try {
         container.runScriptlet(procedureTemplate());
         container.runScriptlet(script);
         if (mode.equals(ProcedureMode.START_OR_FINISHED_ALL)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_start_or_finished_all", run, run);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_start_or_finished_all", run, caller);
         } else if (mode.equals(ProcedureMode.CONTAIN_FAULT)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_contain_fault", run, run);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_contain_fault", run, caller);
         } else { //if (mode.equals(ProcedureMode.APPEALED)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, run);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, caller);
         }
       } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);

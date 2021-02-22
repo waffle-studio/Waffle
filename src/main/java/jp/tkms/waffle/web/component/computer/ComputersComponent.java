@@ -270,7 +270,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               Lte.formInputGroup("text", KEY_ALLOCABLE_MEMORY,
                 "Allocable memory size (GB)", "", computer.getAllocableMemorySize().toString(), errors),
               Lte.formInputGroup("text", KEY_NUMBER_OF_CALCULATION_NODE,
-                "Number of calculation node", "", computer.getNumberOfCalculationNode().toString(), errors),
+                "Maximum number of jobs", "", computer.getMaximumNumberOfJobs().toString(), errors),
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", computer.getPollingInterval().toString(), errors),
               Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", computer.getEnvironments().toString(), null),
@@ -290,7 +290,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
     computer.setMaximumNumberOfThreads(Double.parseDouble(request.queryParams(KEY_MAX_THREADS)));
     computer.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));
-    computer.setNumberOfCalculationNode(Integer.parseInt(request.queryParams(KEY_NUMBER_OF_CALCULATION_NODE)));
+    computer.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_NUMBER_OF_CALCULATION_NODE)));
     computer.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
     computer.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
     computer.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));

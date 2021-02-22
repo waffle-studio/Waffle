@@ -1,6 +1,7 @@
 package jp.tkms.waffle.script;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
@@ -18,7 +19,7 @@ public abstract class ScriptProcessor {
     APPEALED
   };
 
-  abstract public void processProcedure(ProcedureRun run, ProcedureMode mode, String script);
+  abstract public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script);
   abstract public String procedureTemplate();
   abstract public void processExtractor(AbstractSubmitter submitter, ExecutableRun run, String extractorName);
   abstract public String extractorTemplate();

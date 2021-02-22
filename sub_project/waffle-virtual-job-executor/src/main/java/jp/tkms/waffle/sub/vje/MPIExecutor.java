@@ -5,7 +5,7 @@ import java.io.IOException;
 public class MPIExecutor extends AbstractExecutor{
   public MPIExecutor(int timeout, int marginTime) throws IOException {
     super(timeout, marginTime);
-    checkJobs();
+    //checkJobs();
   }
 }
 

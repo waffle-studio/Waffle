@@ -15,12 +15,15 @@ import java.util.Map;
 
 public class PollingThread extends Thread {
   private static final Map<String, PollingThread> threadMap = new HashMap<>();
-  private static final HashSet<Computer> runningSubmitterSet = new HashSet<>();
 
+  public enum Mode {System, Normal}
+
+  private Mode mode;
   private Computer computer;
 
-  public PollingThread(Computer computer) {
-    super("Waffle_Polling(" + computer.getName() + ")");
+  public PollingThread(Mode mode, Computer computer) {
+    super("Waffle_Polling(" + getThreadName(mode, computer) + ")");
+    this.mode = mode;
     this.computer = computer;
   }
 
@@ -28,7 +31,7 @@ public class PollingThread extends Thread {
   public void run() {
     InfoLogMessage.issue(computer, "submitter started");
 
-    AbstractSubmitter submitter = AbstractSubmitter.getInstance(computer).connect();
+    AbstractSubmitter submitter = AbstractSubmitter.getInstance(mode, computer).connect();
 
     int waitCount = submitter.getPollingInterval() - 1;
     do {
@@ -46,16 +49,13 @@ public class PollingThread extends Thread {
       }
       waitCount = 0;
 
-      synchronized (runningSubmitterSet) {
-        runningSubmitterSet.add(computer);
-      }
       if (submitter == null || !submitter.isConnected()) {
         InfoLogMessage.issue(computer, "will be reconnected");
         if (submitter != null) {
           submitter.close();
         }
         try {
-          submitter = AbstractSubmitter.getInstance(computer).connect();
+          submitter = AbstractSubmitter.getInstance(mode, computer).connect();
         } catch (Exception e) {
           WarnLogMessage.issue(e.getMessage());
           InfoLogMessage.issue(computer, "submitter closed");
@@ -74,24 +74,12 @@ public class PollingThread extends Thread {
         continue;
       }
       InfoLogMessage.issue(computer, "was scanned");
-      synchronized (runningSubmitterSet) {
-        runningSubmitterSet.remove(computer);
-        /*
-        if (runningSubmitterSet.isEmpty()) {
-          try {
-            Main.jobStore.save();
-          } catch (IOException e) {
-            ErrorLogMessage.issue(e);
-          }
-        }
-         */
-      }
-    } while (ExecutableRunJob.getList(computer).size() + SystemTaskJob.getList(computer).size() > 0);
+    } while ((mode.equals(Mode.Normal) ? ExecutableRunJob.getList(computer).size() : SystemTaskJob.getList(computer).size()) > 0);
 
     if (submitter != null) {
       submitter.close();
     }
-    threadMap.remove(computer.getName());
+    threadMap.remove(getThreadName(mode, computer));
 
     InfoLogMessage.issue(computer, "submitter closed");
   }
@@ -100,17 +88,29 @@ public class PollingThread extends Thread {
     if (!Main.hibernateFlag) {
       for (Computer computer : Computer.getList()) {
         if (computer.getState().equals(ComputerState.Viable)) {
-          if (!threadMap.containsKey(computer.getName()) && (ExecutableRunJob.hasJob(computer) || SystemTaskJob.hasJob(computer))) {
+          if (!threadMap.containsKey(getThreadName(Mode.Normal, computer)) && ExecutableRunJob.hasJob(computer)) {
             computer.update();
             if (computer.getState().equals(ComputerState.Viable)) {
-              PollingThread pollingThread = new PollingThread(computer);
-              threadMap.put(computer.getName(), pollingThread);
+              PollingThread pollingThread = new PollingThread(Mode.Normal, computer);
+              threadMap.put(getThreadName(Mode.Normal, computer), pollingThread);
+              pollingThread.start();
+            }
+          }
+          if (!threadMap.containsKey(getThreadName(Mode.System, computer)) && SystemTaskJob.hasJob(computer)) {
+            computer.update();
+            if (computer.getState().equals(ComputerState.Viable)) {
+              PollingThread pollingThread = new PollingThread(Mode.System, computer);
+              threadMap.put(getThreadName(Mode.System, computer), pollingThread);
               pollingThread.start();
             }
           }
         }
       }
     }
+  }
+
+  private static String getThreadName(Mode mode, Computer computer) {
+    return mode.name() + ":" + computer.getName();
   }
 
   synchronized public static void waitForShutdown() {

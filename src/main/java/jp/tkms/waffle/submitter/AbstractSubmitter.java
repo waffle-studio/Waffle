@@ -2,9 +2,9 @@ package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.job.SystemTaskJob;
@@ -16,7 +16,6 @@ import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.*;
-import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,6 +38,7 @@ abstract public class AbstractSubmitter {
 
   protected static ExecutorService threadPool = Executors.newFixedThreadPool(4);
   private int pollingInterval = 5;
+  private PollingThread.Mode mode;
   private ArrayList<AbstractJob> createdJobList = new ArrayList<>();
   private ArrayList<AbstractJob> preparedJobList = new ArrayList<>();
   private ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
@@ -77,7 +77,7 @@ abstract public class AbstractSubmitter {
     putText(job, Paths.get(pathString), text);
   }
 
-  public static AbstractSubmitter getInstance(Computer computer) {
+  public static AbstractSubmitter getInstance(PollingThread.Mode mode, Computer computer) {
     AbstractSubmitter submitter = null;
     try {
       Class<?> clazz = Class.forName(computer.getSubmitterType());
@@ -88,8 +88,10 @@ abstract public class AbstractSubmitter {
     }
 
     if (submitter == null) {
-      submitter = new SshSubmitter(computer);
+      submitter = new JobNumberLimitedSshSubmitter(computer);
     }
+
+    submitter.mode = mode;
 
     return submitter;
   }
@@ -183,6 +185,8 @@ abstract public class AbstractSubmitter {
       "\n" +
       "export WAFFLE_BASE='" + getExecutableBaseDirectory(job) + "'\n" +
       "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
+      "touch '" + Constants.STDOUT_FILE +"'\n" +
+      "touch '" + Constants.STDERR_FILE +"'\n" +
       "mkdir -p '" + getBaseDirectory(run) +"'\n" +
       "cd '" + getBaseDirectory(run) + "'\n" +
       "export WAFFLE_WORKING_DIR=`pwd`\n" +
@@ -366,7 +370,7 @@ abstract public class AbstractSubmitter {
   }
 
   public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
-    AbstractSubmitter submitter = getInstance(computer).connect(retry);
+    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer).connect(retry);
     JSONObject jsonObject = new JSONObject();
     String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
       getXsubBinDirectory(computer) + "xsub -t";
@@ -390,16 +394,24 @@ abstract public class AbstractSubmitter {
   }
 
   public static JSONObject getParameters(Computer computer) {
-    AbstractSubmitter submitter = getInstance(computer);
+    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer);
     JSONObject jsonObject = submitter.getDefaultParameters(computer);
     return jsonObject;
   }
 
   protected boolean isSubmittable(Computer computer, AbstractJob job) {
-    return isSubmittable(computer, job, getJobList(computer));
+    return isSubmittable(computer, job, getJobList(PollingThread.Mode.Normal, computer));
   }
 
   protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob>... lists) {
+    ArrayList<AbstractJob> combinedList = new ArrayList<>();
+    for (ArrayList<AbstractJob> list : lists) {
+      combinedList.addAll(list);
+    }
+    return isSubmittable(computer, next, combinedList);
+  }
+
+  protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
     ComputerTask nextRun = null;
     try {
       if (next != null) {
@@ -407,27 +419,21 @@ abstract public class AbstractSubmitter {
       }
     } catch (RunNotFoundException e) {
     }
-    double thread = (nextRun == null ? 0.0: nextRun.getRequiredThread());
-    for (ArrayList<AbstractJob> list : lists) {
-      thread += list.stream().mapToDouble(o->o.getRequiredThread()).sum();
-    }
-    double memory = (nextRun == null ? 0.0: nextRun.getRequiredMemory());
-    for (ArrayList<AbstractJob> list : lists) {
-      memory += list.stream().mapToDouble(o->o.getRequiredMemory()).sum();
-    }
 
-    return (thread <= getMaximumNumberOfThreads(computer) && memory <= getAllocableMemorySize(computer));
+    return (list.size() + (nextRun == null ? 0 : 1)) <= computer.getMaximumNumberOfJobs();
   }
 
-  protected static ArrayList<AbstractJob> getJobList(Computer computer) {
-    ArrayList<AbstractJob> jobList = ExecutableRunJob.getList(computer);
-    jobList.addAll(SystemTaskJob.getList(computer));
-    return jobList;
+  protected static ArrayList<AbstractJob> getJobList(PollingThread.Mode mode, Computer computer) {
+    if (mode.equals(PollingThread.Mode.Normal)) {
+      return ExecutableRunJob.getList(computer);
+    } else {
+      return SystemTaskJob.getList(computer);
+    }
   }
 
   public void pollingTask(Computer computer) throws FailedToControlRemoteException {
     pollingInterval = computer.getPollingInterval();
-    ArrayList<AbstractJob> jobList = getJobList(computer);
+    ArrayList<AbstractJob> jobList = getJobList(mode, computer);
 
     createdJobList.clear();
     preparedJobList.clear();
@@ -488,6 +494,7 @@ abstract public class AbstractSubmitter {
     processJobLists(computer, createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
   }
 
+  /*
   public double getMaximumNumberOfThreads(Computer computer) {
     return computer.getMaximumNumberOfThreads();
   }
@@ -495,6 +502,7 @@ abstract public class AbstractSubmitter {
   public double getAllocableMemorySize(Computer computer) {
     return computer.getAllocableMemorySize();
   }
+   */
 
   public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
     //int submittedCount = submittedJobList.size() + runningJobList.size();
@@ -511,9 +519,14 @@ abstract public class AbstractSubmitter {
         job.remove();
       }
     }
+    cacheClear();
 
     ArrayList<Future> futureList = new ArrayList<>();
+    int limiter = 10;
     for (AbstractJob job : createdJobList) {
+      if (--limiter < 0) {
+        break;
+      }
       futureList.add(threadPool.submit(() -> {
         try {
           prepareJob(job);
@@ -532,6 +545,7 @@ abstract public class AbstractSubmitter {
         ErrorLogMessage.issue(e);
       }
     }
+    cacheClear();
 
     for (AbstractJob job : submittedJobList) {
       if (Main.hibernateFlag) { break; }
@@ -560,6 +574,7 @@ abstract public class AbstractSubmitter {
         throw new FailedToControlRemoteException(e);
       }
     }
+    cacheClear();
 
     for (AbstractJob job : queuedJobList) {
       if (Main.hibernateFlag) { break; }
@@ -577,6 +592,11 @@ abstract public class AbstractSubmitter {
         throw new FailedToControlRemoteException(e);
       }
     }
+    cacheClear();
+  }
+
+  protected void cacheClear() {
+
   }
 
   public void hibernate() {
