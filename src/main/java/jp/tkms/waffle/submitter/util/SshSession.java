@@ -107,12 +107,8 @@ public class SshSession {
     }
   }
 
-  protected Channel openChannel(String type) throws JSchException {
-    try {
-      channelSemaphore.acquire();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+  protected Channel openChannel(String type) throws JSchException, InterruptedException {
+    channelSemaphore.acquire();
 
     return session.openChannel(type);
   }
@@ -121,7 +117,7 @@ public class SshSession {
     return session.setPortForwardingL(0, hostName, rport);
   }
 
-  public SshChannel exec(String command, String workDir) throws JSchException {
+  public SshChannel exec(String command, String workDir) throws JSchException, InterruptedException {
     SshChannel channel = new SshChannel((ChannelExec) openChannel("exec"));
     boolean failed = false;
     do {
@@ -179,7 +175,7 @@ public class SshSession {
     });
   }
 
-  public boolean rmdir(String path, String workDir) throws JSchException {
+  public boolean rmdir(String path, String workDir) throws JSchException, InterruptedException {
     SshChannel channel = exec("rm -rf " + path, workDir);
 
     return (channel.getExitStatus() == 0);

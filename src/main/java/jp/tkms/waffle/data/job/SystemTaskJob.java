@@ -5,6 +5,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.SystemTaskRun;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
@@ -49,6 +50,7 @@ public class SystemTaskJob extends AbstractJob {
   public static void addRun(SystemTaskRun run) {
     SystemTaskJob job = new SystemTaskJob(run.getLocalDirectoryPath(), run.getComputer());
     Main.systemTaskStore.register(job);
+    InfoLogMessage.issue(run, "was added to the queue");
     //System.out.println(job.getPropertyStorePath().toString());
     //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
   }

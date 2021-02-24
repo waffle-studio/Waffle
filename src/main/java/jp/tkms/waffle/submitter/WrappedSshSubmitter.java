@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.TreeMap;
 
 public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
@@ -47,7 +48,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
   public static final String KEY_ADDITIONAL_PREPARE_COMMAND = "additional_prepare_command";
 
-  private static final InstanceCache<String, Boolean> existsCheckCache = new InstanceCache<>();
+  //private static final InstanceCache<String, Boolean> existsCheckCache = new InstanceCache<>();
 
   JobManager jobManager;
 
@@ -77,9 +78,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       VirtualJobExecutor executor = jobManager.getNextExecutor(job);
       if (executor != null) {
         try {
-          if (job.getState().equals(State.Created)) {
-            prepareJob(job);
-          }
+          forcePrepare(job);
           executor.submit(this, job);
         } catch (FailedToControlRemoteException e) {
           WarnLogMessage.issue(job.getComputer(), e.getMessage());
@@ -140,11 +139,13 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
     jobManager.close();
   }
 
+  /*
   @Override
   protected void cacheClear() {
     super.cacheClear();
     existsCheckCache.clear();
   }
+   */
 
   public static class JobManager implements DataDirectory, PropertyFile {
     WrappedSshSubmitter submitter;
@@ -170,20 +171,34 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       JSONArray runningArray = getArrayFromProperty(RUNNING);
       for (int i = 0; i < runningArray.length(); i++) {
         WaffleId waffleId = WaffleId.valueOf(runningArray.getString(i));
-        runningExecutorList.put(waffleId.getReversedBase36Code(), VirtualJobExecutor.getInstance(this, waffleId));
+        VirtualJobExecutor executor = VirtualJobExecutor.getInstance(this, waffleId);
+        if (executor != null) {
+          runningExecutorList.put(waffleId.getReversedBase36Code(), executor);
+        } else {
+          removeFromArrayOfProperty(RUNNING, waffleId.getReversedBase36Code());
+        }
       }
       JSONArray activeArray = getArrayFromProperty(ACTIVE);
       for (int i = 0; i < activeArray.length(); i++) {
         WaffleId waffleId = WaffleId.valueOf(activeArray.getString(i));
-        activeExecutorList.put(waffleId.getReversedBase36Code(), VirtualJobExecutor.getInstance(this, waffleId));
+        VirtualJobExecutor executor = VirtualJobExecutor.getInstance(this, waffleId);
+        if (executor != null) {
+          activeExecutorList.put(waffleId.getReversedBase36Code(), executor);
+        } else {
+          removeFromArrayOfProperty(ACTIVE, waffleId.getReversedBase36Code());
+        }
       }
     }
 
     public void close() {
       ArrayList<VirtualJobExecutor> removingList = new ArrayList<>();
       for (VirtualJobExecutor executor : runningExecutorList.values()) {
-        if (!executor.getDirectoryPath().toFile().exists()) {
-          removingList.add(executor);
+        try {
+          if (!executor.getDirectoryPath().toFile().exists()) {
+            removingList.add(executor);
+          }
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
         }
       }
       for (VirtualJobExecutor executor : removingList) {
@@ -231,7 +246,8 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       for (VirtualJobExecutor executor : activeExecutorList.values()) {
         //System.out.println(executor.getId());
         Path directoryPath = executor.getDirectoryPath();
-        if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
+        if (!directoryPath.toFile().exists()) {
+        //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
           removeFromArrayOfProperty(RUNNING, executor.getId());
           runningExecutorList.remove(executor.id.getReversedBase36Code());
           removingList.add(executor);
@@ -329,6 +345,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
     WaffleId id;
     //ArrayList<AbstractJob> runningList;
     int jobCount;
+    HashMap<String, AbstractJob> jobCache = new HashMap<>();
 
     public VirtualJobExecutor(Path path) {
       super(path);
@@ -356,6 +373,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         job.setJobId(id.getReversedBase36Code() + '.' + getNextJobCount());
         job.setState(State.Submitted);
         putToArrayOfProperty(RUNNING, job.getJobId());
+        jobCache.put(job.getJobId(), job);
         InfoLogMessage.issue(job.getRun(), "was submitted");
       } catch (FailedToTransferFileException | FailedToControlRemoteException e) {
         job.setState(State.Excepted);
@@ -452,11 +470,17 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       ArrayList<AbstractJob> runningList = new ArrayList<>();
       JSONArray runningArray = getArrayFromProperty(RUNNING);
       for (int i = 0; i < runningArray.length(); i++) {
-        for (ExecutableRunJob job : Main.jobStore.getList()) {
-          if (job.getJobId().equals(runningArray.getString(i))) {
-            runningList.add(job);
-            break;
-          }
+        if (jobCache.containsKey(runningArray.getString(i))) {
+          runningList.add(jobCache.get(runningArray.getString(i)));
+        }
+      }
+      for (ExecutableRunJob job : Main.jobStore.getList()) {
+        if (runningList.size() >= runningArray.length()) {
+          break;
+        }
+        if (runningArray.toList().contains(job.getJobId())) {
+          runningList.add(job);
+          jobCache.put(job.getJobId(), job);
         }
       }
       return runningList;
@@ -496,6 +520,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         finished = !submitter.exists(getRemoteJobsDirectory().resolve(job.getId().toString()));
         if (finished) {
           removeFromArrayOfProperty(RUNNING, job.getJobId());
+          jobCache.remove(job.getJobId());
         }
       } catch (FailedToControlRemoteException e) {
         ErrorLogMessage.issue(e);

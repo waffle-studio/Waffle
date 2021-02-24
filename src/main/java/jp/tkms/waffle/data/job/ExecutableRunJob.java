@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.StringFileUtil;
@@ -51,6 +52,7 @@ public class ExecutableRunJob extends AbstractJob {
   public static void addRun(ExecutableRun run) {
     ExecutableRunJob job = new ExecutableRunJob(run.getLocalDirectoryPath(), run.getComputer());
     Main.jobStore.register(job);
+    InfoLogMessage.issue(run, "was added to the queue");
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
   }
 

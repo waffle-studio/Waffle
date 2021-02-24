@@ -20,6 +20,7 @@ import java.nio.file.StandardCopyOption;
 public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   public JobNumberLimitedLocalSubmitter(Computer computer) {
+    super(computer);
   }
 
   @Override
@@ -30,10 +31,6 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   @Override
   public boolean isConnected() {
     return true;
-  }
-
-  @Override
-  public void close() {
   }
 
   @Override

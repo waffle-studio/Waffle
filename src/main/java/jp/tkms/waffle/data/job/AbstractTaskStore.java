@@ -83,11 +83,14 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
       ErrorLogMessage.issue(e);
     }
 
+    int fileCount = 0;
     for (File computerDir : directory.toFile().listFiles()) {
       if (computerDir.isDirectory()) {
         Computer computer = Computer.getInstance(computerDir.getName());
         if (computer != null) {
-          Arrays.stream(computerDir.listFiles()).sorted().forEach(file -> {
+          for (Object object : Arrays.stream(computerDir.listFiles()).sorted().toArray()) {
+            File file = (File) object;
+
             try {
               Path jsonPath = file.toPath();
               if (jsonPath != null) {
@@ -96,14 +99,18 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
                 Path path = Paths.get(jsonObject.getString(SystemTaskJob.KEY_PATH));
                 String computerName = computerDir.getName();
                 instance.register(factory.apply(id, path, computerName));
+                fileCount += 1;
               }
             } catch (Exception e) {
+              file.delete();
               WarnLogMessage.issue(file.toPath().toString() + " is broken : " + e.getMessage());
             }
-          });
+          }
         }
       }
     }
+
+    InfoLogMessage.issue(fileCount + " job loaded");
   }
 
   @FunctionalInterface

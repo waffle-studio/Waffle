@@ -90,7 +90,7 @@ public class RunCapsule extends AbstractRun {
         AbstractRun parent = AbstractRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_RUN));
         instance = new RunCapsule(workspace, parent, jsonPath.getParent());
       } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+        ErrorLogMessage.issue(e.getMessage() + ":" + jsonPath);
       }
     }
 

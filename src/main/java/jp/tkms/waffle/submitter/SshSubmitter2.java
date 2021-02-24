@@ -17,13 +17,11 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 public class SshSubmitter2 extends AbstractSubmitter {
-
-  Computer computer;
   SshSession2 session;
   SshSession2 tunnelSession;
 
   public SshSubmitter2(Computer computer) {
-    this.computer = computer;
+    super(computer);
   }
 
   @Override
@@ -100,6 +98,7 @@ public class SshSubmitter2 extends AbstractSubmitter {
 
   @Override
   public void close() {
+    super.close();
     session.disconnect();
     if (tunnelSession != null) { tunnelSession.disconnect(); }
   }

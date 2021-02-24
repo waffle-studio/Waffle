@@ -55,12 +55,14 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     this.path = path;
     setToProperty(KEY_CLASS, getClass().getConstructors()[0].getDeclaringClass().getSimpleName());
     setParent(parent);
-    if (parent == null) {
+    if (parent == null && this instanceof ConductorRun) {
       this.owner = (ConductorRun) this;
     } else if (parent instanceof ConductorRun) {
       this.owner = (ConductorRun) parent;
     } else {
-      this.owner = parent.getOwner();
+      if (parent != null) {
+        this.owner = parent.getOwner();
+      }
     }
   }
 

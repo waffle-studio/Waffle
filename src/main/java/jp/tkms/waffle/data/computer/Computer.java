@@ -57,7 +57,6 @@ public class Computer implements DataDirectory, PropertyFile {
     JobNumberLimitedLocalSubmitter.class,
     MultiComputerSubmitter.class,
     LoadBalancingSubmitter.class,
-    AbciSubmitter.class,
     WrappedSshSubmitter.class
   ));
 
@@ -193,41 +192,45 @@ public class Computer implements DataDirectory, PropertyFile {
   public void update() {
     try {
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
-      setXsubTemplate(jsonObject);
-      setParameters(getParameters());
-      setState(ComputerState.Viable);
-      setMessage("");
+      if (jsonObject != null) {
+        setXsubTemplate(jsonObject);
+        setParameters(getParameters());
+        setState(ComputerState.Viable);
+        setMessage("");
+      }
     } catch (NotFoundXsubException e) {
       setMessage("bin/xsub is not found in " + ("".equals(getXsubDirectory()) ? "$PATH" : getXsubDirectory()));
       setState(ComputerState.XsubNotFound);
     } catch (RuntimeException | WaffleException e) {
       String message = e.getMessage();
-      if (message.startsWith("java.io.FileNotFoundException: ")) {
-        message = message.replaceFirst("java\\.io\\.FileNotFoundException: ", "");
-        setState(ComputerState.KeyNotFound);
-      } else if (message.startsWith("invalid privatekey: ")) {
-        if (getParameters().keySet().contains(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE)) {
-          String keyPath = getParameters().getString(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE);
-          if (keyPath.indexOf('~') == 0) {
-            keyPath = keyPath.replaceFirst("^~", System.getProperty("user.home"));
-          }
-          try {
-            if (!"".equals(keyPath) && (new String(Files.readAllBytes(Paths.get(keyPath)))).indexOf("OPENSSH PRIVATE KEY") > 0) {
-              message = keyPath + " is a OpenSSH private key type and WAFFLE does not supported the key type";
-              setState(ComputerState.UnsupportedKey);
+      if (message != null) {
+        if (message.startsWith("java.io.FileNotFoundException: ")) {
+          message = message.replaceFirst("java\\.io\\.FileNotFoundException: ", "");
+          setState(ComputerState.KeyNotFound);
+        } else if (message.startsWith("invalid privatekey: ")) {
+          if (getParameters().keySet().contains(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE)) {
+            String keyPath = getParameters().getString(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE);
+            if (keyPath.indexOf('~') == 0) {
+              keyPath = keyPath.replaceFirst("^~", System.getProperty("user.home"));
             }
-          } catch (IOException ioException) {
-            ErrorLogMessage.issue(ioException);
+            try {
+              if (!"".equals(keyPath) && (new String(Files.readAllBytes(Paths.get(keyPath)))).indexOf("OPENSSH PRIVATE KEY") > 0) {
+                message = keyPath + " is a OpenSSH private key type and WAFFLE does not supported the key type";
+                setState(ComputerState.UnsupportedKey);
+              }
+            } catch (IOException ioException) {
+              ErrorLogMessage.issue(ioException);
+            }
           }
+        } else {
+          message = message.replaceFirst("Auth fail", "probably, invalid user or key");
+          message = message.replaceFirst("USERAUTH fail", "probably, invalid key passphrase (identity_pass)");
+          message = message.replaceFirst("java\\.net\\.UnknownHostException: (.*)", "$1 is unknown host");
+          message = message.replaceFirst("java\\.net\\.ConnectException: Connection refused \\(Connection refused\\)", "Connection refused (could not connect to the SSH server)");
+          setState(ComputerState.Unviable);
         }
-      } else {
-        message = message.replaceFirst("Auth fail", "probably, invalid user or key");
-        message = message.replaceFirst("USERAUTH fail", "probably, invalid key passphrase (identity_pass)");
-        message = message.replaceFirst("java\\.net\\.UnknownHostException: (.*)", "$1 is unknown host");
-        message = message.replaceFirst("java\\.net\\.ConnectException: Connection refused \\(Connection refused\\)", "Connection refused (could not connect to the SSH server)");
-        setState(ComputerState.Unviable);
+        setMessage(message);
       }
-      setMessage(message);
     }
   }
 

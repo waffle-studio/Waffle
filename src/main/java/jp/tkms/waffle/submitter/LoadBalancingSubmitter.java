@@ -57,15 +57,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
    */
 
   @Override
-  public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
-    for (AbstractJob job : cancelJobList) {
-      try {
-        cancel(job);
-      } catch (RunNotFoundException e) {
-        job.remove();
-      }
-    }
-
+  public void processPrepared(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
     int globalFreeJobSlot = computer.getMaximumNumberOfJobs();

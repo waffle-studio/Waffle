@@ -36,44 +36,45 @@ public class PollingThread extends Thread {
     int waitCount = submitter.getPollingInterval() - 1;
     do {
       while (waitCount < submitter.getPollingInterval()) {
-        if (Main.hibernateFlag) {
-          submitter.hibernate();
-          break;
-        }
         try { sleep(1000); } catch (InterruptedException e) { e.printStackTrace(); }
         waitCount += 1;
+        if (Main.hibernateFlag) {
+          break;
+        }
       }
       if (Main.hibernateFlag) {
-        submitter.hibernate();
         break;
       }
       waitCount = 0;
-
-      if (submitter == null || !submitter.isConnected()) {
-        InfoLogMessage.issue(computer, "will be reconnected");
-        if (submitter != null) {
-          submitter.close();
+      if (!Main.hibernateFlag) {
+        if (submitter == null || !submitter.isConnected()) {
+          InfoLogMessage.issue(computer, "will be reconnected");
+          if (submitter != null) {
+            submitter.close();
+          }
+          try {
+            submitter = AbstractSubmitter.getInstance(mode, computer).connect();
+          } catch (Exception e) {
+            WarnLogMessage.issue(e.getMessage());
+            submitter.close();
+            threadMap.remove(getThreadName(mode, computer));
+            InfoLogMessage.issue(computer, mode.name() + ") submitter closed");
+            return;
+          }
+          if (!submitter.isConnected()) {
+            WarnLogMessage.issue("Failed to connect to " + computer.getName());
+            continue;
+          }
         }
         try {
-          submitter = AbstractSubmitter.getInstance(mode, computer).connect();
-        } catch (Exception e) {
-          WarnLogMessage.issue(e.getMessage());
-          InfoLogMessage.issue(computer, "submitter closed");
-          return;
-        }
-        if (! submitter.isConnected()) {
-          WarnLogMessage.issue("Failed to connect to " + computer.getName());
+          submitter.checkSubmitted();
+        } catch (FailedToControlRemoteException e) {
+          submitter.close();
+          WarnLogMessage.issue(computer, "was scanned with error");
           continue;
         }
+        InfoLogMessage.issue(computer, "was scanned");
       }
-      try {
-        submitter.pollingTask(computer);
-      } catch (FailedToControlRemoteException e) {
-        submitter.close();
-        WarnLogMessage.issue(computer, "was scanned with error");
-        continue;
-      }
-      InfoLogMessage.issue(computer, "was scanned");
     } while ((mode.equals(Mode.Normal) ? ExecutableRunJob.getList(computer).size() : SystemTaskJob.getList(computer).size()) > 0);
 
     if (submitter != null) {
@@ -81,7 +82,8 @@ public class PollingThread extends Thread {
     }
     threadMap.remove(getThreadName(mode, computer));
 
-    InfoLogMessage.issue(computer, "submitter closed");
+    InfoLogMessage.issue(computer, mode.name() + " submitter closed");
+    return;
   }
 
   synchronized public static void startup() {

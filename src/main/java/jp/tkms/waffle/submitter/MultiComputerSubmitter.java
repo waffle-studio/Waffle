@@ -20,6 +20,7 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
   public static final String KEY_TARGET_COMPUTERS = "target_computers";
 
   public MultiComputerSubmitter(Computer computer) {
+    super(computer);
   }
 
   @Override
@@ -30,10 +31,6 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
   @Override
   public boolean isConnected() {
     return true;
-  }
-
-  @Override
-  public void close() {
   }
 
   @Override
@@ -111,14 +108,7 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
    */
 
   @Override
-  public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
-    for (AbstractJob job : cancelJobList) {
-      try {
-        cancel(job);
-      } catch (RunNotFoundException e) {
-        job.remove();
-      }
-    }
+  public void processPrepared(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
 
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();

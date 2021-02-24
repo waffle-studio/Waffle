@@ -26,9 +26,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
@@ -36,14 +38,16 @@ abstract public class AbstractSubmitter {
   protected static final String ARGUMENTS_FILE = "arguments.txt";
   protected static final String EXIT_STATUS_FILE = "exit_status.log";
 
+  boolean isRunning = false;
+  Computer computer;
   protected static ExecutorService threadPool = Executors.newFixedThreadPool(4);
   private int pollingInterval = 5;
+  private int preparingNumber = 1;
   private PollingThread.Mode mode;
-  private ArrayList<AbstractJob> createdJobList = new ArrayList<>();
-  private ArrayList<AbstractJob> preparedJobList = new ArrayList<>();
-  private ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
-  private ArrayList<AbstractJob> runningJobList = new ArrayList<>();
-  private ArrayList<AbstractJob> cancelJobList = new ArrayList<>();
+
+  ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
+  ProcessorManager<PreparedProcessor> preparedProcessorManager = new ProcessorManager<>(() -> new PreparedProcessor());
+  ProcessorManager<FinishedProcessor> finishedProcessorManager = new ProcessorManager<>(() -> new FinishedProcessor());
 
   public int getPollingInterval() {
     return pollingInterval;
@@ -55,7 +59,6 @@ abstract public class AbstractSubmitter {
 
   abstract public AbstractSubmitter connect(boolean retry);
   abstract public boolean isConnected();
-  abstract public void close();
 
   abstract public JSONObject getDefaultParameters(Computer computer);
 
@@ -68,6 +71,10 @@ abstract public class AbstractSubmitter {
   abstract public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
   abstract public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException;
+
+  public AbstractSubmitter(Computer computer) {
+    this.computer = computer;
+  }
 
   public AbstractSubmitter connect() {
     return connect(true);
@@ -96,11 +103,16 @@ abstract public class AbstractSubmitter {
     return submitter;
   }
 
+  public void forcePrepare(AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+    if (job.getState().equals(State.Created)) {
+      preparingNumber += 1;
+      prepareJob(job);
+    }
+  }
+
   public void submit(AbstractJob job) throws RunNotFoundException {
     try {
-      if (job.getState().equals(State.Created)) {
-        prepareJob(job);
-      }
+      forcePrepare(job);
       String execstr =  exec(xsubSubmitCommand(job));
       processXsubSubmit(job, execstr);
     } catch (FailedToControlRemoteException e) {
@@ -135,28 +147,32 @@ abstract public class AbstractSubmitter {
   }
 
   protected void prepareJob(AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    ComputerTask run = job.getRun();
-    run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
+    synchronized (job) {
+      if (job.getState().equals(State.Created)) {
+        ComputerTask run = job.getRun();
+        run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
-    //run.getSimulator().updateVersionId();
+        //run.getSimulator().updateVersionId();
 
-    putText(job, BATCH_FILE, makeBatchFileText(job));
-    putText(job, EXIT_STATUS_FILE, "-2");
+        putText(job, BATCH_FILE, makeBatchFileText(job));
+        putText(job, EXIT_STATUS_FILE, "-2");
 
-    run.specializedPreProcess(this);
-    putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
-    //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
+        run.specializedPreProcess(this);
+        putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
+        //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
 
-    if (! exists(getExecutableBaseDirectory(job).toAbsolutePath())) {
-      //Path binPath = run.getExecutable().getBaseDirectory().toAbsolutePath();
-      transferFilesToRemote(run.getBinPath(), getExecutableBaseDirectory(job).toAbsolutePath());
+        if (! exists(getExecutableBaseDirectory(job).toAbsolutePath())) {
+          //Path binPath = run.getExecutable().getBaseDirectory().toAbsolutePath();
+          transferFilesToRemote(run.getBinPath(), getExecutableBaseDirectory(job).toAbsolutePath());
+        }
+
+        Path work = run.getBasePath();
+        transferFilesToRemote(work, getRunDirectory(run).resolve(work.getFileName()));
+
+        job.setState(State.Prepared);
+        InfoLogMessage.issue(job.getRun(), "was prepared");
+      }
     }
-
-    Path work = run.getBasePath();
-    transferFilesToRemote(work, getRunDirectory(run).resolve(work.getFileName()));
-
-    job.setState(State.Prepared);
-    InfoLogMessage.issue(job.getRun(), "was prepared");
   }
 
   public Path getBaseDirectory(ComputerTask run) throws FailedToControlRemoteException {
@@ -299,56 +315,69 @@ abstract public class AbstractSubmitter {
           job.setState(State.Running);
           break;
         case "finished" :
-          int exitStatus = -1;
-          try {
-            exitStatus = Integer.parseInt(getFileContents(job.getRun(), getRunDirectory(job.getRun()).resolve(EXIT_STATUS_FILE)).trim());
-          } catch (Exception e) {
-            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-            WarnLogMessage.issue(e);
-          }
-          job.getRun().setExitStatus(exitStatus);
-
-          Path runDirectoryPath = getRunDirectory(job.getRun());
-
-          try {
-            transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDOUT_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
-          } catch (Exception | Error e) {
-            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-            WarnLogMessage.issue(e);
-          }
-
-          try {
-            transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDERR_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
-          } catch (Exception | Error e) {
-            job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-            WarnLogMessage.issue(e);
-          }
-
-          if (exitStatus == 0) {
-            InfoLogMessage.issue(job.getRun(), "results will be collected");
-
-            boolean isNoException = true;
-            try {
-              job.getRun().specializedPostProcess(this, job);
-            } catch (Exception e) {
-              isNoException = false;
-              job.setState(State.Excepted);
-              job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-              WarnLogMessage.issue(e);
-            }
-
-            if (isNoException) {
-              job.setState(State.Finished);
-            }
-          } else {
-            job.setState(State.Failed);
-          }
-          job.remove();
-
+          job.setState(State.Finalizing);
           break;
       }
     } catch (Exception e) {
       job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+      ErrorLogMessage.issue(e);
+    }
+  }
+
+  void jobFinalizing(AbstractJob job) throws WaffleException {
+    try {
+      int exitStatus = -1;
+      try {
+        exitStatus = Integer.parseInt(getFileContents(job.getRun(), getRunDirectory(job.getRun()).resolve(EXIT_STATUS_FILE)).trim());
+      } catch (Exception e) {
+        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+        WarnLogMessage.issue(e);
+      }
+      job.getRun().setExitStatus(exitStatus);
+
+      Path runDirectoryPath = getRunDirectory(job.getRun());
+
+      try {
+        transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDOUT_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+      } catch (Exception | Error e) {
+        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+        WarnLogMessage.issue(job.getRun(), "could not finds a remote " + Constants.STDOUT_FILE);
+      }
+
+      try {
+        transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDERR_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+      } catch (Exception | Error e) {
+        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+        WarnLogMessage.issue(job.getRun(), "could not finds a remote " + Constants.STDERR_FILE);
+      }
+
+      if (exitStatus == 0) {
+        InfoLogMessage.issue(job.getRun(), "results will be collected");
+
+        boolean isNoException = true;
+        try {
+          job.getRun().specializedPostProcess(this, job);
+        } catch (Exception e) {
+          isNoException = false;
+          job.setState(State.Excepted);
+          job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+          WarnLogMessage.issue(e);
+        }
+
+        if (isNoException) {
+          job.setState(State.Finished);
+        }
+      } else {
+        job.setState(State.Failed);
+      }
+      job.remove();
+    } catch (Exception e) {
+      try {
+        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
+      } catch (RunNotFoundException runNotFoundException) {
+        ErrorLogMessage.issue(e);
+        return;
+      }
       ErrorLogMessage.issue(e);
     }
   }
@@ -431,7 +460,8 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public void pollingTask(Computer computer) throws FailedToControlRemoteException {
+  /*
+  public void pollingTask() throws FailedToControlRemoteException {
     pollingInterval = computer.getPollingInterval();
     ArrayList<AbstractJob> jobList = getJobList(mode, computer);
 
@@ -491,8 +521,9 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { break; }
     }
 
-    processJobLists(computer, createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
+    processJobLists(createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
   }
+   */
 
   /*
   public double getMaximumNumberOfThreads(Computer computer) {
@@ -504,7 +535,8 @@ abstract public class AbstractSubmitter {
   }
    */
 
-  public void processJobLists(Computer computer, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
+  /*
+  public void processJobLists(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
     //int submittedCount = submittedJobList.size() + runningJobList.size();
     submittedJobList.addAll(runningJobList);
     ArrayList<AbstractJob> submittedJobListForAggregation = new ArrayList<>(submittedJobList);
@@ -594,25 +626,365 @@ abstract public class AbstractSubmitter {
     }
     cacheClear();
   }
-
-  protected void cacheClear() {
-
-  }
-
-  public void hibernate() {
-
-  }
-
-  /*
-  public boolean stageIn(SimulatorRun run, String name, String remote) {
-    if (updated) {
-      tranfar file to remote shared dir from local shared dir
-    }
-    soft copy to run dir from remote shared dir
-  }
-
-  public boolean stageOut(SimulatorRun run, String name, String remote) {
-
-  }
    */
+
+  public void checkSubmitted() throws FailedToControlRemoteException {
+    isRunning = true;
+    pollingInterval = computer.getPollingInterval();
+
+    ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
+    ArrayList<AbstractJob> runningJobList = new ArrayList<>();
+    ArrayList<AbstractJob> cancelJobList = new ArrayList<>();
+
+    for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+      if (Main.hibernateFlag) { return; }
+
+      try {
+        if (!job.exists() && job.getRun().isRunning()) {
+          job.cancel();
+          WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+          continue;
+        }
+        switch (job.getState(true)) {
+          case Submitted:
+            submittedJobList.add(job);
+            break;
+          case Running:
+            runningJobList.add(job);
+            break;
+          case Cancel:
+            cancelJobList.add(job);
+        }
+      } catch (RunNotFoundException e) {
+        try {
+          cancel(job);
+        } catch (RunNotFoundException ex) { }
+        job.remove();
+        WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
+      }
+    }
+
+    if (!Main.hibernateFlag) {
+      processSubmitted(submittedJobList, runningJobList, cancelJobList);
+    }
+
+    if (!Main.hibernateFlag) {
+      preparedProcessorManager.startup();
+    }
+
+    isRunning = false;
+    return;
+  }
+
+  public void processSubmitted(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
+    //int submittedCount = submittedJobList.size() + runningJobList.size();
+    submittedJobList.addAll(runningJobList);
+
+    for (AbstractJob job : cancelJobList) {
+      if (Main.hibernateFlag) { return; }
+      try {
+        cancel(job);
+      } catch (RunNotFoundException e) {
+        job.remove();
+      }
+    }
+
+    for (AbstractJob job : submittedJobList) {
+      if (Main.hibernateFlag) { return; }
+
+      try {
+        switch (update(job)) {
+          case Finalizing:
+          case Finished:
+          case Failed:
+          case Excepted:
+          case Canceled:
+            finishedProcessorManager.startup();
+        }
+      } catch (WaffleException e) {
+        WarnLogMessage.issue(e);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
+      }
+    }
+  }
+
+  class CreatedProcessor extends Thread {
+    @Override
+    public void run() {
+      ArrayList<AbstractJob> createdJobList = new ArrayList<>();
+      ArrayList<AbstractJob> preparedJobList = new ArrayList<>();
+
+      do {
+        if (Main.hibernateFlag) {
+          return;
+        }
+
+        createdJobList.clear();
+        preparedJobList.clear();
+
+        for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+          try {
+            if (!job.exists() && job.getRun().isRunning()) {
+              job.cancel();
+              WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+              continue;
+            }
+            switch (job.getState(true)) {
+              case Created:
+                createdJobList.add(job);
+                break;
+              case Prepared:
+                preparedJobList.add(job);
+            }
+          } catch (RunNotFoundException e) {
+            try {
+              cancel(job);
+            } catch (RunNotFoundException ex) {
+            }
+            job.remove();
+            WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed.");
+          }
+        }
+
+        if (createdJobList.isEmpty() || preparedJobList.size() >= preparingNumber || Main.hibernateFlag) {
+          return;
+        }
+
+        try {
+          processCreated(createdJobList, preparedJobList);
+        } catch (FailedToControlRemoteException e) {
+          ErrorLogMessage.issue(e);
+        }
+      } while (!createdJobList.isEmpty() && preparedJobList.size() < preparingNumber);
+      return;
+    }
+  }
+
+  public void processCreated(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparingJobList) throws FailedToControlRemoteException {
+    int preparingCount = preparingJobList.size();
+    ArrayList<Future> futures = new ArrayList<>();
+    for (AbstractJob job : createdJobList) {
+      if (Main.hibernateFlag || preparingCount >= preparingNumber) {
+        break;
+      }
+
+      futures.add(threadPool.submit(() -> {
+        try {
+          prepareJob(job);
+        } catch (FailedToTransferFileException e) {
+          WarnLogMessage.issue(job.getComputer(), e.getMessage());
+        } catch (WaffleException e) {
+          WarnLogMessage.issue(e);
+        }
+      }));
+      preparingCount += 1;
+    }
+
+    for (Future future : futures) {
+      try {
+        future.get();
+      } catch (InterruptedException | ExecutionException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    return;
+  }
+
+  class PreparedProcessor extends Thread {
+    @Override
+    public void run() {
+      createdProcessorManager.startup();
+
+      ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
+      ArrayList<AbstractJob> createdJobList = new ArrayList<>();
+      ArrayList<AbstractJob> preparedJobList = new ArrayList<>();
+
+      for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+        if (Main.hibernateFlag) { return; }
+        try {
+          if (!job.exists() && job.getRun().isRunning()) {
+            job.cancel();
+            WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+            continue;
+          }
+          switch (job.getState(true)) {
+            case Created:
+              createdJobList.add(job);
+              break;
+            case Prepared:
+              preparedJobList.add(job);
+              break;
+            case Submitted:
+            case Running:
+            case Cancel:
+              submittedJobList.add(job);
+          }
+        } catch (RunNotFoundException e) {
+          try {
+            cancel(job);
+          } catch (RunNotFoundException ex) { }
+          job.remove();
+          WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
+        }
+      }
+
+      if (!Main.hibernateFlag) {
+        try {
+          processPrepared(submittedJobList, createdJobList, preparedJobList);
+        } catch (FailedToControlRemoteException e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+      return;
+    }
+  }
+
+  public void processPrepared(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+    ArrayList<AbstractJob> queuedJobList = new ArrayList<>();
+    queuedJobList.addAll(preparedJobList);
+    queuedJobList.addAll(createdJobList);
+
+    for (AbstractJob job : queuedJobList) {
+      if (Main.hibernateFlag) { return; }
+
+      try {
+        if (isSubmittable(computer, job, submittedJobList)) {
+          submit(job);
+          submittedJobList.add(job);
+        }
+      } catch (NullPointerException | WaffleException e) {
+        WarnLogMessage.issue(e);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
+      }
+    }
+  }
+
+  class FinishedProcessor extends Thread {
+    @Override
+    public void run() {
+      ArrayList<AbstractJob> finalizingJobList = new ArrayList<>();
+
+      do {
+        if (Main.hibernateFlag) { return; }
+
+        finalizingJobList.clear();
+
+        for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+          if (Main.hibernateFlag) { return; }
+
+          try {
+            if (!job.exists() && job.getRun().isRunning()) {
+              job.cancel();
+              WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+              continue;
+            }
+            switch (job.getState(true)) {
+              case Finalizing:
+                finalizingJobList.add(job);
+                break;
+              case Finished:
+              case Failed:
+              case Excepted:
+                //WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not running; The task was removed." );
+              case Canceled:
+                job.remove();
+            }
+          } catch (RunNotFoundException e) {
+            try {
+              cancel(job);
+            } catch (RunNotFoundException ex) { }
+            job.remove();
+            WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
+          }
+        }
+
+        if (finalizingJobList.isEmpty()) {
+          return;
+        }
+
+        try {
+          processFinished(finalizingJobList);
+        } catch (FailedToControlRemoteException e) {
+          ErrorLogMessage.issue(e);
+        }
+
+      } while (!finalizingJobList.isEmpty());
+      return;
+    }
+  }
+
+  public void processFinished(ArrayList<AbstractJob> finalizingJobList) throws FailedToControlRemoteException {
+    for (AbstractJob job : finalizingJobList) {
+      if (Main.hibernateFlag) { return; }
+
+      try {
+        jobFinalizing(job);
+      } catch (WaffleException e) {
+        WarnLogMessage.issue(e);
+        try {
+          job.setState(State.Excepted);
+        } catch (RunNotFoundException ex) { }
+        throw new FailedToControlRemoteException(e);
+      }
+    }
+  }
+
+  static class ProcessorManager<P extends Thread> {
+    Supplier<P> supplier;
+    P processor;
+
+    ProcessorManager(Supplier<P> supplier) {
+      this.supplier = supplier;
+      processor = null;
+    }
+
+    protected void startup() {
+      if (processor == null || !processor.isAlive()) {
+        synchronized (this) {
+          if (processor == null || !processor.isAlive()) {
+            processor = supplier.get();
+            processor.start();
+          }
+        }
+      }
+    }
+
+    protected void close() {
+      if (processor != null && processor.isAlive()) {
+        int count = 0;
+        while (processor.isAlive()) {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            ErrorLogMessage.issue(e);
+          }
+          if (count++ == 10) {
+            InfoLogMessage.issue("Submitter is closing; wait few minutes.");
+          }
+        }
+      }
+    }
+  }
+
+  public void close() {
+    synchronized (this) {
+      while (isRunning) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+      preparedProcessorManager.close();
+      createdProcessorManager.close();
+      finishedProcessorManager.close();
+    }
+  }
 }

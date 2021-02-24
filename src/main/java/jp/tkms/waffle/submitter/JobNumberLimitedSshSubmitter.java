@@ -22,13 +22,12 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
-  Computer computer;
   SshSession session;
   SshSession tunnelSession;
   String home = null;
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
-    this.computer = computer;
+    super(computer);
   }
 
   @Override
@@ -126,6 +125,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
 
   @Override
   public void close() {
+    super.close();
     if (session != null) { session.disconnect(); }
     if (tunnelSession != null) { tunnelSession.disconnect(); }
   }
@@ -136,7 +136,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
       if (home == null) {
         try {
           home = session.exec("echo -n $HOME", "~/").getStdout().replaceAll("\\r|\\n", "");
-        } catch (JSchException e) {
+        } catch (JSchException | InterruptedException e) {
           throw new FailedToControlRemoteException(e);
         }
       }
@@ -162,8 +162,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
       SshChannel channel = session.exec(command, "");
       result += channel.getStdout();
       result += channel.getStderr();
-    } catch (JSchException e) {
-      e.printStackTrace();
+    } catch (JSchException | InterruptedException e) {
+      //e.printStackTrace();
       return null;
     }
 
@@ -183,7 +183,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   boolean exists(Path path) throws FailedToControlRemoteException {
     try {
       return session.exec("test -e \"" + path.toString() + "\"", "").getExitStatus() == 0;
-    } catch (JSchException e) {
+    } catch (JSchException | InterruptedException e) {
       throw new FailedToControlRemoteException(e);
     }
   }
