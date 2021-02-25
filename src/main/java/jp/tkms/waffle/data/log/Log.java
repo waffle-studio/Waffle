@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Log {
   protected static final String TABLE_NAME = "log";
@@ -89,11 +90,10 @@ public class Log {
   }
 
   public static Log create(Level level, String message) {
-    System.err.println('[' + level.name() + "] " + message);
-
     Log log = new Log(level, message);
 
     loggerThread.submit(() -> {
+      System.err.println('[' + level.name() + "] " + message);
       synchronized (objectLocker) {
         Database db = getDatabase();
         try {
@@ -115,9 +115,8 @@ public class Log {
           }
         }
       }
+      new LogUpdater(log);
     });
-
-    new LogUpdater(log);
 
     return log;
   }
@@ -173,5 +172,14 @@ public class Log {
   public enum Level {
     Debug, Info, Warn, Error;
     public static Level valueOf(int i) { return values()[i]; }
+  }
+
+  public static void close() {
+    loggerThread.shutdown();
+    try {
+      loggerThread.awaitTermination(7, TimeUnit.DAYS);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 }

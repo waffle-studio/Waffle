@@ -369,7 +369,9 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         submitter.createDirectories(getRemoteEntitiesDirectory());
         submitter.createDirectories(getRemoteJobsDirectory());
         submitter.putText(job, getRemoteEntitiesDirectory().resolve(job.getId().toString()), runDirectoryPath.toString());
+        submitter.exec("chmod 666 " + getRemoteEntitiesDirectory().resolve(job.getId().toString()).toString());
         submitter.putText(job, getRemoteJobsDirectory().resolve(job.getId().toString()), "");
+        submitter.exec("chmod 666 " + getRemoteJobsDirectory().resolve(job.getId().toString()));
         job.setJobId(id.getReversedBase36Code() + '.' + getNextJobCount());
         job.setState(State.Submitted);
         putToArrayOfProperty(RUNNING, job.getJobId());

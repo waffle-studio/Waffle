@@ -2,6 +2,7 @@ package jp.tkms.waffle;
 
 import jp.tkms.waffle.data.job.ExecutableRunTaskStore;
 import jp.tkms.waffle.data.job.SystemTaskStore;
+import jp.tkms.waffle.data.log.Log;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.InstanceCache;
@@ -273,28 +274,31 @@ public class Main {
           pollingThreadWalkerThread.interrupt();
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
-        System.out.println("(1/6) Misc. components stopped");
+        System.out.println("(1/7) Misc. components stopped");
 
         PollingThread.waitForShutdown();
-        System.out.println("(2/6) Polling system stopped");
+        System.out.println("(2/7) Polling system stopped");
 
         try {
           systemThreadPool.shutdown();
           systemThreadPool.awaitTermination(7, TimeUnit.DAYS);
         } catch (Throwable e) {}
-        System.out.println("(3/6) System common threads stopped");
+        System.out.println("(3/7) System common threads stopped");
 
         Spark.stop();
         Spark.awaitStop();
-        System.out.println("(4/6) Web interface stopped");
+        System.out.println("(4/7) Web interface stopped");
         try {
           interfaceThreadPool.shutdown();
           interfaceThreadPool.awaitTermination(7, TimeUnit.DAYS);
         } catch (Throwable e) {}
-        System.out.println("(5/6) Web interface common threads stopped");
+        System.out.println("(5/7) Web interface common threads stopped");
 
         PathLocker.waitAllCachedFiles();
-        System.out.println("(6/6) File buffer threads stopped");
+        System.out.println("(6/7) File buffer threads stopped");
+
+        Log.close();
+        System.out.println("(7/7) Logger threads stopped");
 
         if (restartFlag) {
           restartProcess();

@@ -102,14 +102,18 @@ public abstract class AbstractExecutor {
       boolean isChanged = false;
 
       for (File file : JOBS_PATH.toFile().listFiles()) {
-        if (!runningJobList.contains(file.getName())) {
-          isChanged = true;
+        synchronized (runningJobList) {
+          if (!runningJobList.contains(file.getName())) {
+            isChanged = true;
+          }
         }
       }
 
-      for (String id : runningJobList) {
-        if (!JOBS_PATH.resolve(id).toFile().exists()) {
-          isChanged = true;
+      synchronized (runningJobList) {
+        for (String id : runningJobList) {
+          if (!JOBS_PATH.resolve(id).toFile().exists()) {
+            isChanged = true;
+          }
         }
       }
 
@@ -117,10 +121,12 @@ public abstract class AbstractExecutor {
         checkJobs();
       }
 
-      if (runningJobList.isEmpty()) {
-        waitingTimeCounter += 1;
-      } else {
-        waitingTimeCounter = 0;
+      synchronized (runningJobList) {
+        if (runningJobList.isEmpty()) {
+          waitingTimeCounter += 1;
+        } else {
+          waitingTimeCounter = 0;
+        }
       }
 
       try {
@@ -183,7 +189,9 @@ public abstract class AbstractExecutor {
     for (String jobName : temporaryJobList) {
       if (Files.exists(JOBS_PATH.resolve(jobName))) {
         jobRemoved(jobName);
-        runningJobList.remove(jobName);
+        synchronized (runningJobList) {
+          runningJobList.remove(jobName);
+        }
       }
     }
 
@@ -200,13 +208,17 @@ public abstract class AbstractExecutor {
       for (String jobName : temporaryJobList) {
         if (!Files.exists(JOBS_PATH.resolve(jobName))) {
           jobRemoved(jobName);
-          runningJobList.remove(jobName);
+          synchronized (runningJobList) {
+            runningJobList.remove(jobName);
+          }
         }
       }
       for (File file : JOBS_PATH.toFile().listFiles()) {
         if (!runningJobList.contains(file.getName())) {
           jobAdded(file.getName());
-          runningJobList.add(file.getName());
+          synchronized (runningJobList) {
+            runningJobList.add(file.getName());
+          }
         }
       }
     }
@@ -227,7 +239,9 @@ public abstract class AbstractExecutor {
 
   protected void jobFinished(String jobName) {
     synchronized (objectLocker) {
-      runningJobList.remove(jobName);
+      synchronized (runningJobList) {
+        runningJobList.remove(jobName);
+      }
       try {
         Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
         Files.deleteIfExists(JOBS_PATH.resolve(jobName));
