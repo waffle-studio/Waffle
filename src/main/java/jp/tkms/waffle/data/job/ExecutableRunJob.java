@@ -96,8 +96,8 @@ public class ExecutableRunJob extends AbstractJob {
     String jsonString = StringFileUtil.read(getPropertyStorePath());
     remove();
     setComputerName(computer);
-    setState(State.Created);
     StringFileUtil.write(getPropertyStorePath(), jsonString);
+    setState(State.Created);
     Main.jobStore.register(this);
   }
 
