@@ -100,6 +100,7 @@ public class SystemTaskJob extends AbstractJob {
     String jsonString = StringFileUtil.read(getPropertyStorePath());
     remove();
     setComputerName(computer);
+    setState(State.Created);
     StringFileUtil.write(getPropertyStorePath(), jsonString);
     Main.systemTaskStore.register(this);
   }
