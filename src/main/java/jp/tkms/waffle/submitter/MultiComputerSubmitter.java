@@ -108,6 +108,10 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
    */
 
   @Override
+  public void processCreated(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparingJobList) throws FailedToControlRemoteException {
+  }
+
+  @Override
   public void processPrepared(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
 
     double globalFreeThread = computer.getMaximumNumberOfThreads();
