@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.TreeMap;
 
@@ -151,6 +152,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
     WrappedSshSubmitter submitter;
     TreeMap<String, VirtualJobExecutor> runningExecutorList;
     TreeMap<String, VirtualJobExecutor> activeExecutorList;
+    VirtualJobExecutor submittableCache = null;
 
     public JobManager(WrappedSshSubmitter submitter) {
       this.submitter = submitter;
@@ -242,17 +244,38 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
 
       Submittable result = new Submittable();
 
-      ArrayList<VirtualJobExecutor> removingList = new ArrayList<>();
-      for (VirtualJobExecutor executor : activeExecutorList.values()) {
-        //System.out.println(executor.getId());
+      for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
         Path directoryPath = executor.getDirectoryPath();
-        if (!directoryPath.toFile().exists()) {
-        //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
+        if (!directoryPath.toFile().exists() || !executor.isRunning()) {
+          deactivateExecutor(executor);
           removeFromArrayOfProperty(RUNNING, executor.getId());
           runningExecutorList.remove(executor.id.getReversedBase36Code());
-          removingList.add(executor);
+          if (directoryPath.toFile().exists()) {
+            executor.deleteDirectory();
+          }
+        }
+      }
+
+      ArrayList<VirtualJobExecutor> shuffledList = new ArrayList<>(activeExecutorList.values());
+      Collections.shuffle(shuffledList);
+      ArrayList<VirtualJobExecutor> cacheAppliedList = new ArrayList<>();
+      if (submittableCache != null && shuffledList.contains(submittableCache)) {
+        cacheAppliedList.add(submittableCache);
+        shuffledList.remove(submittableCache);
+        cacheAppliedList.addAll(shuffledList);
+      } else {
+        cacheAppliedList.addAll(shuffledList);
+      }
+      for (VirtualJobExecutor executor : cacheAppliedList) {
+        Path directoryPath = executor.getDirectoryPath();
+        if (!directoryPath.toFile().exists()) {
+          //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
+          deactivateExecutor(executor);
+          removeFromArrayOfProperty(RUNNING, executor.getId());
+          runningExecutorList.remove(executor.id.getReversedBase36Code());
           continue;
         }
+        //System.out.println(executor.getId());
         double usedThread = 0.0;
         double usedMemory = 0.0;
         for (AbstractJob abstractJob : executor.getRunningList()) {
@@ -263,18 +286,18 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
           && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
           if (executor.isAcceptable(this)) {
             result.usableExecutor = executor;
+            submittableCache = executor;
             break;
           } else {
-            removingList.add(executor);
+            deactivateExecutor(executor);
           }
         }
       }
+
       if (runningExecutorList.size() < getComputer().getMaximumNumberOfJobs()) {
         result.isNewExecutorCreatable = true;
       }
-      for (VirtualJobExecutor executor : removingList) {
-        deactivateExecutor(executor);
-      }
+
       return result;
     }
 
@@ -332,7 +355,11 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
     }
 
     public String checkStat(AbstractJob job) throws RunNotFoundException {
-      VirtualJobExecutor executor = VirtualJobExecutor.getInstance(this, WaffleId.valueOf(job.getJobId().replaceFirst("\\..*$", "")));
+      String executorId = job.getJobId().replaceFirst("\\..*$", "");
+      VirtualJobExecutor executor = runningExecutorList.get(executorId);
+      if (executor == null) {
+        executor = VirtualJobExecutor.getInstance(this, WaffleId.valueOf(executorId));
+      }
       boolean finished = true;
       if (executor != null) {
         finished = executor.checkStat(submitter, job);
@@ -369,9 +396,9 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         submitter.createDirectories(getRemoteEntitiesDirectory());
         submitter.createDirectories(getRemoteJobsDirectory());
         submitter.putText(job, getRemoteEntitiesDirectory().resolve(job.getId().toString()), runDirectoryPath.toString());
-        submitter.exec("chmod 666 " + getRemoteEntitiesDirectory().resolve(job.getId().toString()).toString());
+        submitter.chmod(666, getRemoteEntitiesDirectory().resolve(job.getId().toString()));
         submitter.putText(job, getRemoteJobsDirectory().resolve(job.getId().toString()), "");
-        submitter.exec("chmod 666 " + getRemoteJobsDirectory().resolve(job.getId().toString()));
+        submitter.chmod(666, getRemoteJobsDirectory().resolve(job.getId().toString()));
         job.setJobId(id.getReversedBase36Code() + '.' + getNextJobCount());
         job.setState(State.Submitted);
         putToArrayOfProperty(RUNNING, job.getJobId());

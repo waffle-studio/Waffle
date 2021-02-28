@@ -144,6 +144,17 @@ public class SshSession {
     return channel;
   }
 
+  public boolean chmod(int mod, Path path) throws JSchException {
+    return processSftp(channelSftp -> {
+      try {
+        channelSftp.chmod(Integer.parseInt("" + mod, 8), path.toString());
+      } catch (SftpException e) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   public boolean mkdir(Path path) throws JSchException {
     return processSftp(channelSftp -> {
       try {

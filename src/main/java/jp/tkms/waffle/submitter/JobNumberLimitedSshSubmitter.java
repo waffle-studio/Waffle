@@ -155,6 +155,15 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  public void chmod(int mod, Path path) throws FailedToControlRemoteException {
+    try {
+      session.chmod(mod, path);
+    } catch (JSchException e) {
+      throw new FailedToControlRemoteException(e);
+    }
+  }
+
+  @Override
   public String exec(String command) {
     String result = "";
 

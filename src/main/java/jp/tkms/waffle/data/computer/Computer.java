@@ -57,6 +57,7 @@ public class Computer implements DataDirectory, PropertyFile {
     JobNumberLimitedLocalSubmitter.class,
     MultiComputerSubmitter.class,
     LoadBalancingSubmitter.class,
+    DeadlineWrapper.class,
     WrappedSshSubmitter.class
   ));
 

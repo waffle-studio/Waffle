@@ -103,6 +103,10 @@ abstract public class AbstractSubmitter {
     return submitter;
   }
 
+  public void chmod(int mod, Path path) throws FailedToControlRemoteException {
+    exec("chmod " + mod +" '" + path.toString() + "'");
+  }
+
   public void forcePrepare(AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     if (job.getState().equals(State.Created)) {
       preparingNumber += 1;
@@ -632,6 +636,10 @@ abstract public class AbstractSubmitter {
     isRunning = true;
     pollingInterval = computer.getPollingInterval();
 
+    createdProcessorManager.startup();
+    preparedProcessorManager.startup();
+    finishedProcessorManager.startup();
+
     ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
     ArrayList<AbstractJob> runningJobList = new ArrayList<>();
     ArrayList<AbstractJob> cancelJobList = new ArrayList<>();
@@ -700,6 +708,7 @@ abstract public class AbstractSubmitter {
           case Excepted:
           case Canceled:
             finishedProcessorManager.startup();
+            preparedProcessorManager.startup();
         }
       } catch (WaffleException e) {
         WarnLogMessage.issue(e);
@@ -797,6 +806,7 @@ abstract public class AbstractSubmitter {
   class PreparedProcessor extends Thread {
     @Override
     public void run() {
+      long s = System.currentTimeMillis();
       createdProcessorManager.startup();
 
       ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
@@ -855,6 +865,7 @@ abstract public class AbstractSubmitter {
         if (isSubmittable(computer, job, submittedJobList)) {
           submit(job);
           submittedJobList.add(job);
+          createdProcessorManager.startup();
         }
       } catch (NullPointerException | WaffleException e) {
         WarnLogMessage.issue(e);
