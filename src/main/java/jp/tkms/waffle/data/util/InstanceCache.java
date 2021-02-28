@@ -15,8 +15,12 @@ public class InstanceCache<K extends Object, V extends Object> {
   }
 
   public V get(K key) {
-    if (map.containsKey(key)) {
-      return map.get(key).get();
+    try {
+      if (map.containsKey(key)) {
+        return map.get(key).get();
+      }
+    } catch (NullPointerException e) {
+      return null;
     }
     return null;
   }
