@@ -155,6 +155,20 @@ public class SshSession {
     });
   }
 
+  public boolean exists(Path path) throws JSchException {
+    if (path == null) {
+      return false;
+    }
+    return processSftp(channelSftp -> {
+      try {
+        channelSftp.stat(path.toString());
+      } catch (SftpException e) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   public boolean mkdir(Path path) throws JSchException {
     return processSftp(channelSftp -> {
       try {

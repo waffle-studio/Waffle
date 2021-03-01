@@ -10,13 +10,30 @@ import jp.tkms.waffle.data.util.ValueType;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Registry extends WorkspaceData implements Map<Object, Object>, DataDirectory {
   protected static final String KEY_REGISTRY = "registry";
   private static final String KEY_VALUE = "value";
+  private static MessageDigest SHA3_512;
+
+  static {
+    try {
+      SHA3_512 = MessageDigest.getInstance("SHA3-512");
+    } catch (NoSuchAlgorithmException e) {
+      e.printStackTrace();
+    }
+  }
+
+  static String getDigest(String text) {
+    byte[] result = SHA3_512.digest(text.getBytes());
+    return String.format("%040x", new BigInteger(1, result));
+  }
 
   public Registry(Workspace workspace) {
     super(workspace);
@@ -45,7 +62,7 @@ public class Registry extends WorkspaceData implements Map<Object, Object>, Data
   static Object get(Workspace workspace, String key, ValueType type, Object defaultValue) {
     Object result = null;
 
-    Path path = getBaseDirectoryPath(workspace).resolve(key.replaceAll("/", "#"));
+    Path path = getBaseDirectoryPath(workspace).resolve(getDigest(key));
     if (Files.exists(path)) {
       synchronized (workspace) {
         try {
@@ -79,7 +96,7 @@ public class Registry extends WorkspaceData implements Map<Object, Object>, Data
   static void set(Workspace workspace, String key, Object value) {
     if (value != null) {
       synchronized (workspace) {
-        Path path = getBaseDirectoryPath(workspace).resolve(key.replaceAll("/", "#"));
+        Path path = getBaseDirectoryPath(workspace).resolve(getDigest(key));
         if (!Files.exists(path)) {
           try {
             Files.createDirectories(path.getParent());

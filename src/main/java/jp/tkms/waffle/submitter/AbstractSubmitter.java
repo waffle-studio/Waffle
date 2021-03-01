@@ -342,14 +342,18 @@ abstract public class AbstractSubmitter {
       Path runDirectoryPath = getRunDirectory(job.getRun());
 
       try {
-        transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDOUT_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+        if (exists(runDirectoryPath.resolve(Constants.STDOUT_FILE))) {
+          transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDOUT_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDOUT_FILE));
+        }
       } catch (Exception | Error e) {
         job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
         WarnLogMessage.issue(job.getRun(), "could not finds a remote " + Constants.STDOUT_FILE);
       }
 
       try {
-        transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDERR_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+        if (exists(runDirectoryPath.resolve(Constants.STDERR_FILE))) {
+          transferFilesFromRemote(runDirectoryPath.resolve(Constants.STDERR_FILE), job.getRun().getDirectoryPath().resolve(Constants.STDERR_FILE));
+        }
       } catch (Exception | Error e) {
         job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
         WarnLogMessage.issue(job.getRun(), "could not finds a remote " + Constants.STDERR_FILE);

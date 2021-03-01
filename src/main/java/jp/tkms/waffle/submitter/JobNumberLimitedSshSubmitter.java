@@ -191,8 +191,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   boolean exists(Path path) throws FailedToControlRemoteException {
     try {
-      return session.exec("test -e \"" + path.toString() + "\"", "").getExitStatus() == 0;
-    } catch (JSchException | InterruptedException e) {
+      return session.exists(path);
+    } catch (JSchException e) {
       throw new FailedToControlRemoteException(e);
     }
   }

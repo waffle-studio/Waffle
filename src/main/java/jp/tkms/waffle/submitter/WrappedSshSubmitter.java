@@ -395,6 +395,8 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         Path runDirectoryPath = submitter.getRunDirectory(job.getRun());
         submitter.createDirectories(getRemoteEntitiesDirectory());
         submitter.createDirectories(getRemoteJobsDirectory());
+        submitter.chmod(777, getRemoteEntitiesDirectory());
+        submitter.chmod(777, getRemoteJobsDirectory());
         submitter.putText(job, getRemoteEntitiesDirectory().resolve(job.getId().toString()), runDirectoryPath.toString());
         submitter.chmod(666, getRemoteEntitiesDirectory().resolve(job.getId().toString()));
         submitter.putText(job, getRemoteJobsDirectory().resolve(job.getId().toString()), "");

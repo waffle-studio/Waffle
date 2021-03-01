@@ -101,8 +101,8 @@ public abstract class AbstractExecutor {
     while (isAlive && waitingTimeCounter <= timeout) {
       boolean isChanged = false;
 
-      for (File file : JOBS_PATH.toFile().listFiles()) {
-        synchronized (runningJobList) {
+      synchronized (runningJobList) {
+        for (File file : JOBS_PATH.toFile().listFiles()) {
           if (!runningJobList.contains(file.getName())) {
             isChanged = true;
           }
@@ -188,8 +188,8 @@ public abstract class AbstractExecutor {
     HashSet<String> temporaryJobList = new HashSet<>(runningJobList);
     for (String jobName : temporaryJobList) {
       if (Files.exists(JOBS_PATH.resolve(jobName))) {
-        jobRemoved(jobName);
         synchronized (runningJobList) {
+          jobRemoved(jobName);
           runningJobList.remove(jobName);
         }
       }
@@ -207,16 +207,16 @@ public abstract class AbstractExecutor {
       HashSet<String> temporaryJobList = new HashSet<>(runningJobList);
       for (String jobName : temporaryJobList) {
         if (!Files.exists(JOBS_PATH.resolve(jobName))) {
-          jobRemoved(jobName);
           synchronized (runningJobList) {
+            jobRemoved(jobName);
             runningJobList.remove(jobName);
           }
         }
       }
       for (File file : JOBS_PATH.toFile().listFiles()) {
         if (!runningJobList.contains(file.getName())) {
-          jobAdded(file.getName());
           synchronized (runningJobList) {
+            jobAdded(file.getName());
             runningJobList.add(file.getName());
           }
         }
@@ -231,8 +231,10 @@ public abstract class AbstractExecutor {
   protected void jobRemoved(String jobName) {
     System.out.println("'" + jobName + "' was forcibly removed");
     try {
-      Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
-      Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+      synchronized (runningJobList) {
+        Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
+        Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+      }
     } catch (IOException e) {
     }
   }
@@ -241,11 +243,11 @@ public abstract class AbstractExecutor {
     synchronized (objectLocker) {
       synchronized (runningJobList) {
         runningJobList.remove(jobName);
-      }
-      try {
-        Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
-        Files.deleteIfExists(JOBS_PATH.resolve(jobName));
-      } catch (IOException e) {
+        try {
+          Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
+          Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+        } catch (IOException e) {
+        }
       }
     }
   }
