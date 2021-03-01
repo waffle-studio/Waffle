@@ -44,7 +44,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(Mode mode, ExecutableRunJob job) {
-    return "/jobs/" + mode.name() + "/" + (job == null ? ":id" : job.getId());
+    return "/jobs/" + mode.name() + "/" + (job == null ? ":id" : job.getId().getReversedBase36Code());
   }
 
   @Override
