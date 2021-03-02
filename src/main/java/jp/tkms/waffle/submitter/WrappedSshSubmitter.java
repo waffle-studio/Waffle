@@ -95,7 +95,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   @Override
   protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
     JobManager.Submittable submittable = jobManager.getSubmittable(next);
-    return (submittable.usableExecutor != null || submittable.isNewExecutorCreatable);
+    return (submittable.usableExecutor != null || submittable.isNewExecutorCreatable || submittable.isNotConnected);
   }
 
   @Override
@@ -224,6 +224,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
 
 
     static class Submittable {
+      boolean isNotConnected = false;
       boolean isNewExecutorCreatable = false;
       VirtualJobExecutor usableExecutor = null;
       Submittable() {
@@ -284,12 +285,16 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         }
         if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
           && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
-          if (executor.isAcceptable(this)) {
-            result.usableExecutor = executor;
-            submittableCache = executor;
-            break;
+          if (submitter.isConnected()) {
+            if (executor.isAcceptable(this)) {
+              result.usableExecutor = executor;
+              submittableCache = executor;
+              break;
+            } else {
+              deactivateExecutor(executor);
+            }
           } else {
-            deactivateExecutor(executor);
+            result.isNotConnected = true;
           }
         }
       }
