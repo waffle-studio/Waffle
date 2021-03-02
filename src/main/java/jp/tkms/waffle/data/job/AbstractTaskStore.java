@@ -28,7 +28,7 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
 
   public T getJob(WaffleId id) {
     synchronized (jobMap) {
-      return jobMap.get(id.toString());
+      return jobMap.get(id);
     }
   }
 
