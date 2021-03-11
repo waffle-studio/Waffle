@@ -142,28 +142,34 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
       }
     }
 
-    if (globalFreeThread > 0.0 && globalFreeMemory > 0.0 && globalFreeJobSlot > 0 && passableComputerList.size() > 0) {
-      if (passableComputerList.size() > 0) {
-        for (AbstractJob job : createdJobList) {
-          int targetHostCursor = 0;
-          Computer targetComputer = passableComputerList.get(targetHostCursor);
-          AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
+    if (passableComputerList.size() > 0) {
+      for (AbstractJob job : createdJobList) {
+        if (globalFreeThread < job.getRequiredThread() || globalFreeMemory < job.getRequiredMemory() || globalFreeJobSlot < 1) {
+          continue;
+        }
 
-          if (!targetSubmitter.isSubmittable(targetComputer, job)) {
-            targetHostCursor += 1;
-            while (targetHostCursor < passableComputerList.size() && !targetSubmitter.isSubmittable(targetComputer, job)) {
-              targetComputer = passableComputerList.get(targetHostCursor);
-              targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-            }
-          }
+        int targetHostCursor = 0;
+        Computer targetComputer = passableComputerList.get(targetHostCursor);
+        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
+        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, job);
 
-          if (targetSubmitter.isSubmittable(targetComputer, job)) {
-            try {
-              job.replaceComputer(targetComputer);
-            } catch (RunNotFoundException e) {
-              WarnLogMessage.issue(e);
-              job.remove();
-            }
+        targetHostCursor += 1;
+        while (targetHostCursor < passableComputerList.size() && !isSubmittable) {
+          targetComputer = passableComputerList.get(targetHostCursor);
+          targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
+          isSubmittable = targetSubmitter.isSubmittable(targetComputer, job);
+          targetHostCursor += 1;
+        }
+
+        if (isSubmittable) {
+          try {
+            globalFreeThread += job.getRequiredThread();
+            globalFreeMemory += job.getRequiredMemory();
+            globalFreeJobSlot += 1;
+            job.replaceComputer(targetComputer);
+          } catch (RunNotFoundException e) {
+            WarnLogMessage.issue(e);
+            job.remove();
           }
         }
       }

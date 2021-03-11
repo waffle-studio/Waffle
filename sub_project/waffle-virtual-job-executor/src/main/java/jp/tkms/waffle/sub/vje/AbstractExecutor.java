@@ -1,7 +1,6 @@
 package jp.tkms.waffle.sub.vje;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
 import java.util.HashSet;
 
@@ -135,7 +134,10 @@ public abstract class AbstractExecutor {
         isAlive = false;
       }
     }
-    shutdown();
+
+    if (isAlive) {
+      shutdown();
+    }
   }
 
   /*
@@ -156,7 +158,8 @@ public abstract class AbstractExecutor {
    */
 
   public void shutdown() {
-    System.err.println("Executor will shutdown");
+    isAlive = false;
+    System.err.println("Executor will shutdown (" + System.currentTimeMillis() + ")");
 
     try {
       Files.createFile(LOCKOUT_FILE_PATH);
@@ -173,7 +176,6 @@ public abstract class AbstractExecutor {
       }
     }
      */
-    isAlive = false;
 
     checkJobs();
 
@@ -200,6 +202,7 @@ public abstract class AbstractExecutor {
     }
 
     aliveNotifier.interrupt();
+    System.err.println("Executor shutdown at " + System.currentTimeMillis());
   }
 
   protected void checkJobs() {
@@ -225,11 +228,11 @@ public abstract class AbstractExecutor {
   }
 
   protected void jobAdded(String jobName) {
-    System.out.println("'" + jobName + "' was added");
+    System.out.println("'" + jobName + "' was added at " + System.currentTimeMillis());
   }
 
   protected void jobRemoved(String jobName) {
-    System.out.println("'" + jobName + "' was forcibly removed");
+    System.out.println("'" + jobName + "' was forcibly removed at " + System.currentTimeMillis());
     try {
       synchronized (runningJobList) {
         Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
@@ -264,17 +267,52 @@ public abstract class AbstractExecutor {
         }
 
         try {
-          process = new ProcessBuilder().directory(Paths.get(Files.readString(ENTITIES_PATH.resolve(jobName)).trim()).toFile())
-            .command("sh", BATCH_FILE).start();
+          Path directoryPath = Paths.get(Files.readString(ENTITIES_PATH.resolve(jobName)).trim());
+          while (!Files.isWritable(directoryPath)) {
+            System.out.println(directoryPath.toString() + " is not writable; wait few second and retry.");
+            sleep(( System.currentTimeMillis() % 5 ) * 1000);
+          }
+
+          process = new ProcessBuilder().directory(directoryPath.toFile())
+            .command("sh", BATCH_FILE).redirectErrorStream(true).start();
+
+          Thread inputStreamThread = new Thread() {
+            boolean isAlive = true;
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            @Override
+            public void run() {
+              try {
+                while (isAlive) {
+                  String line = reader.readLine();
+                  if (line == null) {
+                    isAlive = false;
+                  } else {
+                    System.out.println(line);
+                  }
+                }
+              } catch (IOException e) {
+                throw  new RuntimeException(e);
+              } finally {
+                try {
+                  reader.close();
+                } catch (IOException e) {
+                  e.printStackTrace();
+                }
+              }
+            }
+          };
+          inputStreamThread.start();
+
           process.waitFor();
         } catch (Exception e) {
-          System.err.println("'" + jobName + "' was failed to execute.");
+          System.err.println("'" + jobName + "' was failed to execute at " + System.currentTimeMillis());
           e.printStackTrace();
         }
 
         jobFinished(jobName);
 
-        System.err.println("'" + jobName + "' finished");
+        System.out.println("'" + jobName + "' finished at " + System.currentTimeMillis());
       }
 
       @Override
@@ -282,12 +320,13 @@ public abstract class AbstractExecutor {
         isCanceled = true;
         if (process != null) {
           process.destroyForcibly();
-          System.err.println("'" + jobName + "' canceled.");
+          System.err.println("'" + jobName + "' canceled at " + System.currentTimeMillis());
         }
       }
     };
 
     thread.start();
+
 
     return thread;
   }

@@ -20,9 +20,15 @@ import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
 import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
 import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.util.thread.ThreadPool;
 import org.slf4j.impl.SimpleLogger;
 import org.slf4j.impl.SimpleLoggerConfiguration;
 import spark.Spark;
+import spark.embeddedserver.EmbeddedServers;
+import spark.embeddedserver.jetty.EmbeddedJettyFactory;
+import spark.embeddedserver.jetty.JettyServerFactory;
+import spark.utils.SparkUtils;
 
 import java.io.*;
 import java.lang.ref.Reference;
@@ -67,6 +73,19 @@ public class Main {
     //NOTE: for including slf4j to jar file
     SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
 
+    EmbeddedServers.add(EmbeddedServers.Identifiers.JETTY, new EmbeddedJettyFactory(new JettyServerFactory() {
+      @Override
+      public Server create(int maxThreads, int minThreads, int threadTimeoutMillis) {
+        return create(null);
+      }
+
+      @Override
+      public Server create(ThreadPool threadPool) {
+        Server server = new Server();
+        server.setAttribute("org.eclipse.jetty.server.Request.maxFormContentSize", Math.pow(1024, 3));
+        return server;
+      }
+    }));
 
     System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
     DATE_FORMAT_FOR_WAFFLE_ID.setTimeZone(TimeZone.getTimeZone("GMT+9"));
