@@ -4,6 +4,7 @@ import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.AbstractJob;
+import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
@@ -151,13 +152,13 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
         int targetHostCursor = 0;
         Computer targetComputer = passableComputerList.get(targetHostCursor);
         AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, job);
+        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, job, ExecutableRunJob.getList(targetComputer));
 
         targetHostCursor += 1;
         while (targetHostCursor < passableComputerList.size() && !isSubmittable) {
           targetComputer = passableComputerList.get(targetHostCursor);
           targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-          isSubmittable = targetSubmitter.isSubmittable(targetComputer, job);
+          isSubmittable = targetSubmitter.isSubmittable(targetComputer, job, ExecutableRunJob.getList(targetComputer));
           targetHostCursor += 1;
         }
 

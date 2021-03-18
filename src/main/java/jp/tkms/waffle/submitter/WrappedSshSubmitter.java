@@ -94,8 +94,12 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
 
   @Override
   protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
-    JobManager.Submittable submittable = jobManager.getSubmittable(next);
-    return (submittable.usableExecutor != null || submittable.isNewExecutorCreatable || submittable.isNotConnected);
+    if (this.isConnected()) {
+      JobManager.Submittable submittable = jobManager.getSubmittable(next);
+      return (submittable.usableExecutor != null || submittable.isNewExecutorCreatable);
+    } else {
+      return jobManager.isReceptable(next, list);
+    }
   }
 
   @Override
@@ -130,7 +134,10 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
     if (job.getRun() instanceof VirtualJobExecutor) {
       super.cancel(job);
     } else {
-
+      job.setState(State.Canceled);
+      if (! job.getJobId().equals("-1")) {
+        jobManager.removeJob(job);
+      }
     }
   }
 
@@ -222,9 +229,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       return result;
     }
 
-
     static class Submittable {
-      boolean isNotConnected = false;
       boolean isNewExecutorCreatable = false;
       VirtualJobExecutor usableExecutor = null;
       Submittable() {
@@ -285,16 +290,12 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         }
         if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
           && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
-          if (submitter.isConnected()) {
-            if (executor.isAcceptable(this)) {
-              result.usableExecutor = executor;
-              submittableCache = executor;
-              break;
-            } else {
-              deactivateExecutor(executor);
-            }
+          if (executor.isAcceptable(this)) {
+            result.usableExecutor = executor;
+            submittableCache = executor;
+            break;
           } else {
-            result.isNotConnected = true;
+            deactivateExecutor(executor);
           }
         }
       }
@@ -304,6 +305,128 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       }
 
       return result;
+    }
+
+    public boolean isReceptable(AbstractJob next, ArrayList<AbstractJob> list) {
+      for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
+        Path directoryPath = executor.getDirectoryPath();
+        if (!directoryPath.toFile().exists() || !executor.isRunning()) {
+          deactivateExecutor(executor);
+          removeFromArrayOfProperty(RUNNING, executor.getId());
+          runningExecutorList.remove(executor.id.getReversedBase36Code());
+          if (directoryPath.toFile().exists()) {
+            executor.deleteDirectory();
+          }
+        }
+      }
+
+      ArrayList<AbstractJob> queuedList = new ArrayList<>();
+      queuedList.add(next);
+      for (AbstractJob job : list) {
+        try {
+          switch (job.getState()) {
+            case Created:
+            case Prepared:
+              queuedList.add(job);
+          }
+        } catch (RunNotFoundException e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+
+      ArrayList<VirtualJobExecutor> shuffledList = new ArrayList<>(activeExecutorList.values());
+      Collections.shuffle(shuffledList);
+      ArrayList<VirtualJobExecutor> cacheAppliedList = new ArrayList<>();
+      if (submittableCache != null && shuffledList.contains(submittableCache)) {
+        cacheAppliedList.add(submittableCache);
+        shuffledList.remove(submittableCache);
+        cacheAppliedList.addAll(shuffledList);
+      } else {
+        cacheAppliedList.addAll(shuffledList);
+      }
+      for (VirtualJobExecutor executor : cacheAppliedList) {
+        Path directoryPath = executor.getDirectoryPath();
+        if (!directoryPath.toFile().exists()) {
+          //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
+          deactivateExecutor(executor);
+          removeFromArrayOfProperty(RUNNING, executor.getId());
+          runningExecutorList.remove(executor.id.getReversedBase36Code());
+          continue;
+        }
+
+        double usedThread = 0.0;
+        double usedMemory = 0.0;
+        for (AbstractJob abstractJob : executor.getRunningList()) {
+          usedThread += abstractJob.getRequiredThread();
+          usedMemory += abstractJob.getRequiredMemory();
+        }
+        //System.out.println(executor.getId());
+        for (int i = queuedList.size() -1; i >= 0; i -= 1) {
+          ComputerTask task = null;
+          try {
+            if (next != null) {
+              task = next.getRun();
+            }
+          } catch (RunNotFoundException e) {
+          }
+
+          double threadSize = (task == null ? 0 : task.getRequiredThread());
+          double memorySize = (task == null ? 0 : task.getRequiredMemory());
+
+          if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
+            && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
+            if (queuedList.size() <= 1) {
+              return true;
+            } else {
+              queuedList.remove(i);
+              usedThread += threadSize;
+              usedMemory += memorySize;
+            }
+          }
+        }
+      }
+
+      for (int count = 0; count < getComputer().getMaximumNumberOfJobs() - runningExecutorList.size(); count += 1) {
+        double usedThread = 0.0;
+        double usedMemory = 0.0;
+
+        for (int i = queuedList.size() -1; i >= 0; i -= 1) {
+          ComputerTask task = null;
+          try {
+            if (next != null) {
+              task = next.getRun();
+            }
+          } catch (RunNotFoundException e) {
+          }
+
+          double threadSize = (task == null ? 0 : task.getRequiredThread());
+          double memorySize = (task == null ? 0 : task.getRequiredMemory());
+
+          if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
+            && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
+            if (queuedList.size() <= 1) {
+              return true;
+            } else {
+              queuedList.remove(i);
+              usedThread += threadSize;
+              usedMemory += memorySize;
+            }
+          } else {
+            break;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    void removeJob(AbstractJob job) throws RunNotFoundException {
+      for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
+        if (executor.getRunningList().contains(job)) {
+          executor.cancel(submitter, job);
+          break;
+        }
+      }
     }
 
     void registerExecutor(VirtualJobExecutor executor) {
@@ -416,6 +539,14 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       }
     }
 
+    public void cancel(AbstractSubmitter submitter, AbstractJob job) throws RunNotFoundException {
+      try {
+        submitter.exec("rm '" + getRemoteJobsDirectory().resolve(job.getId().toString()).toString() + "'");
+      } catch (FailedToControlRemoteException e) {
+        job.setState(State.Excepted);
+      }
+    }
+
     String getId() {
       return id.getReversedBase36Code();
     }
@@ -492,7 +623,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         case Submitted:
         case Running:
           try {
-            if (!jobManager.fileExists(getRemoteLockoutFilePath())) {
+            if (!jobManager.submitter.isConnected() || !jobManager.fileExists(getRemoteLockoutFilePath())) {
               return true;
             }
           } catch (FailedToControlRemoteException e) {
@@ -502,7 +633,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       return false;
     }
 
-    ArrayList<AbstractJob> getRunningList() {
+    public ArrayList<AbstractJob> getRunningList() {
       ArrayList<AbstractJob> runningList = new ArrayList<>();
       JSONArray runningArray = getArrayFromProperty(RUNNING);
       for (int i = 0; i < runningArray.length(); i++) {

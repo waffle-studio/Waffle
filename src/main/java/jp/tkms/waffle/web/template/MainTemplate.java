@@ -222,10 +222,11 @@ abstract public class MainTemplate extends AbstractTemplate {
               "      width: '100%',\n" +
               "    }).insertBefore(textarea);\n" +
               "    textarea.css('display', 'none');\n" +
-              "    var editor = new JSONEditor(editDiv[0], {\"ace\":ace,\"language\":\"en\",\"statusBar\":false," +
+              "    var editor = new JSONEditor(editDiv[0], {\"onModeChange\":function(mode){if(mode=='code'){editor.aceEditor.setOptions({maxLines: Infinity})}},\"ace\":ace,\"language\":\"en\",\"statusBar\":false," +
               "\"navigationBar\":false,\"enableTransform\":false,\"enableSort\":false,\"search\": false," +
               "\"autocomplete\":{getOptions:function(){return [];}}," +
               "\"modes\":[mode,textmode]}, JSON.parse(textarea.val()));\n" +
+              "    //editor.editor.setOptions({maxLines: Infinity});\n" +
               "    // copy back to textarea on form submit...\n" +
               "    textarea.closest('form').submit(function() {\n" +
               "      textarea.val(editor.getText());\n" +
