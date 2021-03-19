@@ -211,7 +211,9 @@ abstract public class AbstractSubmitter {
       "cd '" + getBaseDirectory(run) + "'\n" +
       "export WAFFLE_WORKING_DIR=`pwd`\n" +
       "cd '" + getExecutableBaseDirectory(job) + "'\n" +
+      "ls -l >/dev/null 2>&1\n" +
       "chmod a+x '" + run.getCommand() + "' >/dev/null 2>&1\n" +
+      "ls -l >/dev/null 2>&1\n" +
       "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
       "cd \"${WAFFLE_BATCH_WORKING_DIR}\"\n" +
       "export WAFFLE_LOCAL_SHARED=\"" + job.getComputer().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + projectName + "\"\n" +
