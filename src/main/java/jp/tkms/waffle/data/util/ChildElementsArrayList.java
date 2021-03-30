@@ -11,6 +11,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class ChildElementsArrayList<T> extends ArrayList<T> {
   public enum Mode {
@@ -21,17 +22,19 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
     if (Files.exists(baseDirectory)) {
       try {
         if (Mode.All.equals(mode)) {
-          Files.list(baseDirectory).filter(path -> Files.isDirectory(path)).sorted(
-            Comparator.comparingLong(path -> {
-              try {
-                return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
-              } catch (IOException e) {
-                return 0;
-              }
-            })
-          ).forEach(path -> {
-            add(getInstance.apply(path.getFileName().toString()));
-          });
+          try (Stream<Path> paths = Files.list(baseDirectory)) {
+            paths.filter(path -> Files.isDirectory(path)).sorted(
+              Comparator.comparingLong(path -> {
+                try {
+                  return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+                } catch (IOException e) {
+                  return 0;
+                }
+              })
+            ).forEach(path -> {
+              add(getInstance.apply(path.getFileName().toString()));
+            });
+          }
         /*
         for (File file : baseDirectory.toFile().listFiles()) {
           if (file.isDirectory()) {
@@ -40,26 +43,28 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
         }
          */
         } else {
-          Files.list(baseDirectory).filter(path -> Files.isDirectory(path)).sorted(
-            Comparator.comparingLong(path -> {
-              try {
-                return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
-              } catch (IOException e) {
-                return 0;
+          try (Stream<Path> paths = Files.list(baseDirectory)) {
+            paths.filter(path -> Files.isDirectory(path)).sorted(
+              Comparator.comparingLong(path -> {
+                try {
+                  return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+                } catch (IOException e) {
+                  return 0;
+                }
+              })
+            ).forEach(path -> {
+              String name = path.getFileName().toString();
+              if (
+                (Mode.OnlyNormal.equals(mode) && !name.startsWith("."))
+                  ||
+                  (Mode.OnlyHidden.equals(mode) && name.startsWith("."))
+                  ||
+                  (Mode.OnlyFavorite.equals(mode) && Files.exists(path.resolve(Constants.DOT_FAVORITE)))
+              ) {
+                add(getInstance.apply(name));
               }
-            })
-          ).forEach(path -> {
-            String name = path.getFileName().toString();
-            if (
-              (Mode.OnlyNormal.equals(mode) && !name.startsWith("."))
-                ||
-                (Mode.OnlyHidden.equals(mode) && name.startsWith("."))
-                ||
-                (Mode.OnlyFavorite.equals(mode) && Files.exists(path.resolve(Constants.DOT_FAVORITE)))
-            ) {
-              add(getInstance.apply(name));
-            }
-          });
+            });
+          }
           /*
           for (File file : baseDirectory.toFile().listFiles()) {
             if (file.isDirectory() && (
