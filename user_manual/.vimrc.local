@@ -1,0 +1,6 @@
+augroup takamin-tex
+	autocmd!
+	autocmd BufWritePost *.tex silent !build&
+	"autocmd VimEnter *.tex silent /\\begin{document}
+augroup END
+set foldmethod=marker
