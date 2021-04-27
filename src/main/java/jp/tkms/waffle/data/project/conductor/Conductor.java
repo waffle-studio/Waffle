@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 import org.json.JSONArray;
@@ -131,7 +132,12 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     return getDirectoryPath().resolve(KEY_CHILD).resolve(name);
   }
 
-  public String getChildProcedureScript(String name) {
+  public String getChildProcedureScript(String name) throws ChildProcedureNotFoundException {
+    Path path = getChildProcedureScriptPath(name);
+    if (!Files.exists(path)) {
+      removeChildProcedure(name);
+      throw new ChildProcedureNotFoundException(path);
+    }
     return getFileContents(getChildProcedureScriptPath(name));
   }
 
@@ -193,6 +199,10 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     putToArrayOfProperty(KEY_CHILD, name);
 
     return name;
+  }
+
+  public void removeChildProcedure(String name) {
+    removeFromArrayOfProperty(KEY_CHILD, name);
   }
 
   public void updateActorScript(String name, String script) {

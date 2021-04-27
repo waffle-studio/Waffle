@@ -13,6 +13,7 @@ import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONObject;
 
@@ -66,7 +67,11 @@ public class ProcedureRun extends AbstractRun {
       if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
         ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, caller, conductor.getMainProcedureScript());
       } else {
-        ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, caller, conductor.getChildProcedureScript(procedureName));
+        try {
+          ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, caller, conductor.getChildProcedureScript(procedureName));
+        } catch (ChildProcedureNotFoundException e) {
+          //NOOP
+        }
       }
     }
     if (getChildrenRunSize() <= 0) {

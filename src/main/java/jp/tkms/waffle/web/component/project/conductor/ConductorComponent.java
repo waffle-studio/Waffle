@@ -8,6 +8,7 @@ import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -410,20 +411,24 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         for (String listenerName : conductor.getChildProcedureNameList()) {
           Path path = conductor.getChildProcedureScriptPath(listenerName);
           String scriptSyntaxError = ScriptProcessor.getProcessor(path).checkSyntax(path);
-          content +=
-            Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
-              Lte.card(Html.fasIcon("terminal") + listenerName + " (Child Procedure)",
-                Lte.cardToggleButton(false),
-                Lte.divRow(
-                  Lte.divCol(Lte.DivSize.F12,
-                    Html.inputHidden(KEY_LISTENER_NAME, listenerName),
-                    ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                    Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getChildProcedureScript(listenerName), snippetScript, errors)
-                  )
-                ),
-                Lte.formSubmitButton("success", "Update"),
-                "collapsed-card.stop", null)
-            );
+          try {
+            content +=
+              Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
+                Lte.card(Html.fasIcon("terminal") + listenerName + " (Child Procedure)",
+                  Lte.cardToggleButton(false),
+                  Lte.divRow(
+                    Lte.divCol(Lte.DivSize.F12,
+                      Html.inputHidden(KEY_LISTENER_NAME, listenerName),
+                      ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
+                      Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", conductor.getChildProcedureScript(listenerName), snippetScript, errors)
+                    )
+                  ),
+                  Lte.formSubmitButton("success", "Update"),
+                  "collapsed-card.stop", null)
+              );
+          } catch (ChildProcedureNotFoundException e) {
+            //NOOP
+          }
         }
 
         return content;
