@@ -40,14 +40,14 @@ public class RubyScriptProcessor extends ScriptProcessor {
   @Override
   public String procedureTemplate() {
     return
-      "def procedure_when_start_or_finished_all(instance, caller)\n" +
+      "def procedure_when_start_or_finished_all(this, caller)\n" +
       "end\n" +
       "\n" +
-      "def procedure_when_contain_fault(instance, caller)\n" +
-      "    #procedure_when_start_or_finished_all(instance, caller)\n" +
+      "def procedure_when_contain_fault(this, caller)\n" +
+      "    #procedure_when_start_or_finished_all(this, caller)\n" +
       "end\n" +
       "\n" +
-      "def procedure_when_appealed(instance, caller, message)\n" +
+      "def procedure_when_appealed(this, caller, message)\n" +
       "end\n";
   }
 
@@ -66,7 +66,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
 
   @Override
   public String extractorTemplate() {
-    return "def parameter_extract(run)\n" +
+    return "def parameter_extract(this)\n" +
       "end\n";
   }
 
@@ -87,7 +87,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
 
   @Override
   public String collectorTemplate() {
-    return "def result_collect(run, remote)\n" +
+    return "def result_collect(this, remote)\n" +
       "end\n";
   }
 
