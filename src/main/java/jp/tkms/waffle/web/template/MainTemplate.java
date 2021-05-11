@@ -113,6 +113,10 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/adminlte.min.js"))),
           element("script", new Attributes(value("src", "/js/select2.min.js"))),
           element("script", new Attributes(value("src", "/js/toastr.min.js"))),
+          element("script", new Attributes(value("src", "/js/jquery.knob.min.js"))),
+          element("script", new Attributes(value("type", "text/javascript")),
+            ""
+          ),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
             "var gotoParent = function() {" +

@@ -1,10 +1,10 @@
 @@@@@ THIS LICENSE DESCRIPTION IS NOT YET COMPLETED FILLING @@@@@
 
-WAFFLE is released under the BSD 3-Clause License.
-This text file include the licence description of WAFFLE and libraries.
+Waffle is released under the BSD 3-Clause License.
+This text file include the licence description of Waffle and libraries.
 
-# Main License : WAFFLE
-Copyright (c) 2021, WAFFLE Developer Team
+# Main License : Waffle
+Copyright (c) 2021, Waffle Developer Team
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -17,7 +17,7 @@ modification, are permitted provided that the following conditions are met:
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution.
 
-* Neither the name of WAFFLE nor the names of its
+* Neither the name of Waffle nor the names of its
   contributors may be used to endorse or promote products derived from
   this software without specific prior written permission.
 
@@ -60,6 +60,7 @@ We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
 ## icheck-bootstrap
 ## Ionicons
 ## Select2
+## jQuery Knob
 
 # Included libraries for Gradle
 ## Gradle

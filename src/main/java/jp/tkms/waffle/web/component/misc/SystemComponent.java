@@ -8,7 +8,6 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.project.workspace.run.RunCapsule;
 import jp.tkms.waffle.data.util.InstanceCache;
-import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -17,8 +16,9 @@ import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import spark.Spark;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -127,11 +127,15 @@ public class SystemComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         return
-          Lte.card(fasIcon("terminal") + "Properties", null,
+          Lte.card(fasIcon("digital-tachograph") + "Status", null,
             div(null,
               Lte.readonlyTextInputWithCopyButton("PID", String.valueOf(Main.PID)),
               Lte.readonlyTextInputWithCopyButton("Version", Main.VERSION),
-              Lte.readonlyTextInputWithCopyButton("Working Directory", Constants.WORK_DIR.toString())
+              Lte.readonlyTextInputWithCopyButton("Working directory", Constants.WORK_DIR.toString()),
+              Lte.readonlyTextInput("Total memory", "" + ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize()),
+              Lte.readonlyTextInput("Free memory", "" + ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getFreePhysicalMemorySize()),
+              Lte.readonlyTextInput("CPU usage", "" + ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getSystemCpuLoad()),
+              Lte.readonlyTextInput("Working directory available space", getStorageAvailableSpaceMessage())
             )
             ,null, "card-success", null
           ) +
@@ -152,7 +156,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
           ,null, "card-primary", null
         ) +
         Lte.card(
-          "LICENSE : " + element("strong", null, "Copyright &copy; 2019 WAFFLE Developer Team"),
+          "LICENSE : " + element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
            null,
           element("pre", null, ResourceFile.getContents("/LICENSE.md"))
           ,null, "card-secondary", null
@@ -190,5 +194,13 @@ public class SystemComponent extends AbstractAccessControlledComponent {
           );
       }
     }.render(this);
+  }
+
+  String getStorageAvailableSpaceMessage() {
+    File workDir = Constants.WORK_DIR.toFile();
+    int gb = 1024 * 1024 * 1024;
+    return String.format("%,d", workDir.getUsableSpace() / gb) + "GB (" +
+      ((int)(100.0 * workDir.getUsableSpace() / workDir.getTotalSpace())) + "% in " +
+      String.format("%,d", workDir.getTotalSpace() / gb) + "GB)";
   }
 }

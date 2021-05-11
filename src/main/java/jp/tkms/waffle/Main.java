@@ -375,7 +375,7 @@ public class Main {
       }
 
       final ProcessBuilder builder = new ProcessBuilder(command);
-      System.out.println("System will fork and restert");
+      System.out.println("System will fork and restart");
       builder.start();
     } catch (URISyntaxException e) {
       e.printStackTrace();

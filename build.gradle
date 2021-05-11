@@ -19,7 +19,7 @@ buildscript {
 }
 
 
-import org.apache.tools.ant.filters.ReplaceTokens
+//import org.apache.tools.ant.filters.ReplaceTokens
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
@@ -66,9 +66,12 @@ applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun
 
 processResources {
 	doFirst {
+		new File('build/resources/main/version.txt').text = "${buildVersion}"
+        /*
 		filesMatching("version.txt") {
 			filter(ReplaceTokens, tokens: ['build_version': buildVersion])
 		}
+         */
 		println "version -> ${buildVersion}"
 	}
 	copy {
