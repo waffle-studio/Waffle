@@ -129,6 +129,10 @@ public class Html {
     return element("span", new Attributes(value("id", id)), values);
   }
 
+  public static String spanWithName(String name, String... values) {
+    return element("span", new Attributes(value("name", name)), values);
+  }
+
   public static String hr() {
     return attribute("hr");
   }

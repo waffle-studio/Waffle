@@ -20,7 +20,7 @@ public class BrowserMessageComponent extends AbstractAccessControlledComponent {
   public void controller() {
 
     String result = "try{rubyRunningStatus(" + (RubyScript.hasRunning() ? "true" : "false") + ");}catch(e){}";
-    response.body(result);
+    //response.body(result);
 
     String browserId = request.params(KEY_CURRENT_ROWID);
 
