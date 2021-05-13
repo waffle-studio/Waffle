@@ -8,7 +8,10 @@ import java.util.Arrays;
 
 public abstract class AbstractUpdater {
   private static ArrayList<AbstractUpdater> updaterList = new ArrayList<AbstractUpdater>(Arrays.asList(
-    new RunStatusUpdater(), new SystemUpdater(), new LogUpdater()
+    new GeneralUpdater(),
+    new RunStatusUpdater(),
+    new SystemUpdater(),
+    new LogUpdater()
   ));
 
   abstract public String templateBody();
@@ -31,7 +34,7 @@ public abstract class AbstractUpdater {
   }
 
   public AbstractUpdater(String... values) {
-    BrowserMessage.addMessage(this.getClass().getSimpleName() + "(" + listByComma(values) + ")");
+    BrowserMessage.addMessage(createUpdateScript(this.getClass(), values));
   }
 
   static String listByComma(String... values) {
@@ -43,5 +46,9 @@ public abstract class AbstractUpdater {
       }
     }
     return result;
+  }
+
+  public static String createUpdateScript(Class clazz, String... values) {
+    return clazz.getSimpleName() + "(" + listByComma(values) + ");";
   }
 }

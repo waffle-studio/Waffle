@@ -277,6 +277,23 @@ public class Lte {
     );
   }
 
+  public static String disabledKnob(String name, String color, double min, double max, double step, boolean isClockwise, double value, String label) {
+    String id = "input" + name;
+    return div("d-inline-block", div("text-center", attribute("input",
+      value("id", id),
+      value("name", name),
+      value("type", "text"),
+      value("value", String.valueOf(value)),
+      value("class", "dial"),
+      value("data-rotation", isClockwise ? "clockwise" : "anticlockwise"),
+      value("data-fgColor", color),
+      value("data-min", String.valueOf(min)),
+      value("data-max", String.valueOf(max)),
+      value("data-step", String.valueOf(step)),
+      value("data-readonly", "true")
+    ), br(), label));
+  }
+
   public static String table(String classValue, Table table) {
     String headerValue = "";
     if (table.tableHeaders() != null) {

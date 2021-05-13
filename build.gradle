@@ -66,21 +66,25 @@ mainClassName = 'jp.tkms.waffle.Main'
 applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED"]
 
 processResources {
-	doFirst {
-		new File('build/resources/main/version.txt').text = "${buildVersion}"
-        /*
-		filesMatching("version.txt") {
-			filter(ReplaceTokens, tokens: ['build_version': buildVersion])
-		}
-         */
-		println "version -> ${buildVersion}"
+	String versionFile = 'build/resources/main/version.txt'
+	if (file(versionFile).exists()) {
+		file(versionFile).delete()
 	}
+	new File(versionFile).text = "${buildVersion}"
+	/*
+	filesMatching("version.txt") {
+		filter(ReplaceTokens, tokens: ['build_version': buildVersion])
+	}
+	 */
+	println "version -> ${buildVersion}"
+
 	copy {
 		from ('sub_project/waffle-virtual-job-executor/build/libs') {
 			include 'waffle-virtual-job-executor-all.jar'
 		}
 		into 'build/resources/main'
 	}
+
 	copy {
 		from ('./') {
 			include 'LICENSE.md'
@@ -91,31 +95,25 @@ processResources {
 processResources.outputs.upToDateWhen { false }
 
 task createXsub {
-	doLast {
-		copy {
-			from 'xsub'
-			into 'build/tmp/xsub_archive/xsub'
+	file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
+
+	copy {
+		from ('lib') {
+			include jruby_jar
 		}
+		into 'build/tmp/xsub_archive/xsub/bin'
 	}
-	doLast {
-		file("build/tmp/xsub_archive/xsub/bin").renameTo(file("build/tmp/xsub_archive/xsub/org_bin"))
+
+	copy {
+		from 'src/main/resources/xsub/bin'
+		into 'build/tmp/xsub_archive/xsub/bin'
 	}
-	doLast {
-		copy {
-			from 'src/main/resources/xsub/bin'
-			into 'build/tmp/xsub_archive/xsub/bin'
-		}
-	}
-    doLast {
-		copy {
-			from ('lib') {
-				include jruby_jar
-			}
-			into 'build/tmp/xsub_archive/xsub/bin'
-		}
-	}
-	doLast {
-		file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
+
+	file("build/tmp/xsub_archive/xsub/bin").renameTo(file("build/tmp/xsub_archive/xsub/org_bin"))
+
+	copy {
+		from 'xsub'
+		into 'build/tmp/xsub_archive/xsub'
 	}
 }
 

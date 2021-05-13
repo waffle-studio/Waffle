@@ -137,6 +137,10 @@ public class Html {
     return attribute("hr");
   }
 
+  public static String br() {
+    return attribute("br");
+  }
+
   public static String p(String... values) {
     return element("p", null, values);
   }

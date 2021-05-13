@@ -3,13 +3,14 @@ package jp.tkms.waffle.web.component.misc;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.updater.GeneralUpdater;
 import spark.Spark;
 
 public class BrowserMessageComponent extends AbstractAccessControlledComponent {
   private static final String KEY_CURRENT_ROWID = "cid";
 
   public static void register() {
-    Spark.get(getUrl(null), new BrowserMessageComponent());
+    Spark.post(getUrl(null), new BrowserMessageComponent());
   }
 
   public static String getUrl(String id) {
@@ -18,9 +19,9 @@ public class BrowserMessageComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-
     String result = "try{rubyRunningStatus(" + (RubyScript.hasRunning() ? "true" : "false") + ");}catch(e){}";
     //response.body(result);
+    result += "try{" + GeneralUpdater.getUpdateScriptDirectly(request.body()) + "}catch(e){}";
 
     String browserId = request.params(KEY_CURRENT_ROWID);
 

@@ -45,6 +45,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
         body("hold-transition layout-footer-fixed layout-fixed",
+          AbstractUpdater.getUpdaterElements(),
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
               renderPageNavigation(),
@@ -115,7 +116,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/js/toastr.min.js"))),
           element("script", new Attributes(value("src", "/js/jquery.knob.min.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
-            ""
+              "$(function(){$('.dial').knob();});"
           ),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
           element("script", new Attributes(value("type", "text/javascript")),
@@ -124,7 +125,8 @@ abstract public class MainTemplate extends AbstractTemplate {
               "};" +
               "var cid=" + BrowserMessage.getCurrentRowId() + ";" +
               "var loadBrowserMessage = function() {" +
-              "simpleget('" + BrowserMessageComponent.getUrl("") + "' + cid, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
+              "var r = ''; if(undefined != bm_subscribed){r = Array.from(bm_subscribed).join(',');}" +
+              "simplepost('" + BrowserMessageComponent.getUrl("") + "' + cid, r, function(res) {try{eval(res)}catch(e){console.log(e)}setTimeout(loadBrowserMessage, 2000);})" +
               "}; " +
               "setTimeout(loadBrowserMessage, 5000);" +
               "var updateJobNum = function(n) {" +
@@ -236,8 +238,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "      textarea.val(editor.getText());\n" +
               "    })\n" +
               "  });\n" +
-              "});"),
-          AbstractUpdater.getUpdaterElements()
+              "});")
         )
       )
     );

@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.SystemDataAgent;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
@@ -14,6 +15,7 @@ import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
+import jp.tkms.waffle.web.updater.GeneralUpdater;
 import spark.Spark;
 
 import java.io.File;
@@ -132,10 +134,12 @@ public class SystemComponent extends AbstractAccessControlledComponent {
               Lte.readonlyTextInputWithCopyButton("PID", String.valueOf(Main.PID)),
               Lte.readonlyTextInputWithCopyButton("Version", Main.VERSION),
               Lte.readonlyTextInputWithCopyButton("Working directory", Constants.WORK_DIR.toString()),
-              Lte.readonlyTextInput("Total memory", "" + ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize()),
-              Lte.readonlyTextInput("Free memory", "" + ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getFreePhysicalMemorySize()),
-              Lte.readonlyTextInput("CPU usage", "" + ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getSystemCpuLoad()),
-              Lte.readonlyTextInput("Working directory available space", getStorageAvailableSpaceMessage())
+              p(),
+              Html.div("d-flex justify-content-around",
+                GeneralUpdater.generateHtml("system.storage", (n,v)->Lte.disabledKnob(n, "#87ceeb",0,SystemDataAgent.getTotalStorage(), 1, false, Double.parseDouble(v), Html.span("font-weight-bold", null, "Storage (GB)"))),
+                GeneralUpdater.generateHtml("system.cpu", (n,v)->Lte.disabledKnob(n, "#f08080",0,100, 1, true, Double.parseDouble(v), Html.span("font-weight-bold", null, "CPU (%)"))),
+                GeneralUpdater.generateHtml("system.memory", (n,v)->Lte.disabledKnob(n, "#deb887",0, SystemDataAgent.getTotalMemory(), 0.01, true, Double.parseDouble(v), Html.span("font-weight-bold", null,"Memory (GB)")))
+                )
             )
             ,null, "card-success", null
           ) +

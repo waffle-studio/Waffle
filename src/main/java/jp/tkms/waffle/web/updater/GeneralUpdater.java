@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.updater;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.WriterConfig;
 import jp.tkms.waffle.data.DataAgent;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
@@ -28,23 +29,40 @@ public class GeneralUpdater extends AbstractUpdater {
   @Override
   public String scriptBody() {
     return "try{var jsonobject = JSON.parse(decodeURIComponent(escape(window.atob(b64jsonobject))));" +
-      "jsonobject.forEach((value,key)=>{" +
+      "Object.keys(jsonobject).forEach((key)=>{" +
+      "var value = jsonobject[key];" +
       "document.getElementsByName('" + NAME_PREFIX + "' + key).forEach((node)=>{" +
-      "if(node.hasAttribute('value')){node.value=value;}else{node.innerHTML=value;}" +
+      "if(node.hasAttribute('value')){node.value=value;var event = document.createEvent('HTMLEvents');event.initEvent('change', true, true);node.dispatchEvent(event);}else{node.innerHTML=value;}" +
       "});" +
       "});" +
-      "}catch(e){}";
+      "}catch(e){console.log(e);}";
   }
 
   public GeneralUpdater() {
   }
 
   public GeneralUpdater(JsonObject jsonObject) {
-    super("'" + Base64.getEncoder().encodeToString(jsonObject.toString().getBytes(StandardCharsets.UTF_8)) + "'");
+    super(createMessageValue(jsonObject));
   }
 
-  public String getHtml(String name, BiFunction<String, String, String> innerHtml) {
-    return innerHtml.apply(NAME_PREFIX + name, DataAgent.request(name).getString(name, "")) +
+  static String createMessageValue(JsonObject jsonObject) {
+    return ("'" + Base64.getEncoder().encodeToString(jsonObject.toString().getBytes(StandardCharsets.UTF_8)) + "'");
+  }
+
+  public static String generateHtml(String name, BiFunction<String, String, String> innerHtml) {
+    return innerHtml.apply(NAME_PREFIX + name, DataAgent.request(name).get(name).toString()) +
       Html.javascript("bmSubscribe('" + name + "');");
+  }
+
+  public static String getUpdateScriptDirectly(String request) {
+    String script = "";
+    if (request != null && !"".equals(request)) {
+      JsonObject jsonObject = new JsonObject();
+      for (String name : request.split(",")) {
+        jsonObject.add(name, DataAgent.request(name).get(name));
+      }
+      script = createUpdateScript(GeneralUpdater.class, createMessageValue(jsonObject));
+    }
+    return script;
   }
 }
