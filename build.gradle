@@ -73,8 +73,9 @@ processResources {
 	if (file(versionFile).exists()) {
 		file(versionFile).delete()
 	}
-	Files.createDirectories(Paths.get(versionFile).getParent());
-	new File(versionFile).text = "${buildVersion}"
+	if (file(versionFile).getParentFile().exists()) {
+		new File(versionFile).text = "${buildVersion}"
+	}
 	/*
 	filesMatching("version.txt") {
 		filter(ReplaceTokens, tokens: ['build_version': buildVersion])
