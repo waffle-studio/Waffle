@@ -3,7 +3,7 @@
 \usepackage[dvipdfmx]{hyperref}
 \usepackage{pxjahyper}
 
-\title{WAFFLE user's manual}
+\title{Waffle user's manual}
 \author{Shunki Takami}
 
 \begin{document}
@@ -22,19 +22,26 @@
 \section{Introduction}
 
 \section{Overview}
-WAFFLE is composed of global configurations, projects descriptions, and a task manager.
+Waffle is composed of global configurations, projects descriptions, and a task manager.
 
 
 \section{Global configurations}
 There are a system configuration and computers configuration.
 \subsection{System configuration}
-Currently, WAFFLE has not this configuration.
+Currently, Waffle has not this configuration.
 
 \subsection{Computers configuration}
-You should list computers that is hosted calculation.
-A computer is related to a submitter.
-A submitter has a role for management tasks.
-WAFFLE has multiple submitter types to support various types task management.
+You should list computers that is hosted calculation on this configuration.
+The contents of configuration is a name,
+a location of working directory on the computer,
+a location of xsub,
+a submitter type, and special configuration of the submitter.
+
+Xsub
+
+A submitter has a role for management tasks, 
+and a computer is related to a submitter.
+Waffle has multiple submitter types to support various types task management.
 
 \subsection{Submitter type}
 
@@ -48,7 +55,7 @@ A project is composed of executables, conductors, and workspaces.
 \section{Step by step tutorial}
 
 \section{License}
-WAFFLE is released under the BSD 3-Clause license.
+Waffle is released under the BSD 3-Clause license.
 The contained libraries license descriptions are displayed in System configuration page on the graphical user interface.
 
 \end{document}
