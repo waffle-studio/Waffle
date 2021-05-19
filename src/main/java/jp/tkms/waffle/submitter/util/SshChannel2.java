@@ -15,30 +15,40 @@ public class SshChannel2 {
   public SshChannel2(Session.Command command) throws IOException {
     this.command = command;
 
-    BufferedInputStream outStream = new BufferedInputStream(command.getInputStream());
-    BufferedInputStream errStream = new BufferedInputStream(command.getErrorStream());
+    BufferedInputStream stdoutStream = new BufferedInputStream(command.getInputStream());
+    BufferedInputStream stderrStream = new BufferedInputStream(command.getErrorStream());
 
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    ByteArrayOutputStream stdoutOutputStream = new ByteArrayOutputStream();
+    ByteArrayOutputStream stderrOutputStream = new ByteArrayOutputStream();
+
     byte[] buf = new byte[1024];
-    while (true) {
-      int len = outStream.read(buf);
-      if (len <= 0) {
-        break;
+    int len = 0;
+    while (stdoutStream != null || stderrStream != null) {
+      if (stdoutStream != null) {
+        len = stdoutStream.read(buf);
+        if (len < 0) {
+          stdoutStream.close();
+          stdoutStream = null;
+          break;
+        }
+        stdoutOutputStream.write(buf, 0, len);
       }
-      outputStream.write(buf, 0, len);
-    }
-    stdout = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
 
-    outputStream = new ByteArrayOutputStream();
-    buf = new byte[1024];
-    while (true) {
-      int len = errStream.read(buf);
-      if (len <= 0) {
-        break;
+      if (stderrStream != null) {
+        len = stderrStream.read(buf);
+        if (len < 0) {
+          stderrStream.close();
+          stderrStream = null;
+          break;
+        }
+        stderrOutputStream.write(buf, 0, len);
       }
-      outputStream.write(buf, 0, len);
     }
-    stderr = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+
+    stdout = new String(stdoutOutputStream.toByteArray(), StandardCharsets.UTF_8);
+    stderr = new String(stderrOutputStream.toByteArray(), StandardCharsets.UTF_8);
+    stdoutOutputStream.close();
+    stderrOutputStream.close();
   }
 
   public String getStdout() {
