@@ -60,6 +60,7 @@ dependencies {
 	compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.3'
 	compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.3'
 	compile group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
+	compile group: 'com.github.oshi', name: 'oshi-core', version: '5.7.3'
 }
 
 // Define the main class for the application

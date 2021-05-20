@@ -43,6 +43,7 @@ We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
 ## Kryo
 ## Java SizeOf
 ## Jackson
+## OSHI
 
 # Included libraries for Web Interface
 ## AdminLTE
