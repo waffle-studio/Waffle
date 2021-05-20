@@ -23,7 +23,9 @@ apply plugin: 'application'
 repositories {
     mavenCentral()
 }
+
 dependencies {
+    compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.24.0'
 }
 
 mainClassName = 'jp.tkms.waffle.sub.communicator.Main'
