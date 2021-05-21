@@ -1,6 +1,7 @@
-package jp.tkms.waffle.sub.communicator;
+package jp.tkms.waffle.sub.servant;
 
-import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Main {
     public static Thread shutdownTimer = null;
@@ -9,6 +10,12 @@ public class Main {
     int timeout = 0;
     int shutdownTime = 0;
     int marginTime = 0;
+
+    Path path  = Paths.get("ff").resolve("f1").resolve("f2/f3");
+    for (Path o : path) {
+      System.out.println(o.toString());
+    }
+    System.exit(0);
 
     if (args.length != 4) {
       System.err.println("invalid arguments");

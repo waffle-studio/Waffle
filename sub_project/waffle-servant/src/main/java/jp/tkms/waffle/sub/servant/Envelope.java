@@ -1,11 +1,9 @@
-package jp.tkms.waffle.sub.communicator;
+package jp.tkms.waffle.sub.servant;
 
-import java.io.FileNotFoundException;
+import jp.tkms.waffle.sub.servant.message.AbstractMessage;
+
 import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -16,21 +14,40 @@ public class Envelope {
   private static final Charset UTF8 = Charset.forName("UTF-8");
   private static final String MESSAGE_BUNDLE = MessageBundle.class.getSimpleName();
   private static final Path FILES = Paths.get("FILES");
-  MessageBundle messageBundle = new MessageBundle();
-  ArrayList<Path> filePathList = new ArrayList<>();
 
-  public Envelope() {
+  private Path baseDirectory;
+  private MessageBundle messageBundle;
+  private ArrayList<Path> filePathList;
+
+  public Envelope(Path baseDirectory) {
+    this.baseDirectory = baseDirectory;
     messageBundle = new MessageBundle();
     filePathList = new ArrayList<>();
   }
 
-  public void save(Path path) throws FileNotFoundException {
+  public void add(AbstractMessage message) {
+    messageBundle.add(message);
+  }
+
+  public void add(Path path) {
+    if (path.isAbsolute()) {
+      filePathList.add(baseDirectory.relativize(path));
+    } else {
+      filePathList.add(path);
+    }
+  }
+
+  public void save(Path path) throws Exception {
     try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(path.toFile()), UTF8)) {
       zipOutputStream.putNextEntry(new ZipEntry(MESSAGE_BUNDLE));
       messageBundle.serialize(zipOutputStream);
       zipOutputStream.closeEntry();
 
+      zipOutputStream.putNextEntry(createDirectoryZipEntry(FILES));
+      zipOutputStream.closeEntry();
 
+
+/*
 
       ZipEntry entry = new ZipEntry(MESSAGE_BUNDLE);
       while ((entry = zipInputStream.getNextEntry()) != null) {
@@ -44,8 +61,27 @@ public class Envelope {
           }
         }
       }
+
+ */
     } catch (Exception e) {
-      ErrorLogMessage.issue(e);
+      throw e;
     }
   }
+
+  private String pathToString(Path path) {
+    // return path.toString(); // this method is not compatible to Windows
+    StringBuilder stringBuilder = new StringBuilder();
+    for (Path p : path.normalize()) {
+      if (stringBuilder.length() > 0) {
+        stringBuilder.append('/');
+      }
+      stringBuilder.append(p.toString());
+    }
+    return stringBuilder.toString();
+  }
+
+  private ZipEntry createDirectoryZipEntry(Path path) {
+    return new ZipEntry(pathToString(path) + '/');
+  }
+
 }

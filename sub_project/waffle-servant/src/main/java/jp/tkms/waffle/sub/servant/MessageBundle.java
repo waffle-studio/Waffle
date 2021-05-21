@@ -1,9 +1,9 @@
-package jp.tkms.waffle.sub.communicator;
+package jp.tkms.waffle.sub.servant;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import jp.tkms.waffle.sub.communicator.message.AbstractMessage;
+import jp.tkms.waffle.sub.servant.message.AbstractMessage;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ import java.util.zip.GZIPOutputStream;
 public class MessageBundle {
   private HashMap<Class<? extends AbstractMessage>, ArrayList<AbstractMessage>> messageListSet =  new HashMap<>();
 
-  public MessageBundle() {
+  MessageBundle() {
     // for serialization
   }
 
