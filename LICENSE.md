@@ -44,6 +44,7 @@ We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
 ## Java SizeOf
 ## Jackson
 ## OSHI
+## Apache Commons IO
 
 # Included libraries for Web Interface
 ## AdminLTE

@@ -1,7 +1,7 @@
 package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import spark.utils.IOUtils;
+import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.nio.file.Files;

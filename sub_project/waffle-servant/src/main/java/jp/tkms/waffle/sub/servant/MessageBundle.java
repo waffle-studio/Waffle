@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import jp.tkms.waffle.sub.servant.message.AbstractMessage;
+import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -32,20 +33,25 @@ public class MessageBundle {
   }
 
   public void serialize(OutputStream stream) throws IOException {
-    GZIPOutputStream outputStream = new GZIPOutputStream(stream);;
+    //GZIPOutputStream outputStream = new GZIPOutputStream(stream);;
     Kryo kryo = new Kryo();
-    Output output = new Output(outputStream);
+    registerClassesToKryo(kryo);
+    Output output = new Output(stream);
     kryo.writeObject(output, this);
-    output.close();
-    outputStream.close();
+    output.flush();
   }
 
   public static MessageBundle load(InputStream stream) throws IOException {
-    GZIPInputStream inputStream = new GZIPInputStream(stream);
+    //GZIPInputStream inputStream = new GZIPInputStream(stream);
     Kryo kryo = new Kryo();
-    Input input = new Input(inputStream);
+    registerClassesToKryo(kryo);
+    Input input = new Input(stream);
     MessageBundle data = kryo.readObject(input, MessageBundle.class);
-    input.close();
     return data;
+  }
+
+  public static void registerClassesToKryo(Kryo kryo) {
+    kryo.register(MessageBundle.class);
+    kryo.register(java.util.HashMap.class);
   }
 }

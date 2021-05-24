@@ -2,46 +2,38 @@ package jp.tkms.waffle.sub.servant;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 
 public class Main {
-    public static Thread shutdownTimer = null;
-    public static void main(String[] args) {
-    boolean isLocalMode = true;
-    int timeout = 0;
-    int shutdownTime = 0;
-    int marginTime = 0;
-
-    Path path  = Paths.get("ff").resolve("f1").resolve("f2/f3");
-    for (Path o : path) {
-      System.out.println(o.toString());
-    }
-    System.exit(0);
-
-    if (args.length != 4) {
-      System.err.println("invalid arguments");
-      System.err.println("<JAVA JAR> [MODE] [TIMEOUT] [FORCE SHUTDOWN TIME] [SHUTDOWN PREPARATION MARGIN]");
-      System.err.println("invalid arguments");
-      System.exit(1);
+  public static void main(String[] args) throws Exception {
+    if (args.length < 2) {
+      exitWithInvalidArgumentsMessage("", "");
     }
 
-    if (args[0].toLowerCase().equals("mpi")) {
-      isLocalMode = false;
-    }
+    Path baseDirectory = Paths.get(args[0]);
 
-    try {
-      timeout = Integer.valueOf(args[1]);
-      shutdownTime = Integer.valueOf(args[2]);
-      marginTime = Integer.valueOf(args[3]);
-    } catch (NumberFormatException e) {
-      e.printStackTrace();
-      System.exit(1);
-    }
-
-    if (shutdownTime < marginTime) {
-      System.err.println("SHUTDOWN PREPARATION MARGIN must be less than FORCE SHUTDOWN TIME");
-      System.exit(1);
+    switch (args[1].toLowerCase(Locale.ROOT)) {
+      case "main":
+        if (args.length < 3) {
+          exitWithInvalidArgumentsMessage("main", "[MESSAGE PATH]");
+        }
+        Envelope envelope = Envelope.loadAndExtract(baseDirectory, Paths.get(args[2]));
+        break;
+      case "event":
+        if (args.length < 3) {
+          exitWithInvalidArgumentsMessage("event", "[RECORD PATH]");
+        }
+        EventRecorder eventRecorder = new EventRecorder(baseDirectory, Paths.get(args[2]));
+        eventRecorder.record();
+        break;
     }
 
     return;
+  }
+
+  private static void exitWithInvalidArgumentsMessage(String mode, String additionalOption) {
+    System.err.println("usage: java -jar <JAVA JAR> [BASE DIRECTORY] "
+      + (mode == null || mode.equals("") ? "[MODE{main}]" : mode) + " " + additionalOption);
+    System.exit(1);
   }
 }
