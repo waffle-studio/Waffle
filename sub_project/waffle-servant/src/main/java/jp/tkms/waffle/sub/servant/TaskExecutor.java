@@ -75,7 +75,7 @@ public class TaskExecutor {
 
       addEnvironment("WAFFLE_BASE", executingBaseDirectory.toString());
       addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.toString());
-      addEnvironment("WAFFLE_WORKING_DIR", executableBaseDirectory.toString());
+      addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.toString());
 
       try {
         Files.createFile(stdoutPath);
@@ -88,7 +88,7 @@ public class TaskExecutor {
       Files.createDirectories(executingBaseDirectory);
 
       // try to change permission of the command
-      Runtime.getRuntime().exec("chmod a+x '" + command + "' >/dev/null 2>&1",
+      Runtime.getRuntime().exec(new String[]{"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"},
         getEnvironments(), executableBaseDirectory.toFile()).waitFor();
 
       // create link of executable entities
@@ -101,7 +101,7 @@ public class TaskExecutor {
       for (JsonObject.Member member : localSharedMap) {
         String key = member.getName();
         String remote = member.getValue().asString();
-        Runtime.getRuntime().exec("mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi",
+        Runtime.getRuntime().exec(new String[]{"sh", "-c", "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi"},
           getEnvironments(), executingBaseDirectory.toFile()).waitFor();
       }
 
@@ -142,7 +142,7 @@ public class TaskExecutor {
         String key = member.getName();
         String remote = member.getValue().asString();
         Runtime.getRuntime().exec(
-          "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi",
+          new String[]{"sh", "-c", "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi"},
           getEnvironments(), executingBaseDirectory.toFile()).waitFor();
       }
 
