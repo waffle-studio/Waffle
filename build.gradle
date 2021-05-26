@@ -86,6 +86,13 @@ processResources {
 	println "version -> ${buildVersion}"
 
 	copy {
+		from ('sub_project/waffle-servant/build/libs') {
+			include 'waffle-servant-all.jar'
+		}
+		into 'build/resources/main'
+	}
+
+	copy {
 		from ('sub_project/waffle-virtual-job-executor/build/libs') {
 			include 'waffle-virtual-job-executor-all.jar'
 		}
@@ -100,6 +107,13 @@ processResources {
 	}
 }
 processResources.outputs.upToDateWhen { false }
+
+task buildServant(type: Exec) {
+	executable "sh"
+	args "-c", "cd sub_project/waffle-servant; ./gradlew build"
+}
+
+processResources.dependsOn buildServant
 
 task createXsub {
 	file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
@@ -132,3 +146,8 @@ task createXsubArchive(type: Zip, dependsOn: createXsub) {
 }
 
 assemble.dependsOn(jar, createXsubArchive)
+
+task runJar(type: Exec, dependsOn: build) {
+	executable "java"
+	args "-jar", "build/libs/waffle-all.jar"
+}

@@ -610,6 +610,13 @@ public class Computer implements DataDirectory, PropertyFile {
         }
       }
       computer.setXsubDirectory(xsubPath.toString());
+      Path localWorkBaseDirectoryPath = Constants.WORK_DIR.resolve("local");
+      try {
+        Files.createDirectories(localWorkBaseDirectoryPath);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+      computer.setWorkBaseDirectory(localWorkBaseDirectoryPath.toString());
       computer.update();
       InfoLogMessage.issue(computer, "was added automatically");
     }

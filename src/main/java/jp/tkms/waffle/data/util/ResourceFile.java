@@ -41,6 +41,16 @@ public class ResourceFile {
     return contents.toString();
   }
 
+  public static void copyFile(String path, Path destination) {
+    try (BufferedInputStream inputStream = new BufferedInputStream(staticInstance.getClass().getResourceAsStream(path))) {
+      try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(destination.toFile()))) {
+        IOUtils.copy(inputStream, outputStream);
+      }
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+  }
+
   public static void unzip(String fileName, Path destPath) {
     try (ZipInputStream zipInputStream = new ZipInputStream(staticInstance.getClass().getResourceAsStream(fileName))) {
       ZipEntry entry = null;

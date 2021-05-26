@@ -26,7 +26,10 @@ public class Log {
   private static final String KEY_LEVEL = "level";
   private static final String KEY_MESSAGE = "message";
   private static final String KEY_TIMESTAMP = "timestamp";
+  private static final int MILLI_SEC_OF_24HOUR = 1000 * 60 * 60 * 24;
 
+  private static long currentDatabaseCreatedTimestamp;
+  private static String currentDatabaseName = newDatabaseName();
   private static ExecutorService loggerThread = Executors.newSingleThreadExecutor();
   private static final Object objectLocker = new Object();
   private static Long nextId = 0L;
@@ -51,6 +54,15 @@ public class Log {
     synchronized (nextId) {
       return nextId++;
     }
+  }
+
+  public static String getCurrentDatabaseName() {
+    return currentDatabaseName;
+  }
+
+  private static String newDatabaseName() {
+    currentDatabaseCreatedTimestamp = System.currentTimeMillis();
+    return currentDatabaseName = "LOG-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".db";
   }
 
   public static ArrayList<Log> getDescList(int from, int limit) {
@@ -89,12 +101,63 @@ public class Log {
     return logs;
   }
 
+  private static void logRotate() {
+    Database db = getDatabase();
+    String currentDatabaseName = getCurrentDatabaseName();
+    String nextDatabaseName = newDatabaseName();
+    Log log = new Log(Level.RotateTo, nextDatabaseName);
+    try {
+      tryCreateTable(db);
+      new Sql.Insert(db, TABLE_NAME,
+        Sql.Value.equal(KEY_LEVEL, log.level.ordinal()),
+        Sql.Value.equal(KEY_MESSAGE, log.message),
+        Sql.Value.equal(KEY_TIMESTAMP, log.timestamp),
+        Sql.Value.equal(KEY_ID, log.id)
+      ).execute();
+      db.commit();
+    } catch (SQLException e) {
+      ErrorLogMessage.issue(e);
+    } finally {
+      try {
+        db.close();
+      } catch (SQLException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    nextId = 0L;
+    db = getDatabase();
+    log = new Log(Level.RotateFrom, currentDatabaseName);
+    try {
+      tryCreateTable(db);
+      new Sql.Insert(db, TABLE_NAME,
+        Sql.Value.equal(KEY_LEVEL, log.level.ordinal()),
+        Sql.Value.equal(KEY_MESSAGE, log.message),
+        Sql.Value.equal(KEY_TIMESTAMP, log.timestamp),
+        Sql.Value.equal(KEY_ID, log.id)
+      ).execute();
+      db.commit();
+    } catch (SQLException e) {
+      ErrorLogMessage.issue(e);
+    } finally {
+      try {
+        db.close();
+      } catch (SQLException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+  }
+
   public static Log create(Level level, String message) {
     Log log = new Log(level, message);
 
     loggerThread.submit(() -> {
       System.err.println('[' + level.name() + "] " + message);
       synchronized (objectLocker) {
+        if (System.currentTimeMillis() - currentDatabaseCreatedTimestamp > MILLI_SEC_OF_24HOUR) {
+          logRotate();
+        }
+
         Database db = getDatabase();
         try {
           tryCreateTable(db);
@@ -137,7 +200,7 @@ public class Log {
   }
 
   public static Path getDatabasePath() {
-    return getDirectoryPath().resolve(Constants.LOG_DB_NAME);
+    return getDirectoryPath().resolve(getCurrentDatabaseName());
   }
 
   private static Database getDatabase() {
@@ -170,7 +233,7 @@ public class Log {
   }
 
   public enum Level {
-    Debug, Info, Warn, Error;
+    Debug, Info, Warn, Error, RotateTo, RotateFrom;
     public static Level valueOf(int i) { return values()[i]; }
   }
 
