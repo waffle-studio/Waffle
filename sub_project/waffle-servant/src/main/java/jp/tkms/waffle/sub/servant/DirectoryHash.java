@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 public class DirectoryHash {
   public static final String HASH_FILE = ".WAFFLE_HASH";
-  private static final String SEPARATOR = ".WAFFLE_HASH";
+  private static final String SEPARATOR = ":";
 
   Path baseDirectory;
   Path directoryPath;
@@ -68,7 +68,7 @@ public class DirectoryHash {
   }
 
   public boolean isMatchToHashFile() {
-    return readHashFile(directoryPath).equals(hash);
+    return readHashFile(directoryPath).equals(getHash());
   }
 
   public boolean waitToMatch(int timeout) {
