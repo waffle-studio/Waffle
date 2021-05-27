@@ -192,6 +192,7 @@ public class Computer implements DataDirectory, PropertyFile {
 
   public void update() {
     try {
+      AbstractSubmitter.checkWaffleServant(this, false);
       JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
       if (jsonObject != null) {
         setXsubTemplate(jsonObject);

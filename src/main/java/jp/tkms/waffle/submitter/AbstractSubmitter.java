@@ -5,6 +5,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.internal.ServantJarFile;
 import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.job.SystemTaskJob;
@@ -406,6 +407,24 @@ abstract public class AbstractSubmitter {
   public static String getXsubBinDirectory(Computer computer) {
     String separator = (computer.isLocal() ? File.separator : "/");
     return (computer.getXsubDirectory().equals("") ? "": computer.getXsubDirectory() + separator + "bin" + separator);
+  }
+
+  public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) throws FailedToControlRemoteException {
+    return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+  }
+
+  public static boolean checkWaffleServant(Computer computer, boolean retry) throws RuntimeException, WaffleException {
+    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer).connect(retry);
+    Path remoteServantPath = getWaffleServantPath(submitter, computer);
+    boolean result = false;
+    if (submitter.exists(remoteServantPath)) {
+      result = true;
+    } else {
+      submitter.transferFilesToRemote(ServantJarFile.getPath(), remoteServantPath);
+      result = submitter.exists(remoteServantPath);
+    }
+    submitter.close();
+    return result;
   }
 
   public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {

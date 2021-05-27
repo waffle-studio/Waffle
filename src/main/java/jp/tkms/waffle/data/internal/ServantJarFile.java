@@ -7,7 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ServantJarFile {
-  private static final String JAR_FILE = "waffle-servant-all.jar";
+  public static final String JAR_FILE = "waffle-servant-all.jar";
+  private static final String JAR_RESOURCE = "/" + JAR_FILE + ".bin";
   private static final Path JAR_PATH = Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(JAR_FILE);
   private static Object objectLocker = new Object();
 
@@ -15,7 +16,7 @@ public class ServantJarFile {
     if (!Files.exists(JAR_PATH)) {
       synchronized (objectLocker) {
         if (!Files.exists(JAR_PATH)) {
-          ResourceFile.copyFile('/' + JAR_FILE, JAR_PATH);
+          ResourceFile.copyFile(JAR_RESOURCE, JAR_PATH);
         }
       }
     }

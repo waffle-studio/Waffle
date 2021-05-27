@@ -70,7 +70,36 @@ dependencies {
 mainClassName = 'jp.tkms.waffle.Main'
 applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED"]
 
-processResources {
+processResources.outputs.upToDateWhen { false }
+
+task buildServant(type: Exec) {
+	executable "sh"
+	args "-c", "cd sub_project/waffle-servant; ./gradlew build"
+}
+
+def copyJarFileAsResourceBin(path) {
+    String resourcesDir = 'build/resources/main'
+	String fileName = new String(path).replaceAll("^.*/", "")
+	copy {
+		from path
+		into resourcesDir
+	}
+	file(resourcesDir + '/' + fileName).renameTo(resourcesDir + '/' + fileName + '.bin')
+}
+
+task copyFilesToResource(dependsOn: buildServant) {
+	copyJarFileAsResourceBin('sub_project/waffle-servant/build/libs/waffle-servant-all.jar')
+	copyJarFileAsResourceBin('sub_project/waffle-virtual-job-executor/build/libs/waffle-virtual-job-executor-all.jar')
+
+	copy {
+		from ('./') {
+			include 'LICENSE.md'
+		}
+		into 'build/resources/main'
+	}
+}
+
+task updateVersionFile {
 	String versionFile = 'build/resources/main/version.txt'
 	if (file(versionFile).exists()) {
 		file(versionFile).delete()
@@ -84,36 +113,7 @@ processResources {
 	}
 	 */
 	println "version -> ${buildVersion}"
-
-	copy {
-		from ('sub_project/waffle-servant/build/libs') {
-			include 'waffle-servant-all.jar'
-		}
-		into 'build/resources/main'
-	}
-
-	copy {
-		from ('sub_project/waffle-virtual-job-executor/build/libs') {
-			include 'waffle-virtual-job-executor-all.jar'
-		}
-		into 'build/resources/main'
-	}
-
-	copy {
-		from ('./') {
-			include 'LICENSE.md'
-		}
-		into 'build/resources/main'
-	}
 }
-processResources.outputs.upToDateWhen { false }
-
-task buildServant(type: Exec) {
-	executable "sh"
-	args "-c", "cd sub_project/waffle-servant; ./gradlew build"
-}
-
-processResources.dependsOn buildServant
 
 task createXsub {
 	file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
@@ -145,7 +145,7 @@ task createXsubArchive(type: Zip, dependsOn: createXsub) {
 	excludes = ['.git',]
 }
 
-assemble.dependsOn(jar, createXsubArchive)
+assemble.dependsOn(updateVersionFile, copyFilesToResource, jar, createXsubArchive)
 
 task runJar(type: Exec, dependsOn: build) {
 	executable "java"
