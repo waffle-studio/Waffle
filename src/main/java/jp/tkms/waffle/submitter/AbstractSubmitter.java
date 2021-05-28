@@ -420,6 +420,7 @@ abstract public class AbstractSubmitter {
     if (submitter.exists(remoteServantPath)) {
       result = true;
     } else {
+      submitter.createDirectories(remoteServantPath.getParent());
       submitter.transferFilesToRemote(ServantJarFile.getPath(), remoteServantPath);
       result = submitter.exists(remoteServantPath);
     }

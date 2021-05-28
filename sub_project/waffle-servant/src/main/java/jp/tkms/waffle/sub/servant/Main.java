@@ -26,6 +26,13 @@ public class Main {
         TaskExecutor executor = new TaskExecutor(baseDirectory, Paths.get(args[2]));
         executor.execute();
         break;
+      case "terminal":
+        if (args.length < 3) {
+          exitWithInvalidArgumentsMessage("terminal", "[TERMINAL ID]");
+        }
+        PseudoTerminal pseudoTerminal = new PseudoTerminal(baseDirectory, args[2]);
+        pseudoTerminal.run();
+        break;
       default:
         exitWithInvalidArgumentsMessage("", "");
     }
@@ -35,7 +42,7 @@ public class Main {
 
   private static void exitWithInvalidArgumentsMessage(String mode, String additionalOption) {
     System.err.println("usage: java -jar <JAVA JAR> [BASE DIRECTORY] "
-      + (mode == null || mode.equals("") ? "[MODE{main,exec}]" : mode) + " " + additionalOption);
+      + (mode == null || mode.equals("") ? "[MODE{main,exec,terminal}]" : mode) + " " + additionalOption);
     System.exit(1);
   }
 }

@@ -28,6 +28,10 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
+The following list is not fully completed list because that is listed only
+directly imported libraries and there is a possibility that the libraries
+imported other libraries.
 # Included libraries for Misc.
 ## JRuby
 We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
@@ -45,6 +49,7 @@ We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
 ## Jackson
 ## OSHI
 ## Apache Commons IO
+## Pty4J
 
 # Included libraries for Web Interface
 ## AdminLTE
@@ -61,7 +66,7 @@ We chose a GNU Lesser General Public License version 2.1 from ERP/GPL/LGPL.
 ## Select2
 ## jQuery Knob
 
-# Included libraries for Gradle
+# Included libraries for Software Building
 ## Gradle
 ## Gradle Shadow
 ## grgit
