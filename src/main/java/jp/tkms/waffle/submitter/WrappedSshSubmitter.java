@@ -22,6 +22,7 @@ import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.sub.servant.Envelope;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -59,12 +60,12 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   }
 
   @Override
-  public void submit(AbstractJob job) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     if (job.getRun() instanceof VirtualJobExecutor) {
       String execstr =  "";
       try {
         if (job.getState().equals(State.Created)) {
-          prepareJob(job);
+          prepareJob(envelope, job);
         }
         execstr =  exec(xsubSubmitCommand(job));
         processXsubSubmit(job, execstr);
@@ -79,7 +80,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       VirtualJobExecutor executor = jobManager.getNextExecutor(job);
       if (executor != null) {
         try {
-          forcePrepare(job);
+          forcePrepare(envelope, job);
           executor.submit(this, job);
         } catch (FailedToControlRemoteException e) {
           WarnLogMessage.issue(job.getComputer(), e.getMessage());
@@ -115,8 +116,8 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   }
 
   @Override
-  protected void prepareJob(AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    super.prepareJob(job);
+  protected void prepareJob(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+    super.prepareJob(envelope, job);
 
     try {
       ComputerTask run = job.getRun();

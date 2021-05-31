@@ -38,30 +38,14 @@ public class TaskExecutor {
 
     this.environmentList = new ArrayList<>();
 
-    JsonObject taskJson = Json.parse(new FileReader(taskJsonPath.toFile())).asObject();
-    String jsonValue = taskJson.getString(Constants.EXECUTABLE_BASE, null);
-    if (jsonValue == null) {
-      throw new Exception();
-    }
-    executableBaseDirectory = baseDirectory.resolve(jsonValue).normalize();
-
-    projectName = taskJson.getString(Constants.PROJECT, null);
-    if (projectName == null) {
-      throw new Exception();
-    }
-
-    command = taskJson.getString(Constants.COMMAND, null);
-    if (command == null) {
-      throw new Exception();
-    }
-
-    argumentList = taskJson.get(Constants.ARGUMENT).asArray();
-
-    localSharedMap = taskJson.get(Constants.LOCAL_SHARED).asObject();
-
-    environmentMap = taskJson.get(Constants.ENVIRONMENT).asObject();
-
-    timeout = taskJson.getLong(Constants.TIMEOUT, -1);
+    TaskJson taskJson = new TaskJson(Json.parse(new FileReader(taskJsonPath.toFile())).asObject());
+    executableBaseDirectory = baseDirectory.resolve(taskJson.getExecutableBase()).normalize();
+    projectName = taskJson.getProject();
+    command = taskJson.getCommand();
+    argumentList = taskJson.getArguments();
+    localSharedMap = taskJson.getLocalShared();
+    environmentMap = taskJson.getEnvironments();
+    timeout = taskJson.getTimeout();
   }
 
   public void execute() {
@@ -83,6 +67,16 @@ public class TaskExecutor {
         Files.createFile(eventFilePath);
       } catch (IOException e) {
         // NOP
+      }
+
+      // write a status file
+      try {
+        FileWriter writer = new FileWriter(statusFilePath.toFile(), StandardCharsets.UTF_8, false);
+        writer.write("-2");
+        writer.flush();
+        writer.close();
+      } catch (IOException e) {
+        e.printStackTrace();
       }
 
       Files.createDirectories(executingBaseDirectory);

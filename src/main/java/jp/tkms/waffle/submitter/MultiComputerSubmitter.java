@@ -109,7 +109,7 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
    */
 
   @Override
-  public void processCreated(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparingJobList) throws FailedToControlRemoteException {
+  public void processCreated(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
   }
 
   @Override

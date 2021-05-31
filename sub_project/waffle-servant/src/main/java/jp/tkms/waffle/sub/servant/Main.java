@@ -1,5 +1,6 @@
 package jp.tkms.waffle.sub.servant;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
@@ -17,7 +18,12 @@ public class Main {
         if (args.length < 3) {
           exitWithInvalidArgumentsMessage("main", "[MESSAGE PATH]");
         }
-        Envelope envelope = Envelope.loadAndExtract(baseDirectory, Paths.get(args[2]));
+        Path envelopePath = Paths.get(args[2]);
+        Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
+        Files.delete(envelopePath);
+        Envelope response = new Envelope(baseDirectory);
+
+        response.save(Envelope.getResponsePath(envelopePath));
         break;
       case "exec":
         if (args.length < 3) {

@@ -4,7 +4,6 @@ import jp.tkms.waffle.sub.servant.message.AbstractMessage;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,6 +71,10 @@ public class Envelope {
     } catch (Exception e) {
       throw e;
     }
+  }
+
+  public static Path getResponsePath(Path path) {
+    return path.getParent().resolve(path.getFileName().toString() + Constants.RESPONSE_SUFFIX);
   }
 
   public static Envelope loadAndExtract(Path baseDirectory, Path dataPath) throws Exception {
@@ -159,5 +162,4 @@ public class Envelope {
   private static ZipEntry createDirectoryZipEntry(Path path) {
     return new ZipEntry(pathToString(path) + '/');
   }
-
 }
