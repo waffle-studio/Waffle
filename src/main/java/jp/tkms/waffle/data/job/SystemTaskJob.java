@@ -27,6 +27,11 @@ public class SystemTaskJob extends AbstractJob {
     super(id, path, computerName);
   }
 
+  @Override
+  public byte getTypeCode() {
+    return SystemTaskStore.TYPE_CODE;
+  }
+
   public static SystemTaskJob getInstance(String idHexCode) {
     return Main.systemTaskStore.getJob(WaffleId.valueOf(idHexCode));
   }

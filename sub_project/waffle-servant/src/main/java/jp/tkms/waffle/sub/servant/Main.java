@@ -1,5 +1,7 @@
 package jp.tkms.waffle.sub.servant;
 
+import jp.tkms.waffle.sub.servant.processor.RequestProcessor;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,9 +22,10 @@ public class Main {
         }
         Path envelopePath = Paths.get(args[2]);
         Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
+        //request.getMessageBundle().print("SERVANT");
         Files.delete(envelopePath);
         Envelope response = new Envelope(baseDirectory);
-
+        RequestProcessor.processMessages(baseDirectory, request, response);
         response.save(Envelope.getResponsePath(envelopePath));
         break;
       case "exec":

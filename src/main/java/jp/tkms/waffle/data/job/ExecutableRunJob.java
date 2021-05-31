@@ -29,6 +29,11 @@ public class ExecutableRunJob extends AbstractJob {
     super(id, path, computerName);
   }
 
+  @Override
+  public byte getTypeCode() {
+    return ExecutableRunTaskStore.TYPE_CODE;
+  }
+
   public static ExecutableRunJob getInstance(String idHexCode) {
     return Main.jobStore.getJob(WaffleId.valueOf(idHexCode));
   }

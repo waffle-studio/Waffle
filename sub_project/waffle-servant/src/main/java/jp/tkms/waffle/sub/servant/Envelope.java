@@ -42,6 +42,10 @@ public class Envelope {
     }
   }
 
+  public MessageBundle getMessageBundle() {
+    return messageBundle;
+  }
+
   public void save(Path dataPath) throws Exception {
     try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(dataPath.toFile()), StandardCharsets.UTF_8)) {
       Set<Path> sourceSet = new LinkedHashSet<>();

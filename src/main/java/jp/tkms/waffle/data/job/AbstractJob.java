@@ -47,6 +47,8 @@ public abstract class AbstractJob<T extends ComputerTask> implements PropertyFil
     setToProperty(KEY_COMPUTER, computerName);
   }
 
+  public abstract byte getTypeCode();
+
   public WaffleId getId() {
     return id;
   }

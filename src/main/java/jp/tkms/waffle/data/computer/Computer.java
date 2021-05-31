@@ -601,6 +601,7 @@ public class Computer implements DataDirectory, PropertyFile {
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
       Computer computer = create(KEY_LOCAL, JobNumberLimitedLocalSubmitter.class.getCanonicalName());
       Path xsubPath = Constants.WORK_DIR.resolve("xsub");
+      /*
       if (! Files.exists(xsubPath)) {
         ResourceFile.unzip("/xsub.zip", Constants.WORK_DIR);
         try {
@@ -610,6 +611,7 @@ public class Computer implements DataDirectory, PropertyFile {
           ErrorLogMessage.issue(e);
         }
       }
+       */
       computer.setXsubDirectory(xsubPath.toString());
       Path localWorkBaseDirectoryPath = Constants.WORK_DIR.resolve("local");
       try {

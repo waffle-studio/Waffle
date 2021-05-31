@@ -30,6 +30,22 @@ dependencies {
     implementation group: 'com.esotericsoftware', name: 'kryo', version: '5.1.1'
     implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
     implementation 'org.jetbrains.pty4j:pty4j:0.11.4'
+    implementation 'org.jruby:jruby-complete:9.2.12.0'
 }
+
+task copyXsub(type: Copy){
+    from 'xsub'
+    into 'build/tmp/xsub_archive/xsub'
+}
+
+task createXsubArchive(type: Zip, dependsOn: copyXsub) {
+    destinationDirectory = file('build/resources/main')
+    archiveFileName = 'xsub.zip'
+    from 'build/tmp/xsub_archive/'
+    excludes = ['.git',]
+}
+
+assemble.dependsOn(jar, createXsubArchive)
+compileJava.dependsOn(createXsubArchive)
 
 mainClassName = 'jp.tkms.waffle.sub.servant.Main'

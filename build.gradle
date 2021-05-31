@@ -9,7 +9,7 @@ import java.nio.file.Paths
  * user guide available at https://docs.gradle.org/4.4.1/userguide/tutorial_java_projects.html
  */
 
-String jruby_jar = "jruby-complete-9.2.14.0.jar"
+//String jruby_jar = "jruby-complete-9.2.14.0.jar"
 
 buildscript {
 	repositories {
@@ -40,7 +40,7 @@ repositories {
 }
 
 ext {
-	git = org.ajoberstar.grgit.Grgit.open(file('.'))
+	git = org.ajoberstar.grgit.Grgit.open(dir: file("."))
 	describedCommit = git.describe().toString().trim()
 	buildVersion = describedCommit + (describedCommit.matches(".*-[0-9]+-g[0-9a-f]{7}") ? "-SNAPSHOT" : "") + (git.status().isClean() ? "" : "+" + new Date().format("yyyyMMddHHmmss"))
 }
@@ -116,6 +116,7 @@ task updateVersionFile {
 	println "version -> ${buildVersion}"
 }
 
+/*
 task createXsub {
 	file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
 
@@ -145,9 +146,10 @@ task createXsubArchive(type: Zip, dependsOn: createXsub) {
 	from 'build/tmp/xsub_archive/'
 	excludes = ['.git',]
 }
+ */
 
-assemble.dependsOn(updateVersionFile, copyFilesToResource, jar, createXsubArchive)
-compileJava.dependsOn(updateVersionFile, copyFilesToResource, createXsubArchive)
+assemble.dependsOn(updateVersionFile, copyFilesToResource, jar)//, createXsubArchive)
+compileJava.dependsOn(updateVersionFile, copyFilesToResource)//, createXsubArchive)
 
 task runJar(type: Exec, dependsOn: build) {
 	executable "java"

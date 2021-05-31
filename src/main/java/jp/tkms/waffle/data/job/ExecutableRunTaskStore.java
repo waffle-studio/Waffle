@@ -5,6 +5,7 @@ import jp.tkms.waffle.Constants;
 import java.nio.file.Path;
 
 public class ExecutableRunTaskStore extends AbstractTaskStore<ExecutableRunJob> {
+  public static final byte TYPE_CODE = 1;
   public static final String TASK = "TASK";
 
   public ExecutableRunTaskStore() {

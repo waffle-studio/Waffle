@@ -11,6 +11,7 @@ import jp.tkms.waffle.data.internal.ServantJarFile;
 import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.job.ExecutableRunJob;
 import jp.tkms.waffle.data.job.SystemTaskJob;
+import jp.tkms.waffle.data.job.SystemTaskStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
@@ -18,15 +19,18 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.*;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.TaskJson;
+import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
+import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,10 +38,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 abstract public class AbstractSubmitter {
@@ -117,6 +119,7 @@ abstract public class AbstractSubmitter {
   }
 
   public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
+    //envelope.getMessageBundle().print("HOST");
     Path tmpFile = Files.createTempDirectory(Constants.APP_NAME).resolve(UUID.randomUUID().toString());
     Files.createDirectories(tmpFile.getParent());
     envelope.save(tmpFile);
@@ -145,8 +148,11 @@ abstract public class AbstractSubmitter {
   public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     try {
       forcePrepare(envelope, job);
-      String execstr =  exec(xsubSubmitCommand(job));
-      processXsubSubmit(job, execstr);
+      //String execstr =  exec(xsubSubmitCommand(job));
+      //processXsubSubmit(job, execstr);
+      envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), BATCH_FILE, computer.getXsubParameters().toString()));
+      //"if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
+        //"XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + computer.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
     } catch (FailedToControlRemoteException e) {
       WarnLogMessage.issue(job.getComputer(), e.getMessage());
       job.setState(State.Excepted);
@@ -473,9 +479,18 @@ abstract public class AbstractSubmitter {
     AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer).connect(retry);
     Path remoteServantPath = getWaffleServantPath(submitter, computer);
     boolean result = false;
+
     if (submitter.exists(remoteServantPath)) {
-      result = true;
-    } else {
+      String remoteHash = submitter.exec("md5sum '" + remoteServantPath + "'  | sed -e 's/ .*//'").trim(); //TODO:
+      String localHash = ServantJarFile.getMD5Sum().trim();
+      if (remoteHash.length() == localHash.length() && !remoteHash.equals(localHash)) {
+        submitter.exec("rm '" + remoteServantPath + "'");
+      } else {
+        result = true;
+      }
+    }
+
+    if (!result) {
       submitter.createDirectories(remoteServantPath.getParent());
       submitter.transferFilesToRemote(ServantJarFile.getPath(), remoteServantPath);
       result = submitter.exists(remoteServantPath);
@@ -714,9 +729,45 @@ abstract public class AbstractSubmitter {
   }
    */
 
-  protected void processEnvelope(Envelope envelope) {
+  protected static AbstractJob findJobFromStore(byte type, String id) {
+    WaffleId targetId = WaffleId.valueOf(id);
+    if (type == SystemTaskStore.TYPE_CODE) {
+      for (SystemTaskJob job : SystemTaskJob.getList()) {
+        if (job.getId().equals(targetId)) {
+          return job;
+        }
+      }
+    } else {
+      for (ExecutableRunJob job : ExecutableRunJob.getList()) {
+        if (job.getId().equals(targetId)) {
+          return job;
+        }
+      }
+    }
+    return null;
+  }
+
+  protected void processRequestAndResponse(Envelope envelope) {
     try {
       Envelope response = sendAndReceiveEnvelope(envelope);
+
+      for (JobExceptionMessage message : response.getMessageBundle().getCastedMessageList(JobExceptionMessage.class)) {
+        WarnLogMessage.issue(message.getMessage());
+        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          job.setState(State.Excepted);
+        }
+      }
+
+      for (UpdateJobIdMessage message : response.getMessageBundle().getCastedMessageList(UpdateJobIdMessage.class)) {
+        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          job.setJobId(message.getJobId());
+          job.setState(State.Submitted);
+          InfoLogMessage.issue(job.getRun(), "was submitted");
+        }
+      }
+
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
@@ -909,7 +960,7 @@ abstract public class AbstractSubmitter {
       preparedCount += 1;
     }
 
-    processEnvelope(envelope);
+    processRequestAndResponse(envelope);
 
     return;
   }
@@ -988,6 +1039,8 @@ abstract public class AbstractSubmitter {
         throw new FailedToControlRemoteException(e);
       }
     }
+
+    processRequestAndResponse(envelope);
   }
 
   class FinishedProcessor extends Thread {

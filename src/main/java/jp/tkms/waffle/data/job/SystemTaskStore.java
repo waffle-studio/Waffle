@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import java.nio.file.Path;
 
 public class SystemTaskStore extends AbstractTaskStore<SystemTaskJob> {
+  public static final byte TYPE_CODE = 0;
   public static final String SYSTEM_TASK = "SYSTEM_TASK";
 
   public SystemTaskStore() {
