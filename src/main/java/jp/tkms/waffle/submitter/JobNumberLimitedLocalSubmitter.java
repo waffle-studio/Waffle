@@ -80,6 +80,16 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  boolean deleteFile(Path path) throws FailedToControlRemoteException {
+    try {
+      Files.delete(path);
+      return true;
+    } catch (IOException e) {
+      throw new FailedToControlRemoteException(e);
+    }
+  }
+
+  @Override
   public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
     try {
       PrintWriter pw = new PrintWriter(new BufferedWriter(

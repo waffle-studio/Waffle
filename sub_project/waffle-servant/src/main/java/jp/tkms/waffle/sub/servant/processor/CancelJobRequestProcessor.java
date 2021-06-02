@@ -4,7 +4,9 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
+import jp.tkms.waffle.sub.servant.message.request.CancelJobMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.message.response.JobCanceledMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import org.jruby.embed.LocalContextScope;
@@ -19,39 +21,27 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage> {
+public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage> {
   public static final String XSUB_TYPE = "XSUB_TYPE";
   public static final String NONE = "None";
 
-  protected SubmitJobRequestProcessor() {
+  protected CancelJobRequestProcessor() {
   }
 
   @Override
-  protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<SubmitJobMessage> messageList) throws ClassNotFoundException, IOException {
+  protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<CancelJobMessage> messageList) throws ClassNotFoundException, IOException {
     Map environments = new HashMap(System.getenv());
     if (!environments.containsKey(XSUB_TYPE)) {
       environments.put(XSUB_TYPE, NONE);
     }
 
     ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-    for (SubmitJobMessage message : messageList) {
-      StringWriter outputWriter = new StringWriter();
+    for (CancelJobMessage message : messageList) {
       container.setEnvironment(environments);
-      container.setCurrentDirectory(baseDirectory.resolve(message.getWorkingDirectory()).toString());
-      container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
-      container.setOutput(outputWriter);
-      container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
+      container.setArgv(new String[]{message.getJobId()});
+      container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
       container.clear();
-      outputWriter.flush();
-      try {
-        JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
-        //System.out.println(jsonObject.toString());
-        response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString()));
-      } catch (Exception e) {
-        //e.printStackTrace();
-        response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));
-      }
-      outputWriter.close();
+      response.add(new JobCanceledMessage(message));
     }
     container.terminate();
   }

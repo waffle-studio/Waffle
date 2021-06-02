@@ -244,6 +244,19 @@ public class SshSession {
     });
   }
 
+  public synchronized boolean rm(Path path, String workDir) throws JSchException {
+    return processSftp(channelSftp -> {
+      try {
+        channelSftp.cd(workDir);
+        channelSftp.rm(path.toString());
+      } catch (SftpException e) {
+        WarnLogMessage.issue(loggingTarget, e);
+        return false;
+      }
+      return true;
+    });
+  }
+
   public synchronized boolean scp(String remote, File local, String workDir) throws JSchException {
     return processSftp(channelSftp -> {
       try {

@@ -159,6 +159,12 @@ public class SshSubmitter2 extends AbstractSubmitter {
   }
 
   @Override
+  boolean deleteFile(Path path) throws FailedToControlRemoteException {
+    exec("rm '" + path.toString() + "'");
+    return true;
+  }
+
+  @Override
   public String getFileContents(ComputerTask run, Path path) {
     try {
       return session.getText(getContentsPath(run, path).toString(), "");

@@ -198,6 +198,15 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  boolean deleteFile(Path path) throws FailedToControlRemoteException {
+    try {
+      return session.rm(path, "");
+    } catch (JSchException e) {
+      throw new FailedToControlRemoteException(e);
+    }
+  }
+
+  @Override
   public String getFileContents(ComputerTask run, Path path) {
     try {
       return session.getText(getContentsPath(run, path).toString(), "");

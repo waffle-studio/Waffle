@@ -3,9 +3,7 @@ package jp.tkms.waffle.sub.servant.message.request;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class SubmitJobMessage extends AbstractRequestMessage {
-  byte type;
-  String id;
+public class SubmitJobMessage extends JobMessage {
   String workingDirectory;
   String command;
   String xsubParameter;
@@ -13,19 +11,10 @@ public class SubmitJobMessage extends AbstractRequestMessage {
   public SubmitJobMessage() {}
 
   public SubmitJobMessage(byte type, String id, Path workingDirectory, String command, String xsubParameter) {
-    this.type = type;
-    this.id = id;
+    super(type, id);
     this.workingDirectory = workingDirectory.toString();
     this.command = command;
     this.xsubParameter = xsubParameter;
-  }
-
-  public byte getType() {
-    return type;
-  }
-
-  public String getId() {
-    return id;
   }
 
   public Path getWorkingDirectory() {
@@ -38,10 +27,5 @@ public class SubmitJobMessage extends AbstractRequestMessage {
 
   public String getXsubParameter() {
     return xsubParameter;
-  }
-
-  @Override
-  void execute() {
-
   }
 }

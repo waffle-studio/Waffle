@@ -2,6 +2,7 @@ package jp.tkms.waffle.sub.servant;
 
 import org.apache.commons.io.IOUtils;
 
+import javax.xml.stream.events.Comment;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -21,7 +22,7 @@ public class XsubFile {
   private static XsubFile staticInstance = new XsubFile();
 
   private static Path getPath(Path baseDirectory, String command) throws IOException {
-    Path path = baseDirectory.resolve(XSUB_BIN).resolve(XSUB);
+    Path path = baseDirectory.resolve(XSUB_BIN).resolve(command);
     if (!Files.exists(path)) {
       synchronized (staticInstance) {
         if (!Files.exists(path)) {

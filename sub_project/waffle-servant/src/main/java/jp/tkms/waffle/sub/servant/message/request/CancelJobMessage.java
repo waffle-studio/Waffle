@@ -1,11 +1,11 @@
 package jp.tkms.waffle.sub.servant.message.request;
 
-public class CollectStatusMessage extends JobMessage {
+public class CancelJobMessage extends JobMessage {
   String jobId;
 
-  public CollectStatusMessage() { }
+  public CancelJobMessage() {}
 
-  public CollectStatusMessage(byte type, String id, String jobId) {
+  public CancelJobMessage(byte type, String id, String jobId) {
     super(type, id);
     this.jobId = jobId;
   }

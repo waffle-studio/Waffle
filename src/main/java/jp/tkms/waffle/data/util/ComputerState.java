@@ -4,7 +4,7 @@ import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 
 public enum ComputerState {
-  Viable, Unviable, KeyNotFound, UnsupportedKey, XsubNotFound, Stopped;
+  Viable, Unviable, KeyNotFound, UnsupportedKey, Stopped;
 
   public static ComputerState valueOf(int i) {
     return values()[i];
@@ -20,8 +20,6 @@ public enum ComputerState {
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:8em;")), name());
       case UnsupportedKey:
         return Lte.badge("danger", new Html.Attributes(Html.value("style","width:9em;")), name());
-      case XsubNotFound:
-        return Lte.badge("danger", new Html.Attributes(Html.value("style","width:8em;")), name());
       case Stopped:
         return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), name());
     }

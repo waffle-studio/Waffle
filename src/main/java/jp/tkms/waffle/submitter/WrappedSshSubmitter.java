@@ -23,6 +23,7 @@ import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.sub.servant.Envelope;
+import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -67,8 +68,9 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         if (job.getState().equals(State.Created)) {
           prepareJob(envelope, job);
         }
-        execstr =  exec(xsubSubmitCommand(job));
-        processXsubSubmit(job, execstr);
+        //execstr =  exec(xsubSubmitCommand(job));
+        //processXsubSubmit(job, execstr);
+        envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), BATCH_FILE, computer.getXsubParameters().toString()));
       } catch (FailedToControlRemoteException e) {
         WarnLogMessage.issue(job.getComputer(), e.getMessage());
         job.setState(State.Excepted);
@@ -104,14 +106,26 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   }
 
   @Override
-  public State update(AbstractJob job) throws RunNotFoundException {
-    ComputerTask run = job.getRun();
+  public void update(Envelope envelope, AbstractJob job) {
+    //ComputerTask run = job.getRun();
     if (job instanceof SystemTaskJob) {
-      return super.update(job);
+      super.update(envelope, job);
     } else {
-      String json = "{\"status\":\"" + jobManager.checkStat(job) + "\"}";
-      processXstat(job, json);
-      return run.getState();
+      //String json = "{\"status\":\"" + jobManager.checkStat(job) + "\"}";
+      //processXstat(job, json);
+      //return run.getState();
+
+      try {
+        if (jobManager.checkStat(job)) {
+          job.setState(State.Finalizing);
+          finishedProcessorManager.startup();
+          preparedProcessorManager.startup();
+        } else {
+          job.setState(State.Running);
+        }
+      } catch (RunNotFoundException e) {
+        e.printStackTrace();
+      }
     }
   }
 
@@ -131,9 +145,9 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   }
 
   @Override
-  public void cancel(AbstractJob job) throws RunNotFoundException {
+  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     if (job.getRun() instanceof VirtualJobExecutor) {
-      super.cancel(job);
+      super.cancel(envelope, job);
     } else {
       job.setState(State.Canceled);
       if (! job.getJobId().equals("-1")) {
@@ -483,7 +497,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       return dirPath;
     }
 
-    public String checkStat(AbstractJob job) throws RunNotFoundException {
+    public boolean checkStat(AbstractJob job) throws RunNotFoundException {
       String executorId = job.getJobId().replaceFirst("\\..*$", "");
       VirtualJobExecutor executor = runningExecutorList.get(executorId);
       if (executor == null) {
@@ -493,7 +507,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       if (executor != null) {
         finished = executor.checkStat(submitter, job);
       }
-      return (finished ? "finished" : "running");
+      return finished;
     }
   }
 
@@ -542,7 +556,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
 
     public void cancel(AbstractSubmitter submitter, AbstractJob job) throws RunNotFoundException {
       try {
-        submitter.exec("rm '" + getRemoteJobsDirectory().resolve(job.getId().toString()).toString() + "'");
+        submitter.deleteFile(getRemoteJobsDirectory().resolve(job.getId().toString()));
       } catch (FailedToControlRemoteException e) {
         job.setState(State.Excepted);
       }

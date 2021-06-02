@@ -23,14 +23,17 @@ import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.*;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.TaskJson;
+import jp.tkms.waffle.sub.servant.message.request.CancelJobMessage;
+import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
+import jp.tkms.waffle.sub.servant.message.request.SendXsubTemplateMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,7 +54,6 @@ abstract public class AbstractSubmitter {
 
   boolean isRunning = false;
   Computer computer;
-  protected static ExecutorService threadPool = Executors.newFixedThreadPool(4);
   private int pollingInterval = 5;
   private int preparingNumber = 1;
   private PollingThread.Mode mode;
@@ -59,6 +61,8 @@ abstract public class AbstractSubmitter {
   ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
   ProcessorManager<PreparedProcessor> preparedProcessorManager = new ProcessorManager<>(() -> new PreparedProcessor());
   ProcessorManager<FinishedProcessor> finishedProcessorManager = new ProcessorManager<>(() -> new FinishedProcessor());
+
+  private static Path tempDirectoryPath = null;
 
   public int getPollingInterval() {
     return pollingInterval;
@@ -77,6 +81,7 @@ abstract public class AbstractSubmitter {
 
   abstract public void createDirectories(Path path) throws FailedToControlRemoteException;
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
+  abstract boolean deleteFile(Path path) throws FailedToControlRemoteException;
   abstract public String exec(String command) throws FailedToControlRemoteException;
   abstract public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException;
@@ -118,24 +123,39 @@ abstract public class AbstractSubmitter {
     exec("chmod " + mod +" '" + path.toString() + "'");
   }
 
+  private static Path getTempDirectoryPath() throws IOException {
+    if (tempDirectoryPath == null) {
+      synchronized (AbstractSubmitter.class) {
+        if (tempDirectoryPath == null) {
+          tempDirectoryPath = Files.createTempDirectory(Constants.APP_NAME);
+          tempDirectoryPath.toFile().deleteOnExit();
+        }
+      }
+    }
+    return tempDirectoryPath;
+  }
+
   public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
     //envelope.getMessageBundle().print("HOST");
-    Path tmpFile = Files.createTempDirectory(Constants.APP_NAME).resolve(UUID.randomUUID().toString());
-    Files.createDirectories(tmpFile.getParent());
-    envelope.save(tmpFile);
-    Path remoteWorkBasePath = parseHomePath(computer.getWorkBaseDirectory());
-    Path remoteEnvelopePath = remoteWorkBasePath.resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
-    createDirectories(remoteEnvelopePath.getParent());
-    transferFilesToRemote(tmpFile, remoteEnvelopePath);
-    Files.delete(tmpFile);
-    exec("java -jar '" + getWaffleServantPath(this, computer)
-      + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'");
-    Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
-    transferFilesFromRemote(remoteResponsePath, tmpFile);
-    exec("rm '" + remoteResponsePath + "'");
-    Envelope response = Envelope.loadAndExtract(Constants.WORK_DIR, tmpFile);
-    Files.delete(tmpFile);
-    return response;
+    if (!envelope.isEmpty()) {
+      Path tmpFile = getTempDirectoryPath().resolve(UUID.randomUUID().toString());
+      Files.createDirectories(tmpFile.getParent());
+      envelope.save(tmpFile);
+      Path remoteWorkBasePath = parseHomePath(computer.getWorkBaseDirectory());
+      Path remoteEnvelopePath = remoteWorkBasePath.resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
+      createDirectories(remoteEnvelopePath.getParent());
+      transferFilesToRemote(tmpFile, remoteEnvelopePath);
+      Files.delete(tmpFile);
+      exec("java -jar '" + getWaffleServantPath(this, computer)
+        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'");
+      Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
+      transferFilesFromRemote(remoteResponsePath, tmpFile);
+      deleteFile(remoteResponsePath);
+      Envelope response = Envelope.loadAndExtract(Constants.WORK_DIR, tmpFile);
+      Files.delete(tmpFile);
+      return response;
+    }
+    return null;
   }
 
   public void forcePrepare(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
@@ -148,7 +168,6 @@ abstract public class AbstractSubmitter {
   public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     try {
       forcePrepare(envelope, job);
-      //String execstr =  exec(xsubSubmitCommand(job));
       //processXsubSubmit(job, execstr);
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), BATCH_FILE, computer.getXsubParameters().toString()));
       //"if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
@@ -162,25 +181,24 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public State update(AbstractJob job) throws RunNotFoundException {
-    ComputerTask run = job.getRun();
+  public void update(Envelope envelope, AbstractJob job) {
+    //ComputerTask run = job.getRun();
+    envelope.add(new CollectStatusMessage(job.getTypeCode(), job.getHexCode(), job.getJobId()));
+    /*
     try {
       processXstat(job, exec(xstatCommand(job)));
     } catch (FailedToControlRemoteException e) {
       ErrorLogMessage.issue(e);
     }
-    return run.getState();
+     */
+    //return run.getState();
   }
 
-  public void cancel(AbstractJob job) throws RunNotFoundException {
-    job.setState(State.Canceled);
+  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     if (! job.getJobId().equals("-1")) {
-      try {
-        processXdel(job, exec(xdelCommand(job)));
-      } catch (FailedToControlRemoteException e) {
-        ErrorLogMessage.issue(e);
-        job.setState(State.Excepted);
-      }
+      envelope.add(new CancelJobMessage(job.getTypeCode(), job.getHexCode(), job.getJobId()));
+    } else {
+      job.setState(State.Canceled);
     }
   }
 
@@ -259,6 +277,7 @@ abstract public class AbstractSubmitter {
     return parseHomePath(job.getComputer().getWorkBaseDirectory()).resolve(job.getRun().getRemoteBinPath());
   }
 
+  /*
   String makeBatchFileText(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
     ComputerTask run = job.getRun();
     JSONArray localSharedList = (run instanceof ExecutableRun ? ((ExecutableRun) run).getLocalSharedList() : new JSONArray());
@@ -330,6 +349,7 @@ abstract public class AbstractSubmitter {
     return text;
   }
 
+
   String xsubSubmitCommand(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
     return xsubCommand(job) + " " + BATCH_FILE;
   }
@@ -346,7 +366,6 @@ abstract public class AbstractSubmitter {
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
       + getXsubBinDirectory(computer) + "xstat " + job.getJobId();
   }
-
   String xdelCommand(AbstractJob job) {
     Computer computer = job.getComputer();
     return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
@@ -390,6 +409,7 @@ abstract public class AbstractSubmitter {
       ErrorLogMessage.issue(e);
     }
   }
+   */
 
   void jobFinalizing(AbstractJob job) throws WaffleException {
     try {
@@ -466,11 +486,6 @@ abstract public class AbstractSubmitter {
     return getBaseDirectory(run).resolve(path);
   }
 
-  public static String getXsubBinDirectory(Computer computer) {
-    String separator = (computer.isLocal() ? File.separator : "/");
-    return (computer.getXsubDirectory().equals("") ? "": computer.getXsubDirectory() + separator + "bin" + separator);
-  }
-
   public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) throws FailedToControlRemoteException {
     return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
   }
@@ -484,7 +499,7 @@ abstract public class AbstractSubmitter {
       String remoteHash = submitter.exec("md5sum '" + remoteServantPath + "'  | sed -e 's/ .*//'").trim(); //TODO:
       String localHash = ServantJarFile.getMD5Sum().trim();
       if (remoteHash.length() == localHash.length() && !remoteHash.equals(localHash)) {
-        submitter.exec("rm '" + remoteServantPath + "'");
+        submitter.deleteFile(remoteServantPath);
       } else {
         result = true;
       }
@@ -502,22 +517,16 @@ abstract public class AbstractSubmitter {
   public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
     AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer).connect(retry);
     JSONObject jsonObject = new JSONObject();
-    String command = "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE " +
-      getXsubBinDirectory(computer) + "xsub -t";
-    String json = submitter.exec(command);
-    if (json != null) {
-      try {
-        jsonObject = new JSONObject(json);
-      } catch (Exception e) {
-        if (submitter.exec("which '" + getXsubBinDirectory(computer) + "xsub' 2>/dev/null; if test 0 -ne $?; then echo NotFound; fi;").startsWith("NotFound")) {
-          submitter.close();
-          throw new NotFoundXsubException(e);
-        }
-        String message =
-          submitter.exec("if test ! -e '" + getXsubBinDirectory(computer) + "xsub'; then echo NotFound; fi;");
-        submitter.close();
-        throw new RuntimeException("Failed to parse JSON : " + message );
+    Envelope request = new Envelope(Constants.WORK_DIR);
+    request.add(new SendXsubTemplateMessage());
+    try {
+      Envelope response = submitter.sendAndReceiveEnvelope(request);
+      for (XsubTemplateMessage message : response.getMessageBundle().getCastedMessageList(XsubTemplateMessage.class)) {
+        jsonObject = new JSONObject(message.getTemplate());
+        break;
       }
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
     }
     submitter.close();
     return jsonObject;
@@ -751,11 +760,23 @@ abstract public class AbstractSubmitter {
     try {
       Envelope response = sendAndReceiveEnvelope(envelope);
 
+      if (response == null) {
+        return;
+      }
+
       for (JobExceptionMessage message : response.getMessageBundle().getCastedMessageList(JobExceptionMessage.class)) {
         WarnLogMessage.issue(message.getMessage());
+
         AbstractJob job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setState(State.Excepted);
+        }
+      }
+
+      for (JobCanceledMessage message : response.getMessageBundle().getCastedMessageList(JobCanceledMessage.class)) {
+        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          job.setState(State.Canceled);
         }
       }
 
@@ -768,12 +789,27 @@ abstract public class AbstractSubmitter {
         }
       }
 
+      for (UpdateStatusMessage message : response.getMessageBundle().getCastedMessageList(UpdateStatusMessage.class)) {
+        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          if (message.isFinished()) {
+            job.setState(State.Finalizing);
+            finishedProcessorManager.startup();
+            preparedProcessorManager.startup();
+          } else {
+            job.setState(State.Running);
+          }
+        }
+      }
+
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
   }
 
   public void checkSubmitted() throws FailedToControlRemoteException {
+    Envelope envelope = new Envelope(Constants.WORK_DIR);
+
     isRunning = true;
     pollingInterval = computer.getPollingInterval();
 
@@ -806,7 +842,7 @@ abstract public class AbstractSubmitter {
         }
       } catch (RunNotFoundException e) {
         try {
-          cancel(job);
+          cancel(envelope, job);
         } catch (RunNotFoundException ex) { }
         job.remove();
         WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
@@ -814,7 +850,7 @@ abstract public class AbstractSubmitter {
     }
 
     if (!Main.hibernateFlag) {
-      processSubmitted(submittedJobList, runningJobList, cancelJobList);
+      processSubmitted(envelope, submittedJobList, runningJobList, cancelJobList);
     }
 
     if (!Main.hibernateFlag) {
@@ -822,17 +858,20 @@ abstract public class AbstractSubmitter {
     }
 
     isRunning = false;
+
+    processRequestAndResponse(envelope);
+
     return;
   }
 
-  public void processSubmitted(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
+  public void processSubmitted(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
     //int submittedCount = submittedJobList.size() + runningJobList.size();
     submittedJobList.addAll(runningJobList);
 
     for (AbstractJob job : cancelJobList) {
       if (Main.hibernateFlag) { return; }
       try {
-        cancel(job);
+        cancel(envelope, job);
       } catch (RunNotFoundException e) {
         job.remove();
       }
@@ -841,8 +880,10 @@ abstract public class AbstractSubmitter {
     for (AbstractJob job : submittedJobList) {
       if (Main.hibernateFlag) { return; }
 
+      update(envelope, job);
+      /*
       try {
-        switch (update(job)) {
+        switch (update(envelope, job)) {
           case Finalizing:
           case Finished:
           case Failed:
@@ -858,6 +899,7 @@ abstract public class AbstractSubmitter {
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
       }
+       */
     }
   }
 
@@ -871,6 +913,8 @@ abstract public class AbstractSubmitter {
         if (Main.hibernateFlag) {
           return;
         }
+
+        Envelope envelope = new Envelope(Constants.WORK_DIR);
 
         createdJobList.clear();
         preparedJobList.clear();
@@ -891,7 +935,7 @@ abstract public class AbstractSubmitter {
             }
           } catch (RunNotFoundException e) {
             try {
-              cancel(job);
+              cancel(envelope, job);
             } catch (RunNotFoundException ex) {
             }
             job.remove();
@@ -904,16 +948,18 @@ abstract public class AbstractSubmitter {
         }
 
         try {
-          processCreated(createdJobList, preparedJobList);
+          processCreated(envelope, createdJobList, preparedJobList);
         } catch (FailedToControlRemoteException e) {
           ErrorLogMessage.issue(e);
         }
+
+        processRequestAndResponse(envelope);
       } while (!createdJobList.isEmpty() && preparedJobList.size() < preparingNumber);
       return;
     }
   }
 
-  public void processCreated(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processCreated(Envelope envelope, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     int preparedCount = preparedJobList.size();
     /*
     ArrayList<Future> futures = new ArrayList<>();
@@ -943,7 +989,6 @@ abstract public class AbstractSubmitter {
     }
     */
 
-    Envelope envelope = new Envelope(Constants.WORK_DIR);
     for (AbstractJob job : createdJobList) {
       if (Main.hibernateFlag || preparedCount >= preparingNumber) {
         break;
@@ -960,8 +1005,6 @@ abstract public class AbstractSubmitter {
       preparedCount += 1;
     }
 
-    processRequestAndResponse(envelope);
-
     return;
   }
 
@@ -970,6 +1013,8 @@ abstract public class AbstractSubmitter {
     public void run() {
       long s = System.currentTimeMillis();
       createdProcessorManager.startup();
+
+      Envelope envelope = new Envelope(Constants.WORK_DIR);
 
       ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
       ArrayList<AbstractJob> createdJobList = new ArrayList<>();
@@ -997,7 +1042,7 @@ abstract public class AbstractSubmitter {
           }
         } catch (RunNotFoundException e) {
           try {
-            cancel(job);
+            cancel(envelope, job);
           } catch (RunNotFoundException ex) { }
           job.remove();
           WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
@@ -1006,21 +1051,22 @@ abstract public class AbstractSubmitter {
 
       if (!Main.hibernateFlag) {
         try {
-          processPrepared(submittedJobList, createdJobList, preparedJobList);
+          processPrepared(envelope, submittedJobList, createdJobList, preparedJobList);
         } catch (FailedToControlRemoteException e) {
           ErrorLogMessage.issue(e);
         }
       }
+
+      processRequestAndResponse(envelope);
+
       return;
     }
   }
 
-  public void processPrepared(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPrepared(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     ArrayList<AbstractJob> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
-
-    Envelope envelope = new Envelope(Constants.WORK_DIR);
 
     for (AbstractJob job : queuedJobList) {
       if (Main.hibernateFlag) { return; }
@@ -1039,8 +1085,6 @@ abstract public class AbstractSubmitter {
         throw new FailedToControlRemoteException(e);
       }
     }
-
-    processRequestAndResponse(envelope);
   }
 
   class FinishedProcessor extends Thread {
@@ -1050,6 +1094,8 @@ abstract public class AbstractSubmitter {
 
       do {
         if (Main.hibernateFlag) { return; }
+
+        Envelope envelope = new Envelope(Constants.WORK_DIR);
 
         finalizingJobList.clear();
 
@@ -1075,22 +1121,22 @@ abstract public class AbstractSubmitter {
             }
           } catch (RunNotFoundException e) {
             try {
-              cancel(job);
+              cancel(envelope, job);
             } catch (RunNotFoundException ex) { }
             job.remove();
             WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
           }
         }
 
-        if (finalizingJobList.isEmpty()) {
-          return;
+        if (!finalizingJobList.isEmpty()) {
+          try {
+            processFinished(finalizingJobList);
+          } catch (FailedToControlRemoteException e) {
+            ErrorLogMessage.issue(e);
+          }
         }
 
-        try {
-          processFinished(finalizingJobList);
-        } catch (FailedToControlRemoteException e) {
-          ErrorLogMessage.issue(e);
-        }
+        processRequestAndResponse(envelope);
 
       } while (!finalizingJobList.isEmpty());
       return;

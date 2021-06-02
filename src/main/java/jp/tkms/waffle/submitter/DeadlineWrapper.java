@@ -11,6 +11,7 @@ import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.sub.servant.Envelope;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -80,7 +81,7 @@ public class DeadlineWrapper extends AbstractSubmitter {
   }
 
   @Override
-  public void processCreated(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processCreated(Envelope envelope, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
   }
 
   @Override
@@ -102,7 +103,7 @@ public class DeadlineWrapper extends AbstractSubmitter {
   }
 
   @Override
-  public void processPrepared(ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPrepared(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
       if (new Date().before(deadline)) {

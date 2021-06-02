@@ -1,6 +1,6 @@
 package jp.tkms.waffle.sub.servant.message.response;
 
-import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.message.request.JobMessage;
 
 public class JobExceptionMessage extends AbstractResponseMessage {
   byte type;
@@ -15,8 +15,8 @@ public class JobExceptionMessage extends AbstractResponseMessage {
     this.message = message;
   }
 
-  public JobExceptionMessage(SubmitJobMessage submitJobMessage, String message) {
-    this(submitJobMessage.getType(), submitJobMessage.getId(), message);
+  public JobExceptionMessage(JobMessage jobMessage, String message) {
+    this(jobMessage.getType(), jobMessage.getId(), message);
   }
 
   public byte getType() {

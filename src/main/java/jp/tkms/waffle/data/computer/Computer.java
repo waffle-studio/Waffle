@@ -7,7 +7,6 @@ import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
-import jp.tkms.waffle.exception.NotFoundXsubException;
 import jp.tkms.waffle.exception.WaffleException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
@@ -34,7 +33,7 @@ import java.util.*;
 public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_LOCAL = "LOCAL";
   private static final String KEY_WORKBASE = "work_base_dir";
-  private static final String KEY_XSUB = "xsub_dir";
+  //private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_XSUB_TEMPLATE = "xsub_template";
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_THREADS = "maximum_threads";
@@ -148,7 +147,7 @@ public class Computer implements DataDirectory, PropertyFile {
     initializeWorkDirectory();
 
     if (getState() == null) { setState(ComputerState.Unviable); }
-    if (getXsubDirectory() == null) { setXsubDirectory(""); }
+    //if (getXsubDirectory() == null) { setXsubDirectory(""); }
     if (getWorkBaseDirectory() == null) { setWorkBaseDirectory("/tmp/waffle"); }
     if (getMaximumNumberOfThreads() == null) { setMaximumNumberOfThreads(1.0); }
     if (getAllocableMemorySize() == null) { setAllocableMemorySize(1.0); }
@@ -200,9 +199,6 @@ public class Computer implements DataDirectory, PropertyFile {
         setState(ComputerState.Viable);
         setMessage("");
       }
-    } catch (NotFoundXsubException e) {
-      setMessage("bin/xsub is not found in " + ("".equals(getXsubDirectory()) ? "$PATH" : getXsubDirectory()));
-      setState(ComputerState.XsubNotFound);
     } catch (RuntimeException | WaffleException e) {
       String message = e.getMessage();
       if (message != null) {
@@ -293,6 +289,7 @@ public class Computer implements DataDirectory, PropertyFile {
     }
   }
 
+  /*
   public String getXsubDirectory() {
     synchronized (this) {
       if (xsubDirectory == null) {
@@ -308,6 +305,7 @@ public class Computer implements DataDirectory, PropertyFile {
       this.xsubDirectory = xsubDirectory;
     }
   }
+   */
 
   private SecretKeySpec getEncryptKey() {
     synchronized (this) {
@@ -600,19 +598,6 @@ public class Computer implements DataDirectory, PropertyFile {
     Data.initializeWorkDirectory();
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
       Computer computer = create(KEY_LOCAL, JobNumberLimitedLocalSubmitter.class.getCanonicalName());
-      Path xsubPath = Constants.WORK_DIR.resolve("xsub");
-      /*
-      if (! Files.exists(xsubPath)) {
-        ResourceFile.unzip("/xsub.zip", Constants.WORK_DIR);
-        try {
-          Process process = new ProcessBuilder("sh", xsubPath.resolve("bin").resolve("set_perm.sh").toString()).start();
-          process.waitFor();
-        } catch (Exception e) {
-          ErrorLogMessage.issue(e);
-        }
-      }
-       */
-      computer.setXsubDirectory(xsubPath.toString());
       Path localWorkBaseDirectoryPath = Constants.WORK_DIR.resolve("local");
       try {
         Files.createDirectories(localWorkBaseDirectoryPath);

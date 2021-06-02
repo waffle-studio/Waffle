@@ -19,7 +19,6 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   public static final String COMPUTER = "Computer";
 
   private static final String KEY_WORKBASE = "work_base_dir";
-  private static final String KEY_XSUB = "xsub_dir";
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
@@ -249,20 +248,11 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += ("".equals(computer.getMessage()) ? "" : Lte.errorNoticeTextAreaGroup(computer.getMessage()));
-        if (computer.getState().equals(ComputerState.XsubNotFound)) {
-          content += Lte.divRow(Lte.divCol(Lte.DivSize.F12,
-            Html.a(ComputersComponent.getUrl(),
-              Html.fasIcon("info-circle") + "You can install Xsub on "
-                + (computer.getXsubDirectory().equals("") ? "~/xsub" : computer.getXsubDirectory()) + " from here.")));
-        }
         content += Html.form(getUrl(computer, Mode.Update), Html.Method.Post,
           Lte.card(Html.fasIcon("terminal") + "Properties",
             computer.getState().getStatusBadge(),
             Html.div(null,
               Lte.readonlyTextInput("Submitter Type", computer.getSubmitterType()),
-              Lte.formInputGroup("text", KEY_XSUB,
-                "Xsub directory on the computer",
-                "depends on $PATH", computer.getXsubDirectory(), errors),
               Lte.formInputGroup("text", KEY_WORKBASE,
                 "Work base directory on the computer", "", computer.getWorkBaseDirectory(), errors),
               Lte.formInputGroup("text", KEY_MAX_THREADS,
@@ -286,7 +276,6 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   }
 
   private void updateComputer() {
-    computer.setXsubDirectory(request.queryParams(KEY_XSUB));
     computer.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
     computer.setMaximumNumberOfThreads(Double.parseDouble(request.queryParams(KEY_MAX_THREADS)));
     computer.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));

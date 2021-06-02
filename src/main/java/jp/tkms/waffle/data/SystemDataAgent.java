@@ -10,10 +10,8 @@ import oshi.hardware.HardwareAbstractionLayer;
 public class SystemDataAgent {
   public static final String PREFIX = "system.";
   public static final int GB = 1024 * 1024 * 1024;
-  private static final HardwareAbstractionLayer HARDWARE = new SystemInfo().getHardware();
-  private static final CentralProcessor CENTRAL_PROCESSOR = HARDWARE.getProcessor();
-  private static final GlobalMemory GLOBAL_MEMORY = HARDWARE.getMemory();
 
+  private static HardwareAbstractionLayer hardware = null;
   private static long[] cpuOldTicks = new long[CentralProcessor.TickType.values().length];
 
   public static JsonObject request(String name) {
@@ -28,25 +26,41 @@ public class SystemDataAgent {
         break;
       case "memory":
         //jsonObject.add(name, getTotalMemory() - round2((double)((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getFreePhysicalMemorySize() / GB));
-        jsonObject.add(name, getTotalMemory() - round2((double)GLOBAL_MEMORY.getAvailable() / GB));
+        jsonObject.add(name, round2(getTotalMemory() - (double)getHardware().getMemory().getAvailable() / GB));
         break;
     }
     return jsonObject;
   }
 
+  public static HardwareAbstractionLayer getHardware() {
+    if (hardware == null) {
+      hardware = new SystemInfo().getHardware();
+    }
+    return hardware;
+  }
+
   public static double getCpuLoad() {
-    double load = CENTRAL_PROCESSOR.getSystemCpuLoadBetweenTicks(cpuOldTicks);
-    cpuOldTicks = CENTRAL_PROCESSOR.getSystemCpuLoadTicks();
-    return load;
+    try {
+      CentralProcessor centralProcessor = getHardware().getProcessor();
+      double load = centralProcessor.getSystemCpuLoadBetweenTicks(cpuOldTicks);
+      cpuOldTicks = centralProcessor.getSystemCpuLoadTicks();
+      return load;
+    } catch (Error e) {
+      return -1;
+    }
   }
 
   public static long getTotalStorage() {
     return Constants.WORK_DIR.toFile().getTotalSpace() / GB;
   }
 
-  public static Double getTotalMemory() {
-    //return round2((double)((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize() / GB);
-    return round2((double)GLOBAL_MEMORY.getTotal() / GB);
+  public static double getTotalMemory() {
+    try {
+      //return round2((double)((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize() / GB);
+      return round2((double)getHardware().getMemory().getTotal() / GB);
+    } catch (Error e) {
+      return -1;
+    }
   }
 
   static double round2(double v) {

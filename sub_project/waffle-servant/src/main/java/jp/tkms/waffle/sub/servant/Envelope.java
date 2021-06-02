@@ -30,6 +30,10 @@ public class Envelope {
     filePathList = new ArrayList<>();
   }
 
+  public boolean isEmpty() {
+    return messageBundle.isEmpty() && filePathList.isEmpty();
+  }
+
   public void add(AbstractMessage message) {
     messageBundle.add(message);
   }

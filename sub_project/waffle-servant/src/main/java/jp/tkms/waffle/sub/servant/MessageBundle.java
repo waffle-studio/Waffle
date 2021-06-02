@@ -1,22 +1,16 @@
 package jp.tkms.waffle.sub.servant;
 
-import com.eclipsesource.json.Json;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import jp.tkms.waffle.sub.servant.message.AbstractMessage;
-import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
-import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateResultMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
+import jp.tkms.waffle.sub.servant.message.request.JobMessage;
+import jp.tkms.waffle.sub.servant.message.request.*;
+import jp.tkms.waffle.sub.servant.message.response.*;
 
 import java.io.*;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 public class MessageBundle {
   private HashMap<Class<? extends AbstractMessage>, ArrayList<AbstractMessage>> messageListSet;
@@ -53,6 +47,15 @@ public class MessageBundle {
   }
    */
 
+  public boolean isEmpty() {
+    for (ArrayList<AbstractMessage> messageList : messageListSet.values()) {
+      if (!messageList.isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void add(AbstractMessage message) {
     getMessageList(message.getClass()).add(message);
   }
@@ -80,11 +83,16 @@ public class MessageBundle {
     kryo.register(java.util.HashMap.class);
     kryo.register(Class.class);
     kryo.register(ArrayList.class);
+    kryo.register(JobMessage.class);
     kryo.register(SubmitJobMessage.class);
     kryo.register(JobExceptionMessage.class);
     kryo.register(UpdateJobIdMessage.class);
+    kryo.register(CancelJobMessage.class);
+    kryo.register(JobCanceledMessage.class);
     kryo.register(CollectStatusMessage.class);
     kryo.register(UpdateStatusMessage.class);
+    kryo.register(SendXsubTemplateMessage.class);
+    kryo.register(XsubTemplateMessage.class);
     kryo.register(UpdateResultMessage.class);
   }
 }
