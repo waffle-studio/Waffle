@@ -106,7 +106,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   }
 
   @Override
-  public void update(Envelope envelope, AbstractJob job) {
+  public void update(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
     //ComputerTask run = job.getRun();
     if (job instanceof SystemTaskJob) {
       super.update(envelope, job);

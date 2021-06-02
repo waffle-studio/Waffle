@@ -56,6 +56,11 @@ public class DeadlineWrapper extends AbstractSubmitter {
   }
 
   @Override
+  boolean deleteFile(Path path) throws FailedToControlRemoteException {
+    return false;
+  }
+
+  @Override
   public String exec(String command) throws FailedToControlRemoteException {
     return null;
   }

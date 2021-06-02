@@ -31,4 +31,5 @@ public interface ComputerTask extends DataDirectory {
   JSONObject getEnvironments();
   void appendErrorNote(String note);
   void setExitStatus(int exitStatus);
+  int getExitStatus();
 }

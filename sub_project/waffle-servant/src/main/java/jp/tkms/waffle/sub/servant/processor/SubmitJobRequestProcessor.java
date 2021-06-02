@@ -33,15 +33,16 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       environments.put(XSUB_TYPE, NONE);
     }
 
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
     for (SubmitJobMessage message : messageList) {
       StringWriter outputWriter = new StringWriter();
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
       container.setEnvironment(environments);
       container.setCurrentDirectory(baseDirectory.resolve(message.getWorkingDirectory()).toString());
       container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
       container.setOutput(outputWriter);
       container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
       container.clear();
+      container.terminate();
       outputWriter.flush();
       try {
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
@@ -53,6 +54,5 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       }
       outputWriter.close();
     }
-    container.terminate();
   }
 }

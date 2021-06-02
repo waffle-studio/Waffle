@@ -35,14 +35,14 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
       environments.put(XSUB_TYPE, NONE);
     }
 
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
     for (CancelJobMessage message : messageList) {
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
       container.setEnvironment(environments);
       container.setArgv(new String[]{message.getJobId()});
       container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
       container.clear();
+      container.terminate();
       response.add(new JobCanceledMessage(message));
     }
-    container.terminate();
   }
 }

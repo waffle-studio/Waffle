@@ -6,17 +6,23 @@ public class UpdateStatusMessage extends AbstractResponseMessage {
   byte type;
   String id;
   boolean isFinished;
+  int exitStatus;
 
   public UpdateStatusMessage() { }
 
-  public UpdateStatusMessage(byte type, String id, boolean isFinished) {
+  public UpdateStatusMessage(byte type, String id, boolean isFinished, int exitStatus) {
     this.type = type;
     this.id = id;
     this.isFinished = isFinished;
+    this.exitStatus = exitStatus;
   }
 
-  public UpdateStatusMessage(CollectStatusMessage collectStatusMessage, boolean isFinished) {
-    this(collectStatusMessage.getType(), collectStatusMessage.getId(), isFinished);
+  public UpdateStatusMessage(CollectStatusMessage collectStatusMessage) {
+    this(collectStatusMessage.getType(), collectStatusMessage.getId(), false, -2);
+  }
+
+  public UpdateStatusMessage(CollectStatusMessage collectStatusMessage, int exitStatus) {
+    this(collectStatusMessage.getType(), collectStatusMessage.getId(), true, exitStatus);
   }
 
   public byte getType() {
@@ -29,5 +35,9 @@ public class UpdateStatusMessage extends AbstractResponseMessage {
 
   public boolean isFinished() {
     return isFinished;
+  }
+
+  public int getExitStatus() {
+    return exitStatus;
   }
 }

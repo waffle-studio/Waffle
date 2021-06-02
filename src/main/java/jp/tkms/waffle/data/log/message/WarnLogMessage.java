@@ -8,6 +8,7 @@ import jp.tkms.waffle.exception.WaffleException;
 public class WarnLogMessage extends LogMessage {
   public WarnLogMessage(String message) {
     super(message);
+    new Throwable().printStackTrace();
   }
 
   public static void issue(String message) {

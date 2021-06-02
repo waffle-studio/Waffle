@@ -29,10 +29,8 @@ import jp.tkms.waffle.sub.servant.message.request.SendXsubTemplateMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import jp.tkms.waffle.sub.servant.message.response.*;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
@@ -41,8 +39,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 abstract public class AbstractSubmitter {
@@ -168,10 +164,7 @@ abstract public class AbstractSubmitter {
   public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     try {
       forcePrepare(envelope, job);
-      //processXsubSubmit(job, execstr);
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), BATCH_FILE, computer.getXsubParameters().toString()));
-      //"if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
-        //"XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + computer.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
     } catch (FailedToControlRemoteException e) {
       WarnLogMessage.issue(job.getComputer(), e.getMessage());
       job.setState(State.Excepted);
@@ -181,17 +174,8 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public void update(Envelope envelope, AbstractJob job) {
-    //ComputerTask run = job.getRun();
-    envelope.add(new CollectStatusMessage(job.getTypeCode(), job.getHexCode(), job.getJobId()));
-    /*
-    try {
-      processXstat(job, exec(xstatCommand(job)));
-    } catch (FailedToControlRemoteException e) {
-      ErrorLogMessage.issue(e);
-    }
-     */
-    //return run.getState();
+  public void update(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
+    envelope.add(new CollectStatusMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
   }
 
   public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
@@ -202,16 +186,12 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
       if (job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
         run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
-        //run.getSimulator().updateVersionId();
-
-        //putText(job, BATCH_FILE, makeBatchFileText(job));
-        //putText(job, EXIT_STATUS_FILE, "-2");
         String projectName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getProject().getName() : ".SYSTEM_TASK");
         JSONArray localSharedList = (run instanceof ExecutableRun ? ((ExecutableRun) run).getLocalSharedList() : new JSONArray());
         JsonObject localShared = new JsonObject();
@@ -241,18 +221,11 @@ abstract public class AbstractSubmitter {
         putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer)
           + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
 
-        //putText(job, ARGUMENTS_FILE, makeArgumentFileText(job));
-        //putText(run, ENVIRONMENTS_FILE, makeEnvironmentFileText(run));
-
         if (! exists(getExecutableBaseDirectory(job).toAbsolutePath())) {
-          //Path binPath = run.getExecutable().getBaseDirectory().toAbsolutePath();
           envelope.add(run.getBinPath());
-          //transferFilesToRemote(run.getBinPath(), getExecutableBaseDirectory(job).toAbsolutePath());
         }
 
         envelope.add(run.getBasePath());
-        //Path work = run.getBasePath();
-        //transferFilesToRemote(work, getRunDirectory(run).resolve(work.getFileName()));
 
         job.setState(State.Prepared);
         InfoLogMessage.issue(job.getRun(), "was prepared");
@@ -277,172 +250,9 @@ abstract public class AbstractSubmitter {
     return parseHomePath(job.getComputer().getWorkBaseDirectory()).resolve(job.getRun().getRemoteBinPath());
   }
 
-  /*
-  String makeBatchFileText(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
-    ComputerTask run = job.getRun();
-    JSONArray localSharedList = (run instanceof ExecutableRun ? ((ExecutableRun) run).getLocalSharedList() : new JSONArray());
-    String projectName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getProject().getName() : ".SYSTEM_TASK");
-
-    String text = "#!/bin/sh\n" +
-      "\n" +
-      "export WAFFLE_BASE='" + getExecutableBaseDirectory(job) + "'\n" +
-      "export WAFFLE_BATCH_WORKING_DIR=`pwd`\n" +
-      "touch '" + Constants.STDOUT_FILE +"'\n" +
-      "touch '" + Constants.STDERR_FILE +"'\n" +
-      "mkdir -p '" + getBaseDirectory(run) +"'\n" +
-      "cd '" + getBaseDirectory(run) + "'\n" +
-      "export WAFFLE_WORKING_DIR=`pwd`\n" +
-      "cd '" + getExecutableBaseDirectory(job) + "'\n" +
-      "ls -l >/dev/null 2>&1\n" +
-      "chmod a+x '" + run.getCommand() + "' >/dev/null 2>&1\n" +
-      "ls -l >/dev/null 2>&1\n" +
-      "find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'\n" +
-      "cd \"${WAFFLE_BATCH_WORKING_DIR}\"\n" +
-      "export WAFFLE_LOCAL_SHARED=\"" + job.getComputer().getWorkBaseDirectory().replaceFirst("^~", "\\$\\{HOME\\}") + "/local_shared/" + projectName + "\"\n" +
-      "mkdir -p \"$WAFFLE_LOCAL_SHARED\"\n" +
-      "cd \"${WAFFLE_WORKING_DIR}\"\n";
-
-    for (int i = 0; i < localSharedList.length(); i++) {
-      JSONArray a = localSharedList.getJSONArray(i);
-      text += makeLocalSharingPreCommandText(a.getString(0), a.getString(1));
-    }
-
-    text += makeEnvironmentCommandText(job);
-
-    text += "\n" + run.getCommand() + " >\"${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDOUT_FILE + "\" 2>\"${WAFFLE_BATCH_WORKING_DIR}/" + Constants.STDERR_FILE + "\" `cat \"${WAFFLE_BATCH_WORKING_DIR}/" + ARGUMENTS_FILE + "\"`\n" +
-      "EXIT_STATUS=$?\n";
-
-    for (int i = 0; i < localSharedList.length(); i++) {
-      JSONArray a = localSharedList.getJSONArray(i);
-      text += makeLocalSharingPostCommandText(a.getString(0), a.getString(1));
-    }
-
-    //text += "\n" + "cd \"${WAFFLE_BATCH_WORKING_DIR}\"\n" + "echo ${EXIT_STATUS} > " + EXIT_STATUS_FILE + "\n" + "\n";
-
-    return text;
-  }
-
-  String makeLocalSharingPreCommandText(String key, String remote) {
-    return "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi\n";
-  }
-
-  String makeLocalSharingPostCommandText(String key, String remote) {
-    return "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi\n";
-  }
-
-  String makeArgumentFileText(AbstractJob job) throws RunNotFoundException {
-    String text = "";
-    for (Object o : job.getRun().getArguments()) {
-      text += o.toString() + "\n";
-    }
-    return text;
-  }
-
-  String makeEnvironmentCommandText(AbstractJob job) throws RunNotFoundException {
-    String text = "";
-    for (Map.Entry<String, Object> entry : job.getComputer().getEnvironments().toMap().entrySet()) {
-      text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
-    }
-    for (Map.Entry<String, Object> entry : job.getRun().getEnvironments().toMap().entrySet()) {
-      text += "export " + entry.getKey().replace(' ', '_') + "=\"" + entry.getValue().toString().replace("\"", "\\\"") + "\"\n";
-    }
-    return text;
-  }
-
-
-  String xsubSubmitCommand(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
-    return xsubCommand(job) + " " + BATCH_FILE;
-  }
-
-  String xsubCommand(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
-    Computer computer = job.getComputer();
-    return "XSUB_COMMAND=`which " + getXsubBinDirectory(computer) + "xsub`; " +
-      "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; cd '" + getRunDirectory(job.getRun()).toString() + "'; " +
-      "XSUB_TYPE=$XSUB_TYPE $XSUB_COMMAND -p '" + computer.getXsubParameters().toString().replaceAll("'", "\\\\'") + "' ";
-  }
-
-  String xstatCommand(AbstractJob job) {
-    Computer computer = job.getComputer();
-    return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + getXsubBinDirectory(computer) + "xstat " + job.getJobId();
-  }
-  String xdelCommand(AbstractJob job) {
-    Computer computer = job.getComputer();
-    return "if test ! $XSUB_TYPE; then XSUB_TYPE=None; fi; XSUB_TYPE=$XSUB_TYPE "
-      + getXsubBinDirectory(computer) + "xdel " + job.getJobId();
-  }
-
-  void processXsubSubmit(AbstractJob job, String json) throws Exception {
-    try {
-      JSONObject object = new JSONObject(json);
-      String jobId = object.getString("job_id");
-      job.setJobId(jobId);
-      job.setState(State.Submitted);
-      InfoLogMessage.issue(job.getRun(), "was submitted");
-    } catch (Exception e) {
-      throw e;
-    }
-  }
-
-  void processXstat(AbstractJob job, String json) throws RunNotFoundException {
-    InfoLogMessage.issue(job.getRun(), "will be checked");
-    JSONObject object = null;
-    try {
-      object = new JSONObject(json);
-    } catch (JSONException e) {
-      WarnLogMessage.issue(e.getMessage() + json);
-      job.setState(State.Excepted);
-      return;
-    }
-    try {
-      String status = object.getString("status");
-      switch (status) {
-        case "running" :
-          job.setState(State.Running);
-          break;
-        case "finished" :
-          job.setState(State.Finalizing);
-          break;
-      }
-    } catch (Exception e) {
-      job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-      ErrorLogMessage.issue(e);
-    }
-  }
-   */
-
   void jobFinalizing(AbstractJob job) throws WaffleException {
     try {
-      int exitStatus = -1;
-      try {
-        exitStatus = Integer.parseInt(getFileContents(job.getRun(), getRunDirectory(job.getRun()).resolve(jp.tkms.waffle.sub.servant.Constants.EXIT_STATUS_FILE)).trim());
-      } catch (Exception e) {
-        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-        WarnLogMessage.issue(e);
-      }
-      job.getRun().setExitStatus(exitStatus);
-
-      Path runDirectoryPath = getRunDirectory(job.getRun());
-
-      try {
-        if (exists(runDirectoryPath.resolve(jp.tkms.waffle.sub.servant.Constants.STDOUT_FILE))) {
-          transferFilesFromRemote(runDirectoryPath.resolve(jp.tkms.waffle.sub.servant.Constants.STDOUT_FILE),
-            job.getRun().getDirectoryPath().resolve(jp.tkms.waffle.sub.servant.Constants.STDOUT_FILE));
-        }
-      } catch (Exception | Error e) {
-        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-        WarnLogMessage.issue(job.getRun(), "could not finds a remote " + jp.tkms.waffle.sub.servant.Constants.STDOUT_FILE);
-      }
-
-      try {
-        if (exists(runDirectoryPath.resolve(jp.tkms.waffle.sub.servant.Constants.STDERR_FILE))) {
-          transferFilesFromRemote(runDirectoryPath.resolve(jp.tkms.waffle.sub.servant.Constants.STDERR_FILE),
-            job.getRun().getDirectoryPath().resolve(jp.tkms.waffle.sub.servant.Constants.STDERR_FILE));
-        }
-      } catch (Exception | Error e) {
-        job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
-        WarnLogMessage.issue(job.getRun(), "could not finds a remote " + jp.tkms.waffle.sub.servant.Constants.STDERR_FILE);
-      }
+      int exitStatus = job.getRun().getExitStatus();
 
       if (exitStatus == 0) {
         InfoLogMessage.issue(job.getRun(), "results will be collected");
@@ -473,10 +283,6 @@ abstract public class AbstractSubmitter {
       }
       ErrorLogMessage.issue(e);
     }
-  }
-
-  void processXdel(AbstractJob job, String json) throws RunNotFoundException {
-    // nothing to do because the xdel does not need processing of its outputs currently
   }
 
   Path getContentsPath(ComputerTask run, Path path) throws FailedToControlRemoteException {
@@ -570,174 +376,6 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  /*
-  public void pollingTask() throws FailedToControlRemoteException {
-    pollingInterval = computer.getPollingInterval();
-    ArrayList<AbstractJob> jobList = getJobList(mode, computer);
-
-    createdJobList.clear();
-    preparedJobList.clear();
-    submittedJobList.clear();
-    runningJobList.clear();
-    cancelJobList.clear();
-
-
-
-    for (AbstractJob job : jobList) {
-      try {
-        if (!job.exists() && job.getRun().isRunning()) {
-          job.cancel();
-          WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
-          continue;
-        }
-        switch (job.getState(true)) {
-          case Created:
-            if (isSubmittable(computer, null, createdJobList, preparedJobList)) {
-              job.getRun(); // check exists
-              createdJobList.add(job);
-            }
-            break;
-          case Prepared:
-            if (isSubmittable(computer, null, createdJobList, preparedJobList)) {
-              job.getRun(); // check exists
-              preparedJobList.add(job);
-            }
-            break;
-          case Submitted:
-            submittedJobList.add(job);
-            break;
-          case Running:
-            runningJobList.add(job);
-            break;
-          case Cancel:
-            cancelJobList.add(job);
-            break;
-          case Finalizing:
-            WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") was under finalizing when system stopped; The task was removed." );
-          case Finished:
-          case Failed:
-          case Excepted:
-          case Canceled:
-            job.remove();
-        }
-      } catch (RunNotFoundException e) {
-        try {
-          cancel(job);
-        } catch (RunNotFoundException ex) { }
-        job.remove();
-        WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
-      }
-
-      if (Main.hibernateFlag) { break; }
-    }
-
-    processJobLists(createdJobList, preparedJobList, submittedJobList, runningJobList, cancelJobList);
-  }
-   */
-
-  /*
-  public double getMaximumNumberOfThreads(Computer computer) {
-    return computer.getMaximumNumberOfThreads();
-  }
-
-  public double getAllocableMemorySize(Computer computer) {
-    return computer.getAllocableMemorySize();
-  }
-   */
-
-  /*
-  public void processJobLists(ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
-    //int submittedCount = submittedJobList.size() + runningJobList.size();
-    submittedJobList.addAll(runningJobList);
-    ArrayList<AbstractJob> submittedJobListForAggregation = new ArrayList<>(submittedJobList);
-    ArrayList<AbstractJob> queuedJobList = new ArrayList<>();
-    queuedJobList.addAll(preparedJobList);
-    queuedJobList.addAll(createdJobList);
-
-    for (AbstractJob job : cancelJobList) {
-      try {
-        cancel(job);
-      } catch (RunNotFoundException e) {
-        job.remove();
-      }
-    }
-    cacheClear();
-
-    ArrayList<Future> futureList = new ArrayList<>();
-    int limiter = 10;
-    for (AbstractJob job : createdJobList) {
-      if (--limiter < 0) {
-        break;
-      }
-      futureList.add(threadPool.submit(() -> {
-        try {
-          prepareJob(job);
-        } catch (FailedToControlRemoteException e) {
-          WarnLogMessage.issue(job.getComputer(), e.getMessage());
-        } catch (WaffleException e) {
-          WarnLogMessage.issue(e);
-        }
-      }));
-    }
-
-    for (Future future : futureList) {
-      try {
-        future.get();
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-    cacheClear();
-
-    for (AbstractJob job : submittedJobList) {
-      if (Main.hibernateFlag) { break; }
-
-      try {
-        switch (update(job)) {
-          case Finished:
-          case Failed:
-          case Excepted:
-          case Canceled:
-            submittedJobListForAggregation.remove(job);
-            if (! queuedJobList.isEmpty()) {
-              AbstractJob nextJob = queuedJobList.get(0);
-              if (isSubmittable(computer, nextJob, submittedJobListForAggregation)) {
-                submit(nextJob);
-                queuedJobList.remove(nextJob);
-                submittedJobListForAggregation.add(nextJob);
-              }
-            }
-        }
-      } catch (WaffleException e) {
-        WarnLogMessage.issue(e);
-        try {
-          job.setState(State.Excepted);
-        } catch (RunNotFoundException ex) { }
-        throw new FailedToControlRemoteException(e);
-      }
-    }
-    cacheClear();
-
-    for (AbstractJob job : queuedJobList) {
-      if (Main.hibernateFlag) { break; }
-
-      try {
-        if (isSubmittable(computer, job, submittedJobListForAggregation)) {
-          submit(job);
-          submittedJobListForAggregation.add(job);
-        }
-      } catch (NullPointerException | WaffleException e) {
-        WarnLogMessage.issue(e);
-        try {
-          job.setState(State.Excepted);
-        } catch (RunNotFoundException ex) { }
-        throw new FailedToControlRemoteException(e);
-      }
-    }
-    cacheClear();
-  }
-   */
-
   protected static AbstractJob findJobFromStore(byte type, String id) {
     WaffleId targetId = WaffleId.valueOf(id);
     if (type == SystemTaskStore.TYPE_CODE) {
@@ -764,8 +402,12 @@ abstract public class AbstractSubmitter {
         return;
       }
 
+      for (ExceptionMessage message : response.getMessageBundle().getCastedMessageList(ExceptionMessage.class)) {
+        ErrorLogMessage.issue("Servant> " + message.getMessage());
+      }
+
       for (JobExceptionMessage message : response.getMessageBundle().getCastedMessageList(JobExceptionMessage.class)) {
-        WarnLogMessage.issue(message.getMessage());
+        WarnLogMessage.issue("Servant:JobException> " + message.getMessage());
 
         AbstractJob job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
@@ -794,6 +436,7 @@ abstract public class AbstractSubmitter {
         if (job != null) {
           if (message.isFinished()) {
             job.setState(State.Finalizing);
+            job.getRun().setExitStatus(message.getExitStatus());
             finishedProcessorManager.startup();
             preparedProcessorManager.startup();
           } else {
@@ -865,7 +508,6 @@ abstract public class AbstractSubmitter {
   }
 
   public void processSubmitted(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
-    //int submittedCount = submittedJobList.size() + runningJobList.size();
     submittedJobList.addAll(runningJobList);
 
     for (AbstractJob job : cancelJobList) {
@@ -879,27 +521,12 @@ abstract public class AbstractSubmitter {
 
     for (AbstractJob job : submittedJobList) {
       if (Main.hibernateFlag) { return; }
-
-      update(envelope, job);
-      /*
       try {
-        switch (update(envelope, job)) {
-          case Finalizing:
-          case Finished:
-          case Failed:
-          case Excepted:
-          case Canceled:
-            finishedProcessorManager.startup();
-            preparedProcessorManager.startup();
-        }
-      } catch (WaffleException e) {
-        WarnLogMessage.issue(e);
-        try {
-          job.setState(State.Excepted);
-        } catch (RunNotFoundException ex) { }
-        throw new FailedToControlRemoteException(e);
+        update(envelope, job);
+      } catch (RunNotFoundException e) {
+        job.remove();
+        WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
       }
-       */
     }
   }
 
@@ -961,33 +588,6 @@ abstract public class AbstractSubmitter {
 
   public void processCreated(Envelope envelope, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     int preparedCount = preparedJobList.size();
-    /*
-    ArrayList<Future> futures = new ArrayList<>();
-    for (AbstractJob job : createdJobList) {
-      if (Main.hibernateFlag || preparedCount >= preparingNumber) {
-        break;
-      }
-
-      futures.add(threadPool.submit(() -> {
-        try {
-          prepareJob(job);
-        } catch (FailedToTransferFileException e) {
-          WarnLogMessage.issue(job.getComputer(), e.getMessage());
-        } catch (WaffleException e) {
-          WarnLogMessage.issue(e);
-        }
-      }));
-      preparedCount += 1;
-    }
-
-    for (Future future : futures) {
-      try {
-        future.get();
-      } catch (InterruptedException | ExecutionException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-    */
 
     for (AbstractJob job : createdJobList) {
       if (Main.hibernateFlag || preparedCount >= preparingNumber) {

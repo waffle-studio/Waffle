@@ -2,10 +2,12 @@ package jp.tkms.waffle.sub.servant.processor;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
@@ -16,6 +18,7 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,7 +58,19 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
     try {
       JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
       for (CollectStatusMessage message : messageList) {
-        response.add(new UpdateStatusMessage(message, jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")));
+        if (jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")) {
+          int exitStatus = -2;
+          try {
+            exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
+          } catch (Exception | Error e) {
+            exitStatus = -1;
+          }
+          response.add(new UpdateStatusMessage(message, exitStatus));
+          response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
+          response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
+        } else {
+          response.add(new UpdateStatusMessage(message));
+        }
       }
     } catch (Exception e) {
       for (CollectStatusMessage message : messageList) {

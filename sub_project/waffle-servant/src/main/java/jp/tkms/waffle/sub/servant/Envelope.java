@@ -1,6 +1,7 @@
 package jp.tkms.waffle.sub.servant;
 
 import jp.tkms.waffle.sub.servant.message.AbstractMessage;
+import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
@@ -54,7 +55,9 @@ public class Envelope {
     try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(dataPath.toFile()), StandardCharsets.UTF_8)) {
       Set<Path> sourceSet = new LinkedHashSet<>();
       for (Path filePath : filePathList) {
-        addPathsToSet(sourceSet, filePath);
+        if (Files.exists(baseDirectory.resolve(filePath))) {
+          addPathsToSet(sourceSet, filePath);
+        }
       }
 
       zipOutputStream.putNextEntry(new ZipEntry(MESSAGE_BUNDLE));

@@ -244,10 +244,9 @@ public class SshSession {
     });
   }
 
-  public synchronized boolean rm(Path path, String workDir) throws JSchException {
+  public synchronized boolean rm(Path path) throws JSchException {
     return processSftp(channelSftp -> {
       try {
-        channelSftp.cd(workDir);
         channelSftp.rm(path.toString());
       } catch (SftpException e) {
         WarnLogMessage.issue(loggingTarget, e);
