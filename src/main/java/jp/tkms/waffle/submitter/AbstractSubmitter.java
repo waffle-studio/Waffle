@@ -54,8 +54,8 @@ abstract public class AbstractSubmitter {
   private int preparingNumber = 1;
   private PollingThread.Mode mode;
 
-  ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
-  ProcessorManager<PreparedProcessor> preparedProcessorManager = new ProcessorManager<>(() -> new PreparedProcessor());
+  //ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
+  ProcessorManager<PreparingProcessor> preparingProcessorManager = new ProcessorManager<>(() -> new PreparingProcessor());
   ProcessorManager<FinishedProcessor> finishedProcessorManager = new ProcessorManager<>(() -> new FinishedProcessor());
 
   private static Path tempDirectoryPath = null;
@@ -156,7 +156,6 @@ abstract public class AbstractSubmitter {
 
   public void forcePrepare(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     if (job.getState().equals(State.Created)) {
-      preparingNumber += 1;
       prepareJob(envelope, job);
     }
   }
@@ -438,7 +437,7 @@ abstract public class AbstractSubmitter {
             job.setState(State.Finalizing);
             job.getRun().setExitStatus(message.getExitStatus());
             finishedProcessorManager.startup();
-            preparedProcessorManager.startup();
+            preparingProcessorManager.startup();
           } else {
             job.setState(State.Running);
           }
@@ -456,8 +455,8 @@ abstract public class AbstractSubmitter {
     isRunning = true;
     pollingInterval = computer.getPollingInterval();
 
-    createdProcessorManager.startup();
-    preparedProcessorManager.startup();
+    //createdProcessorManager.startup();
+    preparingProcessorManager.startup();
     finishedProcessorManager.startup();
 
     ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
@@ -497,7 +496,7 @@ abstract public class AbstractSubmitter {
     }
 
     if (!Main.hibernateFlag) {
-      preparedProcessorManager.startup();
+      preparingProcessorManager.startup();
     }
 
     isRunning = false;
@@ -530,6 +529,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
+  /*
   class CreatedProcessor extends Thread {
     @Override
     public void run() {
@@ -607,12 +607,12 @@ abstract public class AbstractSubmitter {
 
     return;
   }
+   */
 
-  class PreparedProcessor extends Thread {
+  class PreparingProcessor extends Thread {
     @Override
     public void run() {
-      long s = System.currentTimeMillis();
-      createdProcessorManager.startup();
+      //createdProcessorManager.startup();
 
       Envelope envelope = new Envelope(Constants.WORK_DIR);
 
@@ -651,7 +651,7 @@ abstract public class AbstractSubmitter {
 
       if (!Main.hibernateFlag) {
         try {
-          processPrepared(envelope, submittedJobList, createdJobList, preparedJobList);
+          processPreparing(envelope, submittedJobList, createdJobList, preparedJobList);
         } catch (FailedToControlRemoteException e) {
           ErrorLogMessage.issue(e);
         }
@@ -663,19 +663,24 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public void processPrepared(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     ArrayList<AbstractJob> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
+
+    boolean givePenalty = false;
 
     for (AbstractJob job : queuedJobList) {
       if (Main.hibernateFlag) { return; }
 
       try {
         if (isSubmittable(computer, job, submittedJobList)) {
+          if (job.getState().equals(State.Created)) {
+            givePenalty = true;
+          }
           submit(envelope, job);
           submittedJobList.add(job);
-          createdProcessorManager.startup();
+          //createdProcessorManager.startup();
         }
       } catch (NullPointerException | WaffleException e) {
         WarnLogMessage.issue(e);
@@ -684,6 +689,30 @@ abstract public class AbstractSubmitter {
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
       }
+    }
+
+    if (givePenalty) {
+      preparingNumber += 1;
+    }
+
+    int preparedCount = preparedJobList.size();
+
+    for (AbstractJob job : createdJobList) {
+      if (Main.hibernateFlag || preparedCount >= preparingNumber) {
+        break;
+      }
+
+      if (!submittedJobList.contains(job)) {
+        try {
+          prepareJob(envelope, job);
+        } catch (FailedToTransferFileException e) {
+          WarnLogMessage.issue(job.getComputer(), e.getMessage());
+        } catch (WaffleException e) {
+          WarnLogMessage.issue(e);
+        }
+      }
+
+      preparedCount += 1;
     }
   }
 
@@ -805,8 +834,8 @@ abstract public class AbstractSubmitter {
           ErrorLogMessage.issue(e);
         }
       }
-      preparedProcessorManager.close();
-      createdProcessorManager.close();
+      preparingProcessorManager.close();
+      //createdProcessorManager.close();
       finishedProcessorManager.close();
     }
   }

@@ -86,10 +86,6 @@ public class DeadlineWrapper extends AbstractSubmitter {
   }
 
   @Override
-  public void processCreated(Envelope envelope, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
-  }
-
-  @Override
   protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
@@ -108,7 +104,7 @@ public class DeadlineWrapper extends AbstractSubmitter {
   }
 
   @Override
-  public void processPrepared(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
       if (new Date().before(deadline)) {

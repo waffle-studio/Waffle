@@ -15,7 +15,6 @@ import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.util.DateTime;
-import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
@@ -119,7 +118,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         if (jobManager.checkStat(job)) {
           job.setState(State.Finalizing);
           finishedProcessorManager.startup();
-          preparedProcessorManager.startup();
+          preparingProcessorManager.startup();
         } else {
           job.setState(State.Running);
         }

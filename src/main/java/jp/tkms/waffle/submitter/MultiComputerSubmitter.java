@@ -112,14 +112,14 @@ public class MultiComputerSubmitter extends AbstractSubmitter {
 
     return (size < computer.getAllocableMemorySize() ? size : computer.getAllocableMemorySize());
   }
-   */
 
   @Override
   public void processCreated(Envelope envelope, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
   }
+  */
 
   @Override
-  public void processPrepared(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
 
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
