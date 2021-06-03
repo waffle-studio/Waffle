@@ -142,8 +142,8 @@ abstract public class AbstractSubmitter {
       createDirectories(remoteEnvelopePath.getParent());
       transferFilesToRemote(tmpFile, remoteEnvelopePath);
       Files.delete(tmpFile);
-      exec("java -jar '" + getWaffleServantPath(this, computer)
-        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'");
+      System.out.print(exec("java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '" + getWaffleServantPath(this, computer)
+        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'"));
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
       transferFilesFromRemote(remoteResponsePath, tmpFile);
       deleteFile(remoteResponsePath);
@@ -411,6 +411,30 @@ abstract public class AbstractSubmitter {
         AbstractJob job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setState(State.Excepted);
+        }
+      }
+
+      for (UpdateResultMessage message : response.getMessageBundle().getCastedMessageList(UpdateResultMessage.class)) {
+        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          if (job instanceof ExecutableRunJob) {
+            ExecutableRun run = ((ExecutableRunJob) job).getRun();
+            Object value = message.getValue();
+            try {
+              if (message.getValue().indexOf('.') < 0) {
+                value = Integer.valueOf(message.getValue());
+              } else {
+                value = Double.valueOf(message.getValue());
+              }
+            } catch (Exception e) {
+              if (message.getValue().equalsIgnoreCase("true")) {
+                value = Boolean.TRUE;
+              } else if (message.getValue().equalsIgnoreCase("false")) {
+                value = Boolean.FALSE;
+              }
+            }
+            run.putResult(message.getName(), value);
+          }
         }
       }
 

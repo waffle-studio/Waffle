@@ -4,13 +4,11 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.Envelope;
+import jp.tkms.waffle.sub.servant.EventReader;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
-import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
@@ -58,6 +56,9 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
     try {
       JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
       for (CollectStatusMessage message : messageList) {
+        new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
+          response.add(new UpdateResultMessage(message, name, value));
+        });
         if (jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")) {
           int exitStatus = -2;
           try {

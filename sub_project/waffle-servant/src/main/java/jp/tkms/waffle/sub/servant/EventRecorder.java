@@ -40,7 +40,7 @@ public class EventRecorder {
     synchronized (writerLocker) {
       try {
         FileWriter writer = new FileWriter(recordPath.toFile(), StandardCharsets.UTF_8, true);
-        writer.write(name + "\t" + value + "\n");
+        writer.write(name + Constants.EVENT_VALUE_SEPARATOR + value + Constants.EVENT_SEPARATOR);
         writer.flush();
         writer.close();
       } catch (IOException e) {
