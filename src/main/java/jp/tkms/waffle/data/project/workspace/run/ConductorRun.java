@@ -16,8 +16,6 @@ import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 public class ConductorRun extends AbstractRun {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
@@ -53,7 +51,7 @@ public class ConductorRun extends AbstractRun {
     if (conductor != null) {
 
       ProcedureRun procedureRun = ProcedureRun.create(this, Conductor.MAIN_PROCEDURE_FILENAME.replaceFirst("\\..*?$", ""), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
-      procedureRun.start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, getParent());
+      procedureRun.startFinalizer(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, getParent());
     }
     if (getParent() != null) {
       getParent().registerChildRun(this);

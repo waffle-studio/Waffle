@@ -5,20 +5,20 @@ import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 public class UpdateResultMessage extends AbstractResponseMessage {
   byte type;
   String id;
-  String name;
+  String key;
   String value;
 
   public UpdateResultMessage() { }
 
-  public UpdateResultMessage(byte type, String id, String name, String value) {
+  public UpdateResultMessage(byte type, String id, String key, String value) {
     this.type = type;
     this.id = id;
-    this.name = name;
+    this.key = key;
     this.value = value;
   }
 
-  public UpdateResultMessage(CollectStatusMessage collectStatusMessage, String name, String value) {
-    this(collectStatusMessage.getType(), collectStatusMessage.getId(), name, value);
+  public UpdateResultMessage(CollectStatusMessage collectStatusMessage, String key, String value) {
+    this(collectStatusMessage.getType(), collectStatusMessage.getId(), key, value);
   }
 
   public byte getType() {
@@ -29,8 +29,8 @@ public class UpdateResultMessage extends AbstractResponseMessage {
     return id;
   }
 
-  public String getName() {
-    return name;
+  public String getKey() {
+    return key;
   }
 
   public String getValue() {

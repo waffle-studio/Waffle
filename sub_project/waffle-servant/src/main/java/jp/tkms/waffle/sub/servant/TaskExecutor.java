@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 public class TaskExecutor {
 
@@ -39,7 +40,7 @@ public class TaskExecutor {
     this.environmentList = new ArrayList<>();
 
     TaskJson taskJson = new TaskJson(Json.parse(new FileReader(taskJsonPath.toFile())).asObject());
-    executableBaseDirectory = baseDirectory.resolve(taskJson.getExecutableBase()).normalize();
+    executableBaseDirectory = baseDirectory.resolve(taskJson.getExecutable()).resolve(Constants.BASE).normalize();
     projectName = taskJson.getProject();
     command = taskJson.getCommand();
     argumentList = taskJson.getArguments();
@@ -86,8 +87,7 @@ public class TaskExecutor {
         getEnvironments(), executableBaseDirectory.toFile()).waitFor();
 
       // create link of executable entities
-      Runtime.getRuntime().exec("find . -type d | xargs -n 1 -I{1} sh -c 'mkdir -p \"${WAFFLE_WORKING_DIR}/{1}\";find {1} -maxdepth 1 -type f | xargs -n 1 -I{2} ln -s \"`pwd`/{2}\" \"${WAFFLE_WORKING_DIR}/{1}/\"'",
-        getEnvironments(), executableBaseDirectory.toFile()).waitFor();
+      createRecursiveLink(executableBaseDirectory, executingBaseDirectory);
 
       // pre-process for local shared
       addEnvironment("WAFFLE_LOCAL_SHARED", localSharedDirectory.toString());
@@ -152,6 +152,22 @@ public class TaskExecutor {
 
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
+    }
+  }
+
+  private void createRecursiveLink(Path source, Path destination) throws IOException {
+    try (Stream<Path> stream = Files.list(source)) {
+      stream.forEach(path -> {
+        try {
+          if (Files.isDirectory(path)) {
+            createRecursiveLink(path, destination.resolve(source.getFileName()));
+          } else {
+            Files.createLink(destination.resolve(source.getFileName()), path);
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      });
     }
   }
 

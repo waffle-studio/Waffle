@@ -4,7 +4,7 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 
 public class TaskJson {
-  public static final String EXECUTABLE_BASE = "executable_base";
+  public static final String EXECUTABLE = "executable";
   public static final String COMMAND = "command";
   public static final String ARGUMENT = "argument";
   public static final String PROJECT = "project";
@@ -17,10 +17,10 @@ public class TaskJson {
     this.instance = jsonObject;
   }
 
-  public TaskJson(String project, String executableBase, String command, JsonArray arguments, JsonObject environments, JsonObject localShared) {
+  public TaskJson(String project, String executable, String command, JsonArray arguments, JsonObject environments, JsonObject localShared) {
     this.instance = new JsonObject();
     instance.set(PROJECT, project);
-    instance.set(EXECUTABLE_BASE, executableBase);
+    instance.set(EXECUTABLE, executable);
     instance.set(COMMAND, command);
     instance.set(ARGUMENT, arguments);
     instance.set(ENVIRONMENT, environments);
@@ -43,8 +43,8 @@ public class TaskJson {
     return getStringOrThrowException(PROJECT);
   }
 
-  public String getExecutableBase() throws Exception {
-    return getStringOrThrowException(EXECUTABLE_BASE);
+  public String getExecutable() throws Exception {
+    return getStringOrThrowException(EXECUTABLE);
   }
 
   public String getCommand() throws Exception {

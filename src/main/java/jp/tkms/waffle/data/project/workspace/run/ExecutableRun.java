@@ -1,17 +1,21 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
+import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.job.AbstractJob;
 import jp.tkms.waffle.data.job.ExecutableRunJob;
+import jp.tkms.waffle.data.job.ExecutableRunTaskStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
+import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.*;
@@ -27,10 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 
 public class ExecutableRun extends AbstractRun implements ComputerTask {
   public static final String EXECUTABLE_RUN = "EXECUTABLE_RUN";
@@ -50,6 +51,8 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   private static final String KEY_FINISHED_AT = "finished_at";
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_JOB_ID = "job_id";
+  private static final String KEY_TASK_ID = "job_id";
+  protected static final String KEY_UPDATE_HANDLER = "update_handler";
 
   //private ProcedureRun parentRun = null;
   private ArchivedExecutable executable = null;
@@ -154,6 +157,65 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     setState(State.Finished);
   }
 
+  public void cancel() {
+    if (getTaskId() != null) {
+      try {
+        ExecutableRunJob job = ExecutableRunJob.getInstance(getTaskId());
+        if (job != null) {
+          job.cancel();
+        }
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+  }
+
+  public void putResultDynamically(String key, Object value) {
+    putResult(key, value);
+    processUpdateHandler(key, value);
+  }
+
+  protected void processUpdateHandler(String key, Object value) {
+    String handlerName = getUpdateHandler();
+    if (handlerName != null) {
+      ProcedureRun handler = ProcedureRun.getInstance(getWorkspace(), handlerName);
+      handler.updateResponsible();
+      handler.startHandler(ScriptProcessor.ProcedureMode.RESULT_UPDATED, this, new ArrayList<>(Arrays.asList(key, value)));
+    }
+  }
+
+  public String getUpdateHandler() {
+    return getStringFromProperty(KEY_UPDATE_HANDLER, null);
+  }
+
+  public void setUpdateHandler(String key) {
+    ArchivedConductor conductor = getOwner().getConductor();
+    String procedureName = null;
+    String procedureKey = null;
+    if (key.equals(Conductor.MAIN_PROCEDURE_ALIAS)) {
+      procedureName = conductor.getMainProcedureScriptPath().getFileName().toString();
+      procedureKey = Conductor.MAIN_PROCEDURE_ALIAS;
+    } else {
+      List<String> childProcedureNameList = conductor.getChildProcedureNameList();
+
+      if (childProcedureNameList.contains(key)) {
+        procedureName = key;
+      } else {
+        for (String ext : ScriptProcessor.CLASS_NAME_MAP.keySet()) {
+          String candidate = key + ext;
+          if (childProcedureNameList.contains(candidate)) {
+            procedureName = candidate;
+            procedureKey = candidate;
+            break;
+          }
+        }
+      }
+    }
+    //ProcedureRun finalizerRun = ProcedureRun.create(this, procedureName, conductor, procedureKey);
+    ProcedureRun handlerRun = ProcedureRun.create(getParent(), procedureName.replaceFirst("\\..*?$", ""), conductor, procedureKey);
+    setToProperty(KEY_UPDATE_HANDLER, handlerRun.getLocalDirectoryPath().toString());
+  }
+
   @Override
   protected Path getVariablesStorePath() {
     return getParent().getVariablesStorePath();
@@ -177,6 +239,10 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     setToProperty(KEY_JOB_ID, jobId);
   }
 
+  public void setTaskId(String taskId) {
+    setToProperty(KEY_TASK_ID, taskId);
+  }
+
   @Override
   public Double getRequiredThread() {
     return getExecutable().getRequiredThread();
@@ -194,6 +260,10 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
 
   public String getJobId() {
     return getStringFromProperty(KEY_JOB_ID, "");
+  }
+
+  public String getTaskId() {
+    return getStringFromProperty(KEY_TASK_ID, null);
   }
 
   public void setRemoteWorkingDirectoryLog(String path) {

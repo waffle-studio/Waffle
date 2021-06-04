@@ -13,16 +13,17 @@ import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -31,7 +32,9 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public static final String KEY_NOTE_TXT = "NOTE.txt";
   public static final String KEY_ERROR_NOTE_TXT = "ERROR_NOTE.txt";
   protected static final String KEY_CLASS = "class";
-  protected static final String KEY_FINALIZER = "finalizer";
+  protected static final String KEY_NORMAL_FINALIZER = "normal_finalizer";
+  protected static final String KEY_FAULT_FINALIZER = "normal_finalizer";
+  protected static final String KEY_APPEAL_HANDLER = "appeal_handler";
   protected static final String KEY_PARENT_RUN = "parent_run";
   protected static final String KEY_CHILDREN_RUN = "children_run";
   protected static final String KEY_ACTIVE_CHILDREN_RUN = "active_children_run";
@@ -291,11 +294,11 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   }
 
   public ArrayList<String> getFinalizers() {
-    if (getArrayFromProperty(KEY_FINALIZER) == null) {
-      putNewArrayToProperty(KEY_FINALIZER);
+    if (getArrayFromProperty(KEY_NORMAL_FINALIZER) == null) {
+      putNewArrayToProperty(KEY_NORMAL_FINALIZER);
     }
     ArrayList<String> finalizers = new ArrayList<>();
-    for (Object o : getArrayFromProperty(KEY_FINALIZER)) {
+    for (Object o : getArrayFromProperty(KEY_NORMAL_FINALIZER)) {
       finalizers.add(o.toString());
     }
     return finalizers;
@@ -313,8 +316,8 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
    */
 
   public void addFinalizer(String key) {
-    if (getArrayFromProperty(KEY_FINALIZER) == null) {
-      putNewArrayToProperty(KEY_FINALIZER);
+    if (getArrayFromProperty(KEY_NORMAL_FINALIZER) == null) {
+      putNewArrayToProperty(KEY_NORMAL_FINALIZER);
     }
 
     ArchivedConductor conductor = getOwner().getConductor();
@@ -341,7 +344,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     }
     //ProcedureRun finalizerRun = ProcedureRun.create(this, procedureName, conductor, procedureKey);
     ProcedureRun finalizerRun = ProcedureRun.create(getParent(), procedureName.replaceFirst("\\..*?$", ""), conductor, procedureKey);
-    putToArrayOfProperty(KEY_FINALIZER, finalizerRun.getLocalDirectoryPath().toString());
+    putToArrayOfProperty(KEY_NORMAL_FINALIZER, finalizerRun.getLocalDirectoryPath().toString());
 
     /*
     ConductorRun referenceOwner = getOwner();
@@ -364,7 +367,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
     for (String localPath : getFinalizers()) {
       ProcedureRun finalizer = ProcedureRun.getInstance(getWorkspace(), localPath);
       finalizer.updateResponsible();
-      finalizer.start(this);
+      finalizer.startFinalizer(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, this);
     }
   }
 

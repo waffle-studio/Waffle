@@ -56,6 +56,7 @@ public class ExecutableRunJob extends AbstractJob {
 
   public static void addRun(ExecutableRun run) {
     ExecutableRunJob job = new ExecutableRunJob(run.getLocalDirectoryPath(), run.getComputer());
+    run.setTaskId(job.getHexCode());
     Main.jobStore.register(job);
     InfoLogMessage.issue(run, "was added to the queue");
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater

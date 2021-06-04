@@ -247,10 +247,18 @@ def exec_procedure_when_contain_fault(instance, caller)
     return result
 end
 
-def exec_procedure_when_appealed(instance, caller)
+def exec_procedure_when_result_updated(instance, caller, key, value)
+    result = true
+    #local_instance = ActorWrapper.new(instance)
+    result = procedure_when_result_updated(caller, key, value)
+    #local_instance.close
+    return result
+end
+
+def exec_procedure_when_appealed(instance, caller, message)
     result = true
     local_instance = ActorWrapper.new(instance)
-    result = procedure_when_appealed(local_instance, caller)
+    result = procedure_when_appealed(local_instance, caller, message)
     local_instance.close
     return result
 end

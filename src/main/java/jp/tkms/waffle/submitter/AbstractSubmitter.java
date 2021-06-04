@@ -433,7 +433,7 @@ abstract public class AbstractSubmitter {
                 value = Boolean.FALSE;
               }
             }
-            run.putResult(message.getName(), value);
+            run.putResultDynamically(message.getKey(), value);
           }
         }
       }

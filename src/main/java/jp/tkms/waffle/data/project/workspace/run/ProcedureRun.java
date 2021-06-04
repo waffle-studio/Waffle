@@ -20,8 +20,6 @@ import org.json.JSONObject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 public class ProcedureRun extends AbstractRun {
   public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
@@ -49,14 +47,10 @@ public class ProcedureRun extends AbstractRun {
 
   @Override
   public void start() {
-    start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, null);
+    startFinalizer(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, null);
   }
 
-  public void start(AbstractRun caller) {
-    start(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, caller);
-  }
-
-  public void start(ScriptProcessor.ProcedureMode mode, AbstractRun caller) {
+  public void startFinalizer(ScriptProcessor.ProcedureMode mode, AbstractRun caller) {
     started();
     setState(State.Running);
     getResponsible().registerChildActiveRun(this);
@@ -76,6 +70,23 @@ public class ProcedureRun extends AbstractRun {
     }
     if (getChildrenRunSize() <= 0) {
       reportFinishedRun(null);
+    }
+  }
+
+  public void startHandler(ScriptProcessor.ProcedureMode mode, AbstractRun caller, ArrayList<Object> arguments) {
+    if (caller == null) {
+      caller = this;
+    }
+    if (conductor != null) {
+      if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
+        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, caller, conductor.getMainProcedureScript(), arguments);
+      } else {
+        try {
+          ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, caller, conductor.getChildProcedureScript(procedureName), arguments);
+        } catch (ChildProcedureNotFoundException e) {
+          //NOOP
+        }
+      }
     }
   }
 

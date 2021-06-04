@@ -6,9 +6,11 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
+import org.jruby.java.proxies.ArrayJavaProxy$INVOKER$i$last;
 
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public abstract class ScriptProcessor {
@@ -16,10 +18,11 @@ public abstract class ScriptProcessor {
   public enum ProcedureMode {
     START_OR_FINISHED_ALL,
     CONTAIN_FAULT,
+    RESULT_UPDATED,
     APPEALED
   };
 
-  abstract public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script);
+  abstract public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script, ArrayList<Object> arguments);
   abstract public String procedureTemplate();
   abstract public void processExtractor(AbstractSubmitter submitter, ExecutableRun run, String extractorName);
   abstract public String extractorTemplate();
@@ -34,6 +37,10 @@ public abstract class ScriptProcessor {
       put(RubyScriptProcessor.EXTENSION, RubyScriptProcessor.class.getCanonicalName());
     }
   };
+
+  public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script) {
+    processProcedure(run, mode, caller, script, null);
+  }
 
   public static ScriptProcessor getProcessor(String className) {
     ScriptProcessor processor = null;

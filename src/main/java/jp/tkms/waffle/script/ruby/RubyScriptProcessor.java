@@ -14,12 +14,13 @@ import org.jruby.Ruby;
 import org.jruby.embed.*;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 public class RubyScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_RUBY;
 
   @Override
-  public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script) {
+  public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script, ArrayList<Object> arguments) {
     RubyScript.process((container) -> {
       try {
         container.runScriptlet(procedureTemplate());
@@ -28,10 +29,12 @@ public class RubyScriptProcessor extends ScriptProcessor {
           container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_start_or_finished_all", run, caller);
         } else if (mode.equals(ProcedureMode.CONTAIN_FAULT)) {
           container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_contain_fault", run, caller);
-        } else { //if (mode.equals(ProcedureMode.APPEALED)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, caller);
+        } else if (mode.equals(ProcedureMode.RESULT_UPDATED)) {
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_result_updated", run, caller, arguments.get(0), arguments.get(1));
+        } else if (mode.equals(ProcedureMode.APPEALED)) {
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, caller, arguments.get(0));
         }
-      } catch (EvalFailedException e) {
+    } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);
       }
     });
@@ -45,6 +48,9 @@ public class RubyScriptProcessor extends ScriptProcessor {
       "\n" +
       "def procedure_when_contain_fault(this, caller)\n" +
       "    #procedure_when_start_or_finished_all(this, caller)\n" +
+      "end\n" +
+      "\n" +
+      "def procedure_when_result_updated(caller, name, value)\n" +
       "end\n" +
       "\n" +
       "def procedure_when_appealed(this, caller, message)\n" +
