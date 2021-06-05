@@ -69,7 +69,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         }
         //execstr =  exec(xsubSubmitCommand(job));
         //processXsubSubmit(job, execstr);
-        envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), BATCH_FILE, computer.getXsubParameters().toString()));
+        envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
       } catch (FailedToControlRemoteException e) {
         WarnLogMessage.issue(job.getComputer(), e.getMessage());
         job.setState(State.Excepted);
@@ -120,7 +120,9 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
           finishedProcessorManager.startup();
           preparingProcessorManager.startup();
         } else {
-          job.setState(State.Running);
+          if (job.getState().equals(State.Submitted)) {
+            job.setState(State.Running);
+          }
         }
       } catch (RunNotFoundException e) {
         e.printStackTrace();
@@ -144,7 +146,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   }
 
   @Override
-  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
     if (job.getRun() instanceof VirtualJobExecutor) {
       super.cancel(envelope, job);
     } else {

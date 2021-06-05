@@ -51,6 +51,10 @@ public class TaskExecutor {
 
   public void execute() {
     try {
+      DirectoryHash directoryHash = new DirectoryHash(baseDirectory, taskDirectory);
+      directoryHash.waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+      new DirectoryHash(baseDirectory, executableBaseDirectory.getParent()).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+
       Path executingBaseDirectory = taskDirectory.resolve(Constants.BASE).normalize();
       Path localSharedDirectory = baseDirectory.resolve(Constants.LOCAL_SHARED).resolve(projectName).normalize();
       Path stdoutPath = taskDirectory.resolve(Constants.STDOUT_FILE);
@@ -150,19 +154,24 @@ public class TaskExecutor {
         e.printStackTrace();
       }
 
+      // update hash file
+      directoryHash.update();
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
   }
 
   private void createRecursiveLink(Path source, Path destination) throws IOException {
+    if (Files.isDirectory(source)) {
+      Files.createDirectories(destination);
+    }
     try (Stream<Path> stream = Files.list(source)) {
       stream.forEach(path -> {
         try {
           if (Files.isDirectory(path)) {
-            createRecursiveLink(path, destination.resolve(source.getFileName()));
+            createRecursiveLink(path, destination.resolve(path.getFileName()));
           } else {
-            Files.createLink(destination.resolve(source.getFileName()), path);
+            Files.createLink(destination.resolve(path.getFileName()), path);
           }
         } catch (IOException e) {
           e.printStackTrace();

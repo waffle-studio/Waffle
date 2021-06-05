@@ -2,6 +2,7 @@ package jp.tkms.waffle.sub.servant.processor;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.CancelJobMessage;
@@ -43,6 +44,8 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
       container.clear();
       container.terminate();
       response.add(new JobCanceledMessage(message));
+      response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
+      response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
     }
   }
 }

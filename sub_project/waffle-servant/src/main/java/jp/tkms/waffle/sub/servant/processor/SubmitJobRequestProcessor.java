@@ -2,6 +2,7 @@ package jp.tkms.waffle.sub.servant.processor;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import jp.tkms.waffle.sub.servant.DirectoryHash;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
@@ -34,6 +35,13 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
     }
 
     for (SubmitJobMessage message : messageList) {
+      if (message.getExecutableDirectory() != null) {
+        DirectoryHash executableDirectoryHash = new DirectoryHash(baseDirectory, message.getExecutableDirectory(), false);
+        if (!executableDirectoryHash.hasHashFile()) {
+          executableDirectoryHash.save();
+        } //TODO: notify if hash changed
+      }
+
       StringWriter outputWriter = new StringWriter();
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
       container.setEnvironment(environments);
@@ -43,6 +51,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
       container.clear();
       container.terminate();
+      (new DirectoryHash(baseDirectory, message.getWorkingDirectory())).save();
       outputWriter.flush();
       try {
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();

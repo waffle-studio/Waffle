@@ -51,7 +51,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   private static final String KEY_FINISHED_AT = "finished_at";
   private static final String KEY_EXIT_STATUS = "exit_status";
   private static final String KEY_JOB_ID = "job_id";
-  private static final String KEY_TASK_ID = "job_id";
+  private static final String KEY_TASK_ID = "task_id";
   protected static final String KEY_UPDATE_HANDLER = "update_handler";
 
   //private ProcedureRun parentRun = null;

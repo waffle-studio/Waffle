@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -16,19 +17,29 @@ public class DirectoryHash {
 
   Path baseDirectory;
   Path directoryPath;
-  byte[] hash;
+  byte[] hash = null;
 
-  public DirectoryHash(Path baseDirectory, Path directoryPath) {
+  public DirectoryHash(Path baseDirectory, Path directoryPath, boolean isReady) {
     this.baseDirectory = baseDirectory;
     if (!directoryPath.isAbsolute()) {
       this.directoryPath = baseDirectory.resolve(directoryPath).normalize();
+    } else {
+      this.directoryPath = directoryPath.normalize();
     }
-    this.directoryPath = directoryPath.normalize();
 
-    calculate();
+    if (isReady) {
+      calculate();
+    }
+  }
+
+  public DirectoryHash(Path baseDirectory, Path directoryPath) {
+    this(baseDirectory, directoryPath, true);
   }
 
   public byte[] getHash() {
+    if (hash == null) {
+      calculate();
+    }
     return hash;
   }
 
@@ -52,7 +63,9 @@ public class DirectoryHash {
   public void collectFilesStatusTo(TreeSet<String> fileSet, Path target) {
     try (Stream<Path> stream = Files.list(target)) {
       stream.forEach(p -> {
-        if (Files.isDirectory(p)) {
+        if (Files.isSymbolicLink(p)) {
+          // NOP
+        } else if (Files.isDirectory(p)) {
           collectFilesStatusTo(fileSet, p);
         } else if (!p.toFile().getName().equals(HASH_FILE)) {
           try {
@@ -67,8 +80,12 @@ public class DirectoryHash {
     }
   }
 
+  public boolean hasHashFile() {
+    return Files.exists(directoryPath.resolve(HASH_FILE));
+  }
+
   public boolean isMatchToHashFile() {
-    return readHashFile(directoryPath).equals(getHash());
+    return Arrays.equals(readHashFile(directoryPath), getHash());
   }
 
   public boolean waitToMatch(int timeout) {
@@ -80,6 +97,7 @@ public class DirectoryHash {
       } catch (InterruptedException e) {
         // NOP
       }
+      calculate();
       if (timeout >= 0) {
         count += 1;
       }
@@ -89,18 +107,32 @@ public class DirectoryHash {
 
   public void save() {
     try (FileOutputStream stream = new FileOutputStream(directoryPath.resolve(HASH_FILE).toFile(), false)) {
-      stream.write(hash);
+      stream.write(getHash());
       stream.flush();
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
+  public boolean update() {
+    if (hasHashFile()) {
+      calculate();
+      if (!isMatchToHashFile()) {
+        save();
+        return true;
+      }
+    } else {
+      save();
+      return true;
+    }
+    return false;
+  }
+
   public static byte[] readHashFile(Path directoryPath) {
     try {
       return Files.readAllBytes(directoryPath.resolve(HASH_FILE));
     } catch (IOException e) {
-      return new byte[0];
+      return null;
     }
   }
 }

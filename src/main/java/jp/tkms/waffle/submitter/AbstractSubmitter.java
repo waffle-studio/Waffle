@@ -163,7 +163,7 @@ abstract public class AbstractSubmitter {
   public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
     try {
       forcePrepare(envelope, job);
-      envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), BATCH_FILE, computer.getXsubParameters().toString()));
+      envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
     } catch (FailedToControlRemoteException e) {
       WarnLogMessage.issue(job.getComputer(), e.getMessage());
       job.setState(State.Excepted);
@@ -177,9 +177,9 @@ abstract public class AbstractSubmitter {
     envelope.add(new CollectStatusMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
   }
 
-  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
     if (! job.getJobId().equals("-1")) {
-      envelope.add(new CancelJobMessage(job.getTypeCode(), job.getHexCode(), job.getJobId()));
+      envelope.add(new CancelJobMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
     } else {
       job.setState(State.Canceled);
     }
@@ -463,7 +463,9 @@ abstract public class AbstractSubmitter {
             finishedProcessorManager.startup();
             preparingProcessorManager.startup();
           } else {
-            job.setState(State.Running);
+            if (job.getState().equals(State.Submitted)) {
+              job.setState(State.Running);
+            }
           }
         }
       }
@@ -667,7 +669,7 @@ abstract public class AbstractSubmitter {
         } catch (RunNotFoundException e) {
           try {
             cancel(envelope, job);
-          } catch (RunNotFoundException ex) { }
+          } catch (RunNotFoundException | FailedToControlRemoteException ex) { }
           job.remove();
           WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
         }
@@ -775,7 +777,7 @@ abstract public class AbstractSubmitter {
           } catch (RunNotFoundException e) {
             try {
               cancel(envelope, job);
-            } catch (RunNotFoundException ex) { }
+            } catch (RunNotFoundException | FailedToControlRemoteException ex) { }
             job.remove();
             WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
           }

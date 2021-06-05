@@ -2,10 +2,7 @@ package jp.tkms.waffle.sub.servant.processor;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
-import jp.tkms.waffle.sub.servant.Constants;
-import jp.tkms.waffle.sub.servant.Envelope;
-import jp.tkms.waffle.sub.servant.EventReader;
-import jp.tkms.waffle.sub.servant.XsubFile;
+import jp.tkms.waffle.sub.servant.*;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import jp.tkms.waffle.sub.servant.message.response.*;
@@ -65,6 +62,9 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
             exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
           } catch (Exception | Error e) {
             exitStatus = -1;
+          }
+          if (exitStatus >= 0) {
+            (new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
           }
           response.add(new UpdateStatusMessage(message, exitStatus));
           response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
