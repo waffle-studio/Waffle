@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-public class DeadlineWrapper extends AbstractSubmitter {
+public class DeadlineWrapper extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTER = "target_computer";
   public static final String KEY_DEADLINE = "deadline";
   private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");

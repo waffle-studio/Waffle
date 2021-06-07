@@ -84,6 +84,7 @@ public class MessageBundle {
     kryo.register(Class.class);
     kryo.register(ArrayList.class);
     kryo.register(ExceptionMessage.class);
+    kryo.register(PutTextFileMessage.class);
     kryo.register(JobMessage.class);
     kryo.register(SubmitJobMessage.class);
     kryo.register(JobExceptionMessage.class);

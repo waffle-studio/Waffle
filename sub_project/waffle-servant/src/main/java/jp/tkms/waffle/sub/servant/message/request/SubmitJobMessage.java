@@ -14,7 +14,7 @@ public class SubmitJobMessage extends JobMessage {
   public SubmitJobMessage(byte type, String id, Path workingDirectory, Path executableDirectory, String command, String xsubParameter) {
     super(type, id);
     this.workingDirectory = workingDirectory.toString();
-    this.executableDirectory = executableDirectory.toString();
+    this.executableDirectory = executableDirectory == null ? null : executableDirectory.toString();
     this.command = command;
     this.xsubParameter = xsubParameter;
   }
@@ -24,7 +24,7 @@ public class SubmitJobMessage extends JobMessage {
   }
 
   public Path getExecutableDirectory() {
-    return Paths.get(executableDirectory);
+    return executableDirectory == null ? null : Paths.get(executableDirectory);
   }
 
   public String getCommand() {

@@ -63,12 +63,14 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
           } catch (Exception | Error e) {
             exitStatus = -1;
           }
-          if (exitStatus >= 0) {
-            (new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+          if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0) {
+            //(new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+            response.add(new UpdateStatusMessage(message, exitStatus));
+            response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
+            response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
+          } else {
+            response.add(new UpdateStatusMessage(message));
           }
-          response.add(new UpdateStatusMessage(message, exitStatus));
-          response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
-          response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
         } else {
           response.add(new UpdateStatusMessage(message));
         }

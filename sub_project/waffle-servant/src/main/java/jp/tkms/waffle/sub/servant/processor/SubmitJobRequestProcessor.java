@@ -39,7 +39,11 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         DirectoryHash executableDirectoryHash = new DirectoryHash(baseDirectory, message.getExecutableDirectory(), false);
         if (!executableDirectoryHash.hasHashFile()) {
           executableDirectoryHash.save();
-        } //TODO: notify if hash changed
+        } else {
+          executableDirectoryHash.update();
+          System.out.println("!!!!! executable files has changed !!!!!");
+          //TODO: notify if hash changed
+        }
       }
 
       StringWriter outputWriter = new StringWriter();

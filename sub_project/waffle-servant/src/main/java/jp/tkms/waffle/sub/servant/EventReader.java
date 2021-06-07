@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.function.BiConsumer;
 
 public class EventReader {
-  private static final String CURSOR_FILE_SUFFIX = ".cursor";
+  private static final String CURSOR_FILE_SUFFIX = ".cursor" + DirectoryHash.IGNORE_FLAG;
 
   private Path recordPath;
   private Path cursorPath;

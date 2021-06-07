@@ -4,6 +4,7 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import jp.tkms.waffle.sub.servant.pod.PodTask;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -40,7 +41,11 @@ public class TaskExecutor {
     this.environmentList = new ArrayList<>();
 
     TaskJson taskJson = new TaskJson(Json.parse(new FileReader(taskJsonPath.toFile())).asObject());
-    executableBaseDirectory = baseDirectory.resolve(taskJson.getExecutable()).resolve(Constants.BASE).normalize();
+    try {
+      executableBaseDirectory = baseDirectory.resolve(taskJson.getExecutable()).resolve(Constants.BASE).normalize();
+    } catch (Exception e) {
+      executableBaseDirectory = null;
+    }
     projectName = taskJson.getProject();
     command = taskJson.getCommand();
     argumentList = taskJson.getArguments();
@@ -53,7 +58,9 @@ public class TaskExecutor {
     try {
       DirectoryHash directoryHash = new DirectoryHash(baseDirectory, taskDirectory);
       directoryHash.waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
-      new DirectoryHash(baseDirectory, executableBaseDirectory.getParent()).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+      if (executableBaseDirectory != null) {
+        new DirectoryHash(baseDirectory, executableBaseDirectory.getParent()).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+      }
 
       Path executingBaseDirectory = taskDirectory.resolve(Constants.BASE).normalize();
       Path localSharedDirectory = baseDirectory.resolve(Constants.LOCAL_SHARED).resolve(projectName).normalize();
@@ -86,21 +93,13 @@ public class TaskExecutor {
 
       Files.createDirectories(executingBaseDirectory);
 
-      // try to change permission of the command
-      Runtime.getRuntime().exec(new String[]{"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"},
-        getEnvironments(), executableBaseDirectory.toFile()).waitFor();
+      if (executableBaseDirectory != null) {
+        // try to change permission of the command
+        Runtime.getRuntime().exec(new String[]{"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"},
+          getEnvironments(), executableBaseDirectory.toFile()).waitFor();
 
-      // create link of executable entities
-      createRecursiveLink(executableBaseDirectory, executingBaseDirectory);
-
-      // pre-process for local shared
-      addEnvironment("WAFFLE_LOCAL_SHARED", localSharedDirectory.toString());
-      Files.createDirectories(localSharedDirectory);
-      for (JsonObject.Member member : localSharedMap) {
-        String key = member.getName();
-        String remote = member.getValue().asString();
-        Runtime.getRuntime().exec(new String[]{"sh", "-c", "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi"},
-          getEnvironments(), executingBaseDirectory.toFile()).waitFor();
+        // create link of executable entities
+        createRecursiveLink(executableBaseDirectory, executingBaseDirectory);
       }
 
       // load custom environments
@@ -108,46 +107,69 @@ public class TaskExecutor {
         addEnvironment(member.getName(), member.getValue().asString());
       }
 
-      // BEGIN of main command executing
-      ArrayList<String> commandArray = new ArrayList<>();
-      commandArray.addAll(Arrays.asList(command.split("\\s")));
-      for (JsonValue value : argumentList) {
-        commandArray.add(value.isString() ? value.asString() : value.toString());
-      }
+      int exitValue = 0;
 
-      Process process = Runtime.getRuntime().exec(commandArray.toArray(new String[commandArray.size()]),
-        getEnvironments(), executingBaseDirectory.toFile());
-
-      OutputProcessor outProcessor =
-        new OutputProcessor(process.getInputStream(), stdoutPath, new EventRecorder(baseDirectory, eventFilePath));
-      OutputProcessor errProcessor =
-        new OutputProcessor(process.getErrorStream(), stderrPath, new EventRecorder(baseDirectory, eventFilePath));
-      outProcessor.start();
-      errProcessor.start();
-
-      if (timeout < 0) {
-        process.waitFor();
+      if (command.equals(PodTask.PODTASK)) {
+        try {
+          PodTask podTask = new PodTask(argumentList);
+          podTask.run();
+        } catch (Exception e) {
+          exitValue = 1;
+        }
       } else {
-        process.waitFor(timeout, TimeUnit.SECONDS);
-      }
+        // pre-process for local shared
+        addEnvironment("WAFFLE_LOCAL_SHARED", localSharedDirectory.toString());
+        Files.createDirectories(localSharedDirectory);
+        for (JsonObject.Member member : localSharedMap) {
+          String key = member.getName();
+          String remote = member.getValue().asString();
+          Runtime.getRuntime().exec(new String[]{"sh", "-c", "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi"},
+            getEnvironments(), executingBaseDirectory.toFile()).waitFor();
+        }
 
-      outProcessor.join();
-      errProcessor.join();
-      // END of main command executing
+        // BEGIN of main command executing
+        ArrayList<String> commandArray = new ArrayList<>();
+        commandArray.addAll(Arrays.asList(command.split("\\s")));
+        for (JsonValue value : argumentList) {
+          commandArray.add(value.isString() ? value.asString() : value.toString());
+        }
 
-      // post-process of local shared
-      for (JsonObject.Member member : localSharedMap) {
-        String key = member.getName();
-        String remote = member.getValue().asString();
-        Runtime.getRuntime().exec(
-          new String[]{"sh", "-c", "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi"},
-          getEnvironments(), executingBaseDirectory.toFile()).waitFor();
+        Process process = Runtime.getRuntime().exec(commandArray.toArray(new String[commandArray.size()]),
+          getEnvironments(), executingBaseDirectory.toFile());
+
+        OutputProcessor outProcessor =
+          new OutputProcessor(process.getInputStream(), stdoutPath, new EventRecorder(baseDirectory, eventFilePath));
+        OutputProcessor errProcessor =
+          new OutputProcessor(process.getErrorStream(), stderrPath, new EventRecorder(baseDirectory, eventFilePath));
+        outProcessor.start();
+        errProcessor.start();
+
+        if (timeout < 0) {
+          process.waitFor();
+        } else {
+          process.waitFor(timeout, TimeUnit.SECONDS);
+        }
+
+        outProcessor.join();
+        errProcessor.join();
+        // END of main command executing
+
+        // post-process of local shared
+        for (JsonObject.Member member : localSharedMap) {
+          String key = member.getName();
+          String remote = member.getValue().asString();
+          Runtime.getRuntime().exec(
+            new String[]{"sh", "-c", "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi"},
+            getEnvironments(), executingBaseDirectory.toFile()).waitFor();
+        }
+
+        exitValue = process.exitValue();
       }
 
       // write a status file
       try {
         FileWriter writer = new FileWriter(statusFilePath.toFile(), StandardCharsets.UTF_8, false);
-        writer.write("" + process.exitValue());
+        writer.write(String.valueOf(exitValue));
         writer.flush();
         writer.close();
       } catch (IOException e) {

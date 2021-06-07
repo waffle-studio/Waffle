@@ -40,7 +40,11 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
       container.setEnvironment(environments);
       container.setArgv(new String[]{message.getJobId()});
-      container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
+      try {
+        container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
+      } catch (RuntimeException e) {
+        e.printStackTrace();
+      }
       container.clear();
       container.terminate();
       response.add(new JobCanceledMessage(message));

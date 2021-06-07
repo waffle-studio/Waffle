@@ -54,6 +54,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   private Path path;
   private Computer computer = null;
+  private Computer actualComputer = null;
   private Integer exitStatus;
 
   private State state = null;
@@ -218,13 +219,16 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     setToProperty(KEY_REMOTE_WORKING_DIR, path);
   }
 
-  @Override
-  public Computer getActualComputer() {
-    return getComputer();
+  public void setActualComputer(Computer computer) {
+    this.actualComputer = computer;
+    setToProperty(KEY_ACTUAL_COMPUTER, computer.getName());
   }
 
-  public void setActualComputer(Computer computer) {
-    setToProperty(KEY_COMPUTER, computer.getName());
+  public Computer getActualComputer() {
+    if (actualComputer == null) {
+      actualComputer = Computer.getInstance(getStringFromProperty(KEY_ACTUAL_COMPUTER));
+    }
+    return actualComputer;
   }
 
   public String getRemoteWorkingDirectoryLog() {
@@ -283,17 +287,19 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   public void setBinPath(Path binPath) {
-    setToProperty(KEY_BIN_PATH, binPath.toString());
+    setToProperty(KEY_BIN_PATH, binPath == null ? null : binPath.toString());
   }
 
   @Override
   public Path getBinPath() {
-    return Paths.get(getStringFromProperty(KEY_BIN_PATH));
+    String path = getStringFromProperty(KEY_BIN_PATH);
+    return path == null ? null : Paths.get(path);
   }
 
   @Override
   public Path getRemoteBinPath() {
-    return Constants.WORK_DIR.relativize(getBinPath().toAbsolutePath());
+    Path path = getBinPath();
+    return path == null ? null : Constants.WORK_DIR.relativize(path.toAbsolutePath());
   }
 
   @Override

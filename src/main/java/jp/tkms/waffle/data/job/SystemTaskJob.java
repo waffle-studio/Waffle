@@ -52,12 +52,13 @@ public class SystemTaskJob extends AbstractJob {
     return getList().size();
   }
 
-  public static void addRun(SystemTaskRun run) {
+  public static SystemTaskJob addRun(SystemTaskRun run) {
     SystemTaskJob job = new SystemTaskJob(run.getLocalDirectoryPath(), run.getComputer());
     Main.systemTaskStore.register(job);
     InfoLogMessage.issue(run, "was added to the queue");
     //System.out.println(job.getPropertyStorePath().toString());
     //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
+    return job;
   }
 
   @Override

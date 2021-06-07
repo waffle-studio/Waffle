@@ -18,7 +18,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-public class MultiComputerSubmitter extends AbstractSubmitter {
+public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTERS = "target_computers";
 
   public MultiComputerSubmitter(Computer computer) {

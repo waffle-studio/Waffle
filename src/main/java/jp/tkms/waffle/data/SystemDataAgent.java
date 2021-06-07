@@ -34,7 +34,11 @@ public class SystemDataAgent {
 
   public static HardwareAbstractionLayer getHardware() {
     if (hardware == null) {
-      hardware = new SystemInfo().getHardware();
+      try {
+        hardware = new SystemInfo().getHardware();
+      } catch (NoClassDefFoundError e) {
+        return null;
+      }
     }
     return hardware;
   }
@@ -45,7 +49,7 @@ public class SystemDataAgent {
       double load = centralProcessor.getSystemCpuLoadBetweenTicks(cpuOldTicks);
       cpuOldTicks = centralProcessor.getSystemCpuLoadTicks();
       return load;
-    } catch (Error e) {
+    } catch (Exception e) {
       return -1;
     }
   }
@@ -58,7 +62,7 @@ public class SystemDataAgent {
     try {
       //return round2((double)((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getTotalPhysicalMemorySize() / GB);
       return round2((double)getHardware().getMemory().getTotal() / GB);
-    } catch (Error e) {
+    } catch (Exception e) {
       return -1;
     }
   }

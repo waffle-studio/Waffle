@@ -57,13 +57,13 @@ public class Computer implements DataDirectory, PropertyFile {
     MultiComputerSubmitter.class,
     LoadBalancingSubmitter.class,
     DeadlineWrapper.class,
-    WrappedSshSubmitter.class
+    WrappedSshSubmitter.class,
+    PodWrappedSubmitter.class
   ));
 
   private String name;
   private String submitterType = null;
   private String workBaseDirectory = null;
-  private String xsubDirectory = null;
   private SecretKeySpec encryptKey = null;
   private Integer pollingInterval = null;
   private Double maximumNumberOfThreads = null;
@@ -82,7 +82,6 @@ public class Computer implements DataDirectory, PropertyFile {
       synchronized (this) {
         submitterType = null;
         workBaseDirectory = null;
-        xsubDirectory = null;
         pollingInterval = null;
         maximumNumberOfThreads = null;
         allocableMemorySize = null;

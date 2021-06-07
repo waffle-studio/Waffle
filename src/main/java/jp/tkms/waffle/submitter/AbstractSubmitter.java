@@ -23,10 +23,7 @@ import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.*;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.TaskJson;
-import jp.tkms.waffle.sub.servant.message.request.CancelJobMessage;
-import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
-import jp.tkms.waffle.sub.servant.message.request.SendXsubTemplateMessage;
-import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -46,7 +43,6 @@ abstract public class AbstractSubmitter {
   protected static final String TASK_JSON = "task.json";
   protected static final String RUN_DIR = "run";
   protected static final String BATCH_FILE = "batch.sh";
-  protected static final String ARGUMENTS_FILE = "arguments.txt";
 
   boolean isRunning = false;
   Computer computer;
@@ -92,9 +88,12 @@ abstract public class AbstractSubmitter {
     return connect(true);
   }
 
+
+
   public void putText(AbstractJob job, String pathString, String text) throws FailedToTransferFileException, RunNotFoundException {
     putText(job, Paths.get(pathString), text);
   }
+
 
   public static AbstractSubmitter getInstance(PollingThread.Mode mode, Computer computer) {
     AbstractSubmitter submitter = null;
@@ -142,6 +141,7 @@ abstract public class AbstractSubmitter {
       createDirectories(remoteEnvelopePath.getParent());
       transferFilesToRemote(tmpFile, remoteEnvelopePath);
       Files.delete(tmpFile);
+
       System.out.print(exec("java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '" + getWaffleServantPath(this, computer)
         + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'"));
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
@@ -213,14 +213,20 @@ abstract public class AbstractSubmitter {
           environments.add(entry.getKey(), entry.getValue().toString());
         }
 
-        TaskJson taskJson = new TaskJson(projectName, run.getRemoteBinPath().toString(), run.getCommand(),
+        Path remoteBinPath = run.getRemoteBinPath();
+        TaskJson taskJson = new TaskJson(projectName, remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
           arguments, environments, localShared);
         putText(job, TASK_JSON, taskJson.toString());
+        //envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(TASK_JSON), taskJson.toString()));
 
         putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer)
           + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
+        //envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(BATCH_FILE), "java -jar '" + getWaffleServantPath(this, computer)
+        //
+        //  + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
 
-        if (! exists(getExecutableBaseDirectory(job).toAbsolutePath())) {
+        Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
+        if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
           envelope.add(run.getBinPath());
         }
 
@@ -246,7 +252,12 @@ abstract public class AbstractSubmitter {
   }
 
   Path getExecutableBaseDirectory(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
-    return parseHomePath(job.getComputer().getWorkBaseDirectory()).resolve(job.getRun().getRemoteBinPath());
+    Path remoteBinPath = job.getRun().getRemoteBinPath();
+    if (remoteBinPath == null) {
+      return null;
+    } else {
+      return parseHomePath(job.getComputer().getWorkBaseDirectory()).resolve(remoteBinPath);
+    }
   }
 
   void jobFinalizing(AbstractJob job) throws WaffleException {
@@ -296,7 +307,11 @@ abstract public class AbstractSubmitter {
   }
 
   public static boolean checkWaffleServant(Computer computer, boolean retry) throws RuntimeException, WaffleException {
-    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer).connect(retry);
+    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer);
+    if (submitter instanceof AbstractSubmitterWrapper) {
+      return false;
+    }
+    submitter.connect(retry);
     Path remoteServantPath = getWaffleServantPath(submitter, computer);
     boolean result = false;
 
@@ -320,20 +335,23 @@ abstract public class AbstractSubmitter {
   }
 
   public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
-    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer).connect(retry);
+    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer);
     JSONObject jsonObject = new JSONObject();
-    Envelope request = new Envelope(Constants.WORK_DIR);
-    request.add(new SendXsubTemplateMessage());
-    try {
-      Envelope response = submitter.sendAndReceiveEnvelope(request);
-      for (XsubTemplateMessage message : response.getMessageBundle().getCastedMessageList(XsubTemplateMessage.class)) {
-        jsonObject = new JSONObject(message.getTemplate());
-        break;
+    if (!(submitter instanceof AbstractSubmitterWrapper)) {
+      submitter.connect(retry);
+      Envelope request = new Envelope(Constants.WORK_DIR);
+      request.add(new SendXsubTemplateMessage());
+      try {
+        Envelope response = submitter.sendAndReceiveEnvelope(request);
+        for (XsubTemplateMessage message : response.getMessageBundle().getCastedMessageList(XsubTemplateMessage.class)) {
+          jsonObject = new JSONObject(message.getTemplate());
+          break;
+        }
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
       }
-    } catch (Exception e) {
-      ErrorLogMessage.issue(e);
+      submitter.close();
     }
-    submitter.close();
     return jsonObject;
   }
 

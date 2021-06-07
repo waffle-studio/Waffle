@@ -1,5 +1,6 @@
 package jp.tkms.waffle.sub.servant;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,6 +14,7 @@ import java.util.stream.Stream;
 
 public class DirectoryHash {
   public static final String HASH_FILE = ".WAFFLE_HASH";
+  public static final String IGNORE_FLAG = ".WAFFLE_HASH_IGNORE";
   private static final String SEPARATOR = ":";
 
   Path baseDirectory;
@@ -61,22 +63,31 @@ public class DirectoryHash {
   }
 
   public void collectFilesStatusTo(TreeSet<String> fileSet, Path target) {
+    boolean hasIgnoreFlag = false;
     try (Stream<Path> stream = Files.list(target)) {
-      stream.forEach(p -> {
-        if (Files.isSymbolicLink(p)) {
-          // NOP
-        } else if (Files.isDirectory(p)) {
-          collectFilesStatusTo(fileSet, p);
-        } else if (!p.toFile().getName().equals(HASH_FILE)) {
-          try {
-            fileSet.add(baseDirectory.relativize(p).normalize().toString() + SEPARATOR + Files.size(p));
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-        }
-      });
+      hasIgnoreFlag = !stream.noneMatch(p -> p.getFileName().toString().equals(IGNORE_FLAG));
     } catch (IOException e) {
       e.printStackTrace();
+    }
+
+    if (!hasIgnoreFlag) {
+      try (Stream<Path> stream = Files.list(target)) {
+        stream.forEach(p -> {
+          if (Files.isSymbolicLink(p)) {
+            // NOP
+          } else if (Files.isDirectory(p)) {
+            collectFilesStatusTo(fileSet, p);
+          } else if (!p.toFile().getName().equals(HASH_FILE) && !p.toFile().getName().endsWith(IGNORE_FLAG)) {
+            try {
+              fileSet.add(baseDirectory.relativize(p).normalize().toString() + SEPARATOR + Files.size(p));
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+          }
+        });
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 

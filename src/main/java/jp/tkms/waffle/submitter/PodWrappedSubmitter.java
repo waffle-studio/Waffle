@@ -2,6 +2,7 @@ package jp.tkms.waffle.submitter;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
@@ -23,6 +24,7 @@ import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.pod.PodTask;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -35,7 +37,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
+public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
+  public static final String KEY_TARGET_COMPUTER = "target_computer";
   public static final String JOB_MANAGER = "JOB_MANAGER";
   public static final String BIN = "BIN";
   public static final String JOB_MANAGER_JSON_FILE = JOB_MANAGER + Constants.EXT_JSON;
@@ -48,13 +51,13 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
   public static final Path ENTITIES_PATH = Paths.get("ENTITIES");
   public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
-  public static final String KEY_ADDITIONAL_PREPARE_COMMAND = "additional_prepare_command";
+  public static final String KEY_ADDITIONAL_PREPARE_COMMAND = "additional_preparation_command";
 
   //private static final InstanceCache<String, Boolean> existsCheckCache = new InstanceCache<>();
 
   JobManager jobManager;
 
-  public WrappedSshSubmitter(Computer computer) {
+  public PodWrappedSubmitter(Computer computer) {
     super(computer);
     jobManager = new JobManager(this);
   }
@@ -172,12 +175,13 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
    */
 
   public static class JobManager implements DataDirectory, PropertyFile {
-    WrappedSshSubmitter submitter;
+    PodWrappedSubmitter submitter;
     TreeMap<String, VirtualJobExecutor> runningExecutorList;
     TreeMap<String, VirtualJobExecutor> activeExecutorList;
     VirtualJobExecutor submittableCache = null;
+    SystemTaskJob nextExecutorJob = null;
 
-    public JobManager(WrappedSshSubmitter submitter) {
+    public JobManager(PodWrappedSubmitter submitter) {
       this.submitter = submitter;
 
       try {
@@ -232,20 +236,30 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         removeFromArrayOfProperty(ACTIVE, executor.getId());
         activeExecutorList.remove(executor.getId());
       }
+
+      if (nextExecutorJob != null) {
+        try {
+          nextExecutorJob.cancel();
+        } catch (RunNotFoundException e) {
+          //NOP
+        }
+      }
     }
 
-    public VirtualJobExecutor getNextExecutor(AbstractJob next) {
+    public VirtualJobExecutor getNextExecutor(AbstractJob next) throws RunNotFoundException {
       Submittable submittable = getSubmittable(next);
       VirtualJobExecutor result = submittable.usableExecutor;
       if (result == null && submittable.isNewExecutorCreatable) {
-        result = VirtualJobExecutor.create(this, 0, 0);
+        nextExecutorJob.replaceComputer(submittable.targetComputer);
+        result = (VirtualJobExecutor) nextExecutorJob.getRun();
         registerExecutor(result);
-        SystemTaskJob.addRun(result);
+        nextExecutorJob = null;
       }
       return result;
     }
 
     static class Submittable {
+      Computer targetComputer = null;
       boolean isNewExecutorCreatable = false;
       VirtualJobExecutor usableExecutor = null;
       Submittable() {
@@ -316,9 +330,19 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         }
       }
 
+      result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER));
+      if (result.targetComputer != null) {
+        if (nextExecutorJob == null) {
+          nextExecutorJob = SystemTaskJob.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize()));
+        }
+        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, result.targetComputer);
+        result.isNewExecutorCreatable = targetSubmitter.isSubmittable(result.targetComputer, nextExecutorJob);
+      }
+      /*
       if (runningExecutorList.size() < getComputer().getMaximumNumberOfJobs()) {
         result.isNewExecutorCreatable = true;
       }
+       */
 
       return result;
     }
@@ -580,11 +604,15 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       return null;
     }
 
-    public static VirtualJobExecutor create(JobManager jobManager, int threadSize, int memorySize) {
+    public static VirtualJobExecutor create(JobManager jobManager, double threadSize, double memorySize) {
       WaffleId id = WaffleId.newId();
       VirtualJobExecutor executor = new VirtualJobExecutor(getDirectoryPath(jobManager, id));
-      executor.setCommand(RUN_SH_FILE);
-      executor.setBinPath(jobManager.getBinDirectory());
+      executor.setCommand(PodTask.PODTASK);
+      executor.addArgument(true);
+      executor.addArgument(120);
+      executor.addArgument(259100);
+      executor.addArgument(3600);
+      executor.setBinPath(null);
       executor.setRequiredThread(threadSize);
       executor.setRequiredMemory(memorySize);
       executor.setComputer(jobManager.getComputer());
@@ -593,6 +621,7 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       executor.setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
       executor.setToProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch());
       executor.setToProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch());
+      /*
       Path workBasePath = Paths.get(jobManager.getComputer().getWorkBaseDirectory());
       try {
         workBasePath = jobManager.submitter.parseHomePath(jobManager.getComputer().getWorkBaseDirectory());
@@ -600,6 +629,8 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
         ErrorLogMessage.issue(e);
       }
       executor.setToProperty(KEY_REMOTE_DIRECTORY, workBasePath.resolve(executor.getLocalDirectoryPath()).toString());
+       */
+      executor.setToProperty(KEY_REMOTE_DIRECTORY, executor.getLocalDirectoryPath().toString());
       try {
         Files.createDirectories(executor.getBasePath());
       } catch (IOException e) {
@@ -625,11 +656,13 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
 
     @Override
     public void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException {
+      /*
       try {
         submitter.exec("rm -rf '" + getRemoteBaseDirectory().toString() + "'");
       } catch (FailedToControlRemoteException e) {
         ErrorLogMessage.issue(e);
       }
+       */
     }
 
     public boolean isAcceptable(JobManager jobManager) {
@@ -710,5 +743,68 @@ public class WrappedSshSubmitter extends JobNumberLimitedSshSubmitter {
       }
       return finished;
     }
+  }
+
+
+  @Override
+  public AbstractSubmitter connect(boolean retry) {
+    return this;
+  }
+
+  @Override
+  public boolean isConnected() {
+    return true;
+  }
+
+  @Override
+  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+    return null;
+  }
+
+  @Override
+  public void createDirectories(Path path) throws FailedToControlRemoteException {
+
+  }
+
+  @Override
+  boolean exists(Path path) throws FailedToControlRemoteException {
+    return false;
+  }
+
+  @Override
+  boolean deleteFile(Path path) throws FailedToControlRemoteException {
+    return false;
+  }
+
+  @Override
+  public String exec(String command) throws FailedToControlRemoteException {
+    return null;
+  }
+
+  @Override
+  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
+
+  }
+
+  @Override
+  public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
+    return null;
+  }
+
+  @Override
+  public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException {
+
+  }
+
+  @Override
+  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+
+  }
+
+  @Override
+  public JSONObject getDefaultParameters(Computer computer) {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(KEY_TARGET_COMPUTER, "LOCAL");
+    return jsonObject;
   }
 }
