@@ -15,7 +15,6 @@ import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.submitter.AbstractSubmitter;
-import jp.tkms.waffle.submitter.WrappedSshSubmitter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

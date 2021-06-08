@@ -1,5 +1,7 @@
 package jp.tkms.waffle.sub.servant.pod;
 
+import jp.tkms.waffle.sub.servant.DirectoryHash;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -8,12 +10,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractExecutor {
   protected static final String BATCH_FILE = "./batch.sh";
-  public static final Path JOBS_PATH = Paths.get("JOBS");
-  public static final Path ENTITIES_PATH = Paths.get("ENTITIES");
-  public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
+  public static final Path BASE_PATH = Paths.get("BASE");
+  public static final Path HASH_IGNORE_FILE_PATH = BASE_PATH.resolve(DirectoryHash.IGNORE_FLAG);
+  public static final Path JOBS_PATH = BASE_PATH.resolve("JOBS");
+  public static final Path ENTITIES_PATH = BASE_PATH.resolve("ENTITIES");
+  public static final Path ALIVE_NOTIFIER_PATH = BASE_PATH.resolve("ALIVE_NOTIFIER");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
 
   //private WatchService fileWatchService = null;
@@ -70,6 +75,15 @@ public abstract class AbstractExecutor {
     this.marginTime = marginTime;
     Files.createDirectories(JOBS_PATH);
     Files.createDirectories(ENTITIES_PATH);
+
+    try {
+      if (!Files.exists(HASH_IGNORE_FILE_PATH)) {
+        Files.createFile(HASH_IGNORE_FILE_PATH);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
     //fileWatchService = FileSystems.getDefault().newWatchService();
     //JOBS_PATH.register(fileWatchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
   }
@@ -274,10 +288,15 @@ public abstract class AbstractExecutor {
         }
 
         try {
-          Path directoryPath = Paths.get(Files.readString(ENTITIES_PATH.resolve(jobName)).trim());
+          Path entityPath = ENTITIES_PATH.resolve(jobName);
+          while (!Files.exists(entityPath)) {
+            System.out.println(entityPath.toString() + " is not exist; wait a second and retry.");
+            TimeUnit.SECONDS.sleep(1);
+          }
+          Path directoryPath = Paths.get(Files.readString(entityPath).trim());
           while (!Files.isWritable(directoryPath)) {
-            System.out.println(directoryPath.toString() + " is not writable; wait few second and retry.");
-            sleep(( System.currentTimeMillis() % 5 ) * 1000);
+            System.out.println(directoryPath.toString() + " is not writable; wait a second and retry.");
+            TimeUnit.SECONDS.sleep(1);
           }
 
           process = new ProcessBuilder().directory(directoryPath.toFile())

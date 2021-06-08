@@ -90,19 +90,6 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
-    try {
-      PrintWriter pw = new PrintWriter(new BufferedWriter(
-        new FileWriter(getRunDirectory(job.getRun()) + File.separator + path)
-      ));
-      pw.println(text);
-      pw.close();
-    } catch (IOException | FailedToControlRemoteException e) {
-      throw new FailedToTransferFileException(e);
-    }
-  }
-
-  @Override
   public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     String result = null;
     try {

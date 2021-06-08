@@ -14,6 +14,7 @@ import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
 
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class SystemTaskJob extends AbstractJob {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+    //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
   @Override

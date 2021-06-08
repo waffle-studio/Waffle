@@ -75,7 +75,7 @@ abstract public class AbstractSubmitter {
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
   abstract boolean deleteFile(Path path) throws FailedToControlRemoteException;
   abstract public String exec(String command) throws FailedToControlRemoteException;
-  abstract public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
+  //abstract public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
   abstract public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException;
@@ -88,12 +88,11 @@ abstract public class AbstractSubmitter {
     return connect(true);
   }
 
-
-
+  /*
   public void putText(AbstractJob job, String pathString, String text) throws FailedToTransferFileException, RunNotFoundException {
     putText(job, Paths.get(pathString), text);
   }
-
+   */
 
   public static AbstractSubmitter getInstance(PollingThread.Mode mode, Computer computer) {
     AbstractSubmitter submitter = null;
@@ -130,28 +129,32 @@ abstract public class AbstractSubmitter {
     return tempDirectoryPath;
   }
 
-  public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
+  public static Envelope sendAndReceiveEnvelope(AbstractSubmitter submitter, Envelope envelope) throws Exception {
     //envelope.getMessageBundle().print("HOST");
     if (!envelope.isEmpty()) {
       Path tmpFile = getTempDirectoryPath().resolve(UUID.randomUUID().toString());
       Files.createDirectories(tmpFile.getParent());
       envelope.save(tmpFile);
-      Path remoteWorkBasePath = parseHomePath(computer.getWorkBaseDirectory());
+      Path remoteWorkBasePath = submitter.parseHomePath(submitter.computer.getWorkBaseDirectory());
       Path remoteEnvelopePath = remoteWorkBasePath.resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
-      createDirectories(remoteEnvelopePath.getParent());
-      transferFilesToRemote(tmpFile, remoteEnvelopePath);
+      submitter.createDirectories(remoteEnvelopePath.getParent());
+      submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
       Files.delete(tmpFile);
 
-      System.out.print(exec("java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '" + getWaffleServantPath(this, computer)
+      System.out.print(submitter.exec("java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '" + getWaffleServantPath(submitter, submitter.computer)
         + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'"));
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
-      transferFilesFromRemote(remoteResponsePath, tmpFile);
-      deleteFile(remoteResponsePath);
+      submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
+      submitter.deleteFile(remoteResponsePath);
       Envelope response = Envelope.loadAndExtract(Constants.WORK_DIR, tmpFile);
       Files.delete(tmpFile);
       return response;
     }
     return null;
+  }
+
+  public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
+    return sendAndReceiveEnvelope(this, envelope);
   }
 
   public void forcePrepare(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
@@ -216,14 +219,13 @@ abstract public class AbstractSubmitter {
         Path remoteBinPath = run.getRemoteBinPath();
         TaskJson taskJson = new TaskJson(projectName, remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
           arguments, environments, localShared);
-        putText(job, TASK_JSON, taskJson.toString());
-        //envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(TASK_JSON), taskJson.toString()));
+        //putText(job, TASK_JSON, taskJson.toString());
+        envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(TASK_JSON), taskJson.toString()));
 
-        putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer)
-          + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
-        //envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(BATCH_FILE), "java -jar '" + getWaffleServantPath(this, computer)
-        //
-        //  + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
+        //putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer) + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
+        envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(BATCH_FILE), "java -jar '" + getWaffleServantPath()
+          + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
+        //+ "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
 
         Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
         if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
@@ -238,16 +240,19 @@ abstract public class AbstractSubmitter {
     }
   }
 
+  public Path getWorkBaseDirectory() {
+    return Paths.get(computer.getWorkBaseDirectory());
+  }
+
   public Path getBaseDirectory(ComputerTask run) throws FailedToControlRemoteException {
     return getRunDirectory(run).resolve(Executable.BASE);
   }
 
   public Path getRunDirectory(ComputerTask run) throws FailedToControlRemoteException {
-    Computer computer = run.getActualComputer();
-    Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(run.getLocalDirectoryPath());
-
+    //Computer computer = run.getActualComputer();
+    //Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(run.getLocalDirectoryPath());
+    Path path = parseHomePath(getWorkBaseDirectory().toString()).resolve(run.getLocalDirectoryPath());
     createDirectories(path);
-
     return path;
   }
 
@@ -303,7 +308,13 @@ abstract public class AbstractSubmitter {
   }
 
   public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) throws FailedToControlRemoteException {
-    return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+    //return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+    return Paths.get(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+  }
+
+  public Path getWaffleServantPath() throws FailedToControlRemoteException {
+    //return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+    return getWaffleServantPath(this, computer);
   }
 
   public static boolean checkWaffleServant(Computer computer, boolean retry) throws RuntimeException, WaffleException {
@@ -361,28 +372,26 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
-  protected boolean isSubmittable(Computer computer, AbstractJob job) {
-    return isSubmittable(computer, job, getJobList(PollingThread.Mode.Normal, computer));
+  protected boolean isSubmittable(Computer computer, ComputerTask next) {
+    return isSubmittable(computer, next, getJobList(PollingThread.Mode.Normal, computer));
   }
 
-  protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob>... lists) {
-    ArrayList<AbstractJob> combinedList = new ArrayList<>();
+  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<AbstractJob>... lists) {
+    ArrayList<ComputerTask> combinedList = new ArrayList<>();
     for (ArrayList<AbstractJob> list : lists) {
-      combinedList.addAll(list);
+      for (AbstractJob job : list) {
+        try {
+          combinedList.add(job.getRun());
+        } catch (RunNotFoundException e) {
+          //NOP
+        }
+      }
     }
     return isSubmittable(computer, next, combinedList);
   }
 
-  protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
-    ComputerTask nextRun = null;
-    try {
-      if (next != null) {
-        nextRun = next.getRun();
-      }
-    } catch (RunNotFoundException e) {
-    }
-
-    return (list.size() + (nextRun == null ? 0 : 1)) <= computer.getMaximumNumberOfJobs();
+  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+    return (list.size() + (next == null ? 0 : 1)) <= computer.getMaximumNumberOfJobs();
   }
 
   protected static ArrayList<AbstractJob> getJobList(PollingThread.Mode mode, Computer computer) {
@@ -411,12 +420,13 @@ abstract public class AbstractSubmitter {
     return null;
   }
 
-  protected void processRequestAndResponse(Envelope envelope) {
+  protected Envelope processRequestAndResponse(Envelope envelope) {
+    Envelope response = null;
     try {
-      Envelope response = sendAndReceiveEnvelope(envelope);
+      response = sendAndReceiveEnvelope(envelope);
 
       if (response == null) {
-        return;
+        return null;
       }
 
       for (ExceptionMessage message : response.getMessageBundle().getCastedMessageList(ExceptionMessage.class)) {
@@ -468,6 +478,7 @@ abstract public class AbstractSubmitter {
         if (job != null) {
           job.setJobId(message.getJobId());
           job.setState(State.Submitted);
+          job.getRun().setRemoteWorkingDirectoryLog(message.getWorkingDirectory());
           InfoLogMessage.issue(job.getRun(), "was submitted");
         }
       }
@@ -491,6 +502,8 @@ abstract public class AbstractSubmitter {
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
+
+    return response;
   }
 
   public void checkSubmitted() throws FailedToControlRemoteException {
@@ -718,7 +731,7 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { return; }
 
       try {
-        if (isSubmittable(computer, job, submittedJobList)) {
+        if (isSubmittable(computer, job.getRun(), submittedJobList)) {
           if (job.getState().equals(State.Created)) {
             givePenalty = true;
           }
