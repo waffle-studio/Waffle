@@ -12,9 +12,12 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
   public static void processMessages(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {
     for (RequestProcessor processor : new RequestProcessor[]{
       new PutTextFileRequestProcessor(),
+      new SendXsubTemplateRequestProcessor(),
       new CancelJobRequestProcessor(),
       new SubmitJobRequestProcessor(),
-      new CollectStatusRequestProcessor()
+      new SubmitPodTaskRequestProcessor(),
+      new CollectStatusRequestProcessor(),
+      new CollectPodTaskStatusRequestProcessor()
     }) {
       processor.processIfMessagesExist(baseDirectory, request, response);
     }

@@ -92,7 +92,14 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
         for (AbstractJob job : createdJobList) {
           Computer targetComputer = passableComputerList.get(targetHostCursor);
 
-          if (!isSubmittable(targetComputer, job)) {
+          ComputerTask run = null;
+          try {
+            run = job.getRun();
+          } catch (RunNotFoundException e) {
+            continue;
+          }
+
+          if (!isSubmittable(targetComputer, run)) {
             int startOfTargetHostCursor = targetHostCursor;
             targetHostCursor += 1;
             if (targetHostCursor >= passableComputerList.size()) {
@@ -100,10 +107,10 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
             }
             do {
               targetComputer = passableComputerList.get(targetHostCursor);
-            } while (targetHostCursor != startOfTargetHostCursor && !isSubmittable(targetComputer, job));
+            } while (targetHostCursor != startOfTargetHostCursor && !isSubmittable(targetComputer, run));
           }
 
-          if (isSubmittable(targetComputer, job)) {
+          if (isSubmittable(targetComputer, run)) {
             try {
               job.replaceComputer(targetComputer);
             } catch (RunNotFoundException e) {

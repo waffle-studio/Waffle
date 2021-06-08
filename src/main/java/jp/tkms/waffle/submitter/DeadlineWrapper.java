@@ -66,11 +66,6 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
-
-  }
-
-  @Override
   public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     return null;
   }
@@ -86,7 +81,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected boolean isSubmittable(Computer computer, AbstractJob next, ArrayList<AbstractJob> list) {
+  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
       if (new Date().before(deadline)) {
@@ -112,13 +107,13 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
           Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
           if (targetComputer != null) {
             AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-            if (targetSubmitter.isSubmittable(targetComputer, job)) {
-              try {
+            try {
+              if (targetSubmitter.isSubmittable(targetComputer, job.getRun())) {
                 job.replaceComputer(targetComputer);
-              } catch (RunNotFoundException e) {
-                WarnLogMessage.issue(e);
-                job.remove();
               }
+            } catch (RunNotFoundException e) {
+              WarnLogMessage.issue(e);
+              job.remove();
             }
           }
         }

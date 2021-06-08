@@ -61,11 +61,6 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException {
-
-  }
-
-  @Override
   public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     return null;
   }
@@ -155,16 +150,23 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
           continue;
         }
 
+        ComputerTask run = null;
+        try {
+          run = job.getRun();
+        } catch (RunNotFoundException e) {
+          continue;
+        }
+
         int targetHostCursor = 0;
         Computer targetComputer = passableComputerList.get(targetHostCursor);
         AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, job, ExecutableRunJob.getList(targetComputer));
+        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, run, ExecutableRunJob.getList(targetComputer));
 
         targetHostCursor += 1;
         while (targetHostCursor < passableComputerList.size() && !isSubmittable) {
           targetComputer = passableComputerList.get(targetHostCursor);
           targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-          isSubmittable = targetSubmitter.isSubmittable(targetComputer, job, ExecutableRunJob.getList(targetComputer));
+          isSubmittable = targetSubmitter.isSubmittable(targetComputer, run, ExecutableRunJob.getList(targetComputer));
           targetHostCursor += 1;
         }
 

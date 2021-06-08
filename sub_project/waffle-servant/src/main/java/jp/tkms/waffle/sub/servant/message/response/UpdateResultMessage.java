@@ -1,6 +1,7 @@
 package jp.tkms.waffle.sub.servant.message.response;
 
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
+import jp.tkms.waffle.sub.servant.message.request.JobMessage;
 
 public class UpdateResultMessage extends AbstractResponseMessage {
   byte type;
@@ -17,8 +18,8 @@ public class UpdateResultMessage extends AbstractResponseMessage {
     this.value = value;
   }
 
-  public UpdateResultMessage(CollectStatusMessage collectStatusMessage, String key, String value) {
-    this(collectStatusMessage.getType(), collectStatusMessage.getId(), key, value);
+  public UpdateResultMessage(JobMessage jobMessage, String key, String value) {
+    this(jobMessage.getType(), jobMessage.getId(), key, value);
   }
 
   public byte getType() {

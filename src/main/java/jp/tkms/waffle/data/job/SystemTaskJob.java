@@ -14,6 +14,7 @@ import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
 
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class SystemTaskJob extends AbstractJob {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+    //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
   }
 
   @Override
@@ -102,8 +103,8 @@ public class SystemTaskJob extends AbstractJob {
   @Override
   public void replaceComputer(Computer computer) throws RunNotFoundException {
     getRun().setActualComputer(computer);
-    Main.systemTaskStore.remove(getId());
     String jsonString = StringFileUtil.read(getPropertyStorePath());
+    Main.systemTaskStore.remove(getId());
     remove();
     setComputerName(computer);
     StringFileUtil.write(getPropertyStorePath(), jsonString);

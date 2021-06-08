@@ -53,32 +53,34 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
     try {
       JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
       for (CollectStatusMessage message : messageList) {
-        new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
-          response.add(new UpdateResultMessage(message, name, value));
-        });
-        if (jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")) {
-          int exitStatus = -2;
-          try {
-            exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
-          } catch (Exception | Error e) {
-            exitStatus = -1;
-          }
-          if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0) {
-            //(new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
-            response.add(new UpdateStatusMessage(message, exitStatus));
-            response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
-            response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
+        try {
+          new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
+            response.add(new UpdateResultMessage(message, name, value));
+          });
+          if (jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")) {
+            int exitStatus = -2;
+            try {
+              exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
+            } catch (Exception | Error e) {
+              exitStatus = -1;
+            }
+            if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0) {
+              //(new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+              response.add(new UpdateStatusMessage(message, exitStatus));
+              response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
+              response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
+            } else {
+              response.add(new UpdateStatusMessage(message));
+            }
           } else {
             response.add(new UpdateStatusMessage(message));
           }
-        } else {
-          response.add(new UpdateStatusMessage(message));
+        } catch (Exception e) {
+          response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));
         }
       }
     } catch (Exception e) {
-      for (CollectStatusMessage message : messageList) {
-        response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));
-      }
+      e.printStackTrace();
     }
     outputWriter.close();
     container.terminate();

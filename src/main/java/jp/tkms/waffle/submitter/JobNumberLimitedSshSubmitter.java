@@ -180,15 +180,6 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException {
-    try {
-      session.putText(text, path.toString(), getRunDirectory(job.getRun()).toString());
-    } catch (JSchException | FailedToControlRemoteException | RunNotFoundException e) {
-      throw new FailedToTransferFileException(e);
-    }
-  }
-
-  @Override
   boolean exists(Path path) throws FailedToControlRemoteException {
     try {
       return session.exists(path);

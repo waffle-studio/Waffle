@@ -40,16 +40,19 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         if (!executableDirectoryHash.hasHashFile()) {
           executableDirectoryHash.save();
         } else {
-          executableDirectoryHash.update();
-          System.out.println("!!!!! executable files has changed !!!!!");
-          //TODO: notify if hash changed
+          if (executableDirectoryHash.update()) {
+            System.out.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
+            //TODO: notify if hash changed
+          }
         }
       }
+
+      Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
 
       StringWriter outputWriter = new StringWriter();
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
       container.setEnvironment(environments);
-      container.setCurrentDirectory(baseDirectory.resolve(message.getWorkingDirectory()).toString());
+      container.setCurrentDirectory(workingDirectory.toString());
       container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
       container.setOutput(outputWriter);
       container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
@@ -60,7 +63,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       try {
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
         //System.out.println(jsonObject.toString());
-        response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString()));
+        response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString(), workingDirectory));
       } catch (Exception e) {
         //e.printStackTrace();
         response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));

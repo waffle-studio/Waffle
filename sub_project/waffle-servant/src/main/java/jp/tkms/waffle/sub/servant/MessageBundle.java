@@ -96,5 +96,8 @@ public class MessageBundle {
     kryo.register(SendXsubTemplateMessage.class);
     kryo.register(XsubTemplateMessage.class);
     kryo.register(UpdateResultMessage.class);
+    kryo.register(SubmitPodTaskMessage.class);
+    kryo.register(CollectPodTaskStatusMessage.class);
+    kryo.register(PodTaskFinishedMessage.class);
   }
 }
