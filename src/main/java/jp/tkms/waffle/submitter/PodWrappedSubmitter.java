@@ -304,11 +304,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
       result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER));
       if (result.targetComputer != null) {
-        //VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize());
-        //AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, result.targetComputer);
-        result.isNewExecutorCreatable = true;//targetSubmitter.isSubmittable(result.targetComputer, executor);
-        //executor.deleteDirectory();
-        //executor.finish();
+        VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize());
+        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, result.targetComputer);
+        result.isNewExecutorCreatable = targetSubmitter.isSubmittable(result.targetComputer, executor);
+        executor.deleteDirectory();
+        executor.finish();
       }
       /*
       if (runningExecutorList.size() < getComputer().getMaximumNumberOfJobs()) {
