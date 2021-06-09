@@ -17,7 +17,8 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
       new SubmitJobRequestProcessor(),
       new SubmitPodTaskRequestProcessor(),
       new CollectStatusRequestProcessor(),
-      new CollectPodTaskStatusRequestProcessor()
+      new CollectPodTaskStatusRequestProcessor(),
+      new CollectPodStatusRequestProcessor()
     }) {
       processor.processIfMessagesExist(baseDirectory, request, response);
     }

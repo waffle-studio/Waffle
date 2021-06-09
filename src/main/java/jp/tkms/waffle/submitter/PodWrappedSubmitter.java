@@ -23,12 +23,11 @@ import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.sub.servant.Envelope;
-import jp.tkms.waffle.sub.servant.message.request.CollectPodTaskStatusMessage;
-import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
-import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
-import jp.tkms.waffle.sub.servant.message.request.SubmitPodTaskMessage;
+import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.PodTaskFinishedMessage;
+import jp.tkms.waffle.sub.servant.message.response.PodTaskRefusedMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
+import jp.tkms.waffle.sub.servant.message.response.UpdatePodStatusMessage;
 import jp.tkms.waffle.sub.servant.pod.PodTask;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,10 +36,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.TreeMap;
+import java.util.*;
 
 public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTER = "target_computer";
@@ -109,6 +105,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   @Override
   protected Envelope processRequestAndResponse(Envelope envelope) {
+    for (Map.Entry<String, VirtualJobExecutor> entry : jobManager.runningExecutorList.entrySet()) {
+      envelope.add(new CollectPodStatusMessage(entry.getKey(), entry.getValue().getLocalDirectoryPath()));
+    }
+
     Envelope response = super.processRequestAndResponse(envelope);
 
     if (response != null) {
@@ -118,13 +118,31 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
           String executorId = job.getJobId().replaceFirst("\\..*$", "");
           VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
           if (executor == null) {
-            System.out.println(executorId);
             executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
           }
           if (executor != null) {
-            executor.removeFromArrayOfProperty(RUNNING, job.getJobId());
-            executor.jobCache.remove(job.getJobId());
+            executor.removeRunning(job.getJobId());
           }
+        }
+      }
+
+      for (PodTaskRefusedMessage message : response.getMessageBundle().getCastedMessageList(PodTaskRefusedMessage.class)) {
+        String executorId = message.getJobId().replaceFirst("\\..*$", "");
+        VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
+        if (executor == null) {
+          executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
+        }
+        if (executor != null) {
+          executor.removeRunning(message.getJobId());
+        }
+        InfoLogMessage.issue("Pod Task() is refused by the pod; The task will be retried.");
+      }
+
+      for (UpdatePodStatusMessage message : response.getMessageBundle().getCastedMessageList(UpdatePodStatusMessage.class)) {
+        if (message.getState() == UpdatePodStatusMessage.LOCKED) {
+          jobManager.deactivateExecutor(message.getId());
+        } else if (message.getState() == UpdatePodStatusMessage.FINISHED) {
+          jobManager.removeExecutor(message.getId());
         }
       }
     }
@@ -165,8 +183,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   public static class JobManager implements DataDirectory, PropertyFile {
     PodWrappedSubmitter submitter;
-    TreeMap<String, VirtualJobExecutor> runningExecutorList;
-    TreeMap<String, VirtualJobExecutor> activeExecutorList;
+    Map<String, VirtualJobExecutor> runningExecutorList;
+    Map<String, VirtualJobExecutor> activeExecutorList;
     VirtualJobExecutor submittableCache = null;
 
     public JobManager(PodWrappedSubmitter submitter) {
@@ -183,8 +201,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       if (getArrayFromProperty(ACTIVE) == null) {
         putNewArrayToProperty(ACTIVE);
       }
-      runningExecutorList = new TreeMap<>();
-      activeExecutorList = new TreeMap<>();
+      runningExecutorList = new LinkedHashMap<>();
+      activeExecutorList = new LinkedHashMap<>();
       JSONArray runningArray = getArrayFromProperty(RUNNING);
       for (int i = 0; i < runningArray.length(); i++) {
         WaffleId waffleId = WaffleId.valueOf(runningArray.getString(i));
@@ -219,10 +237,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         }
       }
       for (VirtualJobExecutor executor : removingList) {
-        removeFromArrayOfProperty(RUNNING, executor.getId());
-        runningExecutorList.remove(executor.getId());
-        removeFromArrayOfProperty(ACTIVE, executor.getId());
-        activeExecutorList.remove(executor.getId());
+        removeExecutor(executor);
       }
     }
 
@@ -255,9 +270,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
         Path directoryPath = executor.getDirectoryPath();
         if (!directoryPath.toFile().exists() || !executor.isRunning()) {
-          deactivateExecutor(executor);
-          removeFromArrayOfProperty(RUNNING, executor.getId());
-          runningExecutorList.remove(executor.id.getReversedBase36Code());
+          removeExecutor(executor);
           if (directoryPath.toFile().exists()) {
             executor.deleteDirectory();
           }
@@ -274,13 +287,12 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       } else {
         cacheAppliedList.addAll(shuffledList);
       }
+
       for (VirtualJobExecutor executor : cacheAppliedList) {
         Path directoryPath = executor.getDirectoryPath();
         if (!directoryPath.toFile().exists()) {
           //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
-          deactivateExecutor(executor);
-          removeFromArrayOfProperty(RUNNING, executor.getId());
-          runningExecutorList.remove(executor.id.getReversedBase36Code());
+          removeExecutor(executor);
           continue;
         }
         //System.out.println(executor.getId());
@@ -292,7 +304,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         }
         if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
           && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
-          if (executor.isAcceptable(this)) {
+          if (executor.isAcceptable()) {
             result.usableExecutor = executor;
             submittableCache = executor;
             break;
@@ -323,9 +335,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
         Path directoryPath = executor.getDirectoryPath();
         if (!directoryPath.toFile().exists() || !executor.isRunning()) {
-          deactivateExecutor(executor);
-          removeFromArrayOfProperty(RUNNING, executor.getId());
-          runningExecutorList.remove(executor.id.getReversedBase36Code());
+          removeExecutor(executor);
           if (directoryPath.toFile().exists()) {
             executor.deleteDirectory();
           }
@@ -356,9 +366,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         Path directoryPath = executor.getDirectoryPath();
         if (!directoryPath.toFile().exists()) {
           //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
-          deactivateExecutor(executor);
-          removeFromArrayOfProperty(RUNNING, executor.getId());
-          runningExecutorList.remove(executor.id.getReversedBase36Code());
+          removeExecutor(executor);
           continue;
         }
 
@@ -423,18 +431,28 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     void registerExecutor(VirtualJobExecutor executor) {
       putToArrayOfProperty(RUNNING, executor.getId());
-      runningExecutorList.put(executor.id.getReversedBase36Code(), executor);
+      runningExecutorList.put(executor.getId(), executor);
       putToArrayOfProperty(ACTIVE, executor.getId());
-      activeExecutorList.put(executor.id.getReversedBase36Code(), executor);
+      activeExecutorList.put(executor.getId(), executor);
     }
 
     void deactivateExecutor(VirtualJobExecutor executor) {
-      removeFromArrayOfProperty(ACTIVE, executor.getId());
-      activeExecutorList.remove(executor.id.getReversedBase36Code());
+      deactivateExecutor(executor.getId());
     }
 
-    boolean fileExists(Path path) throws FailedToControlRemoteException {
-      return submitter.exists(path);
+    void deactivateExecutor(String id) {
+      removeFromArrayOfProperty(ACTIVE, id);
+      activeExecutorList.remove(id);
+    }
+
+    void removeExecutor(VirtualJobExecutor executor) {
+      removeExecutor(executor.getId());
+    }
+
+    void removeExecutor(String id) {
+      deactivateExecutor(id);
+      removeFromArrayOfProperty(RUNNING, id);
+      runningExecutorList.remove(id);
     }
 
     public Computer getComputer() {
@@ -529,8 +547,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         submitter.chmod(666, getRemoteJobsDirectory().resolve(job.getId().toString()));
         job.setJobId(jobId);
          */
-        job.setState(State.Submitted);
-        putToArrayOfProperty(RUNNING, job.getJobId());
+        putToArrayOfProperty(RUNNING, jobId);
         jobCache.put(jobId, job);
       } catch (Exception e) {
         job.setState(State.Excepted);
@@ -550,7 +567,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public static VirtualJobExecutor getInstance(JobManager jobManager, WaffleId id) {
-      if (getDirectoryPath(jobManager, id).toFile().exists()) {
+      if (id != null && getDirectoryPath(jobManager, id).toFile().exists()) {
         VirtualJobExecutor run = null;
         try {
           run = (VirtualJobExecutor) SystemTaskRun.getInstance(getLocalDirectoryPath(jobManager, id).toString());
@@ -623,19 +640,18 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
        */
     }
 
-    public boolean isAcceptable(JobManager jobManager) {
+    public void removeRunning(String jobId) {
+      removeFromArrayOfProperty(RUNNING, jobId);
+      jobCache.remove(jobId);
+    }
+
+    public boolean isAcceptable() {
       switch (getState()) {
         case Created:
         case Prepared:
         case Submitted:
         case Running:
-          try {
-            if (!jobManager.submitter.isConnected() || !jobManager.fileExists(getRemoteLockoutFilePath())) {
-              return true;
-            }
-          } catch (FailedToControlRemoteException e) {
-            ErrorLogMessage.issue(e);
-          }
+          return true;
       }
       return false;
     }

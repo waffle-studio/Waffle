@@ -19,6 +19,9 @@ public abstract class AbstractExecutor {
   public static final Path JOBS_PATH = BASE_PATH.resolve("JOBS");
   public static final Path ENTITIES_PATH = BASE_PATH.resolve("ENTITIES");
   public static final Path ALIVE_NOTIFIER_PATH = BASE_PATH.resolve("ALIVE_NOTIFIER");
+  public static final Path UPDATE_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("UPDATE");
+  public static final Path PREVIOUS_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("PREVIOUS");
+  public static final Path PREVIOUS_CHECK_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("PREVIOUS_CHECK");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
 
   //private WatchService fileWatchService = null;
@@ -34,39 +37,54 @@ public abstract class AbstractExecutor {
     public void run() {
       try {
         Files.createDirectories(ALIVE_NOTIFIER_PATH);
-        for (File file : ALIVE_NOTIFIER_PATH.toFile().listFiles()) {
-          if (file.isFile()) {
-            file.delete();
-          }
-        }
       } catch (IOException e) {
         e.printStackTrace();
       }
-      long previous = update(null);
       while (true) {
         try {
           sleep(1000);
-          previous = update(previous);
+          try {
+            Files.writeString(UPDATE_FILE_PATH, String.valueOf(System.currentTimeMillis()));
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
         } catch (InterruptedException e) {
-          ALIVE_NOTIFIER_PATH.resolve(String.valueOf(previous)).toFile().delete();
           return;
         }
       }
     }
-
-    private long update(Long previous) {
-      Long current = System.currentTimeMillis();
-      try {
-        if (previous != null) {
-          ALIVE_NOTIFIER_PATH.resolve(previous.toString()).toFile().delete();
-        }
-        ALIVE_NOTIFIER_PATH.resolve(current.toString()).toFile().createNewFile();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      return current;
-    }
   };
+
+  public static boolean isAlive(Path directory) {
+    Path updateFile = directory.resolve(UPDATE_FILE_PATH);
+    Path previousFile = directory.resolve(PREVIOUS_FILE_PATH);
+    Path previousCheckTimeFile = directory.resolve(PREVIOUS_CHECK_FILE_PATH);
+
+    try {
+      if (!Files.exists(previousCheckTimeFile)) {
+        Files.createDirectories(previousCheckTimeFile.getParent());
+        Files.writeString(previousCheckTimeFile, String.valueOf(System.currentTimeMillis()));
+        return true;
+      } else if (System.currentTimeMillis() -2000 <= Long.valueOf(Files.readString(previousCheckTimeFile))) {
+        return true;
+      } else if (!Files.exists(updateFile)) {
+        return false;
+      } else if (Files.exists(previousFile)) {
+        if (Files.readString(updateFile).equals(Files.readString(previousFile))) {
+          return false;
+        } else {
+          Files.writeString(previousFile, Files.readString(updateFile));
+          return true;
+        }
+      } else {
+        Files.createDirectories(previousFile.getParent());
+        Files.writeString(previousFile, Files.readString(updateFile));
+      }
+    } catch (IOException e) {
+      return false;
+    }
+    return false;
+  }
 
   public AbstractExecutor(int timeout, int marginTime) throws IOException {
     isAlive = true;

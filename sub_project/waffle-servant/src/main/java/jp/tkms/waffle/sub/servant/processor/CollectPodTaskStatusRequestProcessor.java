@@ -25,9 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 
 public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<CollectPodTaskStatusMessage> {
-  public static final String XSUB_TYPE = "XSUB_TYPE";
-  public static final String NONE = "None";
-
   protected CollectPodTaskStatusRequestProcessor() {
   }
 

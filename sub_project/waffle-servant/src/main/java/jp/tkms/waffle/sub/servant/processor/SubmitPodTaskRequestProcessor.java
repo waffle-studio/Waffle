@@ -8,6 +8,7 @@ import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitPodTaskMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
+import jp.tkms.waffle.sub.servant.message.response.PodTaskRefusedMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import jp.tkms.waffle.sub.servant.pod.AbstractExecutor;
 import org.jruby.embed.LocalContextScope;
@@ -30,6 +31,13 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<SubmitPodTaskMessage> messageList) throws ClassNotFoundException, IOException {
     for (SubmitPodTaskMessage message : messageList) {
+      Path podPath = baseDirectory.resolve(message.getPodDirectory());
+
+      if (!Files.exists(podPath.resolve(AbstractExecutor.UPDATE_FILE_PATH)) || Files.exists(podPath.resolve(AbstractExecutor.LOCKOUT_FILE_PATH))) {
+        response.add(new PodTaskRefusedMessage(message.getJobId()));
+        continue;
+      }
+
       if (message.getExecutableDirectory() != null) {
         DirectoryHash executableDirectoryHash = new DirectoryHash(baseDirectory, message.getExecutableDirectory(), false);
         if (!executableDirectoryHash.hasHashFile()) {
@@ -46,7 +54,6 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
       new DirectoryHash(baseDirectory, workingDirectory).save();
 
       try {
-        Path podPath = baseDirectory.resolve(message.getPodDirectory());
         Path jobsDirectory = podPath.resolve(AbstractExecutor.JOBS_PATH);
         Path entitiesDirectory = podPath.resolve(AbstractExecutor.ENTITIES_PATH);
 

@@ -83,6 +83,7 @@ public class MessageBundle {
     kryo.register(java.util.HashMap.class);
     kryo.register(Class.class);
     kryo.register(ArrayList.class);
+    kryo.register(HashMap.class);
     kryo.register(ExceptionMessage.class);
     kryo.register(PutTextFileMessage.class);
     kryo.register(JobMessage.class);
@@ -99,5 +100,8 @@ public class MessageBundle {
     kryo.register(SubmitPodTaskMessage.class);
     kryo.register(CollectPodTaskStatusMessage.class);
     kryo.register(PodTaskFinishedMessage.class);
+    kryo.register(CollectPodStatusMessage.class);
+    kryo.register(UpdatePodStatusMessage.class);
+    kryo.register(PodTaskRefusedMessage.class);
   }
 }
