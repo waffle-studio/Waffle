@@ -373,7 +373,7 @@ abstract public class AbstractSubmitter {
   }
 
   protected boolean isSubmittable(Computer computer, ComputerTask next) {
-    return isSubmittable(computer, next, getJobList(PollingThread.Mode.Normal, computer));
+    return isSubmittable(computer, next, getJobList(PollingThread.Mode.Normal, computer), getJobList(PollingThread.Mode.System, computer));
   }
 
   protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<AbstractJob>... lists) {

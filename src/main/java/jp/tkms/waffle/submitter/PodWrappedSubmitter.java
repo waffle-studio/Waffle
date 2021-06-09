@@ -135,7 +135,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         if (executor != null) {
           executor.removeRunning(message.getJobId());
         }
-        InfoLogMessage.issue("Pod Task() is refused by the pod; The task will be retried.");
+        InfoLogMessage.issue("PodTask(" + message.getJobId() + ") is refused by the pod; The task will be retried.");
       }
 
       for (UpdatePodStatusMessage message : response.getMessageBundle().getCastedMessageList(UpdatePodStatusMessage.class)) {
