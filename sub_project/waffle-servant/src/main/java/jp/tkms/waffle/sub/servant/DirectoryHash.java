@@ -5,14 +5,23 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class DirectoryHash {
+  public static final Path[] DEFAULT_TARGET = new Path[]{
+    Paths.get(Constants.BASE),
+    Paths.get(Constants.EXIT_STATUS_FILE),
+    Paths.get(Constants.STDOUT_FILE),
+    Paths.get(Constants.STDERR_FILE)
+  };
+
   public static final String HASH_FILE = ".WAFFLE_HASH";
   public static final String IGNORE_FLAG = ".WAFFLE_HASH_IGNORE";
   private static final String SEPARATOR = ":";
@@ -47,7 +56,11 @@ public class DirectoryHash {
 
   public void calculate() {
     TreeSet<String> fileSet = new TreeSet<>();
-    collectFilesStatusTo(fileSet, directoryPath);
+    ArrayList<Path> targetList = new ArrayList<>();
+    for (Path target : DEFAULT_TARGET) {
+      targetList.add(directoryPath.resolve(target));
+    }
+    collectFilesStatusTo(fileSet, targetList.toArray(new Path[targetList.size()]));
     StringBuilder chainedStatus = new StringBuilder();
     for (String s : fileSet) {
       chainedStatus.append(s);
@@ -62,7 +75,25 @@ public class DirectoryHash {
     }
   }
 
-  public void collectFilesStatusTo(TreeSet<String> fileSet, Path target) {
+  void collectFilesStatusTo(TreeSet<String> fileSet, Path... targets) {
+    for (Path p : targets) {
+      if (Files.exists(p)) {
+        if (Files.isSymbolicLink(p)) {
+          // NOP
+        } else if (Files.isDirectory(p)) {
+          collectDirectoryStatusTo(fileSet, p);
+        } else if (!p.toFile().getName().equals(HASH_FILE) && !p.toFile().getName().endsWith(IGNORE_FLAG)) {
+          try {
+            fileSet.add(baseDirectory.relativize(p).normalize().toString() + SEPARATOR + Files.size(p));
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+  }
+
+  void collectDirectoryStatusTo(TreeSet<String> fileSet, Path target) {
     boolean hasIgnoreFlag = false;
     try (Stream<Path> stream = Files.list(target)) {
       hasIgnoreFlag = !stream.noneMatch(p -> p.getFileName().toString().equals(IGNORE_FLAG));
@@ -73,17 +104,7 @@ public class DirectoryHash {
     if (!hasIgnoreFlag) {
       try (Stream<Path> stream = Files.list(target)) {
         stream.forEach(p -> {
-          if (Files.isSymbolicLink(p)) {
-            // NOP
-          } else if (Files.isDirectory(p)) {
-            collectFilesStatusTo(fileSet, p);
-          } else if (!p.toFile().getName().equals(HASH_FILE) && !p.toFile().getName().endsWith(IGNORE_FLAG)) {
-            try {
-              fileSet.add(baseDirectory.relativize(p).normalize().toString() + SEPARATOR + Files.size(p));
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-          }
+          collectFilesStatusTo(fileSet, p);
         });
       } catch (IOException e) {
         e.printStackTrace();

@@ -53,6 +53,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
   public static final String KEY_ADDITIONAL_PREPARE_COMMAND = "additional_preparation_command";
+  private static final String KEY_EMPTY_TIMEOUT = "empty_timeout";
+  private static final String KEY_FORCE_SHUTDOWN = "force_shutdown";
+  private static final String KEY_SHUTDOWN_PREPARATION_MARGIN = "shutdown_preparation_margin";
 
   //private static final InstanceCache<String, Boolean> existsCheckCache = new InstanceCache<>();
 
@@ -245,7 +248,12 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       Submittable submittable = getSubmittable(next.getRun());
       VirtualJobExecutor result = submittable.usableExecutor;
       if (result == null && submittable.isNewExecutorCreatable) {
-        SystemTaskJob executorJob = SystemTaskJob.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize()));
+        SystemTaskJob executorJob = SystemTaskJob.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(),
+          true,
+          Integer.parseInt(submitter.computer.getParameter(KEY_EMPTY_TIMEOUT).toString()),
+          Integer.parseInt(submitter.computer.getParameter(KEY_FORCE_SHUTDOWN).toString()),
+          Integer.parseInt(submitter.computer.getParameter(KEY_SHUTDOWN_PREPARATION_MARGIN).toString())
+        ));
         executorJob.replaceComputer(submitter.targetSubmitter.computer);
         result = (VirtualJobExecutor) executorJob.getRun();
         registerExecutor(result);
@@ -316,7 +324,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
       result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER));
       if (result.targetComputer != null) {
-        VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize());
+        VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(), true,  0, 0, 0);
         AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, result.targetComputer);
         result.isNewExecutorCreatable = targetSubmitter.isSubmittable(result.targetComputer, executor);
         executor.deleteDirectory();
@@ -579,14 +587,14 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       return null;
     }
 
-    public static VirtualJobExecutor create(JobManager jobManager, double threadSize, double memorySize) {
+    public static VirtualJobExecutor create(JobManager jobManager, double threadSize, double memorySize, boolean isLocal, int emptyTimeout, int forceShutdownTime, int shutdownPreparationTime) {
       WaffleId id = WaffleId.newId();
       VirtualJobExecutor executor = new VirtualJobExecutor(getDirectoryPath(jobManager, id));
       executor.setCommand(PodTask.PODTASK);
-      executor.addArgument(true);
-      executor.addArgument(120);
-      executor.addArgument(259100);
-      executor.addArgument(3600);
+      executor.addArgument(isLocal);
+      executor.addArgument(emptyTimeout);
+      executor.addArgument(forceShutdownTime);
+      executor.addArgument(shutdownPreparationTime);
       executor.setBinPath(null);
       executor.setRequiredThread(threadSize);
       executor.setRequiredMemory(memorySize);
@@ -721,6 +729,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
      */
   }
 
+  @Override
+  public String getJvmActivationCommand() {
+    return targetSubmitter.getJvmActivationCommand();
+  }
 
   @Override
   public AbstractSubmitter connect(boolean retry) {
@@ -788,6 +800,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public JSONObject getDefaultParameters(Computer computer) {
     JSONObject jsonObject = new JSONObject();
     jsonObject.put(KEY_TARGET_COMPUTER, "LOCAL");
+    jsonObject.put(KEY_EMPTY_TIMEOUT, 120);
+    jsonObject.put(KEY_FORCE_SHUTDOWN, 21500);
+    jsonObject.put(KEY_SHUTDOWN_PREPARATION_MARGIN, 3600);
     return jsonObject;
   }
 }

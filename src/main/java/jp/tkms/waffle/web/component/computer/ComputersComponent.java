@@ -19,6 +19,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   public static final String COMPUTER = "Computer";
 
   private static final String KEY_WORKBASE = "work_base_dir";
+  private static final String KEY_JVM_ACTIVATION_COMMAND = "jvm_activation_command";
   private static final String KEY_POLLING = "polling_interval";
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
@@ -255,6 +256,8 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               Lte.readonlyTextInput("Submitter Type", computer.getSubmitterType()),
               Lte.formInputGroup("text", KEY_WORKBASE,
                 "Work base directory on the computer", "", computer.getWorkBaseDirectory(), errors),
+              Lte.formInputGroup("text", KEY_JVM_ACTIVATION_COMMAND,
+                "Java virtual machine activation command", "", computer.getJvmActivationCommand(), errors),
               Lte.formInputGroup("text", KEY_MAX_THREADS,
                 "Maximum number of threads", "", computer.getMaximumNumberOfThreads().toString(), errors),
               Lte.formInputGroup("text", KEY_ALLOCABLE_MEMORY,
@@ -277,6 +280,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
 
   private void updateComputer() {
     computer.setWorkBaseDirectory(request.queryParams(KEY_WORKBASE));
+    computer.setJvmActivationCommand(request.queryParams(KEY_JVM_ACTIVATION_COMMAND));
     computer.setMaximumNumberOfThreads(Double.parseDouble(request.queryParams(KEY_MAX_THREADS)));
     computer.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));
     computer.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_NUMBER_OF_CALCULATION_NODE)));

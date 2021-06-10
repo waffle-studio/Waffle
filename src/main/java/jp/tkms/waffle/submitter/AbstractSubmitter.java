@@ -141,8 +141,15 @@ abstract public class AbstractSubmitter {
       submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
       Files.delete(tmpFile);
 
-      System.out.print(submitter.exec("java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '" + getWaffleServantPath(submitter, submitter.computer)
-        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'"));
+      String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replaceAll("\"", "\\\"");
+      if (!jvmActivationCommand.trim().equals("")) {
+        jvmActivationCommand += ";";
+      }
+
+      System.out.print(submitter.exec("sh -c \"" + jvmActivationCommand
+        + "java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '"
+        + getWaffleServantPath(submitter, submitter.computer)
+        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'\""));
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
       submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
       submitter.deleteFile(remoteResponsePath);
@@ -222,9 +229,14 @@ abstract public class AbstractSubmitter {
         //putText(job, TASK_JSON, taskJson.toString());
         envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(TASK_JSON), taskJson.toString()));
 
+        String jvmActivationCommand = getJvmActivationCommand().replaceAll("\"", "\\\"");
+        if (!jvmActivationCommand.trim().equals("")) {
+          jvmActivationCommand += ";";
+        }
         //putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer) + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
-        envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(BATCH_FILE), "java -jar '" + getWaffleServantPath()
-          + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
+        envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(BATCH_FILE),
+          "sh -c \"" + jvmActivationCommand + "java -jar '" + getWaffleServantPath()
+          + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'\""));
         //+ "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
 
         Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
@@ -238,6 +250,10 @@ abstract public class AbstractSubmitter {
         InfoLogMessage.issue(job.getRun(), "was prepared");
       }
     }
+  }
+
+  public String getJvmActivationCommand() {
+    return computer.getJvmActivationCommand();
   }
 
   public Path getWorkBaseDirectory() {

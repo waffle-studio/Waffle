@@ -45,6 +45,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_STATE = "state";
   private static final String KEY_ENVIRONMENTS = "environments";
   private static final String KEY_MESSAGE = "message";
+  private static final String KEY_JVM_ACTIVATION_COMMAND = "jvm_activation_commnad";
   private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
   private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
 
@@ -63,6 +64,7 @@ public class Computer implements DataDirectory, PropertyFile {
   private String name;
   private String submitterType = null;
   private String workBaseDirectory = null;
+  private String jvmActivationCommand = null;
   private SecretKeySpec encryptKey = null;
   private Integer pollingInterval = null;
   private Double maximumNumberOfThreads = null;
@@ -362,6 +364,22 @@ public class Computer implements DataDirectory, PropertyFile {
     return directorySeparetor;
   }
    */
+
+  public String getJvmActivationCommand() {
+    synchronized (this) {
+      if (jvmActivationCommand == null) {
+        jvmActivationCommand = getStringFromProperty(KEY_JVM_ACTIVATION_COMMAND, "");
+      }
+    }
+    return jvmActivationCommand;
+  }
+
+  public void setJvmActivationCommand(String jvmActivationCommand) {
+    synchronized (this) {
+      setToProperty(KEY_JVM_ACTIVATION_COMMAND, jvmActivationCommand);
+      this.jvmActivationCommand = jvmActivationCommand;
+    }
+  }
 
   public Integer getPollingInterval() {
     synchronized (this) {
