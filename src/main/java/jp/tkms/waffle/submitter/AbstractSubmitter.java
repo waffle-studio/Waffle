@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 abstract public class AbstractSubmitter {
@@ -47,7 +48,7 @@ abstract public class AbstractSubmitter {
   boolean isRunning = false;
   Computer computer;
   private int pollingInterval = 5;
-  private int preparingNumber = 1;
+  //private int preparingNumber = 1;
   private PollingThread.Mode mode;
 
   //ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
@@ -741,16 +742,19 @@ abstract public class AbstractSubmitter {
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
 
-    boolean givePenalty = false;
+    createdJobList.stream().parallel().forEach((job)->{
+      try {
+        prepareJob(envelope, job);
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
+    });
 
     for (AbstractJob job : queuedJobList) {
       if (Main.hibernateFlag) { return; }
 
       try {
         if (isSubmittable(computer, job.getRun(), submittedJobList)) {
-          if (job.getState().equals(State.Created)) {
-            givePenalty = true;
-          }
           submit(envelope, job);
           submittedJobList.add(job);
           //createdProcessorManager.startup();
@@ -764,6 +768,8 @@ abstract public class AbstractSubmitter {
       }
     }
 
+
+    /*
     if (givePenalty) {
       preparingNumber += 1;
     }
@@ -787,6 +793,7 @@ abstract public class AbstractSubmitter {
 
       preparedCount += 1;
     }
+     */
   }
 
   class FinishedProcessor extends Thread {

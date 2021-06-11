@@ -36,14 +36,20 @@ public class Envelope {
   }
 
   public void add(AbstractMessage message) {
-    messageBundle.add(message);
+    synchronized (messageBundle) {
+      messageBundle.add(message);
+    }
   }
 
   public void add(Path path) {
     if (path.isAbsolute()) {
-      filePathList.add(baseDirectory.relativize(path).normalize());
+      synchronized (filePathList) {
+        filePathList.add(baseDirectory.relativize(path).normalize());
+      }
     } else {
-      filePathList.add(path);
+      synchronized (filePathList) {
+        filePathList.add(path);
+      }
     }
   }
 

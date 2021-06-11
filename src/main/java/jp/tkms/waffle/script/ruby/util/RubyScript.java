@@ -15,8 +15,6 @@ import java.util.function.Consumer;
 
 public class RubyScript {
   private static Integer runningCount = 0;
-  private static ConcurrentLinkedDeque<ScriptingContainer> containersQueue = new ConcurrentLinkedDeque<>();
-  private static ConcurrentLinkedDeque<Long> containersTimestampQueue = new ConcurrentLinkedDeque<>();
 
   public static boolean hasRunning() {
     synchronized (runningCount) {
@@ -24,51 +22,15 @@ public class RubyScript {
     }
   }
 
-  private static ScriptingContainer getScriptingContainer() {
-    ScriptingContainer scriptingContainer = null;
-    synchronized (containersTimestampQueue) {
-      scriptingContainer = containersQueue.pollLast();
-      containersTimestampQueue.pollLast();
-    }
-    if (scriptingContainer != null) {
-      return scriptingContainer;
-    }
-    //return new ScriptingContainer(LocalContextScope.THREADSAFE);
-    return new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-  }
-
-  private static void releaseScriptingContainer(ScriptingContainer scriptingContainer) {
-    scriptingContainer.clear();
-    synchronized (containersTimestampQueue) {
-      containersQueue.offerLast(scriptingContainer);
-      containersTimestampQueue.offerLast(System.currentTimeMillis());
-      reduceContainerCache();
-    }
-  }
-
-  public static void reduceContainerCache() {
-    synchronized (containersTimestampQueue) {
-      if (containersTimestampQueue.size() > 0) {
-        try {
-          while (containersTimestampQueue.peekFirst() + 10000 < System.currentTimeMillis()) {
-            ScriptingContainer container = containersQueue.pollFirst();
-            containersTimestampQueue.pollFirst();
-            container.terminate();
-          }
-        } catch (Exception e) {}
-      }
-    }
-  }
-
   public static void process(Consumer<ScriptingContainer> process) {
     ScriptingContainerWrapper wrapper = new ScriptingContainerWrapper(process);
     wrapper.start();
-    synchronized (wrapper) {
-      try {
+    try {
+      synchronized (wrapper) {
         wrapper.wait();
-      } catch (InterruptedException e) {
-        ErrorLogMessage.issue(e);
       }
+    } catch (InterruptedException e) {
+      ErrorLogMessage.issue(e);
     }
 
     /*
@@ -105,12 +67,13 @@ public class RubyScript {
   }
 
   public static String debugReport() {
-    return RubyScript.class.getSimpleName() + " : cacheSize=" + containersQueue.size() + ", runningCount=" + runningCount;
+    return RubyScript.class.getSimpleName() + " : runningCount=" + runningCount;
   }
 
   public static String getInitScript() {
     return ResourceFile.getContents("/ruby_init.rb");
   }
+
 
   static class ScriptingContainerWrapper extends Thread {
     Consumer<ScriptingContainer> process;
@@ -128,7 +91,7 @@ public class RubyScript {
           runningCount += 1;
         }
         failed = false;
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
         try {
           try {
             container.runScriptlet(getInitScript());

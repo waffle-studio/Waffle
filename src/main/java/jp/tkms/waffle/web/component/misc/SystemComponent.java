@@ -72,10 +72,6 @@ public class SystemComponent extends AbstractAccessControlledComponent {
         redirectToReferer();
         Main.update();
       break;
-      case ReduceRubyContainerCache:
-        redirectToReferer();
-        RubyScript.reduceContainerCache();
-        break;
       case DebugReport:
         renderDebugReport();
         break;
