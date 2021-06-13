@@ -135,6 +135,14 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     throw new RunNotFoundException();
   }
 
+  public static ExecutableRun find(String localPathString) {
+    try {
+      return getInstance(localPathString);
+    } catch (RunNotFoundException e) {
+      return null;
+    }
+  }
+
   @Override
   public void start() {
     if (started()) {
