@@ -24,10 +24,7 @@ import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.*;
-import jp.tkms.waffle.sub.servant.message.response.PodTaskFinishedMessage;
-import jp.tkms.waffle.sub.servant.message.response.PodTaskRefusedMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdatePodStatusMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import jp.tkms.waffle.sub.servant.pod.PodTask;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -141,6 +138,25 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         InfoLogMessage.issue("PodTask(" + message.getJobId() + ") is refused by the pod; The task will be retried.");
       }
 
+      for (PodTaskCanceledMessage message : response.getMessageBundle().getCastedMessageList(PodTaskCanceledMessage.class)) {
+        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          try {
+            job.setState(State.Canceled);
+          } catch (RunNotFoundException e) {
+            WarnLogMessage.issue(e);
+          }
+          String executorId = job.getJobId().replaceFirst("\\..*$", "");
+          VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
+          if (executor == null) {
+            executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
+          }
+          if (executor != null) {
+            executor.removeRunning(job.getJobId());
+          }
+        }
+      }
+
       for (UpdatePodStatusMessage message : response.getMessageBundle().getCastedMessageList(UpdatePodStatusMessage.class)) {
         if (message.getState() == UpdatePodStatusMessage.LOCKED) {
           jobManager.deactivateExecutor(message.getId());
@@ -170,9 +186,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   @Override
   public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
-    job.setState(State.Canceled);
-    if (! (job.getJobId().equals("-1") || job.getJobId().equals("") )) {
-      jobManager.removeJob(job);
+    if (jobManager.removeJob(envelope, job)) {
+      job.setState(State.Canceled);
     }
   }
 
@@ -428,13 +443,14 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       return false;
     }
 
-    void removeJob(AbstractJob job) throws RunNotFoundException {
+    boolean removeJob(Envelope envelope, AbstractJob job) throws RunNotFoundException {
       for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
         if (executor.getRunningList().contains(job)) {
-          executor.cancel(submitter, job);
-          break;
+          executor.cancel(envelope, job);
+          return false;
         }
       }
+      return true;
     }
 
     void registerExecutor(VirtualJobExecutor executor) {
@@ -562,12 +578,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
     }
 
-    public void cancel(AbstractSubmitter submitter, AbstractJob job) throws RunNotFoundException {
-      try {
-        submitter.deleteFile(getRemoteJobsDirectory().resolve(job.getId().toString()));
-      } catch (FailedToControlRemoteException e) {
-        job.setState(State.Excepted);
-      }
+    public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+      Path podDirectory = getComputer().getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
+      envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalDirectoryPath()));
     }
 
     String getId() {
@@ -639,13 +652,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     @Override
     public void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException {
-      /*
       try {
-        submitter.exec("rm -rf '" + getRemoteBaseDirectory().toString() + "'");
+        submitter.exec("rm -rf '" + getRemoteBaseDirectory().getParent().toString() + "'");
       } catch (FailedToControlRemoteException e) {
         ErrorLogMessage.issue(e);
       }
-       */
     }
 
     public void removeRunning(String jobId) {

@@ -14,6 +14,7 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
       new PutTextFileRequestProcessor(),
       new SendXsubTemplateRequestProcessor(),
       new CancelJobRequestProcessor(),
+      new CancelPodTaskRequestProcessor(),
       new SubmitJobRequestProcessor(),
       new SubmitPodTaskRequestProcessor(),
       new CollectStatusRequestProcessor(),

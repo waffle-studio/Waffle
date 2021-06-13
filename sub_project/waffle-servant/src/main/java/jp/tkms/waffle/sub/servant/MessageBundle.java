@@ -103,5 +103,7 @@ public class MessageBundle {
     kryo.register(CollectPodStatusMessage.class);
     kryo.register(UpdatePodStatusMessage.class);
     kryo.register(PodTaskRefusedMessage.class);
+    kryo.register(CancelPodTaskMessage.class);
+    kryo.register(PodTaskCanceledMessage.class);
   }
 }
