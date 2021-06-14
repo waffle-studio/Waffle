@@ -194,6 +194,8 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
+
+        String scriptLog = workspace.getScriptLog();
         /*
         if (executableList.size() <= 0) {
           return Lte.card(null, null,
@@ -296,7 +298,19 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                 })
                 , null, "card-danger card-outline", "p-0")
             )
-          ));
+            )/*,
+            Lte.divRow(
+              Html.section("col-lg-12",
+                Lte.card(Html.fasIcon("sticky-note") + "Script Log", null,
+                  (scriptLog.equals("") ?
+                    Html.element("div",
+                      new Html.Attributes(Html.value("style", "text-align:center;color:silver;")), Html.fasIcon("receipt") + "Empty")
+                    : Lte.readonlyTextAreaGroup("log", null, workspace.getScriptLog()) )
+                  , null, "card-secondary card-outline", null)
+              )
+            )
+            */
+          );
       }
     }.render(this);
   }

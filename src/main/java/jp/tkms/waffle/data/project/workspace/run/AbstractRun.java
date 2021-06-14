@@ -13,7 +13,6 @@ import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONArray;
@@ -33,7 +32,7 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
   public static final String KEY_ERROR_NOTE_TXT = "ERROR_NOTE.txt";
   protected static final String KEY_CLASS = "class";
   protected static final String KEY_NORMAL_FINALIZER = "normal_finalizer";
-  protected static final String KEY_FAULT_FINALIZER = "normal_finalizer";
+  protected static final String KEY_FAULT_FINALIZER = "fault_finalizer";
   protected static final String KEY_APPEAL_HANDLER = "appeal_handler";
   protected static final String KEY_PARENT_RUN = "parent_run";
   protected static final String KEY_CHILDREN_RUN = "children_run";
@@ -173,6 +172,62 @@ abstract public class AbstractRun extends WorkspaceData implements DataDirectory
       ErrorLogMessage.issue(this.getId() + " : not specified responsible run (" + getStringFromProperty(KEY_RESPONSIBLE_RUN) + ")");
     }
     return responsible;
+  }
+
+  protected ProcedureRun createHandler(String key) {
+    ArchivedConductor conductor = getOwner().getConductor();
+    String procedureName = null;
+    String procedureKey = null;
+
+    if (key.equals(Conductor.MAIN_PROCEDURE_ALIAS)) {
+      procedureName = conductor.getMainProcedureScriptPath().getFileName().toString();
+      procedureKey = Conductor.MAIN_PROCEDURE_ALIAS;
+    } else {
+      List<String> childProcedureNameList = conductor.getChildProcedureNameList();
+
+      if (childProcedureNameList.contains(key)) {
+        procedureName = key;
+      } else {
+        for (String ext : ScriptProcessor.CLASS_NAME_MAP.keySet()) {
+          String candidate = key + ext;
+          if (childProcedureNameList.contains(candidate)) {
+            procedureName = candidate;
+            procedureKey = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    return ProcedureRun.create(getParent(), procedureName.replaceFirst("\\..*?$", ""), conductor, procedureKey);
+  }
+
+  public String getAppealHandler() {
+    return getStringFromProperty(KEY_APPEAL_HANDLER, null);
+  }
+
+  public void setAppealHandler(String key) {
+    ProcedureRun handlerRun = createHandler(key);
+    setToProperty(KEY_APPEAL_HANDLER, handlerRun.getLocalDirectoryPath().toString());
+  }
+
+  public boolean processAppealHandler(AbstractRun appealer, String message) {
+    String handlerName = getAppealHandler();
+    if (handlerName != null) {
+      ProcedureRun handler = ProcedureRun.getInstance(getWorkspace(), handlerName);
+      handler.updateResponsible();
+      handler.startHandler(ScriptProcessor.ProcedureMode.APPEALED, this, new ArrayList<>(Arrays.asList(appealer, message)));
+      return true;
+    }
+    return false;
+  }
+
+  public boolean appeal(String message) {
+    AbstractRun responsible = getResponsible();
+    if (responsible != null) {
+      return responsible.processAppealHandler(this, message);
+    }
+    return false;
   }
 
   public ArrayList<ExecutableRun> getChildrenExecutableRunList() {

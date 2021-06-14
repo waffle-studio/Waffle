@@ -32,7 +32,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
         } else if (mode.equals(ProcedureMode.RESULT_UPDATED)) {
           container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_result_updated", run, caller, arguments.get(0), arguments.get(1));
         } else if (mode.equals(ProcedureMode.APPEALED)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, caller, arguments.get(0));
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, caller, arguments.get(0), arguments.get(1));
         }
     } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);
@@ -53,7 +53,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
       "def procedure_when_result_updated(caller, name, value)\n" +
       "end\n" +
       "\n" +
-      "def procedure_when_appealed(this, caller, message)\n" +
+      "def procedure_when_appealed(this, caller, appealer, message)\n" +
       "end\n";
   }
 

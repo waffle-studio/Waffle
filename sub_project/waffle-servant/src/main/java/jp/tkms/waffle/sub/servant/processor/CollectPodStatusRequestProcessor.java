@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.stream.Stream;
 
 public class CollectPodStatusRequestProcessor extends RequestProcessor<CollectPodStatusMessage> {
   protected CollectPodStatusRequestProcessor() {
@@ -27,6 +28,7 @@ public class CollectPodStatusRequestProcessor extends RequestProcessor<CollectPo
         if (AbstractExecutor.isAlive(baseDirectory.resolve(message.getDirectory()))) {
           response.add(new UpdatePodStatusMessage(message.getId(), UpdatePodStatusMessage.LOCKED));
         } else {
+          AbstractExecutor.removeAllJob(baseDirectory.resolve(message.getDirectory()));
           response.add(new UpdatePodStatusMessage(message.getId(), UpdatePodStatusMessage.FINISHED));
         }
       } else {

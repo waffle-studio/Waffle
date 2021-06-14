@@ -102,12 +102,10 @@ task copyFilesToResource(dependsOn: buildServant) {
 
 task updateVersionFile {
 	String versionFile = 'build/resources/main/version.txt'
-	if (file(versionFile).exists()) {
-		file(versionFile).delete()
-	}
-	if (file(versionFile).getParentFile().exists()) {
-		new File(versionFile).text = "${buildVersion}"
-	}
+
+	mkdir(file(versionFile).getParentFile().toString())
+	new File(versionFile).text = "${buildVersion}"
+
 	/*
 	filesMatching("version.txt") {
 		filter(ReplaceTokens, tokens: ['build_version': buildVersion])
@@ -148,8 +146,9 @@ task createXsubArchive(type: Zip, dependsOn: createXsub) {
 }
  */
 
-assemble.dependsOn(updateVersionFile, copyFilesToResource, jar)//, createXsubArchive)
-compileJava.dependsOn(updateVersionFile, copyFilesToResource)//, createXsubArchive)
+classes.dependsOn(updateVersionFile, copyFilesToResource)
+updateVersionFile.mustRunAfter(processResources)
+copyFilesToResource.mustRunAfter(processResources)
 
 task runJar(type: Exec, dependsOn: build) {
 	executable "java"

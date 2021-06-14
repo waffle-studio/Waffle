@@ -10,6 +10,7 @@ import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.InstanceCache;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -23,6 +24,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public static final String JSON_FILE = WORKSPACE + Constants.EXT_JSON;
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
   public static final String ARCHIVE = ".ARCHIVE";
+  public static final String SCRIPT_LOG_FILE = "SCRIPT_LOG.txt";
 
   private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
 
@@ -37,6 +39,14 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
 
   public String getName() {
     return name;
+  }
+
+  public String getScriptLog() {
+    return StringFileUtil.read(getDirectoryPath().resolve(SCRIPT_LOG_FILE));
+  }
+
+  public void appendScriptLog(String value) {
+    StringFileUtil.append(getDirectoryPath().resolve(SCRIPT_LOG_FILE), value);
   }
 
   @Override

@@ -197,30 +197,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   }
 
   public void setUpdateHandler(String key) {
-    ArchivedConductor conductor = getOwner().getConductor();
-    String procedureName = null;
-    String procedureKey = null;
-    if (key.equals(Conductor.MAIN_PROCEDURE_ALIAS)) {
-      procedureName = conductor.getMainProcedureScriptPath().getFileName().toString();
-      procedureKey = Conductor.MAIN_PROCEDURE_ALIAS;
-    } else {
-      List<String> childProcedureNameList = conductor.getChildProcedureNameList();
-
-      if (childProcedureNameList.contains(key)) {
-        procedureName = key;
-      } else {
-        for (String ext : ScriptProcessor.CLASS_NAME_MAP.keySet()) {
-          String candidate = key + ext;
-          if (childProcedureNameList.contains(candidate)) {
-            procedureName = candidate;
-            procedureKey = candidate;
-            break;
-          }
-        }
-      }
-    }
-    //ProcedureRun finalizerRun = ProcedureRun.create(this, procedureName, conductor, procedureKey);
-    ProcedureRun handlerRun = ProcedureRun.create(getParent(), procedureName.replaceFirst("\\..*?$", ""), conductor, procedureKey);
+    ProcedureRun handlerRun = createHandler(key);
     setToProperty(KEY_UPDATE_HANDLER, handlerRun.getLocalDirectoryPath().toString());
   }
 

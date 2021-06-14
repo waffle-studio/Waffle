@@ -72,6 +72,10 @@ module Waffle
             @instance.addFinalizer(name)
         end
 
+        def setAppealHandler(name)
+            @instance.setAppealHandler(name)
+        end
+
         def v
             @instance.v
         end
@@ -131,10 +135,10 @@ def exec_procedure_when_result_updated(instance, caller, key, value)
     return result
 end
 
-def exec_procedure_when_appealed(instance, caller, message)
+def exec_procedure_when_appealed(instance, caller, appealer, message)
     result = true
-    local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure_when_appealed(local_instance, caller, message)
-    local_instance.close
+    #local_instance = Waffle::ActorWrapper.new(instance)
+    result = procedure_when_appealed(instance, caller, appealer, message)
+    #local_instance.close
     return result
 end

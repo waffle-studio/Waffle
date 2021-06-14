@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 public abstract class AbstractExecutor {
   protected static final String BATCH_FILE = "./batch.sh";
@@ -84,6 +85,23 @@ public abstract class AbstractExecutor {
       return false;
     }
     return false;
+  }
+
+  public static void removeAllJob(Path directory) {
+    Path jobsDirectory = directory.resolve(AbstractExecutor.JOBS_PATH);
+    if (Files.exists(jobsDirectory)) {
+      try (Stream<Path> stream = Files.list(jobsDirectory)) {
+        stream.forEach(path -> {
+          try {
+            Files.delete(path);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        });
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   public AbstractExecutor(int timeout, int marginTime) throws IOException {
