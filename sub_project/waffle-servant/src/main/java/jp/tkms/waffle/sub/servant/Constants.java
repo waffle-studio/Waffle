@@ -11,4 +11,5 @@ public class Constants {
   public static final String EXIT_STATUS_FILE = "EXIT_STATUS.log";
   public static final String LOCAL_SHARED = "local_shared";
   public static final int DIRECTORY_SYNCHRONIZATION_TIMEOUT = 300;
+  public static final String WAFFLE_SLOT_INDEX = "WAFFLE_SLOT_INDEX";
 }

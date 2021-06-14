@@ -100,7 +100,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public void update(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
     String executorId = job.getJobId().replaceFirst("\\..*$", "");
     Path podDirectory = computer.getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(executorId);
-    envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), podDirectory, getRunDirectory(job.getRun())));
+    envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), !jobManager.runningExecutorList.containsKey(executorId), podDirectory, getRunDirectory(job.getRun())));
   }
 
   @Override

@@ -36,7 +36,7 @@ public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<Colle
           response.add(new UpdateResultMessage(message, name, value));
         });
         Path jobsDirectory = baseDirectory.resolve(message.getPodDirectory()).resolve(AbstractExecutor.JOBS_PATH);
-        if (!Files.exists(jobsDirectory.resolve(message.getId()))) {
+        if (message.isForceFinish() || !Files.exists(jobsDirectory.resolve(message.getId()))) {
           int exitStatus = -2;
           try {
             exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));

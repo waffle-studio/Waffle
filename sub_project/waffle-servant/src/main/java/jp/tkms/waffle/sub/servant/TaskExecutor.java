@@ -69,6 +69,10 @@ public class TaskExecutor {
       Path eventFilePath = taskDirectory.resolve(Constants.EVENT_FILE);
       Path statusFilePath = taskDirectory.resolve(Constants.EXIT_STATUS_FILE);
 
+      if (System.getenv().containsKey(Constants.WAFFLE_SLOT_INDEX)) {
+        addEnvironment(Constants.WAFFLE_SLOT_INDEX, System.getenv().get(Constants.WAFFLE_SLOT_INDEX));
+      }
+
       addEnvironment("WAFFLE_BASE", executingBaseDirectory.toString());
       addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.toString());
       addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.toString());

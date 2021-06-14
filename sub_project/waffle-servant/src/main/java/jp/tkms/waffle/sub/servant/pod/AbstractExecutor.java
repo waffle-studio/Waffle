@@ -1,5 +1,6 @@
 package jp.tkms.waffle.sub.servant.pod;
 
+import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.DirectoryHash;
 
 import java.io.BufferedReader;
@@ -9,7 +10,10 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -29,6 +33,7 @@ public abstract class AbstractExecutor {
   private Thread shutdownTimer;
   private boolean isAlive;
   private HashSet<String> runningJobList = new HashSet<>();
+  private ArrayList<String> slotArray = new ArrayList<>();
   private Object objectLocker = new Object();
   private int timeout = 0;
   private int waitingTimeCounter = 0;
@@ -284,29 +289,52 @@ public abstract class AbstractExecutor {
     }
   }
 
+  private int getNextSlotIndex() {
+    synchronized (slotArray) {
+      int index = slotArray.indexOf(null);
+      if (index == -1) {
+        slotArray.add(null);
+      }
+      return slotArray.lastIndexOf(null);
+    }
+  }
+
+  private int getSlotIndex(String jobName) {
+    synchronized (slotArray) {
+      return slotArray.indexOf(jobName);
+    }
+  }
+
   protected void jobAdded(String jobName) {
     System.out.println("'" + jobName + "' was added at " + System.currentTimeMillis());
+    slotArray.set(getNextSlotIndex(), jobName);
   }
 
   protected void jobRemoved(String jobName) {
     System.out.println("'" + jobName + "' was forcibly removed at " + System.currentTimeMillis());
-    try {
-      synchronized (runningJobList) {
-        Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
-        Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+    synchronized (slotArray) {
+      slotArray.set(getSlotIndex(jobName), null);
+      try {
+        synchronized (runningJobList) {
+          Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
+          Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+        }
+      } catch (IOException e) {
       }
-    } catch (IOException e) {
     }
   }
 
   protected void jobFinished(String jobName) {
-    synchronized (objectLocker) {
-      synchronized (runningJobList) {
-        runningJobList.remove(jobName);
-        try {
-          Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
-          Files.deleteIfExists(JOBS_PATH.resolve(jobName));
-        } catch (IOException e) {
+    synchronized (slotArray) {
+      slotArray.set(getSlotIndex(jobName), null);
+      synchronized (objectLocker) {
+        synchronized (runningJobList) {
+          runningJobList.remove(jobName);
+          try {
+            Files.deleteIfExists(ENTITIES_PATH.resolve(jobName));
+            Files.deleteIfExists(JOBS_PATH.resolve(jobName));
+          } catch (IOException e) {
+          }
         }
       }
     }
@@ -335,8 +363,10 @@ public abstract class AbstractExecutor {
             TimeUnit.SECONDS.sleep(1);
           }
 
+          int slotIndex = getSlotIndex(jobName);
+
           process = new ProcessBuilder().directory(directoryPath.toFile())
-            .command("sh", BATCH_FILE).redirectErrorStream(true).start();
+            .command("sh", "-c", Constants.WAFFLE_SLOT_INDEX + "=" + slotIndex + " sh " + BATCH_FILE).redirectErrorStream(true).start();
 
           Thread inputStreamThread = new Thread() {
             boolean isAlive = true;
