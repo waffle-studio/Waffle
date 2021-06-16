@@ -31,6 +31,10 @@ public class OutputProcessor extends Thread {
           len = getLengthOf(buf);
           writer.write(buf, 0, len);
 
+          if (len == 1 && buf[0] == '\n') {
+            writer.flush();
+          }
+
           if (eventRecorder != null) {
             eventRecorder.input(buf, len);
           }

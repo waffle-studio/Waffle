@@ -29,26 +29,11 @@ import java.util.HashMap;
 public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile {
   public static final String SYSTEM_TASK_RUN = "SYSTEM_TASK_RUN";
   public static final String JSON_FILE = SYSTEM_TASK_RUN + Constants.EXT_JSON;
-  public static final String PARAMETERS_JSON_FILE = "PARAMETERS" + Constants.EXT_JSON;
-  public static final String RESULTS_JSON_FILE = "RESULTS" + Constants.EXT_JSON;
-  public static final String ARGUMENTS_JSON_FILE = "ARGUMENTS" + Constants.EXT_JSON;
-  public static final String KEY_ENVIRONMENTS = "environments";
-  private static final String KEY_EXECUTABLE = "executable";
-  private static final String KEY_COMPUTER = "computer";
-  private static final String KEY_ACTUAL_COMPUTER = "actual_computer";
-  private static final String KEY_EXPECTED_NAME = "expected_name";
-  public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
   private static final String KEY_BIN_PATH = "bin_path";
-  protected static final String KEY_CREATED_AT = "created_at";
-  protected static final String KEY_SUBMITTED_AT = "submitted_at";
-  protected static final String KEY_FINISHED_AT = "finished_at";
-  protected static final String KEY_EXIT_STATUS = "exit_status";
-  protected static final String KEY_JOB_ID = "job_id";
   protected static final String KEY_COMMAND = "command";
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
   private static final String KEY_STATE = "state";
-  private static final String BASE = "BASE";
   private static final String KEY_CLASS = "class";
 
   private Path path;

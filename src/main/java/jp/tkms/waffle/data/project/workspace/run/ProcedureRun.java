@@ -206,6 +206,26 @@ public class ProcedureRun extends AbstractRun {
     return executableRun;
   }
 
+  public SyncExecutableRun createSyncExecutableRun(String executableName, String computerName, String name) {
+    Executable executable = Executable.getInstance(getProject(), executableName);
+    if (executable == null) {
+      throw new RuntimeException("Executable(\"" + executableName + "\") is not found");
+    }
+    Computer computer = Computer.find(computerName);
+    if (computer == null) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not found");
+    }
+    //computer.update();
+    if (! computer.getState().equals(ComputerState.Viable)) {
+      throw new RuntimeException("Computer(\"" + computerName + "\") is not viable");
+    }
+
+    SyncExecutableRun syncExecutableRun = SyncExecutableRun.create(this, name, executable, computer);
+    transactionRunList.add(syncExecutableRun);
+
+    return syncExecutableRun;
+  }
+
   public void commit() {
     /*
     //TODO: do refactor

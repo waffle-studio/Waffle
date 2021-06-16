@@ -36,21 +36,10 @@ import java.util.*;
 public class ExecutableRun extends AbstractRun implements ComputerTask {
   public static final String EXECUTABLE_RUN = "EXECUTABLE_RUN";
   public static final String JSON_FILE = EXECUTABLE_RUN + Constants.EXT_JSON;
-  public static final String PARAMETERS_JSON_FILE = "PARAMETERS" + Constants.EXT_JSON;
-  public static final String RESULTS_JSON_FILE = "RESULTS" + Constants.EXT_JSON;
-  public static final String ARGUMENTS_JSON_FILE = "ARGUMENTS" + Constants.EXT_JSON;
-  public static final String KEY_ENVIRONMENTS = "environments";
   private static final String KEY_EXECUTABLE = "executable";
   private static final String KEY_COMPUTER = "computer";
-  private static final String KEY_ACTUAL_COMPUTER = "actual_computer";
   private static final String KEY_EXPECTED_NAME = "expected_name";
-  public static final String KEY_REMOTE_WORKING_DIR = "remote_directory";
   private static final String KEY_LOCAL_SHARED = "local_shared";
-  private static final String KEY_CREATED_AT = "created_at";
-  private static final String KEY_SUBMITTED_AT = "submitted_at";
-  private static final String KEY_FINISHED_AT = "finished_at";
-  private static final String KEY_EXIT_STATUS = "exit_status";
-  private static final String KEY_JOB_ID = "job_id";
   private static final String KEY_TASK_ID = "task_id";
   protected static final String KEY_UPDATE_HANDLER = "update_handler";
 
@@ -266,17 +255,17 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     return expectedName;
   }
 
-  private void setExecutable(ArchivedExecutable executable) {
+  protected void setExecutable(ArchivedExecutable executable) {
     this.executable = executable;
     setToProperty(KEY_EXECUTABLE, executable.getArchiveName());
   }
 
-  private void setComputer(Computer computer) {
+  protected void setComputer(Computer computer) {
     this.computer = computer;
     setToProperty(KEY_COMPUTER, computer.getName());
   }
 
-  private void setExpectedName(String expectedName) {
+  protected void setExpectedName(String expectedName) {
     this.expectedName = expectedName;
     setToProperty(KEY_EXPECTED_NAME, expectedName);
   }

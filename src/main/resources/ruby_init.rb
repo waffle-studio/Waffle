@@ -68,6 +68,14 @@ module Waffle
             @instance.createExecutableRun(executable_name, computer_name, executable_name)
         end
 
+        def createSyncExecutableRun(executable_name, computer_name, name)
+            @instance.createSyncExecutableRun(executable_name, computer_name, name)
+        end
+
+        def createSyncExecutableRun(executable_name, computer_name)
+            @instance.createSyncExecutableRun(executable_name, computer_name, executable_name)
+        end
+
         def addFinalizer(name)
             @instance.addFinalizer(name)
         end
@@ -130,7 +138,7 @@ end
 def exec_procedure_when_result_updated(instance, caller, key, value)
     result = true
     #local_instance = ActorWrapper.new(instance)
-    result = procedure_when_result_updated(caller, key, value)
+    result = procedure_when_result_updated(instance, caller, key, value)
     #local_instance.close
     return result
 end

@@ -50,7 +50,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
       "    #procedure_when_start_or_finished_all(this, caller)\n" +
       "end\n" +
       "\n" +
-      "def procedure_when_result_updated(caller, name, value)\n" +
+      "def procedure_when_result_updated(this, caller, name, value)\n" +
       "end\n" +
       "\n" +
       "def procedure_when_appealed(this, caller, appealer, message)\n" +

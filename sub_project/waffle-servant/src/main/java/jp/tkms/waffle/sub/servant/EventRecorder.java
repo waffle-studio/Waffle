@@ -7,12 +7,12 @@ import java.nio.file.Path;
 
 public class EventRecorder {
   // [WAFFLE_RESULT:<Result Name>:<Result Value>]
-  private static final char[] EVENT_LABEL = "[WAFFLE_RESULT:".toCharArray();
+  private static final char[] EVENT_LABEL = "<WAFFLE_RESULT:".toCharArray();
   private static final byte STATE_WAITING = 0;
   private static final byte STATE_READING_NAME = 1;
   private static final byte STATE_READING_VALUE = 2;
   private static final char ESCAPING_MARK = '\\';
-  private static final char END_MARK = ']';
+  private static final char END_MARK = '>';
   private static final char SECTION_SEPARATING_MARK = ':';
 
   private Path recordPath;
