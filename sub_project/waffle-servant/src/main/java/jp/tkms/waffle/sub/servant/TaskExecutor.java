@@ -29,6 +29,7 @@ public class TaskExecutor {
   JsonObject localSharedMap;
   JsonObject environmentMap;
   long timeout;
+  private long pid;
 
   public TaskExecutor(Path baseDirectory, Path taskJsonPath) throws Exception {
     this.baseDirectory = baseDirectory;
@@ -52,6 +53,20 @@ public class TaskExecutor {
     localSharedMap = taskJson.getLocalShared();
     environmentMap = taskJson.getEnvironments();
     timeout = taskJson.getTimeout();
+
+    pid = Long.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+  }
+
+  private void setPid(long pid) {
+    this.pid = pid;
+  }
+
+  public long getPid() {
+    return pid;
+  }
+
+  public void shutdown() {
+
   }
 
   public void execute() {
@@ -140,6 +155,7 @@ public class TaskExecutor {
 
         Process process = Runtime.getRuntime().exec(commandArray.toArray(new String[commandArray.size()]),
           getEnvironments(), executingBaseDirectory.toFile());
+        setPid(process.pid());
 
         OutputProcessor outProcessor =
           new OutputProcessor(process.getInputStream(), stdoutPath, new EventRecorder(baseDirectory, eventFilePath));

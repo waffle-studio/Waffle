@@ -22,14 +22,14 @@ apply plugin: 'application'
 
 repositories {
     mavenCentral()
-    maven {url  "https://jetbrains.bintray.com/pty4j"}
+    maven {url  "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"}
 }
 
 dependencies {
     implementation group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
     implementation group: 'com.esotericsoftware', name: 'kryo', version: '5.1.1'
     implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
-    implementation 'org.jetbrains.pty4j:pty4j:0.11.4'
+    implementation group: 'org.jetbrains.pty4j', name: 'pty4j', version: '0.11.4'
     implementation 'org.jruby:jruby-complete:9.2.12.0'
 }
 
