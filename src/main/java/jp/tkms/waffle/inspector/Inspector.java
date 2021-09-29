@@ -1,27 +1,21 @@
-package jp.tkms.waffle;
+package jp.tkms.waffle.inspector;
 
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
-import jp.tkms.waffle.data.job.SystemTaskJob;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
+import jp.tkms.waffle.data.internal.task.SystemTask;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.ComputerState;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-
-public class PollingThread extends Thread {
-  private static final Map<String, PollingThread> threadMap = new HashMap<>();
-
+public class Inspector extends Thread {
   public enum Mode {System, Normal}
 
   private Mode mode;
   private Computer computer;
 
-  public PollingThread(Mode mode, Computer computer) {
+  Inspector(Mode mode, Computer computer) {
     super("Waffle_Polling(" + getThreadName(mode, computer) + ")");
     this.mode = mode;
     this.computer = computer;
@@ -57,7 +51,7 @@ public class PollingThread extends Thread {
           } catch (Exception e) {
             WarnLogMessage.issue(e.getMessage());
             submitter.close();
-            threadMap.remove(getThreadName(mode, computer));
+            InspectorMaster.removeInspector(getThreadName(mode, computer));
             InfoLogMessage.issue(computer, mode.name() + ") submitter closed");
             return;
           }
@@ -75,53 +69,18 @@ public class PollingThread extends Thread {
         }
         InfoLogMessage.issue(computer, "was scanned");
       }
-    } while ((mode.equals(Mode.Normal) ? ExecutableRunJob.getList(computer).size() : SystemTaskJob.getList(computer).size()) > 0);
+    } while ((mode.equals(Mode.Normal) ? ExecutableRunTask.getList(computer).size() : SystemTask.getList(computer).size()) > 0);
 
     if (submitter != null) {
       submitter.close();
     }
-    threadMap.remove(getThreadName(mode, computer));
+    InspectorMaster.removeInspector(getThreadName(mode, computer));
 
     InfoLogMessage.issue(computer, mode.name() + " submitter closed");
     return;
   }
 
-  synchronized public static void startup() {
-    if (!Main.hibernateFlag) {
-      for (Computer computer : Computer.getList()) {
-        if (computer.getState().equals(ComputerState.Viable)) {
-          if (!threadMap.containsKey(getThreadName(Mode.Normal, computer)) && ExecutableRunJob.hasJob(computer)) {
-            computer.update();
-            if (computer.getState().equals(ComputerState.Viable)) {
-              PollingThread pollingThread = new PollingThread(Mode.Normal, computer);
-              threadMap.put(getThreadName(Mode.Normal, computer), pollingThread);
-              pollingThread.start();
-            }
-          }
-          if (!threadMap.containsKey(getThreadName(Mode.System, computer)) && SystemTaskJob.hasJob(computer)) {
-            computer.update();
-            if (computer.getState().equals(ComputerState.Viable)) {
-              PollingThread pollingThread = new PollingThread(Mode.System, computer);
-              threadMap.put(getThreadName(Mode.System, computer), pollingThread);
-              pollingThread.start();
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private static String getThreadName(Mode mode, Computer computer) {
+  static String getThreadName(Mode mode, Computer computer) {
     return mode.name() + ":" + computer.getName();
-  }
-
-  synchronized public static void waitForShutdown() {
-    while (! threadMap.isEmpty()) {
-      try {
-        sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
   }
 }

@@ -1,10 +1,7 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.exception.RunNotFoundException;
 
 import java.util.ArrayList;
 

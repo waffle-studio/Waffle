@@ -1,22 +1,22 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
-import jp.tkms.waffle.PollingThread;
+import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.sub.servant.Envelope;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTERS = "target_computers";
@@ -114,7 +114,7 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   */
 
   @Override
-  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
 
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
@@ -129,7 +129,7 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
         if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           passableComputerList.add(targetComputer);
 
-          for (AbstractJob job : getJobList(PollingThread.Mode.Normal, targetComputer)) {
+          for (AbstractTask job : getJobList(Inspector.Mode.Normal, targetComputer)) {
             try {
               ComputerTask run = job.getRun();
               if (run.getComputer().equals(computer)) {
@@ -145,7 +145,7 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
     }
 
     if (passableComputerList.size() > 0) {
-      for (AbstractJob job : createdJobList) {
+      for (AbstractTask job : createdJobList) {
         if (globalFreeThread < job.getRequiredThread() || globalFreeMemory < job.getRequiredMemory() || globalFreeJobSlot < 1) {
           continue;
         }
@@ -159,14 +159,14 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
 
         int targetHostCursor = 0;
         Computer targetComputer = passableComputerList.get(targetHostCursor);
-        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, run, ExecutableRunJob.getList(targetComputer));
+        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer);
+        boolean isSubmittable = targetSubmitter.isSubmittable(targetComputer, run, ExecutableRunTask.getList(targetComputer));
 
         targetHostCursor += 1;
         while (targetHostCursor < passableComputerList.size() && !isSubmittable) {
           targetComputer = passableComputerList.get(targetHostCursor);
-          targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
-          isSubmittable = targetSubmitter.isSubmittable(targetComputer, run, ExecutableRunJob.getList(targetComputer));
+          targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer);
+          isSubmittable = targetSubmitter.isSubmittable(targetComputer, run, ExecutableRunTask.getList(targetComputer));
           targetHostCursor += 1;
         }
 
@@ -184,7 +184,7 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
       }
     }
 
-    PollingThread.startup();
+    InspectorMaster.forceCheck();
   }
 
   @Override

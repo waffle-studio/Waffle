@@ -1,13 +1,12 @@
 package jp.tkms.waffle;
 
-import jp.tkms.waffle.data.job.ExecutableRunTaskStore;
-import jp.tkms.waffle.data.job.SystemTaskStore;
 import jp.tkms.waffle.data.log.Log;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -22,23 +21,18 @@ import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
-import org.slf4j.impl.SimpleLogger;
 import org.slf4j.impl.SimpleLoggerConfiguration;
 import spark.Spark;
 import spark.embeddedserver.EmbeddedServers;
 import spark.embeddedserver.jetty.EmbeddedJettyFactory;
 import spark.embeddedserver.jetty.JettyServerFactory;
-import spark.utils.SparkUtils;
 
 import java.io.*;
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
 import java.net.*;
 import java.nio.file.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static spark.Spark.*;
@@ -54,12 +48,9 @@ public class Main {
   public static ExecutorService interfaceThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static ExecutorService systemThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   //public static ExecutorService filesThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
-  public static SystemTaskStore systemTaskStore = null;
-  public static ExecutableRunTaskStore jobStore = null;
   private static WatchService fileWatchService = null;
   private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
   private static Thread fileWatcherThread;
-  private static Thread pollingThreadWalkerThread;
   private static Thread gcInvokerThread;
   private static Thread commandLineThread;
   public static SimpleDateFormat DATE_FORMAT_FOR_WAFFLE_ID = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -176,17 +167,7 @@ public class Main {
     };
     fileWatcherThread.start();
 
-    try {
-      systemTaskStore = SystemTaskStore.load();
-    } catch (Exception e) {
-      ErrorLogMessage.issue(e);
-    }
-
-    try {
-      jobStore = ExecutableRunTaskStore.load();
-    } catch (Exception e) {
-      ErrorLogMessage.issue(e);
-    }
+    InspectorMaster.startup();
 
     staticFiles.location("/static");
 
@@ -206,22 +187,6 @@ public class Main {
 
     SystemComponent.register();
     SigninComponent.register();
-
-    pollingThreadWalkerThread =  new Thread("Waffle_Polling") {
-      @Override
-      public void run() {
-        while (!hibernateFlag) {
-          PollingThread.startup();
-          try {
-            currentThread().sleep(5000);
-          } catch (InterruptedException e) {
-            return;
-          }
-        }
-        return;
-      }
-    };
-    pollingThreadWalkerThread.start();
 
     gcInvokerThread = new Thread("Waffle_GCInvoker"){
       @Override
@@ -290,13 +255,12 @@ public class Main {
         try {
           commandLineThread.interrupt();
           fileWatcherThread.interrupt();
-          pollingThreadWalkerThread.interrupt();
           gcInvokerThread.interrupt();
         } catch (Throwable e) {}
         System.out.println("(1/7) Misc. components stopped");
 
-        PollingThread.waitForShutdown();
-        System.out.println("(2/7) Polling system stopped");
+        InspectorMaster.waitForShutdown();
+        System.out.println("(2/7) Inspector stopped");
 
         try {
           systemThreadPool.shutdown();

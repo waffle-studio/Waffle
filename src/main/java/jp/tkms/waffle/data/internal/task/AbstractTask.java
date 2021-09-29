@@ -1,4 +1,4 @@
-package jp.tkms.waffle.data.job;
+package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.PropertyFile;
@@ -12,7 +12,7 @@ import org.json.JSONObject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public abstract class AbstractJob<T extends ComputerTask> implements PropertyFile {
+public abstract class AbstractTask<T extends ComputerTask> implements PropertyFile {
   private static final String KEY_ERROR_COUNT = "error_count";
   public static final String KEY_PATH = "path";
   public static final String KEY_COMPUTER = "computer";
@@ -37,7 +37,7 @@ public abstract class AbstractJob<T extends ComputerTask> implements PropertyFil
     propertyStoreCache = cache;
   }
 
-  public AbstractJob(WaffleId id, Path path, String computerName) {
+  public AbstractTask(WaffleId id, Path path, String computerName) {
     this.id = id;
     this.path = path;
     this.computerName = computerName;

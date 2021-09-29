@@ -1,17 +1,17 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.ServantJarFile;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
-import jp.tkms.waffle.data.job.SystemTaskJob;
-import jp.tkms.waffle.data.job.SystemTaskStore;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
+import jp.tkms.waffle.data.internal.task.SystemTask;
+import jp.tkms.waffle.data.internal.task.SystemTaskStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
@@ -36,7 +36,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 abstract public class AbstractSubmitter {
@@ -49,7 +48,7 @@ abstract public class AbstractSubmitter {
   Computer computer;
   private int pollingInterval = 5;
   //private int preparingNumber = 1;
-  private PollingThread.Mode mode;
+  private Inspector.Mode mode;
 
   //ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
   ProcessorManager<PreparingProcessor> preparingProcessorManager = new ProcessorManager<>(() -> new PreparingProcessor());
@@ -95,7 +94,7 @@ abstract public class AbstractSubmitter {
   }
    */
 
-  public static AbstractSubmitter getInstance(PollingThread.Mode mode, Computer computer) {
+  public static AbstractSubmitter getInstance(Inspector.Mode mode, Computer computer) {
     AbstractSubmitter submitter = null;
     try {
       Class<?> clazz = Class.forName(computer.getSubmitterType());
@@ -165,13 +164,13 @@ abstract public class AbstractSubmitter {
     return sendAndReceiveEnvelope(this, envelope);
   }
 
-  public void forcePrepare(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+  public void forcePrepare(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     if (job.getState().equals(State.Created)) {
       prepareJob(envelope, job);
     }
   }
 
-  public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
     try {
       forcePrepare(envelope, job);
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
@@ -184,11 +183,11 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public void update(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
+  public void update(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     envelope.add(new CollectStatusMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
   }
 
-  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
+  public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     if (! job.getJobId().equals("-1")) {
       envelope.add(new CancelJobMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
     } else {
@@ -196,7 +195,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
       if (job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
@@ -273,7 +272,7 @@ abstract public class AbstractSubmitter {
     return path;
   }
 
-  Path getExecutableBaseDirectory(AbstractJob job) throws FailedToControlRemoteException, RunNotFoundException {
+  Path getExecutableBaseDirectory(AbstractTask job) throws FailedToControlRemoteException, RunNotFoundException {
     Path remoteBinPath = job.getRun().getRemoteBinPath();
     if (remoteBinPath == null) {
       return null;
@@ -282,7 +281,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  void jobFinalizing(AbstractJob job) throws WaffleException {
+  void jobFinalizing(AbstractTask job) throws WaffleException {
     try {
       int exitStatus = job.getRun().getExitStatus();
 
@@ -335,7 +334,7 @@ abstract public class AbstractSubmitter {
   }
 
   public static boolean checkWaffleServant(Computer computer, boolean retry) throws RuntimeException, WaffleException {
-    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer);
+    AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
     if (submitter instanceof AbstractSubmitterWrapper) {
       return false;
     }
@@ -363,7 +362,7 @@ abstract public class AbstractSubmitter {
   }
 
   public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
-    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer);
+    AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
     JSONObject jsonObject = new JSONObject();
     if (!(submitter instanceof AbstractSubmitterWrapper)) {
       submitter.connect(retry);
@@ -384,19 +383,19 @@ abstract public class AbstractSubmitter {
   }
 
   public static JSONObject getParameters(Computer computer) {
-    AbstractSubmitter submitter = getInstance(PollingThread.Mode.Normal, computer);
+    AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
     JSONObject jsonObject = submitter.getDefaultParameters(computer);
     return jsonObject;
   }
 
   protected boolean isSubmittable(Computer computer, ComputerTask next) {
-    return isSubmittable(computer, next, getJobList(PollingThread.Mode.Normal, computer), getJobList(PollingThread.Mode.System, computer));
+    return isSubmittable(computer, next, getJobList(Inspector.Mode.Normal, computer), getJobList(Inspector.Mode.System, computer));
   }
 
-  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<AbstractJob>... lists) {
+  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<AbstractTask>... lists) {
     ArrayList<ComputerTask> combinedList = new ArrayList<>();
-    for (ArrayList<AbstractJob> list : lists) {
-      for (AbstractJob job : list) {
+    for (ArrayList<AbstractTask> list : lists) {
+      for (AbstractTask job : list) {
         try {
           combinedList.add(job.getRun());
         } catch (RunNotFoundException e) {
@@ -411,24 +410,24 @@ abstract public class AbstractSubmitter {
     return (list.size() + (next == null ? 0 : 1)) <= computer.getMaximumNumberOfJobs();
   }
 
-  protected static ArrayList<AbstractJob> getJobList(PollingThread.Mode mode, Computer computer) {
-    if (mode.equals(PollingThread.Mode.Normal)) {
-      return ExecutableRunJob.getList(computer);
+  protected static ArrayList<AbstractTask> getJobList(Inspector.Mode mode, Computer computer) {
+    if (mode.equals(Inspector.Mode.Normal)) {
+      return ExecutableRunTask.getList(computer);
     } else {
-      return SystemTaskJob.getList(computer);
+      return SystemTask.getList(computer);
     }
   }
 
-  protected static AbstractJob findJobFromStore(byte type, String id) {
+  protected static AbstractTask findJobFromStore(byte type, String id) {
     WaffleId targetId = WaffleId.valueOf(id);
     if (type == SystemTaskStore.TYPE_CODE) {
-      for (SystemTaskJob job : SystemTaskJob.getList()) {
+      for (SystemTask job : SystemTask.getList()) {
         if (job.getId().equals(targetId)) {
           return job;
         }
       }
     } else {
-      for (ExecutableRunJob job : ExecutableRunJob.getList()) {
+      for (ExecutableRunTask job : ExecutableRunTask.getList()) {
         if (job.getId().equals(targetId)) {
           return job;
         }
@@ -453,17 +452,17 @@ abstract public class AbstractSubmitter {
       for (JobExceptionMessage message : response.getMessageBundle().getCastedMessageList(JobExceptionMessage.class)) {
         WarnLogMessage.issue("Servant:JobException> " + message.getMessage());
 
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setState(State.Excepted);
         }
       }
 
       for (UpdateResultMessage message : response.getMessageBundle().getCastedMessageList(UpdateResultMessage.class)) {
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
-          if (job instanceof ExecutableRunJob) {
-            ExecutableRun run = ((ExecutableRunJob) job).getRun();
+          if (job instanceof ExecutableRunTask) {
+            ExecutableRun run = ((ExecutableRunTask) job).getRun();
             Object value = message.getValue();
             try {
               if (message.getValue().indexOf('.') < 0) {
@@ -484,14 +483,14 @@ abstract public class AbstractSubmitter {
       }
 
       for (JobCanceledMessage message : response.getMessageBundle().getCastedMessageList(JobCanceledMessage.class)) {
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setState(State.Canceled);
         }
       }
 
       for (UpdateJobIdMessage message : response.getMessageBundle().getCastedMessageList(UpdateJobIdMessage.class)) {
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setJobId(message.getJobId());
           job.setState(State.Submitted);
@@ -501,7 +500,7 @@ abstract public class AbstractSubmitter {
       }
 
       for (UpdateStatusMessage message : response.getMessageBundle().getCastedMessageList(UpdateStatusMessage.class)) {
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           if (message.isFinished()) {
             job.setState(State.Finalizing);
@@ -533,11 +532,11 @@ abstract public class AbstractSubmitter {
     preparingProcessorManager.startup();
     finishedProcessorManager.startup();
 
-    ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
-    ArrayList<AbstractJob> runningJobList = new ArrayList<>();
-    ArrayList<AbstractJob> cancelJobList = new ArrayList<>();
+    ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
+    ArrayList<AbstractTask> runningJobList = new ArrayList<>();
+    ArrayList<AbstractTask> cancelJobList = new ArrayList<>();
 
-    for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+    for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
       if (Main.hibernateFlag) { return; }
 
       try {
@@ -580,10 +579,10 @@ abstract public class AbstractSubmitter {
     return;
   }
 
-  public void processSubmitted(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> runningJobList, ArrayList<AbstractJob> cancelJobList) throws FailedToControlRemoteException {
+  public void processSubmitted(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> runningJobList, ArrayList<AbstractTask> cancelJobList) throws FailedToControlRemoteException {
     submittedJobList.addAll(runningJobList);
 
-    for (AbstractJob job : cancelJobList) {
+    for (AbstractTask job : cancelJobList) {
       if (Main.hibernateFlag) { return; }
       try {
         cancel(envelope, job);
@@ -592,7 +591,7 @@ abstract public class AbstractSubmitter {
       }
     }
 
-    for (AbstractJob job : submittedJobList) {
+    for (AbstractTask job : submittedJobList) {
       if (Main.hibernateFlag) { return; }
       try {
         update(envelope, job);
@@ -690,11 +689,11 @@ abstract public class AbstractSubmitter {
 
       Envelope envelope = new Envelope(Constants.WORK_DIR);
 
-      ArrayList<AbstractJob> submittedJobList = new ArrayList<>();
-      ArrayList<AbstractJob> createdJobList = new ArrayList<>();
-      ArrayList<AbstractJob> preparedJobList = new ArrayList<>();
+      ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
+      ArrayList<AbstractTask> createdJobList = new ArrayList<>();
+      ArrayList<AbstractTask> preparedJobList = new ArrayList<>();
 
-      for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+      for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
         if (Main.hibernateFlag) { return; }
         try {
           if (!job.exists() && job.getRun().isRunning()) {
@@ -737,8 +736,8 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
-    ArrayList<AbstractJob> queuedJobList = new ArrayList<>();
+  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+    ArrayList<AbstractTask> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
 
@@ -750,7 +749,7 @@ abstract public class AbstractSubmitter {
       }
     });
 
-    for (AbstractJob job : queuedJobList) {
+    for (AbstractTask job : queuedJobList) {
       if (Main.hibernateFlag) { return; }
 
       try {
@@ -799,7 +798,7 @@ abstract public class AbstractSubmitter {
   class FinishedProcessor extends Thread {
     @Override
     public void run() {
-      ArrayList<AbstractJob> finalizingJobList = new ArrayList<>();
+      ArrayList<AbstractTask> finalizingJobList = new ArrayList<>();
 
       do {
         if (Main.hibernateFlag) { return; }
@@ -808,7 +807,7 @@ abstract public class AbstractSubmitter {
 
         finalizingJobList.clear();
 
-        for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
+        for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
           if (Main.hibernateFlag) { return; }
 
           try {
@@ -852,8 +851,8 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  public void processFinished(ArrayList<AbstractJob> finalizingJobList) throws FailedToControlRemoteException {
-    for (AbstractJob job : finalizingJobList) {
+  public void processFinished(ArrayList<AbstractTask> finalizingJobList) throws FailedToControlRemoteException {
+    for (AbstractTask job : finalizingJobList) {
       if (Main.hibernateFlag) { return; }
 
       try {

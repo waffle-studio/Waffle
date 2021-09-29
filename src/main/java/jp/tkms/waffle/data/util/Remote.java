@@ -4,7 +4,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

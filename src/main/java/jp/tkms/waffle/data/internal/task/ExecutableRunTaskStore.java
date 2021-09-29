@@ -1,10 +1,10 @@
-package jp.tkms.waffle.data.job;
+package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.Constants;
 
 import java.nio.file.Path;
 
-public class ExecutableRunTaskStore extends AbstractTaskStore<ExecutableRunJob> {
+public class ExecutableRunTaskStore extends AbstractTaskStore<ExecutableRunTask> {
   public static final byte TYPE_CODE = 1;
   public static final String TASK = "TASK";
 
@@ -14,7 +14,7 @@ public class ExecutableRunTaskStore extends AbstractTaskStore<ExecutableRunJob> 
 
   public static ExecutableRunTaskStore load() {
     ExecutableRunTaskStore instance = new ExecutableRunTaskStore();
-    load(instance, getDirectoryPath(), (i, p, c)-> new ExecutableRunJob(i, p, c));
+    load(instance, getDirectoryPath(), (i, p, c)-> new ExecutableRunTask(i, p, c));
     return instance;
   }
 

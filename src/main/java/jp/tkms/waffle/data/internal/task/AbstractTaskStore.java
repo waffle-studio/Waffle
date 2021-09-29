@@ -1,4 +1,4 @@
-package jp.tkms.waffle.data.job;
+package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
@@ -16,48 +16,48 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 
-public abstract class AbstractTaskStore<T extends AbstractJob> {
+public abstract class AbstractTaskStore<T extends AbstractTask> {
 
-  private LinkedHashMap<WaffleId, T> jobMap;
-  private LinkedHashMap<String, ArrayList<T>> computerJobListMap;
+  private LinkedHashMap<WaffleId, T> taskMap;
+  private LinkedHashMap<String, ArrayList<T>> computerTaskListMap;
 
   protected AbstractTaskStore() {
-    jobMap = new LinkedHashMap<>();
-    computerJobListMap = new LinkedHashMap<>();
+    taskMap = new LinkedHashMap<>();
+    computerTaskListMap = new LinkedHashMap<>();
   }
 
-  public T getJob(WaffleId id) {
-    synchronized (jobMap) {
-      return jobMap.get(id);
+  public T getTask(WaffleId id) {
+    synchronized (taskMap) {
+      return taskMap.get(id);
     }
   }
 
   public ArrayList<T> getList() {
-    synchronized (jobMap) {
-      return new ArrayList<>(jobMap.values());
+    synchronized (taskMap) {
+      return new ArrayList<>(taskMap.values());
     }
   }
 
   public ArrayList<T> getList(Computer computer) {
-    synchronized (jobMap) {
-      ArrayList list = computerJobListMap.get(computer.getName());
+    synchronized (taskMap) {
+      ArrayList list = computerTaskListMap.get(computer.getName());
       if (list == null) {
         list = new ArrayList();
-        computerJobListMap.put(computer.getName(), list);
+        computerTaskListMap.put(computer.getName(), list);
       }
       return list;
     }
   }
 
   public boolean contains(WaffleId id) {
-    synchronized (jobMap) {
-      return jobMap.containsKey(id);
+    synchronized (taskMap) {
+      return taskMap.containsKey(id);
     }
   }
 
   public void register(T job) {
-    synchronized (jobMap) {
-      jobMap.put(job.getId(), job);
+    synchronized (taskMap) {
+      taskMap.put(job.getId(), job);
       getList(job.getComputer()).add(job);
     }
   }
@@ -66,15 +66,15 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
     if (id == null) {
       return;
     }
-    synchronized (jobMap) {
-      AbstractJob removedJob = jobMap.remove(id);
+    synchronized (taskMap) {
+      AbstractTask removedJob = taskMap.remove(id);
       if (removedJob != null) {
         getList(removedJob.getComputer()).remove(removedJob);
       }
     }
   }
 
-  protected static void load(AbstractTaskStore instance, Path directory, JobFactoryFunction<WaffleId, Path, String, AbstractJob> factory) {
+  protected static void load(AbstractTaskStore instance, Path directory, TaskFactoryFunction<WaffleId, Path, String, AbstractTask> factory) {
     InfoLogMessage.issue("Loading the snapshot of job store");
 
     try {
@@ -95,8 +95,8 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
               Path jsonPath = file.toPath();
               if (jsonPath != null) {
                 JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
-                WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTaskJob.KEY_ID));
-                Path path = Paths.get(jsonObject.getString(SystemTaskJob.KEY_PATH));
+                WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTask.KEY_ID));
+                Path path = Paths.get(jsonObject.getString(SystemTask.KEY_PATH));
                 String computerName = computerDir.getName();
                 instance.register(factory.apply(id, path, computerName));
                 fileCount += 1;
@@ -114,7 +114,7 @@ public abstract class AbstractTaskStore<T extends AbstractJob> {
   }
 
   @FunctionalInterface
-  public interface JobFactoryFunction<W, P, S, R> {
+  public interface TaskFactoryFunction<W, P, S, R> {
     R apply(W id, P path, S computerName);
   }
 }

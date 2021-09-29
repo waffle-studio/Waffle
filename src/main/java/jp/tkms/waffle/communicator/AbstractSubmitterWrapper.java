@@ -1,4 +1,4 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.data.computer.Computer;
 

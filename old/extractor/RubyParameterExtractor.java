@@ -4,7 +4,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 import org.jruby.Ruby;
 import org.jruby.embed.EvalFailedException;
 

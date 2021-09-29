@@ -1,4 +1,4 @@
-package jp.tkms.waffle.submitter.util;
+package jp.tkms.waffle.communicator.util;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;

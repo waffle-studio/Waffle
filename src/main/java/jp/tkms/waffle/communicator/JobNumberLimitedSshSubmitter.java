@@ -1,18 +1,14 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.submitter.util.SshChannel;
-import jp.tkms.waffle.submitter.util.SshSession;
+import jp.tkms.waffle.communicator.util.SshChannel;
+import jp.tkms.waffle.communicator.util.SshSession;
 import org.json.JSONObject;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;

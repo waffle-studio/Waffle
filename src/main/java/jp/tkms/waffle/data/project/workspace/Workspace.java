@@ -59,7 +59,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static Workspace getInstance(Project project, String name) {
-    if (name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
+    if (project != null && name != null && !name.equals("") && Files.exists(getBaseDirectoryPath(project).resolve(name))) {
       Workspace instance = instanceCache.get(getBaseDirectoryPath(project).resolve(name).toString());
       if (instance != null) {
         return instance;

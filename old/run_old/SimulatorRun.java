@@ -3,7 +3,7 @@ package jp.tkms.waffle.data.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
-import jp.tkms.waffle.data.job.Job;
+import jp.tkms.waffle.data.internal.task.Job;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.executable.Executable;

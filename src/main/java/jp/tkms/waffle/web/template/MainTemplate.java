@@ -11,7 +11,7 @@ import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.updater.AbstractUpdater;
 import jp.tkms.waffle.data.web.BrowserMessage;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 
 import java.util.ArrayList;
@@ -136,7 +136,7 @@ abstract public class MainTemplate extends AbstractTemplate {
               "} else {" +
               "document.getElementById('jobnum').style.display = 'none';" +
               "}" +
-              "};updateJobNum(" + ExecutableRunJob.getNum() + ");" +
+              "};updateJobNum(" + ExecutableRunTask.getNum() + ");" +
               "if (sessionStorage.getItem('latest-project-id') != null) {" +
               "document.getElementById('recently-accessed-project').innerHTML=\"<a class='nav-link' title='recently accessed' href='/PROJECT/\"+sessionStorage.getItem('latest-project-id')+\"'><i class='nav-icon fas fa-angle-right' style='margin-lefti:1rem;'></i><p>\"+sessionStorage.getItem('latest-project-name')+\"</p></a>\";" +
               "} else {document.getElementById('recently-accessed-project').style.display='none';}"

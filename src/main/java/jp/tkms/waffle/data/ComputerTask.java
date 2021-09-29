@@ -2,11 +2,11 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
@@ -40,7 +40,7 @@ public interface ComputerTask extends DataDirectory {
   Path getBinPath();
   Path getRemoteBinPath();
   void specializedPreProcess(AbstractSubmitter submitter);
-  void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException;
+  void specializedPostProcess(AbstractSubmitter submitter, AbstractTask job) throws OccurredExceptionsException, RunNotFoundException;
   ArrayList<Object> getArguments();
   JSONObject getEnvironments();
   void appendErrorNote(String note);

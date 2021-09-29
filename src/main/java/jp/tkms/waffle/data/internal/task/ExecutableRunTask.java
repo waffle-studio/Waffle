@@ -1,31 +1,29 @@
-package jp.tkms.waffle.data.job;
+package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
-import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.inspector.InspectorMaster;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-public class ExecutableRunJob extends AbstractJob {
+public class ExecutableRunTask extends AbstractTask {
 
-  public ExecutableRunJob(Path path, Computer computer) {
+  public ExecutableRunTask(Path path, Computer computer) {
     this(WaffleId.newId(), path, computer.getName());
   }
 
-  public ExecutableRunJob(WaffleId id, Path path, String computerName) {
+  public ExecutableRunTask(WaffleId id, Path path, String computerName) {
     super(id, path, computerName);
   }
 
@@ -34,16 +32,16 @@ public class ExecutableRunJob extends AbstractJob {
     return ExecutableRunTaskStore.TYPE_CODE;
   }
 
-  public static ExecutableRunJob getInstance(String idHexCode) {
-    return Main.jobStore.getJob(WaffleId.valueOf(idHexCode));
+  public static ExecutableRunTask getInstance(String idHexCode) {
+    return InspectorMaster.getExecutableRunTask(WaffleId.valueOf(idHexCode));
   }
 
-  public static ArrayList<ExecutableRunJob> getList() {
-    return Main.jobStore.getList();
+  public static ArrayList<ExecutableRunTask> getList() {
+    return InspectorMaster.getExecutableRunTaskList();
   }
 
-  public static ArrayList<AbstractJob> getList(Computer computer) {
-    return new ArrayList<>(Main.jobStore.getList(computer));
+  public static ArrayList<AbstractTask> getList(Computer computer) {
+    return InspectorMaster.getExecutableRunTaskList(computer);
   }
 
   public static boolean hasJob(Computer computer) {
@@ -55,16 +53,16 @@ public class ExecutableRunJob extends AbstractJob {
   }
 
   public static void addRun(ExecutableRun run) {
-    ExecutableRunJob job = new ExecutableRunJob(run.getLocalDirectoryPath(), run.getComputer());
+    ExecutableRunTask job = new ExecutableRunTask(run.getLocalDirectoryPath(), run.getComputer());
     run.setTaskId(job.getHexCode());
-    Main.jobStore.register(job);
+    InspectorMaster.registerExecutableRunTask(job);
     InfoLogMessage.issue(run, "was added to the queue");
     BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
   }
 
   @Override
   public void remove() {
-    Main.jobStore.remove(getId());
+    InspectorMaster.removeExecutableRunTask(getId());
     try {
       Path storePath = getPropertyStorePath();
       if (Files.exists(storePath)) {
@@ -98,13 +96,13 @@ public class ExecutableRunJob extends AbstractJob {
   @Override
   public void replaceComputer(Computer computer) throws RunNotFoundException {
     getRun().setActualComputer(computer);
-    Main.jobStore.remove(getId());
+    InspectorMaster.removeExecutableRunTask(getId());
     String jsonString = StringFileUtil.read(getPropertyStorePath());
     remove();
     setComputerName(computer);
     StringFileUtil.write(getPropertyStorePath(), jsonString);
     setState(State.Created);
-    Main.jobStore.register(this);
+    InspectorMaster.registerExecutableRunTask(this);
   }
 
   @Override

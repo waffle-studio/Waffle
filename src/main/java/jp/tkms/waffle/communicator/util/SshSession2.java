@@ -1,4 +1,4 @@
-package jp.tkms.waffle.submitter.util;
+package jp.tkms.waffle.communicator.util;
 
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import net.schmizz.sshj.SSHClient;

@@ -5,8 +5,7 @@ import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
-import org.jruby.java.proxies.ArrayJavaProxy$INVOKER$i$last;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;

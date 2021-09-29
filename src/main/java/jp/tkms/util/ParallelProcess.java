@@ -1,16 +1,9 @@
 package jp.tkms.util;
 
-import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-
 import java.util.ArrayList;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class ParallelProcess {
   private ExecutorService executorService;

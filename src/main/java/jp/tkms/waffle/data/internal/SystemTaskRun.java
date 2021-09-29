@@ -5,16 +5,15 @@ import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.SystemTaskJob;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
+import jp.tkms.waffle.data.internal.task.SystemTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.script.ScriptProcessor;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -134,7 +133,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   public void start() {
-    SystemTaskJob.addRun(this);
+    SystemTask.addRun(this);
   }
 
   public void finish() {
@@ -296,7 +295,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   @Override
-  public void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException {
+  public void specializedPostProcess(AbstractSubmitter submitter, AbstractTask job) throws OccurredExceptionsException, RunNotFoundException {
     /*
     boolean isNoException = true;
     for (String collectorName : getExecutable().getCollectorNameList()) {

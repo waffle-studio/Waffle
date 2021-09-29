@@ -1,30 +1,27 @@
-package jp.tkms.waffle.data.job;
+package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.SystemTaskRun;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
-import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WaffleId;
-import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.inspector.InspectorMaster;
 
 import java.io.IOException;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-public class SystemTaskJob extends AbstractJob {
-  public SystemTaskJob(Path path, Computer computer) {
+public class SystemTask extends AbstractTask {
+  public SystemTask(Path path, Computer computer) {
     this(WaffleId.newId(), path, computer.getName());
   }
 
-  public SystemTaskJob(WaffleId id, Path path, String computerName) {
+  public SystemTask(WaffleId id, Path path, String computerName) {
     super(id, path, computerName);
   }
 
@@ -33,16 +30,16 @@ public class SystemTaskJob extends AbstractJob {
     return SystemTaskStore.TYPE_CODE;
   }
 
-  public static SystemTaskJob getInstance(String idHexCode) {
-    return Main.systemTaskStore.getJob(WaffleId.valueOf(idHexCode));
+  public static SystemTask getInstance(String idHexCode) {
+    return InspectorMaster.getSystemTask(WaffleId.valueOf(idHexCode));
   }
 
-  public static ArrayList<SystemTaskJob> getList() {
-    return Main.systemTaskStore.getList();
+  public static ArrayList<SystemTask> getList() {
+    return InspectorMaster.getSystemTaskList();
   }
 
-  public static ArrayList<AbstractJob> getList(Computer computer) {
-    return new ArrayList<>(Main.systemTaskStore.getList(computer));
+  public static ArrayList<AbstractTask> getList(Computer computer) {
+    return InspectorMaster.getSystemTaskList(computer);
   }
 
   public static boolean hasJob(Computer computer) {
@@ -53,9 +50,9 @@ public class SystemTaskJob extends AbstractJob {
     return getList().size();
   }
 
-  public static SystemTaskJob addRun(SystemTaskRun run) {
-    SystemTaskJob job = new SystemTaskJob(run.getLocalDirectoryPath(), run.getComputer());
-    Main.systemTaskStore.register(job);
+  public static SystemTask addRun(SystemTaskRun run) {
+    SystemTask job = new SystemTask(run.getLocalDirectoryPath(), run.getComputer());
+    InspectorMaster.registerSystemTask(job);
     InfoLogMessage.issue(run, "was added to the queue");
     //System.out.println(job.getPropertyStorePath().toString());
     //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
@@ -69,7 +66,7 @@ public class SystemTaskJob extends AbstractJob {
 
   @Override
   public void remove() {
-    Main.systemTaskStore.remove(getId());
+    InspectorMaster.removeSystemTask(getId());
     try {
       Path storePath = getPropertyStorePath();
       if (Files.exists(storePath)) {
@@ -104,12 +101,12 @@ public class SystemTaskJob extends AbstractJob {
   public void replaceComputer(Computer computer) throws RunNotFoundException {
     getRun().setActualComputer(computer);
     String jsonString = StringFileUtil.read(getPropertyStorePath());
-    Main.systemTaskStore.remove(getId());
+    InspectorMaster.removeSystemTask(getId());
     remove();
     setComputerName(computer);
     StringFileUtil.write(getPropertyStorePath(), jsonString);
     setState(State.Created);
-    Main.systemTaskStore.register(this);
+    InspectorMaster.registerSystemTask(this);
   }
 
   @Override

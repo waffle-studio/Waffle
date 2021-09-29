@@ -1,8 +1,8 @@
 package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.PollingThread;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.data.DataDirectory;
@@ -13,8 +13,7 @@ import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ComputerState;
-import jp.tkms.waffle.data.util.ResourceFile;
-import jp.tkms.waffle.submitter.*;
+import jp.tkms.waffle.communicator.*;
 import org.json.JSONObject;
 
 import javax.crypto.*;
@@ -495,7 +494,7 @@ public class Computer implements DataDirectory, PropertyFile {
         }
         parameters = getXsubParametersTemplate();
         try {
-          JSONObject jsonObject = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, this).getDefaultParameters(this);
+          JSONObject jsonObject = AbstractSubmitter.getInstance(Inspector.Mode.Normal, this).getDefaultParameters(this);
           for (String key : jsonObject.toMap().keySet()) {
             parameters.put(key, jsonObject.getJSONObject(key));
           }

@@ -1,9 +1,9 @@
-package jp.tkms.waffle.data.job;
+package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.Constants;
 import java.nio.file.Path;
 
-public class SystemTaskStore extends AbstractTaskStore<SystemTaskJob> {
+public class SystemTaskStore extends AbstractTaskStore<SystemTask> {
   public static final byte TYPE_CODE = 0;
   public static final String SYSTEM_TASK = "SYSTEM_TASK";
 
@@ -13,7 +13,7 @@ public class SystemTaskStore extends AbstractTaskStore<SystemTaskJob> {
 
   public static SystemTaskStore load() {
     SystemTaskStore instance = new SystemTaskStore();
-    load(instance, getDirectoryPath(), (i, p, c)-> new SystemTaskJob(i, p, c));
+    load(instance, getDirectoryPath(), (i, p, c)-> new SystemTask(i, p, c));
     return instance;
   }
 

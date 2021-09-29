@@ -3,13 +3,12 @@ package jp.tkms.waffle.script.ruby;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.Remote;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 import org.jruby.Ruby;
 import org.jruby.embed.*;
 

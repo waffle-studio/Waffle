@@ -1,20 +1,17 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
-import jp.tkms.waffle.PollingThread;
+import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
-import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ComputerState;
+import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.sub.servant.Envelope;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.nio.file.Path;
 import java.util.*;
 
 public class LoadBalancingSubmitter extends MultiComputerSubmitter {
@@ -58,7 +55,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
    */
 
   @Override
-  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
     int globalFreeJobSlot = computer.getMaximumNumberOfJobs();
@@ -71,7 +68,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
         if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           passableComputerList.add(targetComputer);
 
-          for (AbstractJob job : getJobList(PollingThread.Mode.Normal, targetComputer)) {
+          for (AbstractTask job : getJobList(Inspector.Mode.Normal, targetComputer)) {
             try {
               ComputerTask run = job.getRun();
               if (run.getComputer().equals(computer)) {
@@ -89,7 +86,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
     int targetHostCursor = 0;
     if (globalFreeThread > 0.0 && globalFreeMemory > 0.0 && globalFreeJobSlot > 0 && passableComputerList.size() > 0) {
       if (passableComputerList.size() > 0) {
-        for (AbstractJob job : createdJobList) {
+        for (AbstractTask job : createdJobList) {
           Computer targetComputer = passableComputerList.get(targetHostCursor);
 
           ComputerTask run = null;
@@ -127,6 +124,6 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
       }
     }
 
-    PollingThread.startup();
+    InspectorMaster.forceCheck();
   }
 }

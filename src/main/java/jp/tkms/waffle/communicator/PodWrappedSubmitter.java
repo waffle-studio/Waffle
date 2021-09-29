@@ -1,16 +1,15 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.Main;
-import jp.tkms.waffle.PollingThread;
+import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.SystemTaskRun;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
-import jp.tkms.waffle.data.job.SystemTaskJob;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
+import jp.tkms.waffle.data.internal.task.SystemTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -22,6 +21,7 @@ import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.*;
@@ -70,7 +70,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
     VirtualJobExecutor executor = jobManager.getNextExecutor(job);
     if (executor != null) {
       try {
@@ -97,7 +97,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void update(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
+  public void update(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     String executorId = job.getJobId().replaceFirst("\\..*$", "");
     Path podDirectory = computer.getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(executorId);
     envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), !jobManager.runningExecutorList.containsKey(executorId), podDirectory, getRunDirectory(job.getRun())));
@@ -113,7 +113,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     if (response != null) {
       for (PodTaskFinishedMessage message : response.getMessageBundle().getCastedMessageList(PodTaskFinishedMessage.class)) {
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           String executorId = job.getJobId().replaceFirst("\\..*$", "");
           VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
@@ -139,7 +139,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
 
       for (PodTaskCanceledMessage message : response.getMessageBundle().getCastedMessageList(PodTaskCanceledMessage.class)) {
-        AbstractJob job = findJobFromStore(message.getType(), message.getId());
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           try {
             job.setState(State.Canceled);
@@ -170,7 +170,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected void prepareJob(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     super.prepareJob(envelope, job);
 
     try {
@@ -185,7 +185,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException, FailedToControlRemoteException {
+  public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     if (jobManager.removeJob(envelope, job)) {
       job.setState(State.Canceled);
     }
@@ -259,11 +259,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
     }
 
-    public VirtualJobExecutor getNextExecutor(AbstractJob next) throws RunNotFoundException {
+    public VirtualJobExecutor getNextExecutor(AbstractTask next) throws RunNotFoundException {
       Submittable submittable = getSubmittable(next.getRun());
       VirtualJobExecutor result = submittable.usableExecutor;
       if (result == null && submittable.isNewExecutorCreatable) {
-        SystemTaskJob executorJob = SystemTaskJob.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(),
+        SystemTask executorJob = SystemTask.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(),
           true,
           Integer.parseInt(submitter.computer.getParameter(KEY_EMPTY_TIMEOUT).toString()),
           Integer.parseInt(submitter.computer.getParameter(KEY_FORCE_SHUTDOWN).toString()),
@@ -321,9 +321,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         //System.out.println(executor.getId());
         double usedThread = 0.0;
         double usedMemory = 0.0;
-        for (AbstractJob abstractJob : executor.getRunningList()) {
-          usedThread += abstractJob.getRequiredThread();
-          usedMemory += abstractJob.getRequiredMemory();
+        for (AbstractTask abstractTask : executor.getRunningList()) {
+          usedThread += abstractTask.getRequiredThread();
+          usedMemory += abstractTask.getRequiredMemory();
         }
         if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
           && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
@@ -340,7 +340,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER));
       if (result.targetComputer != null) {
         VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(), true,  0, 0, 0);
-        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, result.targetComputer);
+        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, result.targetComputer);
         result.isNewExecutorCreatable = targetSubmitter.isSubmittable(result.targetComputer, executor);
         executor.deleteDirectory();
         executor.finish();
@@ -395,9 +395,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
         double usedThread = 0.0;
         double usedMemory = 0.0;
-        for (AbstractJob abstractJob : executor.getRunningList()) {
-          usedThread += abstractJob.getRequiredThread();
-          usedMemory += abstractJob.getRequiredMemory();
+        for (AbstractTask abstractTask : executor.getRunningList()) {
+          usedThread += abstractTask.getRequiredThread();
+          usedMemory += abstractTask.getRequiredMemory();
         }
         //System.out.println(executor.getId());
         for (int i = queuedList.size() -1; i >= 0; i -= 1) {
@@ -443,7 +443,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       return false;
     }
 
-    boolean removeJob(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+    boolean removeJob(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
         if (executor.getRunningList().contains(job)) {
           executor.cancel(envelope, job);
@@ -536,7 +536,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     WaffleId id;
     //ArrayList<AbstractJob> runningList;
     int jobCount;
-    HashMap<String, AbstractJob> jobCache = new HashMap<>();
+    HashMap<String, AbstractTask> jobCache = new HashMap<>();
 
     public VirtualJobExecutor(Path path) {
       super(path);
@@ -554,7 +554,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       return jobCount;
     }
 
-    public void submit(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+    public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       try {
         String jobId = id.getReversedBase36Code() + '.' + getNextJobCount();
         Path podDirectory = getComputer().getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
@@ -578,7 +578,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
     }
 
-    public void cancel(Envelope envelope, AbstractJob job) throws RunNotFoundException {
+    public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       Path podDirectory = getComputer().getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
       envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalDirectoryPath()));
     }
@@ -651,7 +651,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     @Override
-    public void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException {
+    public void specializedPostProcess(AbstractSubmitter submitter, AbstractTask job) throws OccurredExceptionsException, RunNotFoundException {
       try {
         submitter.exec("rm -rf '" + getRemoteBaseDirectory().getParent().toString() + "'");
       } catch (FailedToControlRemoteException e) {
@@ -675,15 +675,15 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       return false;
     }
 
-    public ArrayList<AbstractJob> getRunningList() {
-      ArrayList<AbstractJob> runningList = new ArrayList<>();
+    public ArrayList<AbstractTask> getRunningList() {
+      ArrayList<AbstractTask> runningList = new ArrayList<>();
       JSONArray runningArray = getArrayFromProperty(RUNNING);
       for (int i = 0; i < runningArray.length(); i++) {
         if (jobCache.containsKey(runningArray.getString(i))) {
           runningList.add(jobCache.get(runningArray.getString(i)));
         }
       }
-      for (ExecutableRunJob job : Main.jobStore.getList()) {
+      for (ExecutableRunTask job : InspectorMaster.getExecutableRunTaskList()) {
         if (runningList.size() >= runningArray.length()) {
           break;
         }
@@ -748,7 +748,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   @Override
   public AbstractSubmitter connect(boolean retry) {
     Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
-    targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer).connect(retry);
+    targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer).connect(retry);
     return this;
   }
 

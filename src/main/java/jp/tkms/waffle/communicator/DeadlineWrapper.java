@@ -1,18 +1,16 @@
-package jp.tkms.waffle.submitter;
+package jp.tkms.waffle.communicator;
 
-import jp.tkms.waffle.PollingThread;
+import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
-import jp.tkms.waffle.data.job.SystemTaskJob;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
+import jp.tkms.waffle.data.internal.task.SystemTask;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.sub.servant.Envelope;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.file.Path;
@@ -87,7 +85,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
       if (new Date().before(deadline)) {
         Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
         if (targetComputer != null) {
-          AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance((next instanceof SystemTaskJob ? PollingThread.Mode.System : PollingThread.Mode.Normal), targetComputer);
+          AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance((next instanceof SystemTask ? Inspector.Mode.System : Inspector.Mode.Normal), targetComputer);
           return targetSubmitter.isSubmittable(targetComputer, next, list);
         }
       }
@@ -99,14 +97,14 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void processPreparing(Envelope envelope, ArrayList<AbstractJob> submittedJobList, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
+  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
       if (new Date().before(deadline)) {
-        for (AbstractJob job : createdJobList) {
+        for (AbstractTask job : createdJobList) {
           Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
           if (targetComputer != null) {
-            AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(PollingThread.Mode.Normal, targetComputer);
+            AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer);
             try {
               if (targetSubmitter.isSubmittable(targetComputer, job.getRun())) {
                 job.replaceComputer(targetComputer);
@@ -122,7 +120,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
       WarnLogMessage.issue(e);
     }
 
-    PollingThread.startup();
+    InspectorMaster.forceCheck();
   }
 
   @Override

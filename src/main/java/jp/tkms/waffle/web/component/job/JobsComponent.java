@@ -1,7 +1,7 @@
 package jp.tkms.waffle.web.component.job;
 
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
@@ -43,14 +43,14 @@ public class JobsComponent extends AbstractAccessControlledComponent {
     return "/jobs";
   }
 
-  public static String getUrl(Mode mode, ExecutableRunJob job) {
+  public static String getUrl(Mode mode, ExecutableRunTask job) {
     return "/jobs/" + mode.name() + "/" + (job == null ? ":id" : job.getId().getReversedBase36Code());
   }
 
   @Override
   public void controller() {
     if (mode == Mode.Cancel) {
-      ExecutableRunJob job = ExecutableRunJob.getInstance(request.params("id"));
+      ExecutableRunTask job = ExecutableRunTask.getInstance(request.params("id"));
       if (job != null) {
         try {
           job.cancel();
@@ -110,7 +110,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (ExecutableRunJob job : ExecutableRunJob.getList()) {
+              for (ExecutableRunTask job : ExecutableRunTask.getList()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   ExecutableRun run = job.getRun();
                   try {

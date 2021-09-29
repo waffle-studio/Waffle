@@ -1,28 +1,24 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
-import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.job.AbstractJob;
-import jp.tkms.waffle.data.job.ExecutableRunJob;
-import jp.tkms.waffle.data.job.ExecutableRunTaskStore;
+import jp.tkms.waffle.data.internal.task.AbstractTask;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
-import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 import jp.tkms.waffle.web.updater.RunStatusUpdater;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -143,7 +139,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
-    ExecutableRunJob.addRun(this);
+    ExecutableRunTask.addRun(this);
   }
 
   @Override
@@ -157,7 +153,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   public void cancel() {
     if (getTaskId() != null) {
       try {
-        ExecutableRunJob job = ExecutableRunJob.getInstance(getTaskId());
+        ExecutableRunTask job = ExecutableRunTask.getInstance(getTaskId());
         if (job != null) {
           job.cancel();
         }
@@ -369,7 +365,7 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
   }
 
   @Override
-  public void specializedPostProcess(AbstractSubmitter submitter, AbstractJob job) throws OccurredExceptionsException, RunNotFoundException {
+  public void specializedPostProcess(AbstractSubmitter submitter, AbstractTask job) throws OccurredExceptionsException, RunNotFoundException {
     boolean isNoException = true;
     for (String collectorName : getExecutable().getCollectorNameList()) {
       try {

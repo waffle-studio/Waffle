@@ -1,4 +1,4 @@
-package jp.tkms.waffle.submitter.util;
+package jp.tkms.waffle.communicator.util;
 
 import net.schmizz.sshj.connection.channel.direct.Session;
 

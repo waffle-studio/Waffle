@@ -1,7 +1,7 @@
 package jp.tkms.waffle.collector;
 
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
-import jp.tkms.waffle.submitter.AbstractSubmitter;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
