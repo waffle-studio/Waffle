@@ -3,6 +3,7 @@ package jp.tkms.waffle.data.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
+import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
@@ -29,7 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class ExecutableRun extends AbstractRun implements ComputerTask {
+public class ExecutableRun extends AbstractRun implements DataDirectory, ComputerTask {
   public static final String EXECUTABLE_RUN = "EXECUTABLE_RUN";
   public static final String JSON_FILE = EXECUTABLE_RUN + Constants.EXT_JSON;
   private static final String KEY_EXECUTABLE = "executable";
@@ -161,6 +162,15 @@ public class ExecutableRun extends AbstractRun implements ComputerTask {
         ErrorLogMessage.issue(e);
       }
     }
+  }
+
+  public void appendErrorNote(String note) {
+    createNewFile(KEY_ERROR_NOTE_TXT);
+    updateFileContents(KEY_ERROR_NOTE_TXT, getErrorNote().concat(note).concat("\n"));
+  }
+
+  public String getErrorNote() {
+    return getFileContents(KEY_ERROR_NOTE_TXT);
   }
 
   public void putResultDynamically(String key, Object value) {
