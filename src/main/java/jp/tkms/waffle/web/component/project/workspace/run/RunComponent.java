@@ -66,7 +66,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(AbstractRun run) {
     if (run != null) {
-      return '/' + run.getLocalDirectoryPath().toString();
+      return "/" ;//+ run.getLocalDirectoryPath().toString();
     } else {
       return WorkspaceComponent.getUrl(null, null) + "/RUN/*";
     }
@@ -112,7 +112,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
         return;
     }
 
-    runList = (abstractRun == null ? AbstractRun.getList(workspace) : abstractRun.getList());
+    runList = (abstractRun == null ? AbstractRun.getList(workspace) : abstractRun.getList(null));
     if (Paths.get(request.uri()).relativize(Paths.get(request.headers("Referer").replaceFirst("^.*?/PROJECT/", "/PROJECT/"))).toString().contains("..") && runList.size() == 1) {
       response.redirect(RunComponent.getUrl(runList.get(0)));
     }
@@ -146,8 +146,6 @@ public class RunComponent extends AbstractAccessControlledComponent {
         if (abstractRun != null) {
           if (abstractRun instanceof ProcedureRun) {
             return "ProcedureRun";
-          } else if (abstractRun instanceof RunCapsule) {
-            return "RunCapsule";
           }
           return "ConductorRun";
         }
@@ -266,8 +264,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
                       //new Lte.TableValue(null, (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
                       new Lte.TableValue(null, icon),
                       new Lte.TableValue(null, Html.a(getUrl(run), null, null, run.getName())),
-                      new Lte.TableValue("max-width:0;", Html.div("hide-overflow", run.getNote())),
-                      new Lte.TableValue(null, Html.spanWithId(run.getLocalDirectoryPath().toString() + "-badge", run.getState().getStatusBadge()))
+                      new Lte.TableValue("max-width:0;", Html.div("hide-overflow", /*run.getNote()*/ "note")),
+                      new Lte.TableValue(null, Html.spanWithId(/*run.getLocalDirectoryPath().toString() +*/ "-badge", run.getState().getStatusBadge()))
                     );
                   })
                 );

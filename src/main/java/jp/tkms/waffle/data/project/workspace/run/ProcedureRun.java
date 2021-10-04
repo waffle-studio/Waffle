@@ -9,35 +9,37 @@ import jp.tkms.waffle.data.project.workspace.Registry;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
-import jp.tkms.waffle.data.util.ComputerState;
-import jp.tkms.waffle.data.util.InstanceCache;
-import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
+import org.checkerframework.checker.units.qual.A;
 import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class ProcedureRun extends AbstractRun {
-  public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
-  public static final String JSON_FILE = PROCEDURE_RUN + Constants.EXT_JSON;
+  //public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
+  public static final String PROCEDURE_RUN = ".PROCEDURE_RUN";
   public static final String KEY_CONDUCTOR = "conductor";
   public static final String KEY_PROCEDURE_NAME = "procedure_name";
+  public static final String KEY_WORKING_DIRECTORY = "working_directory";
 
   private ArchivedConductor conductor;
   private String procedureName;
   private Registry registry;
+  private Path workingDirectory;
 
   private static final InstanceCache<String, ProcedureRun> instanceCache = new InstanceCache<>();
 
-  public ProcedureRun(Workspace workspace, AbstractRun parent, Path path, ArchivedConductor conductor, String procedureName) {
-    super(workspace, parent, path);
-    instanceCache.put(getLocalDirectoryPath().toString(), this);
+  public ProcedureRun(Workspace workspace, ConductorRun parentConductorRun, Path path, Path workingDirectory, ArchivedConductor conductor, String procedureName) {
+    super(workspace, parentConductorRun, path);
+    instanceCache.put(getPath().toString(), this);
     setConductor(conductor);
     setProcedureName(procedureName);
+    setWorkingDirectory(workingDirectory);
     registry = new Registry(getWorkspace());
   }
 
@@ -45,34 +47,50 @@ public class ProcedureRun extends AbstractRun {
     return ProcedureRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
-  @Override
-  public void start() {
-    startFinalizer(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, null);
+  public void setWorkingDirectory(Path workingDirectory) {
+    this.workingDirectory = workingDirectory;
+    setToProperty(KEY_WORKING_DIRECTORY, workingDirectory.toString());
   }
 
-  public void startFinalizer(ScriptProcessor.ProcedureMode mode, AbstractRun caller) {
+  public Path getWorkingDirectory() {
+    if (this.workingDirectory == null) {
+      this.workingDirectory = Paths.get(getStringFromProperty(KEY_WORKING_DIRECTORY));
+    }
+    return this.workingDirectory;
+  }
+
+  public void addReferable(AbstractRun run) {
+  }
+
+  public ArrayList<AbstractRun> getReferable() {
+    ArrayList<AbstractRun> clonedList = new ArrayList<>();
+    return clonedList;
+  }
+
+  @Override
+  public void start() {
     started();
     setState(State.Running);
-    getResponsible().registerChildActiveRun(this);
-    if (caller == null) {
-      caller = this;
-    }
+
     if (conductor != null) {
       if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
-        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, mode, caller, conductor.getMainProcedureScript());
+        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, getReferable(), conductor.getMainProcedureScript());
       } else {
         try {
-          ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, mode, caller, conductor.getChildProcedureScript(procedureName));
+          ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, getReferable(), conductor.getChildProcedureScript(procedureName));
         } catch (ChildProcedureNotFoundException e) {
           //NOOP
         }
       }
     }
+    /*
     if (getChildrenRunSize() <= 0) {
       reportFinishedRun(null);
     }
+     */
   }
 
+  /*
   public void startHandler(ScriptProcessor.ProcedureMode mode, AbstractRun caller, ArrayList<Object> arguments) {
     if (caller == null) {
       caller = this;
@@ -89,36 +107,60 @@ public class ProcedureRun extends AbstractRun {
       }
     }
   }
+   */
 
   @Override
   public void finish() {
     setState(State.Finalizing);
+    /*
     processFinalizers();
     getResponsible().reportFinishedRun(this);
+
+     */
     setState(State.Finished);
   }
 
   @Override
-  protected Path getVariablesStorePath() {
-    return getParent().getVariablesStorePath();
+  public String getName() {
+    return null;
+  }
+
+  @Override
+  public String getId() {
+    return null;
   }
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(JSON_FILE);
+    return getPath();
   }
 
   public Registry getRegistry() {
     return registry;
   }
 
-  public static ProcedureRun create(AbstractRun parent, String expectedName, ArchivedConductor conductor, String procedureName) {
-    String name = parent.generateUniqueFileName(expectedName);
-    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(name), conductor, procedureName);
+  private static Path getNewProcedureRunPath(ConductorRun conductorRun, String procedureName) {
+    Path path = conductorRun.getLocalDirectoryPath();
+    path = path.resolve(PROCEDURE_RUN).resolve(procedureName);
+    String id = WaffleId.newId().toString();
+    path = path.resolve(id.substring(0, 8)).resolve(id.substring(8, 10)).resolve(id.substring(10, 12)).resolve(id);
+    return path;
+  }
+
+  public static ProcedureRun create(ConductorRun parent, ArchivedConductor conductor, String procedureName) {
+    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, getNewProcedureRunPath(parent, procedureName), parent.getWorkspace().getLocalDirectoryPath(), conductor, procedureName);
     instance.setState(State.Created);
-    instance.getParent().registerChildRun(instance);
-    instance.updateResponsible();
     return instance;
+  }
+
+  public static ProcedureRun create(ProcedureRun parent, ArchivedConductor conductor, String procedureName) {
+    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent.getParentConductorRun(), getNewProcedureRunPath(parent.getParentConductorRun(), procedureName), parent.getWorkingDirectory(), conductor, procedureName);
+    instance.setState(State.Created);
+    return instance;
+  }
+
+  public static Path toJsonPath(Path path) {
+    return path.getParent().resolve(path.getFileName().toString() + Constants.EXT_JSON);
   }
 
   public static ProcedureRun getInstance(Workspace workspace, String localPathString) {
@@ -127,12 +169,12 @@ public class ProcedureRun extends AbstractRun {
       return instance;
     }
 
-    Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
+    Path jsonPath = Constants.WORK_DIR.resolve(localPathString);
 
     if (Files.exists(jsonPath)) {
       try {
         JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-        AbstractRun parent = AbstractRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_RUN));
+        ConductorRun parent = ConductorRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN));
         ArchivedConductor conductor = null;
         if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
           conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
@@ -141,7 +183,11 @@ public class ProcedureRun extends AbstractRun {
         if (jsonObject.keySet().contains(KEY_PROCEDURE_NAME)) {
           procedureName = jsonObject.getString(KEY_PROCEDURE_NAME);
         }
-        instance = new ProcedureRun(workspace, parent, jsonPath.getParent(), conductor, procedureName);
+        Path workingDirectory = null;
+        if (jsonObject.keySet().contains(KEY_WORKING_DIRECTORY)) {
+          workingDirectory = Paths.get(jsonObject.getString(KEY_WORKING_DIRECTORY));
+        }
+        instance = new ProcedureRun(workspace, parent, Paths.get(localPathString), workingDirectory, conductor, procedureName);
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }
@@ -150,11 +196,13 @@ public class ProcedureRun extends AbstractRun {
     return instance;
   }
 
+  /*
   public static ProcedureRun getTestRunProcedureRun(ArchivedExecutable executable) {
     return create(ConductorRun.getTestRunConductorRun(executable), executable.getArchiveName(), null, null);
   }
+   */
 
-  public void setConductor(ArchivedConductor conductor) {
+  private void setConductor(ArchivedConductor conductor) {
     this.conductor = conductor;
     if (conductor != null) {
       setToProperty(KEY_CONDUCTOR, conductor.getArchiveName());
@@ -163,7 +211,7 @@ public class ProcedureRun extends AbstractRun {
     }
   }
 
-  public void setProcedureName(String procedureName) {
+  private void setProcedureName(String procedureName) {
     this.procedureName = procedureName;
     if (procedureName != null) {
       setToProperty(KEY_PROCEDURE_NAME, procedureName);
@@ -206,6 +254,7 @@ public class ProcedureRun extends AbstractRun {
     return executableRun;
   }
 
+  /*
   public SyncExecutableRun createSyncExecutableRun(String executableName, String computerName, String name) {
     Executable executable = Executable.getInstance(getProject(), executableName);
     if (executable == null) {
@@ -225,6 +274,7 @@ public class ProcedureRun extends AbstractRun {
 
     return syncExecutableRun;
   }
+   */
 
   public void commit() {
     /*

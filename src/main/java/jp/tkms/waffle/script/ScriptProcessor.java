@@ -14,14 +14,7 @@ import java.util.HashMap;
 
 public abstract class ScriptProcessor {
 
-  public enum ProcedureMode {
-    START_OR_FINISHED_ALL,
-    CONTAIN_FAULT,
-    RESULT_UPDATED,
-    APPEALED
-  };
-
-  abstract public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script, ArrayList<Object> arguments);
+  abstract public void processProcedure(ProcedureRun run, ArrayList<AbstractRun> referable, String script, ArrayList<Object> arguments);
   abstract public String procedureTemplate();
   abstract public void processExtractor(AbstractSubmitter submitter, ExecutableRun run, String extractorName);
   abstract public String extractorTemplate();
@@ -37,8 +30,8 @@ public abstract class ScriptProcessor {
     }
   };
 
-  public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script) {
-    processProcedure(run, mode, caller, script, null);
+  public void processProcedure(ProcedureRun run, ArrayList<AbstractRun> referable, String script) {
+    processProcedure(run, referable, script, null);
   }
 
   public static ScriptProcessor getProcessor(String className) {

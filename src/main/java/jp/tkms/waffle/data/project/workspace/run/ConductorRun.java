@@ -186,8 +186,8 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return getVariables().get(key);
   }
 
-  public ConductorRun(Workspace workspace, ArchivedConductor conductor, AbstractRun parent, Path path) {
-    super(workspace, (ConductorRun) parent, path);
+  public ConductorRun(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
+    super(workspace, parent, path);
     instanceCache.put(getLocalDirectoryPath().toString(), this);
     setConductor(conductor);
   }
@@ -220,7 +220,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return getDirectoryPath().resolve(JSON_FILE);
   }
 
-  private static ConductorRun create(Workspace workspace, ArchivedConductor conductor, AbstractRun parent, Path path) {
+  private static ConductorRun create(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
     ConductorRun instance = new ConductorRun(workspace, conductor, parent, path);
     instance.setState(State.Created);
     //instance.updateResponsible();
@@ -230,22 +230,20 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return instance;
   }
 
-  public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedName) {
-    String name = expectedName;
+  public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedPath) {
+    Path path = toNormalizedPath(workspace.getLocalDirectoryPath().resolve(AbstractRun.RUN), expectedPath);
+
     return create(workspace,
       (conductor == null ? null : StagedConductor.getInstance(workspace, conductor).getArchivedInstance()),
-      null, workspace.getDirectoryPath().resolve(AbstractRun.RUN).resolve(name));
+      null, path);
   }
 
-  public static ConductorRun create(ProcedureRun parent, Conductor conductor, String expectedName) {
-    /*
-    String name = parent.generateUniqueFileName(expectedName);
-    return create(parent.getWorkspace(),
-      StagedConductor.getInstance(parent.getWorkspace(), conductor).getArchivedInstance(),
-      parent, parent.getDirectoryPath().resolve(name));
+  public static ConductorRun create(ProcedureRun procedureRun, Conductor conductor, String expectedPath) {
+    Path path = toNormalizedPath(procedureRun.getWorkingDirectory(), expectedPath);
 
-     */
-    return null;
+    return create(procedureRun.getWorkspace(),
+      StagedConductor.getInstance(procedureRun.getWorkspace(), conductor).getArchivedInstance(),
+      procedureRun.getParentConductorRun(), path);
   }
 
   public static ConductorRun getInstance(Workspace workspace, String localPathString) {
@@ -253,7 +251,6 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     if (instance != null) {
       return instance;
     }
-    /*
 
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
 
@@ -265,17 +262,16 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
           String conductorName = jsonObject.getString(KEY_CONDUCTOR);
           conductor = ArchivedConductor.getInstance(workspace, conductorName);
         }
-        AbstractRun parent = null;
-        if (jsonObject.keySet().contains(KEY_PARENT_RUN)) {
-          String parentPath = jsonObject.getString(KEY_PARENT_RUN);
-          parent = AbstractRun.getInstance(workspace, parentPath);
+        ConductorRun parent = null;
+        if (jsonObject.keySet().contains(KEY_PARENT_CONDUCTOR_RUN)) {
+          String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
+          parent = ConductorRun.getInstance(workspace, parentPath);
         }
         instance = new ConductorRun(workspace, conductor, parent, jsonPath.getParent());
       } catch (Exception e) {
         ErrorLogMessage.issue(jsonPath.toString() + " : " + ErrorLogMessage.getStackTrace(e));
       }
     }
-     */
 
     return instance;
   }

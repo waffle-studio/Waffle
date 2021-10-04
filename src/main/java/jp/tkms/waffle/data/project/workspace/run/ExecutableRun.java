@@ -54,7 +54,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   private static final InstanceCache<String, ExecutableRun> instanceCache = new InstanceCache<>();
 
-  public ExecutableRun(Workspace workspace, RunCapsule parent, Path path) {
+  public ExecutableRun(Workspace workspace, ConductorRun parent, Path path) {
     super(workspace, parent, path);
     instanceCache.put(getLocalDirectoryPath().toString(), this);
   }
@@ -68,10 +68,11 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     return getDirectoryPath().resolve(JSON_FILE);
   }
 
-  public static ExecutableRun create(ProcedureRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
+  public static ExecutableRun create(ConductorRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
+    /*
     RunCapsule capsule = RunCapsule.create(parent, parent.generateUniqueFileName(expectedName));
     String name = capsule.generateUniqueFileName(expectedName);
-    ExecutableRun run = new ExecutableRun(capsule.getWorkspace(), capsule, capsule.getDirectoryPath().resolve(name));
+    ExecutableRun run = new ExecutableRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(parent.g));
     run.setParent(capsule);
     run.setExecutable(executable);
     run.setComputer(computer);
@@ -91,6 +92,8 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     run.updateResponsible();
     run.putParametersByJson(executable.getDefaultParameters().toString());
     return run;
+     */
+    return null;
   }
 
   public static ExecutableRun create(ProcedureRun parent, String expectedName, Executable executable, Computer computer) {
@@ -103,6 +106,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       return instance;
     }
 
+    /*
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
     String[] splitPath = localPathString.split(File.separator, 5);
     if (Files.exists(jsonPath) && splitPath.length == 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
@@ -118,6 +122,8 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       }
       return instance;
     }
+
+     */
     throw new RunNotFoundException();
   }
 
@@ -134,7 +140,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     if (started()) {
       return;
     }
-    getResponsible().registerChildActiveRun(this);
+    //getResponsible().registerChildActiveRun(this);
     try {
       putResultsByJson(executable.getDummyResults().toString());
     } catch (Exception e) {
@@ -146,9 +152,21 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   @Override
   public void finish() {
     setState(State.Finalizing);
+    /*
     processFinalizers();
     getResponsible().reportFinishedRun(this);
+     */
     setState(State.Finished);
+  }
+
+  @Override
+  public String getName() {
+    return null;
+  }
+
+  @Override
+  public String getId() {
+    return null;
   }
 
   public void cancel() {
@@ -179,12 +197,14 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   protected void processUpdateHandler(String key, Object value) {
+    /*
     String handlerName = getUpdateHandler();
     if (handlerName != null) {
       ProcedureRun handler = ProcedureRun.getInstance(getWorkspace(), handlerName);
       handler.updateResponsible();
       handler.startHandler(ScriptProcessor.ProcedureMode.RESULT_UPDATED, this, new ArrayList<>(Arrays.asList(key, value)));
     }
+     */
   }
 
   public String getUpdateHandler() {
@@ -192,13 +212,14 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   public void setUpdateHandler(String key) {
+    /*
     ProcedureRun handlerRun = createHandler(key);
     setToProperty(KEY_UPDATE_HANDLER, handlerRun.getLocalDirectoryPath().toString());
+     */
   }
 
-  @Override
   protected Path getVariablesStorePath() {
-    return getParent().getVariablesStorePath();
+    return getParentConductorRun().getVariablesStorePath();
   }
 
   public ArchivedExecutable getExecutable() {
@@ -695,4 +716,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     return parametersWrapper;
   }
   public HashMap p() { return parameters(); }
+
+  @Override
+  public Path getDirectoryPath() {
+    return getPath();
+  }
 }

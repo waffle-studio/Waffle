@@ -186,7 +186,6 @@ public class SystemComponent extends AbstractAccessControlledComponent {
           Html.div(null, Html.div(null, RubyScript.debugReport(), " ", a(SystemComponent.getUrl(Mode.ReduceRubyContainerCache), "ReduceCache")) ),
           Html.div(null, Html.div(null, ConductorRun.debugReport()) ),
           Html.div(null, Html.div(null, ProcedureRun.debugReport()) ),
-          Html.div(null, Html.div(null, RunCapsule.debugReport()) ),
           Html.div(null, Html.div(null, ExecutableRun.debugReport()) ),
           Html.div(null, Html.div(null, InstanceCache.debugReport() , " ", a(SystemComponent.getUrl(Mode.Gc), "GC")))
           );

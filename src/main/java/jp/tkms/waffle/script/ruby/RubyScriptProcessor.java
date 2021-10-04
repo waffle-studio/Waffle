@@ -19,20 +19,12 @@ public class RubyScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_RUBY;
 
   @Override
-  public void processProcedure(ProcedureRun run, ProcedureMode mode, AbstractRun caller, String script, ArrayList<Object> arguments) {
+  public void processProcedure(ProcedureRun run, ArrayList<AbstractRun> referable, String script, ArrayList<Object> arguments) {
     RubyScript.process((container) -> {
       try {
         container.runScriptlet(procedureTemplate());
         container.runScriptlet(script);
-        if (mode.equals(ProcedureMode.START_OR_FINISHED_ALL)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_start_or_finished_all", run, caller);
-        } else if (mode.equals(ProcedureMode.CONTAIN_FAULT)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_contain_fault", run, caller);
-        } else if (mode.equals(ProcedureMode.RESULT_UPDATED)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_result_updated", run, caller, arguments.get(0), arguments.get(1));
-        } else if (mode.equals(ProcedureMode.APPEALED)) {
-          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure_when_appealed", run, caller, arguments.get(0), arguments.get(1));
-        }
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure", run, referable);
     } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);
       }
@@ -42,17 +34,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
   @Override
   public String procedureTemplate() {
     return
-      "def procedure_when_start_or_finished_all(this, caller)\n" +
-      "end\n" +
-      "\n" +
-      "def procedure_when_contain_fault(this, caller)\n" +
-      "    #procedure_when_start_or_finished_all(this, caller)\n" +
-      "end\n" +
-      "\n" +
-      "def procedure_when_result_updated(this, caller, name, value)\n" +
-      "end\n" +
-      "\n" +
-      "def procedure_when_appealed(this, caller, appealer, message)\n" +
+      "def procedure(this, refs)\n" +
       "end\n";
   }
 

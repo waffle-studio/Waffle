@@ -437,7 +437,6 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
   }
    */
 
-  /*
   JSONObject propertyStoreCache = null;
   @Override
   public JSONObject getPropertyStoreCache() {
@@ -448,7 +447,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
     propertyStoreCache = cache;
   }
 
-
+/*
   public void putVariables(JSONObject valueMap) {
     if () {}
   }
@@ -475,4 +474,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
     return getVariables().get(key);
   }
    */
+
+  protected static Path toNormalizedPath(Path basePath, String childPath) {
+  }
 }
