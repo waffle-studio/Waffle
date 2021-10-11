@@ -69,10 +69,10 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
 
     if (Files.exists(basePath.resolve(ConductorRun.JSON_FILE))) {
       return ConductorRun.getInstance(workspace, localPathString);
-    } else if (Files.exists(basePath.resolve(ProcedureRun.JSON_FILE))) {
-      return ProcedureRun.getInstance(workspace, localPathString);
     } else if (Files.exists(basePath.resolve(ExecutableRun.JSON_FILE))) {
       return ExecutableRun.getInstance(localPathString);
+    } else if (basePath.getParent().getParent().getParent().getParent().getParent().getFileName().toString().equals(ProcedureRun.PROCEDURE_RUN)) {
+      return ProcedureRun.getInstance(workspace, localPathString);
     }
 
     return null;
@@ -133,7 +133,9 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
   }
 
   private void setParentConductorRun(ConductorRun parent) {
-    setToProperty(KEY_PARENT_CONDUCTOR_RUN, parent.getLocalDirectoryPath().toString());
+    if (parent != null) {
+      setToProperty(KEY_PARENT_CONDUCTOR_RUN, parent.getLocalDirectoryPath().toString());
+    }
     parentConductorRun = parent;
   }
 
@@ -476,5 +478,6 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
    */
 
   protected static Path toNormalizedPath(Path basePath, String childPath) {
+    return basePath.resolve(childPath);
   }
 }

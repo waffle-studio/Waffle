@@ -119,19 +119,27 @@ def exec_result_collect(run, remote)
     end
 end
 
+def exec_procedure(instance, refs)
+    result = true
+    #local_instance = Waffle::ActorWrapper.new(instance)
+    result = procedure(instance, refs)
+    #local_instance.close
+    return result
+end
+
 def exec_procedure_when_start_or_finished_all(instance, caller)
     result = true
-    local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure_when_start_or_finished_all(local_instance, caller)
-    local_instance.close
+    #local_instance = Waffle::ActorWrapper.new(instance)
+    result = procedure_when_start_or_finished_all(instance, caller)
+    #local_instance.close
     return result
 end
 
 def exec_procedure_when_contain_fault(instance, caller)
     result = true
-    local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure_when_contain_fault(local_instance, caller)
-    local_instance.close
+    #local_instance = Waffle::ActorWrapper.new(instance)
+    result = procedure_when_contain_fault(instance, caller)
+    #local_instance.close
     return result
 end
 

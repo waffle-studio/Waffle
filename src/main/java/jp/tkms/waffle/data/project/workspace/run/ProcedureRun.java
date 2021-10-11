@@ -3,18 +3,19 @@ package jp.tkms.waffle.data.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Registry;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
-import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
+import jp.tkms.waffle.exception.WaffleException;
 import jp.tkms.waffle.script.ScriptProcessor;
-import org.checkerframework.checker.units.qual.A;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,7 +48,22 @@ public class ProcedureRun extends AbstractRun {
     return ProcedureRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
+  public Path cd(String directoryName) {
+    Path workingDirectory = getWorkingDirectory();
+    workingDirectory = workingDirectory.resolve(directoryName);
+    try {
+      Files.createDirectories(workingDirectory);
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    setWorkingDirectory(workingDirectory);
+    return workingDirectory;
+  }
+
   public void setWorkingDirectory(Path workingDirectory) {
+    if (workingDirectory.isAbsolute()) {
+      workingDirectory = Constants.WORK_DIR.relativize(workingDirectory);
+    }
     this.workingDirectory = workingDirectory;
     setToProperty(KEY_WORKING_DIRECTORY, workingDirectory.toString());
   }
@@ -56,7 +72,7 @@ public class ProcedureRun extends AbstractRun {
     if (this.workingDirectory == null) {
       this.workingDirectory = Paths.get(getStringFromProperty(KEY_WORKING_DIRECTORY));
     }
-    return this.workingDirectory;
+    return Constants.WORK_DIR.resolve(this.workingDirectory);
   }
 
   public void addReferable(AbstractRun run) {
@@ -115,7 +131,6 @@ public class ProcedureRun extends AbstractRun {
     /*
     processFinalizers();
     getResponsible().reportFinishedRun(this);
-
      */
     setState(State.Finished);
   }
@@ -132,7 +147,8 @@ public class ProcedureRun extends AbstractRun {
 
   @Override
   public Path getPropertyStorePath() {
-    return getPath();
+    Path path = getPath();
+    return path.getParent().resolve(path.getFileName().toString() + Constants.EXT_JSON);
   }
 
   public Registry getRegistry() {
@@ -140,7 +156,7 @@ public class ProcedureRun extends AbstractRun {
   }
 
   private static Path getNewProcedureRunPath(ConductorRun conductorRun, String procedureName) {
-    Path path = conductorRun.getLocalDirectoryPath();
+    Path path = conductorRun.getDirectoryPath();
     path = path.resolve(PROCEDURE_RUN).resolve(procedureName);
     String id = WaffleId.newId().toString();
     path = path.resolve(id.substring(0, 8)).resolve(id.substring(8, 10)).resolve(id.substring(10, 12)).resolve(id);
@@ -148,12 +164,18 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public static ProcedureRun create(ConductorRun parent, ArchivedConductor conductor, String procedureName) {
-    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, getNewProcedureRunPath(parent, procedureName), parent.getWorkspace().getLocalDirectoryPath(), conductor, procedureName);
+    if (Conductor.MAIN_PROCEDURE_SHORT_ALIAS.equals(procedureName)) {
+      procedureName = Conductor.MAIN_PROCEDURE_ALIAS;
+    }
+    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, getNewProcedureRunPath(parent, procedureName), parent.getDirectoryPath(), conductor, procedureName);
     instance.setState(State.Created);
     return instance;
   }
 
   public static ProcedureRun create(ProcedureRun parent, ArchivedConductor conductor, String procedureName) {
+    if (Conductor.MAIN_PROCEDURE_SHORT_ALIAS.equals(procedureName)) {
+      procedureName = Conductor.MAIN_PROCEDURE_ALIAS;
+    }
     ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent.getParentConductorRun(), getNewProcedureRunPath(parent.getParentConductorRun(), procedureName), parent.getWorkingDirectory(), conductor, procedureName);
     instance.setState(State.Created);
     return instance;

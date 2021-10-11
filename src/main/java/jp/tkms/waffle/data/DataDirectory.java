@@ -81,7 +81,11 @@ public interface DataDirectory {
   }
 
   default Path getLocalDirectoryPath() {
-    return toLocalDirectoryPath(getDirectoryPath());
+    Path path = getDirectoryPath();
+    if (path.isAbsolute()) {
+      return toLocalDirectoryPath(getDirectoryPath());
+    }
+    return path;
   }
 
   static Path toLocalDirectoryPath(Path path) {

@@ -14,7 +14,6 @@ import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
-import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -72,23 +71,24 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
   @Override
   public void start() {
-    /*
     started();
     setState(State.Running);
     if (conductor != null) {
+      ProcedureRun procedureRun = ProcedureRun.create(this, conductor, Conductor.MAIN_PROCEDURE_ALIAS);
+      procedureRun.start();
 
-      ProcedureRun procedureRun = ProcedureRun.create(this, Conductor.MAIN_PROCEDURE_FILENAME.replaceFirst("\\..*?$", ""), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
-      procedureRun.startFinalizer(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, getParent());
+      //ProcedureRun procedureRun = ProcedureRun.create(this, Conductor.MAIN_PROCEDURE_FILENAME.replaceFirst("\\..*?$", ""), conductor, Conductor.MAIN_PROCEDURE_ALIAS);
+      //procedureRun.startFinalizer(ScriptProcessor.ProcedureMode.START_OR_FINISHED_ALL, getParent());
     }
+    /*
     if (getParent() != null) {
       getParent().registerChildRun(this);
     }
     if (!getResponsible().getId().equals(getId())) {
       getResponsible().registerChildActiveRun(this);
     }
-    //reportFinishedRun(null);
-
      */
+    //reportFinishedRun(null);
   }
 
   @Override
@@ -206,16 +206,6 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   @Override
-  public JSONObject getPropertyStoreCache() {
-    return null;
-  }
-
-  @Override
-  public void setPropertyStoreCache(JSONObject cache) {
-
-  }
-
-  @Override
   public Path getPropertyStorePath() {
     return getDirectoryPath().resolve(JSON_FILE);
   }
@@ -231,7 +221,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedPath) {
-    Path path = toNormalizedPath(workspace.getLocalDirectoryPath().resolve(AbstractRun.RUN), expectedPath);
+    Path path = toNormalizedPath(workspace.getDirectoryPath().resolve(AbstractRun.RUN), expectedPath);
 
     return create(workspace,
       (conductor == null ? null : StagedConductor.getInstance(workspace, conductor).getArchivedInstance()),

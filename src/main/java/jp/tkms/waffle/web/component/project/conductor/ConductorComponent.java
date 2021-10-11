@@ -382,7 +382,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
         content +=
           Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_ALIAS + " (Main Procedure)",
+            Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)",
               Lte.cardToggleButton(false),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,

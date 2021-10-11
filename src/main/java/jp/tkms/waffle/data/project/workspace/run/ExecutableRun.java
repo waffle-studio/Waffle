@@ -416,8 +416,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   public static ExecutableRun createTestRun(Executable executable, Computer computer) {
     Workspace workspace = Workspace.getTestRunWorkspace(executable.getProject());
     ArchivedExecutable archivedExecutable = StagedExecutable.getInstance(workspace, executable, true).getArchivedInstance();
-    ProcedureRun procedureRun = ProcedureRun.getTestRunProcedureRun(archivedExecutable);
-    return create(procedureRun, Main.DATE_FORMAT.format(System.currentTimeMillis()), archivedExecutable, computer);
+    //ProcedureRun procedureRun = ProcedureRun.getTestRunProcedureRun(archivedExecutable);
+    ConductorRun conductorRun = ConductorRun.getTestRunConductorRun(archivedExecutable);
+    return create(conductorRun, Main.DATE_FORMAT.format(System.currentTimeMillis()), archivedExecutable, computer);
   }
 
   public ArrayList<Object> getArguments() {

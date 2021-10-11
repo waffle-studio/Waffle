@@ -27,7 +27,8 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   private static final String KEY_CHILD = "CHILD";
   public static final String MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE.rb";
   public static final String KEY_MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE";
-  public static final String MAIN_PROCEDURE_ALIAS = "#";
+  public static final String MAIN_PROCEDURE_SHORT_ALIAS = "#";
+  public static final String MAIN_PROCEDURE_ALIAS = "MAIN_PROCEDURE";
 
   private static final Map<String, Conductor> instanceMap = new WeakHashMap<>();
 

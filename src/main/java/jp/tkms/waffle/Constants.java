@@ -26,7 +26,7 @@ public class Constants {
   public static final String STDERR_FILE = "STDERR.txt";
   public static final String DOT_INTERNAL = ".INTERNAL";
   public static final String DOT_FAVORITE = ".FAVORITE";
-  public static final String PASSWORD = "PASSWORD";
+  public static final String PASSWORD = ".PASSWORD";
   public static final String INITIAL_PASSWORD = "aisT305";
   public static final Path PID_FILE = WORK_DIR.resolve(DOT_INTERNAL).resolve("PID");
   public static final long HUGE_FILE_SIZE = 1048576;
