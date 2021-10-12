@@ -5,7 +5,6 @@ import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
-import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -17,7 +16,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,12 +61,12 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(EXECUTABLE);
+    return project.getPath().resolve(EXECUTABLE);
   }
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(EXECUTABLE + Constants.EXT_JSON);
+    return getPath().resolve(EXECUTABLE + Constants.EXT_JSON);
   }
 
   public static Executable getInstance(Project project, String name) {
@@ -101,7 +99,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
   protected void initialise() {
     try {
-      Files.createDirectories(getDirectoryPath());
+      Files.createDirectories(getPath());
       Files.createDirectories(getBaseDirectory());
     } catch (IOException e) {
       e.printStackTrace();
@@ -121,11 +119,11 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
       updateCollectorScript(KEY_OUTPUT_JSON, ResourceFile.getContents("/default_result_collector.rb"));
     }
 
-    if (!Files.exists(getDirectoryPath().resolve(DEFAULT_PARAMETERS_JSON_FILE))) {
+    if (!Files.exists(getPath().resolve(DEFAULT_PARAMETERS_JSON_FILE))) {
       getDefaultParameters();
     }
 
-    if (!Files.exists(getDirectoryPath().resolve(DUMMY_RESULTS_JSON_FILE))) {
+    if (!Files.exists(getPath().resolve(DUMMY_RESULTS_JSON_FILE))) {
       getDummyResults();
     }
 
@@ -244,12 +242,12 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
    */
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
   public Path getBaseDirectory() {
-    return getDirectoryPath().resolve(BASE).toAbsolutePath().normalize();
+    return getPath().resolve(BASE).toAbsolutePath().normalize();
   }
 
   public String getCommand() {
@@ -337,7 +335,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public Path getExtractorScriptPath(String name) {
-    return getDirectoryPath().resolve(KEY_EXTRACTOR).resolve(name + Constants.EXT_RUBY).toAbsolutePath();
+    return getPath().resolve(KEY_EXTRACTOR).resolve(name + Constants.EXT_RUBY).toAbsolutePath();
   }
 
   public void createExtractor(String name) {
@@ -434,7 +432,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public Path getCollectorScriptPath(String name) {
-    return getDirectoryPath().resolve(KEY_COLLECTOR).resolve(name + Constants.EXT_RUBY).toAbsolutePath();
+    return getPath().resolve(KEY_COLLECTOR).resolve(name + Constants.EXT_RUBY).toAbsolutePath();
   }
 
   public void createCollector(String name) {
@@ -496,7 +494,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     ExecutableRun executableRun = ExecutableRun.createTestRun(this, computer);
     executableRun.putParametersByJson(parametersJsonText);
     createNewFile(TESTRUN);
-    updateFileContents(TESTRUN, executableRun.getLocalDirectoryPath().toString());
+    updateFileContents(TESTRUN, executableRun.getLocalPath().toString());
     executableRun.start();
     return executableRun;
   }

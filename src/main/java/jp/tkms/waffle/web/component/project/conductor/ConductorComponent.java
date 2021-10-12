@@ -362,7 +362,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
           ),
           Html.div(null,
-            Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getDirectoryPath().toAbsolutePath().toString())
+            Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getPath().toAbsolutePath().toString())
           )
           , null, "collapsed-card.stop", null);
 
@@ -443,11 +443,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         //Html.div(null, "hub.invokeListener(\"&lt;LISTENER_NAME&gt;\")"),
         //Html.div(null, "instance.loadConductorTemplate(\"&lt;NAME&gt;\")"),
         //Html.div(null, "instance.loadListenerTemplate(\"&lt;NAME&gt;\")"),
-        Html.div(null, "instance.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
-        Html.div(null, "<b>[RUN(Executable)]</b> = instance.createExecutableRun(\"&lt;EXECUTABLE_NAME&gt;\", \"&lt;HOST&gt;\")"),
-        Html.div(null, "<b>[RUN(Conductor)]</b> = instance.createConductorRun(\"&lt;CONDUCTOR_NAME&gt;\")"),
+        Html.div(null, "this.v[:&lt;KEY&gt;] = &lt;VALUE&gt;"),
+        Html.div(null, "<b>[RUN(Executable)]</b> = this.createExecutableRun(\"&lt;EXECUTABLE_NAME&gt;\", \"&lt;HOST&gt;\")"),
+        Html.div(null, "<b>[RUN(Conductor)]</b> = this.createConductorRun(\"&lt;CONDUCTOR_NAME&gt;\")"),
         Html.div(null, "<b>[RUN]</b>.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
-        Html.div(null, "instance.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
+        Html.div(null, "this.addFinalizer(\"&lt;LISTENER_NAME&gt;\")"),
         Html.div(null, "<b>[RUN(Executable)]</b>.p[:&lt;KEY&gt;] = &lt;VALUE&gt"),
         Html.div(null, "<b>[RUN(Executable)]</b>.makeLocalShared(\"&lt;KEY&gt\", \"&lt;REMOTE_FILE&gt\")"),
         Html.div(null, "&lt;VALUE&gt = <b>[RUN(Executable)]</b>.getResult(\"&lt;KEY&gt\")")

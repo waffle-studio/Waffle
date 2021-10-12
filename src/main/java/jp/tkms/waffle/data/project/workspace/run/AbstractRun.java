@@ -4,27 +4,17 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.WorkspaceData;
-import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
-import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.script.ScriptProcessor;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 
 abstract public class AbstractRun extends WorkspaceData implements PropertyFile {
   public static final String RUN = "RUN";
@@ -82,7 +72,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
     Path basePath = getBaseDirectoryPath(workspace);
     return new ChildElementsArrayList().getList(basePath, name -> {
       try {
-        return getInstance(workspace, DataDirectory.toLocalDirectoryPath(basePath.resolve(name.toString())).toString());
+        return getInstance(workspace, HasLocalPath.toLocalPath(basePath.resolve(name.toString())).toString());
       } catch (RunNotFoundException e) {
         ErrorLogMessage.issue(e);
       }
@@ -90,7 +80,26 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
     });
   }
 
-  protected Path getPath() {
+  public static ArrayList<HasLocalPath> getDirectoryList(HasLocalPath localPath) {
+    Path basePath = localPath.getPath();
+    return new ChildElementsArrayList().getList(basePath, name -> {
+      /*
+      try {
+        return getInstance(workspace, DataDirectory.toLocalDirectoryPath(basePath.resolve(name.toString())).toString());
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+       */
+      return new RunDirectory(basePath.resolve(name.toString()));
+      //return null;
+    });
+  }
+
+  public static ArrayList<HasLocalPath> getDirectoryList(Workspace workspace) {
+    return getDirectoryList(new RunDirectory(getBaseDirectoryPath(workspace)));
+  }
+
+  public Path getPath() {
     return path;
   }
   /*
@@ -134,7 +143,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
 
   private void setParentConductorRun(ConductorRun parent) {
     if (parent != null) {
-      setToProperty(KEY_PARENT_CONDUCTOR_RUN, parent.getLocalDirectoryPath().toString());
+      setToProperty(KEY_PARENT_CONDUCTOR_RUN, parent.getLocalPath().toString());
     }
     parentConductorRun = parent;
   }
@@ -420,7 +429,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
    */
 
   public static Path getBaseDirectoryPath(Workspace workspace) {
-    return workspace.getDirectoryPath().resolve(RUN);
+    return workspace.getPath().resolve(RUN);
   }
 /*
   @Override

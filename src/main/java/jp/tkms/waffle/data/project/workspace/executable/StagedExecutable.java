@@ -70,7 +70,7 @@ public class StagedExecutable extends Executable implements HasWorkspace, HasArc
   }
 
   public static Path getBaseDirectoryPath(Workspace workspace) {
-    return workspace.getDirectoryPath().resolve(EXECUTABLE);
+    return workspace.getPath().resolve(EXECUTABLE);
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name) {
@@ -83,7 +83,7 @@ public class StagedExecutable extends Executable implements HasWorkspace, HasArc
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getDirectoryPath(workspace, getName());
   }
 

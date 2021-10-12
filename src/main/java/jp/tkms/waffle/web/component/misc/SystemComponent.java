@@ -130,9 +130,9 @@ public class SystemComponent extends AbstractAccessControlledComponent {
               Lte.readonlyTextInputWithCopyButton("Working directory", Constants.WORK_DIR.toString()),
               p(),
               Html.div("d-flex justify-content-around",
-                GeneralUpdater.generateHtml("system.storage", (n,v)->Lte.disabledKnob(n, "#87ceeb",0,SystemDataAgent.getTotalStorage(), 1, false, Double.parseDouble(v), Html.span("font-weight-bold", null, "Storage (GB)"))),
-                GeneralUpdater.generateHtml("system.cpu", (n,v)->Lte.disabledKnob(n, "#f08080",0,100, 1, true, Double.parseDouble(v), Html.span("font-weight-bold", null, "CPU (%)"))),
-                GeneralUpdater.generateHtml("system.memory", (n,v)->Lte.disabledKnob(n, "#deb887",0, SystemDataAgent.getTotalMemory(), 0.01, true, Double.parseDouble(v), Html.span("font-weight-bold", null,"Memory (GB)")))
+                GeneralUpdater.generateHtml("system.storage", (n,v)->Lte.disabledKnob(n, "#87ceeb",0,SystemDataAgent.getTotalStorage(), 1, false, Double.parseDouble(v), Html.span("font-weight-bold", null, "Available Storage (GB)"))),
+                GeneralUpdater.generateHtml("system.cpu", (n,v)->Lte.disabledKnob(n, "#f08080",0,100, 1, true, Double.parseDouble(v), Html.span("font-weight-bold", null, "CPU Usage (%)"))),
+                GeneralUpdater.generateHtml("system.memory", (n,v)->Lte.disabledKnob(n, "#deb887",0, SystemDataAgent.getTotalMemory(), 0.01, true, Double.parseDouble(v), Html.span("font-weight-bold", null,"Memory Usage (GB)")))
                 )
             )
             ,null, "card-success", null

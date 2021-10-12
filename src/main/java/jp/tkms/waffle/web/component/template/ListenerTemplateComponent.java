@@ -91,7 +91,7 @@ public class ListenerTemplateComponent extends AbstractAccessControlledComponent
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
           Lte.cardToggleButton(true),
           Html.div(null,
-            Lte.readonlyTextInput(TITLE + " Directory", module.getDirectoryPath().toAbsolutePath().toString()),
+            Lte.readonlyTextInput(TITLE + " Directory", module.getPath().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Main Script", module.getScriptFileName())
           )
           , null, "collapsed-card", null);

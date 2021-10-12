@@ -9,7 +9,7 @@ public class ManagerMaster {
   private static final Map<String, Manager> managerMap = new HashMap<>();
 
   public static void update(Workspace workspace) {
-    Manager manager = managerMap.get(workspace.getLocalDirectoryPath().toString());
+    Manager manager = managerMap.get(workspace.getLocalPath().toString());
     if (manager != null) {
       manager.update();
     }

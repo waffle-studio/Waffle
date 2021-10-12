@@ -135,9 +135,9 @@ public class Computer implements DataDirectory, PropertyFile {
   }
 
   public void initialize() {
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(getPath());
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
@@ -589,7 +589,7 @@ public class Computer implements DataDirectory, PropertyFile {
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath().resolve(name);
   }
 
@@ -606,7 +606,7 @@ public class Computer implements DataDirectory, PropertyFile {
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(Constants.COMPUTER + Constants.EXT_JSON);
+    return getPath().resolve(Constants.COMPUTER + Constants.EXT_JSON);
   }
 
   public static void initializeWorkDirectory() {

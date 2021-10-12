@@ -51,11 +51,11 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(CONDUCTOR + Constants.EXT_JSON);
+    return getPath().resolve(CONDUCTOR + Constants.EXT_JSON);
   }
 
   public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(CONDUCTOR);
+    return project.getPath().resolve(CONDUCTOR);
   }
 
   public static Conductor getInstance(Project project, String name) {
@@ -92,7 +92,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
 
   protected void initialise() {
     try {
-      Files.createDirectories(getDirectoryPath());
+      Files.createDirectories(getPath());
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
@@ -101,9 +101,9 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
       updateRepresentativeActorScript(null);
     }
 
-    if (! Files.exists(getDirectoryPath().resolve(KEY_CHILD))) {
+    if (! Files.exists(getPath().resolve(KEY_CHILD))) {
       try {
-        Files.createDirectories(getDirectoryPath().resolve(KEY_CHILD));
+        Files.createDirectories(getPath().resolve(KEY_CHILD));
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
@@ -117,12 +117,12 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
   public Path getMainProcedureScriptPath() {
-    return getDirectoryPath().resolve(getStringFromProperty(KEY_MAIN_PROCEDURE_FILENAME, MAIN_PROCEDURE_FILENAME));
+    return getPath().resolve(getStringFromProperty(KEY_MAIN_PROCEDURE_FILENAME, MAIN_PROCEDURE_FILENAME));
   }
 
   public String getMainProcedureScript() {
@@ -130,7 +130,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public Path getChildProcedureScriptPath(String name) {
-    return getDirectoryPath().resolve(KEY_CHILD).resolve(name);
+    return getPath().resolve(KEY_CHILD).resolve(name);
   }
 
   public String getChildProcedureScript(String name) throws ChildProcedureNotFoundException {

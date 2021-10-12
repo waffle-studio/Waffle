@@ -56,7 +56,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   public ExecutableRun(Workspace workspace, ConductorRun parent, Path path) {
     super(workspace, parent, path);
-    instanceCache.put(getLocalDirectoryPath().toString(), this);
+    instanceCache.put(getLocalPath().toString(), this);
   }
 
   public static String debugReport() {
@@ -65,19 +65,14 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(JSON_FILE);
+    return this.getPath().resolve(JSON_FILE);
   }
 
-  public static ExecutableRun create(ConductorRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
-    /*
-    RunCapsule capsule = RunCapsule.create(parent, parent.generateUniqueFileName(expectedName));
-    String name = capsule.generateUniqueFileName(expectedName);
-    ExecutableRun run = new ExecutableRun(parent.getWorkspace(), parent, parent.getDirectoryPath().resolve(parent.g));
-    run.setParent(capsule);
+  private static ExecutableRun create(ConductorRun parent, Path path, ArchivedExecutable executable, Computer computer) {
+    ExecutableRun run = new ExecutableRun(parent.getWorkspace(), parent, path);
     run.setExecutable(executable);
     run.setComputer(computer);
     run.setActualComputer(computer);
-    run.setExpectedName(expectedName);
     run.setState(State.Created);
     run.setToProperty(KEY_EXIT_STATUS, -1);
     run.setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
@@ -88,16 +83,22 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    run.getParent().registerChildRun(run);
-    run.updateResponsible();
     run.putParametersByJson(executable.getDefaultParameters().toString());
     return run;
-     */
-    return null;
+  }
+
+  public static ExecutableRun create(ConductorRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
+    Path path = toNormalizedPath(parent.getPath(), expectedName);
+    ExecutableRun run = create(parent, path, executable, computer);
+    run.setExpectedName(expectedName);
+    return run;
   }
 
   public static ExecutableRun create(ProcedureRun parent, String expectedName, Executable executable, Computer computer) {
-    return create(parent, expectedName, StagedExecutable.getInstance(parent.getWorkspace(), executable).getArchivedInstance(), computer);
+    Path path = toNormalizedPath(parent.getWorkingDirectory(), expectedName);
+    ExecutableRun run = create(parent.getParentConductorRun(), path, StagedExecutable.getInstance(parent.getWorkspace(), executable).getArchivedInstance(), computer);
+    run.setExpectedName(expectedName);
+    return run;
   }
 
   public static ExecutableRun getInstance(String localPathString) throws RunNotFoundException {
@@ -106,24 +107,22 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       return instance;
     }
 
-    /*
     Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
     String[] splitPath = localPathString.split(File.separator, 5);
-    if (Files.exists(jsonPath) && splitPath.length == 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
+    if (Files.exists(jsonPath) && splitPath.length >= 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
       try {
         Project project = Project.getInstance(splitPath[1]);
         Workspace workspace = Workspace.getInstance(project, splitPath[3]);
         JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-        String parentPath = jsonObject.getString(KEY_PARENT_RUN);
-        RunCapsule capsule = RunCapsule.getInstance(workspace, parentPath);
-        instance = new ExecutableRun(workspace, capsule, jsonPath.getParent());
+        String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
+        ConductorRun conductorRun = ConductorRun.getInstance(workspace, parentPath);
+        instance = new ExecutableRun(workspace, conductorRun, jsonPath.getParent());
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }
       return instance;
     }
 
-     */
     throw new RunNotFoundException();
   }
 
@@ -375,7 +374,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   public Path getBasePath() {
-    return getDirectoryPath().resolve(Executable.BASE).toAbsolutePath();
+    return this.getPath().resolve(Executable.BASE).toAbsolutePath();
   }
 
   @Override
@@ -385,7 +384,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   @Override
   public Path getRemoteBinPath() {
-    return getExecutable().getLocalDirectoryPath();
+    return getExecutable().getLocalPath();
   }
 
   @Override
@@ -423,7 +422,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
-      Path storePath = getDirectoryPath().resolve(ARGUMENTS_JSON_FILE);
+      Path storePath = this.getPath().resolve(ARGUMENTS_JSON_FILE);
       String json = "[]";
       if (Files.exists(storePath)) {
         try {
@@ -443,7 +442,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     this.arguments = new JSONArray(arguments);
     //String argumentsJson = this.arguments.toString();
 
-    Path storePath = getDirectoryPath().resolve(ARGUMENTS_JSON_FILE);
+    Path storePath = this.getPath().resolve(ARGUMENTS_JSON_FILE);
     try {
       JSONWriter.writeValue(storePath, this.arguments);
       /*
@@ -482,9 +481,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   protected void updateParametersStore(JSONObject parameters) {
     //protected void updateParametersStore() {
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(this.getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(this.getPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -508,7 +507,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   private Path getParametersStorePath() {
-    return getDirectoryPath().resolve(PARAMETERS_JSON_FILE);
+    return this.getPath().resolve(PARAMETERS_JSON_FILE);
   }
 
   public long getParametersStoreSize() {
@@ -569,9 +568,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   protected void updateResultsStore(JSONObject results) {
     //protected void updateResultsStore() {
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(this.getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(this.getPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -595,7 +594,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   private Path getResultsStorePath() {
-    return getDirectoryPath().resolve(RESULTS_JSON_FILE);
+    return this.getPath().resolve(RESULTS_JSON_FILE);
   }
 
   public long getResultsStoreSize() {
@@ -717,9 +716,4 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     return parametersWrapper;
   }
   public HashMap p() { return parameters(); }
-
-  @Override
-  public Path getDirectoryPath() {
-    return getPath();
-  }
 }

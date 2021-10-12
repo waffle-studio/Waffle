@@ -99,14 +99,14 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   @Override
   public void update(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     String executorId = job.getJobId().replaceFirst("\\..*$", "");
-    Path podDirectory = computer.getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(executorId);
+    Path podDirectory = computer.getLocalPath().resolve(JOB_MANAGER).resolve(executorId);
     envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), !jobManager.runningExecutorList.containsKey(executorId), podDirectory, getRunDirectory(job.getRun())));
   }
 
   @Override
   protected Envelope processRequestAndResponse(Envelope envelope) {
     for (Map.Entry<String, VirtualJobExecutor> entry : jobManager.runningExecutorList.entrySet()) {
-      envelope.add(new CollectPodStatusMessage(entry.getKey(), entry.getValue().getLocalDirectoryPath()));
+      envelope.add(new CollectPodStatusMessage(entry.getKey(), entry.getValue().getLocalPath()));
     }
 
     Envelope response = super.processRequestAndResponse(envelope);
@@ -209,7 +209,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       this.submitter = submitter;
 
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(getPath());
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
@@ -247,7 +247,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       ArrayList<VirtualJobExecutor> removingList = new ArrayList<>();
       for (VirtualJobExecutor executor : runningExecutorList.values()) {
         try {
-          if (!executor.getDirectoryPath().toFile().exists()) {
+          if (!executor.getPath().toFile().exists()) {
             removingList.add(executor);
           }
         } catch (Exception e) {
@@ -291,7 +291,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       Submittable result = new Submittable();
 
       for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
-        Path directoryPath = executor.getDirectoryPath();
+        Path directoryPath = executor.getPath();
         if (!directoryPath.toFile().exists() || !executor.isRunning()) {
           removeExecutor(executor);
           if (directoryPath.toFile().exists()) {
@@ -312,7 +312,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
 
       for (VirtualJobExecutor executor : cacheAppliedList) {
-        Path directoryPath = executor.getDirectoryPath();
+        Path directoryPath = executor.getPath();
         if (!directoryPath.toFile().exists()) {
           //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
           removeExecutor(executor);
@@ -356,7 +356,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     public boolean isReceptable(ComputerTask next, ArrayList<ComputerTask> list) {
       for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
-        Path directoryPath = executor.getDirectoryPath();
+        Path directoryPath = executor.getPath();
         if (!directoryPath.toFile().exists() || !executor.isRunning()) {
           removeExecutor(executor);
           if (directoryPath.toFile().exists()) {
@@ -386,7 +386,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         cacheAppliedList.addAll(shuffledList);
       }
       for (VirtualJobExecutor executor : cacheAppliedList) {
-        Path directoryPath = executor.getDirectoryPath();
+        Path directoryPath = executor.getPath();
         if (!directoryPath.toFile().exists()) {
           //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
           removeExecutor(executor);
@@ -484,13 +484,13 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     @Override
-    public Path getDirectoryPath() {
-      return submitter.computer.getDirectoryPath().resolve(JOB_MANAGER);
+    public Path getPath() {
+      return submitter.computer.getPath().resolve(JOB_MANAGER);
     }
 
     @Override
     public Path getPropertyStorePath() {
-      return getDirectoryPath().resolve(JOB_MANAGER_JSON_FILE);
+      return getPath().resolve(JOB_MANAGER_JSON_FILE);
     }
 
     JSONObject jsonObject = null;
@@ -505,7 +505,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public Path getBinDirectory() {
-      Path dirPath = getDirectoryPath().resolve(BIN);
+      Path dirPath = getPath().resolve(BIN);
       if (!dirPath.toFile().exists()) {
         try {
           Files.createDirectories(dirPath);
@@ -557,8 +557,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       try {
         String jobId = id.getReversedBase36Code() + '.' + getNextJobCount();
-        Path podDirectory = getComputer().getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
-        envelope.add(new SubmitPodTaskMessage(job.getTypeCode(), job.getHexCode(), jobId, podDirectory, job.getRun().getLocalDirectoryPath(), job.getRun().getRemoteBinPath()));
+        Path podDirectory = getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
+        envelope.add(new SubmitPodTaskMessage(job.getTypeCode(), job.getHexCode(), jobId, podDirectory, job.getRun().getLocalPath(), job.getRun().getRemoteBinPath()));
         /*
         Path runDirectoryPath = submitter.getRunDirectory(job.getRun());
         submitter.createDirectories(getRemoteEntitiesDirectory());
@@ -579,8 +579,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException {
-      Path podDirectory = getComputer().getLocalDirectoryPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
-      envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalDirectoryPath()));
+      Path podDirectory = getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
+      envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalPath()));
     }
 
     String getId() {
@@ -626,7 +626,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
       executor.setToProperty(KEY_REMOTE_DIRECTORY, workBasePath.resolve(executor.getLocalDirectoryPath()).toString());
        */
-      executor.setToProperty(KEY_REMOTE_DIRECTORY, executor.getLocalDirectoryPath().toString());
+      executor.setToProperty(KEY_REMOTE_DIRECTORY, executor.getLocalPath().toString());
       try {
         Files.createDirectories(executor.getBasePath());
       } catch (IOException e) {
@@ -637,7 +637,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     @Override
     public void setState(State state) {
-      if (getDirectoryPath().toFile().exists()) {
+      if (getPath().toFile().exists()) {
         super.setState(state);
       }
     }
@@ -716,7 +716,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public static Path getDirectoryPath(JobManager jobManager, WaffleId id) {
-      return jobManager.getDirectoryPath().resolve(id.getReversedBase36Code());
+      return jobManager.getPath().resolve(id.getReversedBase36Code());
     }
 
     public static Path getLocalDirectoryPath(JobManager jobManager, WaffleId id) {

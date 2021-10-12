@@ -48,7 +48,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   public SystemTaskRun(Path path) {
     this.path = path;
-    instanceCache.put(getLocalDirectoryPath().toString(), this);
+    instanceCache.put(getLocalPath().toString(), this);
     setToProperty(KEY_CLASS, getClass().getName());
   }
 
@@ -69,7 +69,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(JSON_FILE);
+    return getPath().resolve(JSON_FILE);
   }
 
   public static SystemTaskRun create(Path path, Path binPath, String command, int requiredThread, int requiredMemory, Computer computer) {
@@ -266,7 +266,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   public Path getBasePath() {
-    return getDirectoryPath().resolve(Executable.BASE).toAbsolutePath();
+    return getPath().resolve(Executable.BASE).toAbsolutePath();
   }
 
   public void setBinPath(Path binPath) {
@@ -316,7 +316,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   public ArrayList<Object> getArguments() {
     if (arguments == null) {
-      Path storePath = getDirectoryPath().resolve(ARGUMENTS_JSON_FILE);
+      Path storePath = getPath().resolve(ARGUMENTS_JSON_FILE);
       String json = "[]";
       if (Files.exists(storePath)) {
         try {
@@ -336,7 +336,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     this.arguments = new JSONArray(arguments);
     //String argumentsJson = this.arguments.toString();
 
-    Path storePath = getDirectoryPath().resolve(ARGUMENTS_JSON_FILE);
+    Path storePath = getPath().resolve(ARGUMENTS_JSON_FILE);
     try {
       JSONWriter.writeValue(storePath, this.arguments);
       /*
@@ -380,9 +380,9 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   protected void updateParametersStore(JSONObject parameters) {
     //protected void updateParametersStore() {
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(getPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -406,7 +406,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   private Path getParametersStorePath() {
-    return getDirectoryPath().resolve(PARAMETERS_JSON_FILE);
+    return getPath().resolve(PARAMETERS_JSON_FILE);
   }
 
   public long getParametersStoreSize() {
@@ -467,9 +467,9 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   protected void updateResultsStore(JSONObject results) {
     //protected void updateResultsStore() {
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(getPath());
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -493,7 +493,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   }
 
   private Path getResultsStorePath() {
-    return getDirectoryPath().resolve(RESULTS_JSON_FILE);
+    return getPath().resolve(RESULTS_JSON_FILE);
   }
 
   public long getResultsStoreSize() {
@@ -617,7 +617,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   public HashMap p() { return parameters(); }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return path;
   }
 }

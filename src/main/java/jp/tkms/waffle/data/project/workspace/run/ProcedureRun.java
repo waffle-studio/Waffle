@@ -3,7 +3,6 @@ package jp.tkms.waffle.data.project.workspace.run;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Registry;
@@ -11,7 +10,6 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
-import jp.tkms.waffle.exception.WaffleException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import org.json.JSONObject;
 
@@ -156,7 +154,7 @@ public class ProcedureRun extends AbstractRun {
   }
 
   private static Path getNewProcedureRunPath(ConductorRun conductorRun, String procedureName) {
-    Path path = conductorRun.getDirectoryPath();
+    Path path = conductorRun.getPath();
     path = path.resolve(PROCEDURE_RUN).resolve(procedureName);
     String id = WaffleId.newId().toString();
     path = path.resolve(id.substring(0, 8)).resolve(id.substring(8, 10)).resolve(id.substring(10, 12)).resolve(id);
@@ -167,7 +165,7 @@ public class ProcedureRun extends AbstractRun {
     if (Conductor.MAIN_PROCEDURE_SHORT_ALIAS.equals(procedureName)) {
       procedureName = Conductor.MAIN_PROCEDURE_ALIAS;
     }
-    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, getNewProcedureRunPath(parent, procedureName), parent.getDirectoryPath(), conductor, procedureName);
+    ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, getNewProcedureRunPath(parent, procedureName), parent.getPath(), conductor, procedureName);
     instance.setState(State.Created);
     return instance;
   }
@@ -256,6 +254,10 @@ public class ProcedureRun extends AbstractRun {
     return conductorRun;
   }
 
+  public ConductorRun createConductorRun(String conductorName) {
+    return createConductorRun(conductorName, conductorName);
+  }
+
   public ExecutableRun createExecutableRun(String executableName, String computerName, String name) {
     Executable executable = Executable.getInstance(getProject(), executableName);
     if (executable == null) {
@@ -274,6 +276,10 @@ public class ProcedureRun extends AbstractRun {
     transactionRunList.add(executableRun);
 
     return executableRun;
+  }
+
+  public ExecutableRun createExecutableRun(String executableName, String computerName) {
+    return createExecutableRun(executableName, computerName, executableName);
   }
 
   /*

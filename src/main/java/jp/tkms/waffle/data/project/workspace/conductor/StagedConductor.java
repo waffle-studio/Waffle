@@ -2,7 +2,6 @@ package jp.tkms.waffle.data.project.workspace.conductor;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
-import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.HasArchivedInstance;
 import jp.tkms.waffle.data.project.workspace.HasWorkspace;
 import jp.tkms.waffle.data.project.workspace.Workspace;
@@ -71,7 +70,7 @@ public class StagedConductor extends Conductor implements HasWorkspace, HasArchi
   }
 
   public static Path getBaseDirectoryPath(Workspace workspace) {
-    return workspace.getDirectoryPath().resolve(CONDUCTOR);
+    return workspace.getPath().resolve(CONDUCTOR);
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name) {
@@ -84,7 +83,7 @@ public class StagedConductor extends Conductor implements HasWorkspace, HasArchi
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getDirectoryPath(workspace, getName());
   }
 

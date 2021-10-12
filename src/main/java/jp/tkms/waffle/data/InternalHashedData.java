@@ -30,7 +30,7 @@ public interface InternalHashedData {
   }
 
   static Path getHashedDirectoryPath(Project project, String group, UUID id) {
-    return project.getDirectoryPath().resolve(Constants.DOT_INTERNAL).resolve(group)
+    return project.getPath().resolve(Constants.DOT_INTERNAL).resolve(group)
       .resolve(id.toString().substring(0, 4)).resolve(id.toString());
   }
 

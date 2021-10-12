@@ -2,9 +2,10 @@ package jp.tkms.waffle.web.component.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.DataDirectory;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.*;
-import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
@@ -25,7 +26,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.Future;
 
 public class RunComponent extends AbstractAccessControlledComponent {
@@ -36,7 +36,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   private Project project;
   private Workspace workspace;
   private AbstractRun abstractRun;
-  private ArrayList<AbstractRun> runList = null;
+  private ArrayList<HasLocalPath> childrenList = null;
 
   public enum Mode {Default, ReCheck, UpdateNote, Root}
 
@@ -58,7 +58,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   public static String getRootUrl(Workspace workspace) {
     if (workspace != null) {
-      return '/' + workspace.getLocalDirectoryPath().toString();
+      return '/' + workspace.getLocalPath().toString();
     } else {
       return WorkspaceComponent.getUrl(null, null) + "/RUN";
     }
@@ -74,6 +74,10 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(AbstractRun run, Mode mode) {
     return getUrl(run) + "/@" + mode.name();
+  }
+
+  public static String getUrlFromLocalPath(HasLocalPath localPath) {
+    return "/" + localPath.getLocalPath().toString();
   }
 
   public static String getUrlFromPath(Path path) {
@@ -112,10 +116,12 @@ public class RunComponent extends AbstractAccessControlledComponent {
         return;
     }
 
-    runList = (abstractRun == null ? AbstractRun.getList(workspace) : abstractRun.getList(null));
+    childrenList = (abstractRun == null ? AbstractRun.getDirectoryList(workspace) : AbstractRun.getDirectoryList((ConductorRun)abstractRun));
+    /*
     if (Paths.get(request.uri()).relativize(Paths.get(request.headers("Referer").replaceFirst("^.*?/PROJECT/", "/PROJECT/"))).toString().contains("..") && runList.size() == 1) {
       response.redirect(RunComponent.getUrl(runList.get(0)));
     }
+     */
 
     renderRuns();
   }
@@ -243,7 +249,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
               list.add(new Lte.TableValue("width:0;", ""));
               list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("width:50%;", "Note"));
-              list.add(new Lte.TableValue("width:0;", ""));
+              //list.add(new Lte.TableValue("width:0;", ""));
               return list;
             }
 
@@ -251,21 +257,23 @@ public class RunComponent extends AbstractAccessControlledComponent {
             public ArrayList<Future<Lte.TableRow>> tableRows() {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
 
-              for (AbstractRun run : runList) {
+              for (HasLocalPath child : childrenList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     String icon = Html.farIcon("circle");
+                    /*
                     if (run instanceof ProcedureRun) {
 
                     } else if (run instanceof ConductorRun) {
 
                     }
+                     */
 
                     return new Lte.TableRow(
                       //new Lte.TableValue(null, (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
                       new Lte.TableValue(null, icon),
-                      new Lte.TableValue(null, Html.a(getUrl(run), null, null, run.getName())),
-                      new Lte.TableValue("max-width:0;", Html.div("hide-overflow", /*run.getNote()*/ "note")),
-                      new Lte.TableValue(null, Html.spanWithId(/*run.getLocalDirectoryPath().toString() +*/ "-badge", run.getState().getStatusBadge()))
+                      new Lte.TableValue(null, Html.a(getUrlFromLocalPath(child), null, null, child.getPath().getFileName().toString())),
+                      new Lte.TableValue("max-width:0;", Html.div("hide-overflow", /*run.getNote()*/ "note"))//,
+                      //new Lte.TableValue(null, Html.spanWithId(/*run.getLocalDirectoryPath().toString() +*/ "-badge", run.getState().getStatusBadge()))
                     );
                   })
                 );
@@ -386,7 +394,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
         String content = "";
 
-        content += Html.javascript("var run_id = '" + executableRun.getLocalDirectoryPath().toString() + "';");
+        content += Html.javascript("var run_id = '" + executableRun.getLocalPath().toString() + "';");
 
         content += Lte.card(Html.fasIcon("info-circle") + "Properties", null,
           Lte.table("table-condensed table-sm", new Lte.Table() {
@@ -482,7 +490,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
         content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
           Lte.cardToggleButton(false), Lte.divRow(parametersAndResults) , null);
 
-        if (Files.exists(executableRun.getDirectoryPath().resolve(Constants.STDOUT_FILE))) {
+        if (Files.exists(executableRun.getPath().resolve(Constants.STDOUT_FILE))) {
           content += Lte.card(Html.fasIcon("file") + "Standard Output",
             Lte.cardToggleButton(true),
             Lte.divRow(
@@ -493,7 +501,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
             , null, "collapsed-card.stop", null);
         }
 
-        if (Files.exists(executableRun.getDirectoryPath().resolve(Constants.STDERR_FILE))) {
+        if (Files.exists(executableRun.getPath().resolve(Constants.STDERR_FILE))) {
           content += Lte.card(Html.fasIcon("file") + "Standard Error",
             Lte.cardToggleButton(true),
             Lte.divRow(

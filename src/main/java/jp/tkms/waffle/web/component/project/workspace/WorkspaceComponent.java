@@ -1,11 +1,11 @@
 package jp.tkms.waffle.web.component.project.workspace;
 
   import jp.tkms.waffle.Main;
+  import jp.tkms.waffle.data.project.workspace.HasLocalPath;
   import jp.tkms.waffle.data.project.workspace.Workspace;
   import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
   import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
   import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-  import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
   import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
   import jp.tkms.waffle.web.component.project.ProjectComponent;
   import jp.tkms.waffle.web.component.project.ProjectsComponent;
@@ -23,7 +23,6 @@ package jp.tkms.waffle.web.component.project.workspace;
 
   import java.util.ArrayList;
   import java.util.Arrays;
-  import java.util.Map;
   import java.util.concurrent.Future;
 
 public class WorkspaceComponent extends AbstractAccessControlledComponent {
@@ -275,8 +274,11 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                   @Override
                   public ArrayList<Future<Lte.TableRow>> tableRows() {
                     ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                    for (AbstractRun abstractRun : AbstractRun.getList(workspace)) {
+                    for (HasLocalPath localPath : AbstractRun.getDirectoryList(workspace)) {
                       list.add(Main.interfaceThreadPool.submit(() -> {
+                        return new Lte.TableRow(
+                          Html.a(RunComponent.getUrlFromLocalPath(localPath), null, null, localPath.getPath().getFileName().toString()));
+                        /*
                           if (abstractRun instanceof ExecutableRun) {
                             return new Lte.TableRow(
                               Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
@@ -284,6 +286,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                             return new Lte.TableRow(
                               Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
                           }
+                         */
                         }
                       ));
                     }

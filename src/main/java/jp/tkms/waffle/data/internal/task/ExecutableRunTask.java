@@ -53,7 +53,7 @@ public class ExecutableRunTask extends AbstractTask {
   }
 
   public static void addRun(ExecutableRun run) {
-    ExecutableRunTask job = new ExecutableRunTask(run.getLocalDirectoryPath(), run.getComputer());
+    ExecutableRunTask job = new ExecutableRunTask(run.getLocalPath(), run.getComputer());
     run.setTaskId(job.getHexCode());
     InspectorMaster.registerExecutableRunTask(job);
     InfoLogMessage.issue(run, "was added to the queue");

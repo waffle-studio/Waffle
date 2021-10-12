@@ -39,12 +39,12 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
   @Override
   public String getName() {
-    return getDirectoryPath().getFileName().toString();
+    return this.getPath().getFileName().toString();
   }
 
   @Override
   public String getId() {
-    return getLocalDirectoryPath().toString();
+    return getLocalPath().toString();
   }
 
   public void appendErrorNote(String note) {
@@ -105,14 +105,14 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   protected Path getVariablesStorePath() {
-    return getDirectoryPath().resolve(VARIABLES_JSON_FILE);
+    return this.getPath().resolve(VARIABLES_JSON_FILE);
   }
 
   protected void updateVariablesStore(JSONObject variables) {
     //protected void updateParametersStore() {
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(this.getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(this.getPath());
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }
@@ -188,7 +188,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
   public ConductorRun(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
     super(workspace, parent, path);
-    instanceCache.put(getLocalDirectoryPath().toString(), this);
+    instanceCache.put(getLocalPath().toString(), this);
     setConductor(conductor);
   }
 
@@ -207,7 +207,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(JSON_FILE);
+    return this.getPath().resolve(JSON_FILE);
   }
 
   private static ConductorRun create(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
@@ -221,7 +221,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedPath) {
-    Path path = toNormalizedPath(workspace.getDirectoryPath().resolve(AbstractRun.RUN), expectedPath);
+    Path path = toNormalizedPath(workspace.getPath().resolve(AbstractRun.RUN), expectedPath);
 
     return create(workspace,
       (conductor == null ? null : StagedConductor.getInstance(workspace, conductor).getArchivedInstance()),
@@ -289,9 +289,4 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   };
   public HashMap variables() { return variablesMapWrapper; }
   public HashMap v() { return variablesMapWrapper; }
-
-  @Override
-  public Path getDirectoryPath() {
-    return getPath();
-  }
 }

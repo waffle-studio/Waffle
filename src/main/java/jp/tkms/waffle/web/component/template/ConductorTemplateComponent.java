@@ -118,7 +118,7 @@ public class ConductorTemplateComponent extends AbstractAccessControlledComponen
         content += Lte.card(Html.fasIcon("terminal") + "Properties",
             Lte.cardToggleButton(true) ,
           Html.div(null,
-            Lte.readonlyTextInput("Conductor Directory", module.getDirectoryPath().toAbsolutePath().toString()),
+            Lte.readonlyTextInput("Conductor Directory", module.getPath().toAbsolutePath().toString()),
             Lte.readonlyTextInput("Base Script", module.getMainScriptFileName())
           )
           , null, "collapsed-card", null);

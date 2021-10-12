@@ -6,7 +6,6 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
-import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.InstanceCache;
@@ -17,8 +16,6 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 public class Project implements DataDirectory, Serializable {
   public static final String PROJECT = "PROJECT";
@@ -73,7 +70,7 @@ public class Project implements DataDirectory, Serializable {
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath().resolve(name);
   }
 
@@ -84,9 +81,9 @@ public class Project implements DataDirectory, Serializable {
   public void initialize() {
     Data.initializeWorkDirectory();
 
-    if (! Files.exists(getDirectoryPath())) {
+    if (! Files.exists(getPath())) {
       try {
-        Files.createDirectories(getDirectoryPath());
+        Files.createDirectories(getPath());
       } catch (IOException e) {
         ErrorLogMessage.issue(e);
       }

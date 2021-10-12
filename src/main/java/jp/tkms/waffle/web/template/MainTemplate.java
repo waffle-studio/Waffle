@@ -169,24 +169,24 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                snippetManager.files.ruby = m;\n" +
               "                m.snippets = snippetManager.parseSnippetFile(m.snippetText);\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'instance.invokeListener(\"${1:listener name}\")', \n" +
-              "                    tabTrigger: 'instance.invokeListener' \n" +
+              "                    content: 'this.invokeListener(\"${1:listener name}\")', \n" +
+              "                    tabTrigger: 'this.invokeListener' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'instance.loadConductorTemplate(\"${1:conductor template name}\")', \n" +
-              "                    tabTrigger: 'instance.loadConductorTemplate' \n" +
+              "                    content: 'this.loadConductorTemplate(\"${1:conductor template name}\")', \n" +
+              "                    tabTrigger: 'this.loadConductorTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'instance.loadListenerTemplate(\"${1:listener template name}\")', \n" +
-              "                    tabTrigger: 'instance.loadListenerTemplate' \n" +
+              "                    content: 'this.loadListenerTemplate(\"${1:listener template name}\")', \n" +
+              "                    tabTrigger: 'this.loadListenerTemplate' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'instance.createExecutableRun(\"${1:executable name}\", \"${2:computer name}\")', \n" +
-              "                    tabTrigger: 'instance.createExecutableRun' \n" +
+              "                    content: 'this.createExecutableRun(\"${1:executable name}\", \"${2:computer name}\")', \n" +
+              "                    tabTrigger: 'this.createExecutableRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
-              "                    content: 'instance.createConductorRun(\"${1:conductor name}\")', \n" +
-              "                    tabTrigger: 'instance.createConductorRun' \n" +
+              "                    content: 'this.createConductorRun(\"${1:conductor name}\")', \n" +
+              "                    tabTrigger: 'this.createConductorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
               "                    content: 'addFinalizer(\"${1:procedure name}\")', \n" +

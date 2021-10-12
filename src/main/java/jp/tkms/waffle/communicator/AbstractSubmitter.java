@@ -227,14 +227,14 @@ abstract public class AbstractSubmitter {
         TaskJson taskJson = new TaskJson(projectName, remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
           arguments, environments, localShared);
         //putText(job, TASK_JSON, taskJson.toString());
-        envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(TASK_JSON), taskJson.toString()));
+        envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(TASK_JSON), taskJson.toString()));
 
         String jvmActivationCommand = getJvmActivationCommand().replaceAll("\"", "\\\"");
         if (!jvmActivationCommand.trim().equals("")) {
           jvmActivationCommand += ";";
         }
         //putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer) + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
-        envelope.add(new PutTextFileMessage(run.getLocalDirectoryPath().resolve(BATCH_FILE),
+        envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(BATCH_FILE),
           "sh -c \"" + jvmActivationCommand + "java -jar '" + getWaffleServantPath()
           + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'\""));
         //+ "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
@@ -267,7 +267,7 @@ abstract public class AbstractSubmitter {
   public Path getRunDirectory(ComputerTask run) throws FailedToControlRemoteException {
     //Computer computer = run.getActualComputer();
     //Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(run.getLocalDirectoryPath());
-    Path path = parseHomePath(getWorkBaseDirectory().toString()).resolve(run.getLocalDirectoryPath());
+    Path path = parseHomePath(getWorkBaseDirectory().toString()).resolve(run.getLocalPath());
     createDirectories(path);
     return path;
   }

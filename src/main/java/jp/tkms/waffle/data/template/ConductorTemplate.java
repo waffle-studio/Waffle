@@ -46,7 +46,7 @@ public class ConductorTemplate implements DataDirectory, PropertyFile {
       }
 
       try {
-        Files.createDirectories(conductorTemplate.getDirectoryPath().resolve(KEY_LISTENER));
+        Files.createDirectories(conductorTemplate.getPath().resolve(KEY_LISTENER));
       } catch (IOException e) { }
 
       if (conductorTemplate.getListenerNameList() == null) {
@@ -152,11 +152,11 @@ public class ConductorTemplate implements DataDirectory, PropertyFile {
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(KEY_CONDUCTOR_TEMPLATE + Constants.EXT_JSON);
+    return getPath().resolve(KEY_CONDUCTOR_TEMPLATE + Constants.EXT_JSON);
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath().resolve(name);
   }
 
@@ -165,7 +165,7 @@ public class ConductorTemplate implements DataDirectory, PropertyFile {
   }
 
   public Path getMainScriptPath() {
-    return getDirectoryPath().resolve(getMainScriptFileName());
+    return getPath().resolve(getMainScriptFileName());
   }
 
   public String getListenerScriptFileName(String name) {
@@ -173,7 +173,7 @@ public class ConductorTemplate implements DataDirectory, PropertyFile {
   }
 
   public Path getListenerScriptPath(String name) {
-    return getDirectoryPath().resolve(KEY_LISTENER).resolve(getListenerScriptFileName(name));
+    return getPath().resolve(KEY_LISTENER).resolve(getListenerScriptFileName(name));
   }
 
   /*

@@ -42,20 +42,20 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public String getScriptLog() {
-    return StringFileUtil.read(getDirectoryPath().resolve(SCRIPT_LOG_FILE));
+    return StringFileUtil.read(getPath().resolve(SCRIPT_LOG_FILE));
   }
 
   public void appendScriptLog(String value) {
-    StringFileUtil.append(getDirectoryPath().resolve(SCRIPT_LOG_FILE), value);
+    StringFileUtil.append(getPath().resolve(SCRIPT_LOG_FILE), value);
   }
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(JSON_FILE);
+    return getPath().resolve(JSON_FILE);
   }
 
   public static Path getBaseDirectoryPath(Project project) {
-    return project.getDirectoryPath().resolve(WORKSPACE);
+    return project.getPath().resolve(WORKSPACE);
   }
 
   public static Workspace getInstance(Project project, String name) {
@@ -104,15 +104,15 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
 
   private void initialise() {
     try {
-      Files.createDirectories(getDirectoryPath());
-      Files.createDirectories(getDirectoryPath().resolve(AbstractRun.RUN));
+      Files.createDirectories(getPath());
+      Files.createDirectories(getPath().resolve(AbstractRun.RUN));
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 

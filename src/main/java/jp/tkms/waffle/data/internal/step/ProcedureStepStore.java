@@ -42,7 +42,7 @@ public class ProcedureStepStore {
 
   public ArrayList<ProcedureStep> getList(Workspace workspace) {
     synchronized (stepMap) {
-      ArrayList list = workspaceStepListMap.get(workspace.getLocalDirectoryPath().toString());
+      ArrayList list = workspaceStepListMap.get(workspace.getLocalPath().toString());
       if (list == null) {
         list = new ArrayList();
         workspaceStepListMap.put(workspace.getName(), list);

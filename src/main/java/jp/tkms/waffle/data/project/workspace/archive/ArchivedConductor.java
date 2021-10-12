@@ -30,7 +30,7 @@ public class ArchivedConductor extends Conductor implements HasWorkspace, Archiv
   public static ArchivedConductor create(StagedConductor stagedConductor) {
     ArchivedConductor archivedConductor = new ArchivedConductor(stagedConductor.getWorkspace(), stagedConductor.getName());
     try {
-      stagedConductor.copyDirectory(archivedConductor.getDirectoryPath());
+      stagedConductor.copyDirectory(archivedConductor.getPath());
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
       return null;
@@ -58,7 +58,7 @@ public class ArchivedConductor extends Conductor implements HasWorkspace, Archiv
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name, WaffleId id) {
-    return workspace.getDirectoryPath().resolve(Workspace.ARCHIVE).resolve(CONDUCTOR).resolve(ArchivedEntity.getArchiveName(name, id));
+    return workspace.getPath().resolve(Workspace.ARCHIVE).resolve(CONDUCTOR).resolve(ArchivedEntity.getArchiveName(name, id));
   }
 
   @Override
@@ -72,7 +72,7 @@ public class ArchivedConductor extends Conductor implements HasWorkspace, Archiv
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getDirectoryPath(workspace, getName(), id);
   }
 }

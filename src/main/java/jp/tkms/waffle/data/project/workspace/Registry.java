@@ -3,8 +3,6 @@ package jp.tkms.waffle.data.project.workspace;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.util.ValueType;
 
 import java.io.File;
@@ -218,12 +216,12 @@ public class Registry extends WorkspaceData implements Map<Object, Object>, Data
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath(getWorkspace());
   }
 
   public static Path getBaseDirectoryPath(Workspace workspace) {
-    return workspace.getDirectoryPath().resolve(Constants.DOT_INTERNAL).resolve(KEY_REGISTRY);
+    return workspace.getPath().resolve(Constants.DOT_INTERNAL).resolve(KEY_REGISTRY);
   }
 
   public static class KeyValue extends AbstractMap.SimpleEntry<String, String> {

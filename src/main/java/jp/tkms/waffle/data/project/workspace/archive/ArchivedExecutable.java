@@ -30,7 +30,7 @@ public class ArchivedExecutable extends Executable implements HasWorkspace, Arch
   public static ArchivedExecutable create(StagedExecutable stagedExecutable) {
     ArchivedExecutable archivedExecutable = new ArchivedExecutable(stagedExecutable.getWorkspace(), stagedExecutable.getName());
     try {
-      stagedExecutable.copyDirectory(archivedExecutable.getDirectoryPath());
+      stagedExecutable.copyDirectory(archivedExecutable.getPath());
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
       return null;
@@ -59,7 +59,7 @@ public class ArchivedExecutable extends Executable implements HasWorkspace, Arch
   }
 
   public static Path getDirectoryPath(Workspace workspace, String name, WaffleId id) {
-    return workspace.getDirectoryPath().resolve(Workspace.ARCHIVE).resolve(EXECUTABLE).resolve(ArchivedEntity.getArchiveName(name, id));
+    return workspace.getPath().resolve(Workspace.ARCHIVE).resolve(EXECUTABLE).resolve(ArchivedEntity.getArchiveName(name, id));
   }
 
   @Override
@@ -73,7 +73,7 @@ public class ArchivedExecutable extends Executable implements HasWorkspace, Arch
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getDirectoryPath(workspace, getName(), id);
   }
 }

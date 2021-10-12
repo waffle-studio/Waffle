@@ -2,6 +2,7 @@ package jp.tkms.waffle.data;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.util.TimedMap;
 
 import java.io.*;
@@ -14,21 +15,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 
-public interface DataDirectory {
+public interface DataDirectory extends HasLocalPath {
   int EOF = -1;
   int CHECKING_OMIT_TIME = 30000;
   TimedMap<String, Long> previousDifferenceCheckTimeMap = new TimedMap<>(CHECKING_OMIT_TIME / 1000);
 
-  Path getDirectoryPath();
-
   default void createNewFile(Path path) {
     synchronized (this) {
       if (!path.isAbsolute()) {
-        path = getDirectoryPath().resolve(path);
+        path = getPath().resolve(path);
       }
       if (!Files.exists(path)) {
         try {
-          Files.createDirectories(getDirectoryPath());
+          Files.createDirectories(getPath());
           path.toFile().createNewFile();
         } catch (IOException e) {
           e.printStackTrace();
@@ -40,7 +39,7 @@ public interface DataDirectory {
   default String getFileContents(Path path) {
     synchronized (this) {
       if (!path.isAbsolute()) {
-        path = getDirectoryPath().resolve(path);
+        path = getPath().resolve(path);
       }
       String contents = "";
       try {
@@ -54,7 +53,7 @@ public interface DataDirectory {
   default void updateFileContents(Path path, String contents) {
     synchronized (this) {
       if (!path.isAbsolute()) {
-        path = getDirectoryPath().resolve(path);
+        path = getPath().resolve(path);
       }
       if (Files.exists(path)) {
         try {
@@ -80,20 +79,12 @@ public interface DataDirectory {
     updateFileContents(Paths.get(fileName), contents);
   }
 
-  default Path getLocalDirectoryPath() {
-    Path path = getDirectoryPath();
-    if (path.isAbsolute()) {
-      return toLocalDirectoryPath(getDirectoryPath());
-    }
-    return path;
-  }
-
-  static Path toLocalDirectoryPath(Path path) {
-    return Constants.WORK_DIR.relativize(path);
+  default String getDirectoryName() {
+    return getPath().getFileName().toString();
   }
 
   default void copyDirectory(Path dest) throws IOException {
-    copyDirectory(getDirectoryPath().toFile(), dest.toFile());
+    copyDirectory(getPath().toFile(), dest.toFile());
   }
 
   static void copyDirectory(File src, File dest) throws IOException {
@@ -115,7 +106,7 @@ public interface DataDirectory {
   }
 
   default void deleteDirectory() {
-    deleteDirectory(getDirectoryPath().toFile());
+    deleteDirectory(getPath().toFile());
   }
 
   static void deleteDirectory(File target) {
@@ -128,11 +119,11 @@ public interface DataDirectory {
   }
 
   default boolean hasNotDifference(DataDirectory target, Path... ignoringPaths) {
-    Long previousCheckTime = previousDifferenceCheckTimeMap.get(getDirectoryPath().toString());
+    Long previousCheckTime = previousDifferenceCheckTimeMap.get(getPath().toString());
 
-    if (target != null && Files.isDirectory(getDirectoryPath()) && Files.isDirectory(target.getDirectoryPath())) {
-      HashMap<Path, File> ownFileMap = getFileMap(getDirectoryPath(), getDirectoryPath().toFile());
-      HashMap<Path, File> targetFileMap = getFileMap(target.getDirectoryPath(), target.getDirectoryPath().toFile());
+    if (target != null && Files.isDirectory(getPath()) && Files.isDirectory(target.getPath())) {
+      HashMap<Path, File> ownFileMap = getFileMap(getPath(), getPath().toFile());
+      HashMap<Path, File> targetFileMap = getFileMap(target.getPath(), target.getPath().toFile());
 
       for (Path path : ignoringPaths) {
         ownFileMap.remove(path);
@@ -143,7 +134,7 @@ public interface DataDirectory {
         return false;
       }
 
-      previousDifferenceCheckTimeMap.put(getDirectoryPath().toString(), Long.valueOf(System.currentTimeMillis()));
+      previousDifferenceCheckTimeMap.put(getPath().toString(), Long.valueOf(System.currentTimeMillis()));
 
       if (previousCheckTime != null && previousCheckTime.longValue() + CHECKING_OMIT_TIME > System.currentTimeMillis() ) {
         boolean detected = false;

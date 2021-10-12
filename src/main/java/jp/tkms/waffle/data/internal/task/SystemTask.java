@@ -51,7 +51,7 @@ public class SystemTask extends AbstractTask {
   }
 
   public static SystemTask addRun(SystemTaskRun run) {
-    SystemTask job = new SystemTask(run.getLocalDirectoryPath(), run.getComputer());
+    SystemTask job = new SystemTask(run.getLocalPath(), run.getComputer());
     InspectorMaster.registerSystemTask(job);
     InfoLogMessage.issue(run, "was added to the queue");
     //System.out.println(job.getPropertyStorePath().toString());

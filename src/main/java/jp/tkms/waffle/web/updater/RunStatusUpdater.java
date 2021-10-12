@@ -65,6 +65,6 @@ public class RunStatusUpdater extends AbstractUpdater {
   }
 
   public RunStatusUpdater(ExecutableRun run) {
-    super("'" + run.getLocalDirectoryPath().toString() + "'", "'" + run.getState().toString() + "'");
+    super("'" + run.getLocalPath().toString() + "'", "'" + run.getState().toString() + "'");
   }
 }

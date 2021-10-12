@@ -75,11 +75,11 @@ public class ListenerTemplate implements DataDirectory, PropertyFile {
 
   @Override
   public Path getPropertyStorePath() {
-    return getDirectoryPath().resolve(KEY_LISTENER_TEMPLATE + Constants.EXT_JSON);
+    return getPath().resolve(KEY_LISTENER_TEMPLATE + Constants.EXT_JSON);
   }
 
   @Override
-  public Path getDirectoryPath() {
+  public Path getPath() {
     return getBaseDirectoryPath().resolve(name);
   }
 
@@ -88,7 +88,7 @@ public class ListenerTemplate implements DataDirectory, PropertyFile {
   }
 
   public Path getScriptPath() {
-    return getDirectoryPath().resolve(getScriptFileName());
+    return getPath().resolve(getScriptFileName());
   }
 
   public String getScript() {
