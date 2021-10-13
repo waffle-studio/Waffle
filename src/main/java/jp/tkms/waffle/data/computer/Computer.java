@@ -38,15 +38,15 @@ public class Computer implements DataDirectory, PropertyFile {
   private static final String KEY_MAX_THREADS = "maximum_threads";
   private static final String KEY_ALLOCABLE_MEMORY = "allocable_memory";
   private static final String KEY_MAX_JOBS = "maximum_jobs";
-  private static final String KEY_SUBMITTER = "submitter";
-  private static final String KEY_ENCRYPT_KEY = "encrypt_key";
-  private static final String KEY_PARAMETERS = "parameters";
+  private static final String KEY_TYPE = "type";
   private static final String KEY_STATE = "state";
   private static final String KEY_ENVIRONMENTS = "environments";
   private static final String KEY_MESSAGE = "message";
   private static final String KEY_JVM_ACTIVATION_COMMAND = "jvm_activation_commnad";
   private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
   private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
+  private static final String KEY_ENCRYPT_KEY = "encrypt_key";
+  private static final String KEY_PARAMETERS_JSON = "PARAMETERS" + Constants.EXT_JSON;
 
   private static final InstanceCache<String, Computer> instanceCache = new InstanceCache<>();
 
@@ -259,7 +259,7 @@ public class Computer implements DataDirectory, PropertyFile {
   public String getSubmitterType() {
     synchronized (this) {
       if (submitterType == null) {
-        submitterType = getStringFromProperty(KEY_SUBMITTER, submitterTypeList.get(0).getCanonicalName());
+        submitterType = getStringFromProperty(KEY_TYPE, submitterTypeList.get(0).getCanonicalName());
       }
       return submitterType;
     }
@@ -267,7 +267,7 @@ public class Computer implements DataDirectory, PropertyFile {
 
   public void setSubmitterType(String submitterClassName) {
     synchronized (this) {
-      setToProperty(KEY_SUBMITTER, submitterClassName);
+      setToProperty(KEY_TYPE, submitterClassName);
       submitterType = submitterClassName;
     }
   }
@@ -486,11 +486,11 @@ public class Computer implements DataDirectory, PropertyFile {
   public JSONObject getParameters() {
     synchronized (this) {
       if (parameters == null) {
-        String json = getFileContents(KEY_PARAMETERS + Constants.EXT_JSON);
+        String json = getFileContents(KEY_PARAMETERS_JSON);
         if (json.equals("")) {
           json = "{}";
-          createNewFile(KEY_PARAMETERS + Constants.EXT_JSON);
-          updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, json);
+          createNewFile(KEY_PARAMETERS_JSON);
+          updateFileContents(KEY_PARAMETERS_JSON, json);
         }
         parameters = getXsubParametersTemplate();
         try {
@@ -520,7 +520,7 @@ public class Computer implements DataDirectory, PropertyFile {
         parameters.put(key, jsonObject.get(key));
       }
 
-      updateFileContents(KEY_PARAMETERS + Constants.EXT_JSON, parameters.toString(2));
+      updateFileContents(KEY_PARAMETERS_JSON, parameters.toString(2));
       this.parameters = null;
     }
   }

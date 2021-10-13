@@ -1,6 +1,7 @@
 package jp.tkms.waffle.manager;
 
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,5 +34,4 @@ public class Manager {
       processorThread = null;
     }
   }
-
 }

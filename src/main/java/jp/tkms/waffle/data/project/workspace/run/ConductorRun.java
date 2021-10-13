@@ -287,6 +287,8 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
       return getVariables().toString();
     }
   };
-  public HashMap variables() { return variablesMapWrapper; }
-  public HashMap v() { return variablesMapWrapper; }
+
+  public HashMap<Object, Object> getVariablesMapWrapper() {
+    return variablesMapWrapper;
+  }
 }

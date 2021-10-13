@@ -34,7 +34,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
   @Override
   public String procedureTemplate() {
     return
-      "def procedure(this, refs)\n" +
+      "def procedure(me, refs)\n" +
       "end\n";
   }
 
@@ -53,7 +53,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
 
   @Override
   public String extractorTemplate() {
-    return "def parameter_extract(this)\n" +
+    return "def parameter_extract(me)\n" +
       "end\n";
   }
 
@@ -74,7 +74,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
 
   @Override
   public String collectorTemplate() {
-    return "def result_collect(this, remote)\n" +
+    return "def result_collect(me, remote)\n" +
       "end\n";
   }
 

@@ -69,16 +69,20 @@ public class InspectorMaster {
   public static void startup() {
     synchronized (inspectorMap) {
 
-      try {
-        systemTaskStore = SystemTaskStore.load();
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+      if (systemTaskStore == null) {
+        try {
+          systemTaskStore = SystemTaskStore.load();
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
+        }
       }
 
-      try {
-        executableRunTaskStore = ExecutableRunTaskStore.load();
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+      if (executableRunTaskStore == null) {
+        try {
+          executableRunTaskStore = ExecutableRunTaskStore.load();
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
+        }
       }
 
       // periodic wakeup thread

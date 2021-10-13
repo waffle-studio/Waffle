@@ -2,7 +2,6 @@ package jp.tkms.waffle.web.component.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.*;
@@ -90,7 +89,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     workspace = Workspace.getInstance(project, request.params(WorkspaceComponent.KEY_WORKSPACE));
 
     if (Mode.Root.equals(mode)) {
-      controllerRuns();
+      conductorRunController();
     } else {
       String localPathString = request.uri().substring(1);
 
@@ -100,15 +99,23 @@ public class RunComponent extends AbstractAccessControlledComponent {
         return;
       }
 
-      if (abstractRun instanceof ExecutableRun) {
-        controllerRun();
+      if (abstractRun == null) {
+        runDirectoryController();
+      } else if (abstractRun instanceof ExecutableRun) {
+        executableRunController();
       } else {
-        controllerRuns();
+        conductorRunController();
       }
     }
   }
 
-  private void controllerRuns() throws ProjectNotFoundException {
+  private void runDirectoryController() throws ProjectNotFoundException {
+    String localPathString = request.uri().substring(1);
+    childrenList = AbstractRun.getDirectoryList(new RunDirectory(localPathString));
+    renderRuns();
+  }
+
+  private void conductorRunController() throws ProjectNotFoundException {
     switch (mode) {
       case UpdateNote:
         //run.update();
@@ -126,7 +133,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     renderRuns();
   }
 
-  private void controllerRun() throws ProjectNotFoundException {
+  private void executableRunController() throws ProjectNotFoundException {
     switch (mode) {
       case ReCheck:
         //run.recheck();

@@ -10,7 +10,10 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
+import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
+import org.checkerframework.checker.units.qual.A;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -18,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ProcedureRun extends AbstractRun {
   //public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
@@ -25,6 +29,8 @@ public class ProcedureRun extends AbstractRun {
   public static final String KEY_CONDUCTOR = "conductor";
   public static final String KEY_PROCEDURE_NAME = "procedure_name";
   public static final String KEY_WORKING_DIRECTORY = "working_directory";
+  public static final String KEY_GUARD = "guard";
+  public static final String KEY_ACTIVE_GUARD = "active_guard";
 
   private ArchivedConductor conductor;
   private String procedureName;
@@ -81,9 +87,79 @@ public class ProcedureRun extends AbstractRun {
     return clonedList;
   }
 
+  public void addGuard(String guard) {
+    /* SYNTAX:
+          R  := ConductorRun/ExecutableRun
+          OP := {==, !=, <=, >=, <, >}
+
+          if R finished
+            "<Path of R>"
+
+          if R had a specific value
+            "<Path of CR> <Key of Variable/Result> <OP> <Value>"
+     */
+
+    if (getArrayFromProperty(KEY_GUARD) == null) {
+      putNewArrayToProperty(KEY_GUARD);
+    }
+    putToArrayOfProperty(KEY_GUARD, guard);
+
+    if (getArrayFromProperty(KEY_ACTIVE_GUARD) == null) {
+      putNewArrayToProperty(KEY_ACTIVE_GUARD);
+    }
+    putToArrayOfProperty(KEY_ACTIVE_GUARD, guard);
+  }
+
+  public ArrayList<String> getGuardList() {
+    ArrayList<String> list = new ArrayList<>();
+    JSONArray jsonArray = getArrayFromProperty(KEY_GUARD);
+    if (jsonArray == null) {
+      putNewArrayToProperty(KEY_GUARD);
+      return list;
+    }
+
+    for (Object object : jsonArray.toList()) {
+      list.add(object.toString());
+    }
+
+    return list;
+  }
+
+  public ArrayList<String> getActiveGuardList() {
+    ArrayList<String> list = new ArrayList<>();
+    JSONArray jsonArray = getArrayFromProperty(KEY_ACTIVE_GUARD);
+    if (jsonArray == null) {
+      putNewArrayToProperty(KEY_ACTIVE_GUARD);
+      return list;
+    }
+
+    for (Object object : jsonArray.toList()) {
+      list.add(object.toString());
+    }
+
+    return list;
+  }
+
+  public void deactivateGuard(String guard) {
+    if (getArrayFromProperty(KEY_ACTIVE_GUARD) == null) {
+      putNewArrayToProperty(KEY_ACTIVE_GUARD);
+    }
+    removeFromArrayOfProperty(KEY_ACTIVE_GUARD, guard);
+  }
+
   @Override
   public void start() {
-    started();
+    if (!isStarted()) {
+      started();
+      if (getActiveGuardList().size() <= 0) {
+        run();
+      } else {
+        ManagerMaster.register(this);
+      }
+    }
+  }
+
+  public void run() {
     setState(State.Running);
 
     if (conductor != null) {
@@ -102,6 +178,7 @@ public class ProcedureRun extends AbstractRun {
       reportFinishedRun(null);
     }
      */
+    commit();
   }
 
   /*
@@ -216,6 +293,13 @@ public class ProcedureRun extends AbstractRun {
     return instance;
   }
 
+  public static ProcedureRun getInstance(Workspace workspace, Path path) {
+    if (path.isAbsolute()) {
+      path = Constants.WORK_DIR.relativize(path);
+    }
+    return getInstance(workspace, path.normalize().toString());
+  }
+
   /*
   public static ProcedureRun getTestRunProcedureRun(ArchivedExecutable executable) {
     return create(ConductorRun.getTestRunConductorRun(executable), executable.getArchiveName(), null, null);
@@ -256,6 +340,18 @@ public class ProcedureRun extends AbstractRun {
 
   public ConductorRun createConductorRun(String conductorName) {
     return createConductorRun(conductorName, conductorName);
+  }
+
+  public ProcedureRun createProcedureRun(String procedureName) {
+    ConductorRun conductorRun = getParentConductorRun();
+    if (!conductorRun.getConductor().getChildProcedureNameList().contains(procedureName)) {
+      //throw new WorkspaceInternalException(getWorkspace(), "");
+      throw new RuntimeException("Procedure\"(" + conductorRun.getConductor().getName() + "/" + procedureName + "\") is not found");
+    }
+
+    ProcedureRun procedureRun = ProcedureRun.create(conductorRun, conductorRun.getConductor(), procedureName);
+    transactionRunList.add(procedureRun);
+    return procedureRun;
   }
 
   public ExecutableRun createExecutableRun(String executableName, String computerName, String name) {
@@ -346,4 +442,27 @@ public class ProcedureRun extends AbstractRun {
 
     transactionRunList.clear();
   }
+
+  public void putVariables(JSONObject valueMap) {
+    getParentConductorRun().putVariables(valueMap);
+  }
+
+  public void putVariablesByJson(String json) {
+    getParentConductorRun().putVariablesByJson(json);
+  }
+
+  public void putVariable(String key, Object value) {
+    getParentConductorRun().putVariable(key, value);
+  }
+
+  public JSONObject getVariables() {
+    return getParentConductorRun().getVariables();
+  }
+
+  public Object getVariable(String key) {
+    return getParentConductorRun().getVariable(key);
+  }
+
+  public HashMap variables() { return getParentConductorRun().getVariablesMapWrapper(); }
+  public HashMap v() { return variables(); }
 }

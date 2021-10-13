@@ -17,50 +17,51 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 
-public class ProcedureStepStore {
+public class ProcedureRunGuardStore {
 
-  private static final String STEP = "STEP";
-  private LinkedHashMap<WaffleId, ProcedureStep> stepMap;
-  private LinkedHashMap<String, ArrayList<ProcedureStep>> workspaceStepListMap;
+  private static final String GUARD = "GUARD";
+  private LinkedHashMap<WaffleId, ProcedureRunGuard> guardMap;
+  private LinkedHashMap<String, ArrayList<ProcedureRunGuard>> workspaceGuardListMap;
+  private LinkedHashMap<String, ArrayList<ProcedureRunGuard>> abstractRunGuardListMap;
 
-  protected ProcedureStepStore() {
-    stepMap = new LinkedHashMap<>();
-    workspaceStepListMap = new LinkedHashMap<>();
+  protected ProcedureRunGuardStore() {
+    guardMap = new LinkedHashMap<>();
+    workspaceGuardListMap = new LinkedHashMap<>();
   }
 
-  public ProcedureStep getStep(WaffleId id) {
-    synchronized (stepMap) {
-      return stepMap.get(id);
+  public ProcedureRunGuard getGuard(WaffleId id) {
+    synchronized (guardMap) {
+      return guardMap.get(id);
     }
   }
 
-  public ArrayList<ProcedureStep> getList() {
-    synchronized (stepMap) {
-      return new ArrayList<>(stepMap.values());
+  public ArrayList<ProcedureRunGuard> getList() {
+    synchronized (guardMap) {
+      return new ArrayList<>(guardMap.values());
     }
   }
 
-  public ArrayList<ProcedureStep> getList(Workspace workspace) {
-    synchronized (stepMap) {
-      ArrayList list = workspaceStepListMap.get(workspace.getLocalPath().toString());
+  public ArrayList<ProcedureRunGuard> getList(Workspace workspace) {
+    synchronized (guardMap) {
+      ArrayList list = workspaceGuardListMap.get(workspace.getLocalPath().toString());
       if (list == null) {
         list = new ArrayList();
-        workspaceStepListMap.put(workspace.getName(), list);
+        workspaceGuardListMap.put(workspace.getName(), list);
       }
       return list;
     }
   }
 
   public boolean contains(WaffleId id) {
-    synchronized (stepMap) {
-      return stepMap.containsKey(id);
+    synchronized (guardMap) {
+      return guardMap.containsKey(id);
     }
   }
 
-  public void register(ProcedureStep step) {
-    synchronized (stepMap) {
-      stepMap.put(step.getId(), step);
-      getList(step.getWorkspace()).add(step);
+  public void register(ProcedureRunGuard guard) {
+    synchronized (guardMap) {
+      guardMap.put(guard.getId(), guard);
+      getList(guard.getWorkspace()).add(guard);
     }
   }
 
@@ -68,18 +69,18 @@ public class ProcedureStepStore {
     if (id == null) {
       return;
     }
-    synchronized (stepMap) {
-      ProcedureStep removedStep = stepMap.remove(id);
+    synchronized (guardMap) {
+      ProcedureRunGuard removedStep = guardMap.remove(id);
       if (removedStep != null) {
         getList(removedStep.getWorkspace()).remove(removedStep);
       }
     }
   }
 
-  protected static ProcedureStepStore load() {
+  public static ProcedureRunGuardStore load() {
     InfoLogMessage.issue("Loading the snapshot of step store");
 
-    ProcedureStepStore store = new ProcedureStepStore();
+    ProcedureRunGuardStore store = new ProcedureRunGuardStore();
     Path directory = getDirectoryPath();
 
     try {
@@ -101,11 +102,12 @@ public class ProcedureStepStore {
             Path jsonPath = file.toPath();
             if (jsonPath != null) {
               JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
-              WaffleId id = WaffleId.valueOf(jsonObject.getLong(ProcedureStep.KEY_ID));
-              Path path = Paths.get(jsonObject.getString(ProcedureStep.KEY_PATH));
-              String projectName = jsonObject.getString(ProcedureStep.KEY_PROJECT);
-              String workspaceName = jsonObject.getString(ProcedureStep.KEY_WORKSPACE);
-              store.register(new ProcedureStep(id, path, projectName, workspaceName));
+              WaffleId id = WaffleId.valueOf(jsonObject.getLong(ProcedureRunGuard.KEY_ID));
+              Path path = Paths.get(jsonObject.getString(ProcedureRunGuard.KEY_PATH));
+              String projectName = jsonObject.getString(ProcedureRunGuard.KEY_PROJECT);
+              String workspaceName = jsonObject.getString(ProcedureRunGuard.KEY_WORKSPACE);
+              String targetRunPath = jsonObject.getString(ProcedureRunGuard.KEY_TARGET);
+              store.register(new ProcedureRunGuard(id, path, projectName, workspaceName, targetRunPath));
               fileCount += 1;
             }
           } catch (Exception e) {
@@ -130,6 +132,6 @@ public class ProcedureStepStore {
   }
 
   public static Path getDirectoryPath() {
-    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(STEP);
+    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(GUARD);
   }
 }

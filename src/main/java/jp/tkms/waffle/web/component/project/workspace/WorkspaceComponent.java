@@ -208,6 +208,44 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         return
           Lte.divContainerFluid(Lte.divRow(
             Html.section("col-lg-6",
+              Lte.card(Html.fasIcon("project-diagram") + RunComponent.RUNS, null,
+                Lte.table("table-condensed", new Lte.Table() {
+                  @Override
+                  public ArrayList<Lte.TableValue> tableHeaders() {
+                    return null;
+                  }
+
+                  @Override
+                  public ArrayList<Future<Lte.TableRow>> tableRows() {
+                    ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+                    for (HasLocalPath localPath : AbstractRun.getDirectoryList(workspace)) {
+                      list.add(Main.interfaceThreadPool.submit(() -> {
+                          return new Lte.TableRow(
+                            Html.a(RunComponent.getUrlFromLocalPath(localPath), null, null, localPath.getPath().getFileName().toString()));
+                        /*
+                          if (abstractRun instanceof ExecutableRun) {
+                            return new Lte.TableRow(
+                              Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
+                          } else {
+                            return new Lte.TableRow(
+                              Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
+                          }
+                         */
+                        }
+                      ));
+                    }
+                    if (list.isEmpty()) {
+                      list.add(Main.interfaceThreadPool.submit(() -> {
+                          return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
+                        }
+                      ));
+                    }
+                    return list;
+                  }
+                })
+                , null, "card-danger card-outline", "p-0")
+            ),
+            Html.section("col-lg-6",
             Lte.card(Html.fasIcon("user-tie") + "Staged" + ConductorComponent.CONDUCTORS, null,
               Lte.table("table-condensed", new Lte.Table() {
                 @Override
@@ -262,44 +300,6 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                   }
                 })
                 , null, "card-info card-outline", "p-0")
-            ),
-            Html.section("col-lg-6",
-              Lte.card(Html.fasIcon("project-diagram") + RunComponent.RUNS, null,
-                Lte.table("table-condensed", new Lte.Table() {
-                  @Override
-                  public ArrayList<Lte.TableValue> tableHeaders() {
-                    return null;
-                  }
-
-                  @Override
-                  public ArrayList<Future<Lte.TableRow>> tableRows() {
-                    ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                    for (HasLocalPath localPath : AbstractRun.getDirectoryList(workspace)) {
-                      list.add(Main.interfaceThreadPool.submit(() -> {
-                        return new Lte.TableRow(
-                          Html.a(RunComponent.getUrlFromLocalPath(localPath), null, null, localPath.getPath().getFileName().toString()));
-                        /*
-                          if (abstractRun instanceof ExecutableRun) {
-                            return new Lte.TableRow(
-                              Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
-                          } else {
-                            return new Lte.TableRow(
-                              Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
-                          }
-                         */
-                        }
-                      ));
-                    }
-                    if (list.isEmpty()) {
-                      list.add(Main.interfaceThreadPool.submit(() -> {
-                          return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
-                        }
-                      ));
-                    }
-                    return list;
-                  }
-                })
-                , null, "card-danger card-outline", "p-0")
             )
             )/*,
             Lte.divRow(
