@@ -2,6 +2,7 @@ package jp.tkms.waffle.data.project.workspace.run;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.internal.guard.ValueGuard;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
@@ -10,6 +11,7 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
+import jp.tkms.waffle.exception.OutOfDomainException;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
 import org.checkerframework.checker.units.qual.A;
@@ -98,6 +100,22 @@ public class ProcedureRun extends AbstractRun {
           if R had a specific value
             "<Path of CR> <Key of Variable/Result> <OP> <Value>"
      */
+    if (!guard.startsWith(Constants.WORK_DIR.relativize(getBaseDirectoryPath(getWorkspace())).toString())) {
+      //throw new OutOfDomainException(getWorkspace(), guard);
+      throw new RuntimeException("Out of domain: " + guard);
+    }
+
+    //Todo: do refactoring
+    String[] slicedGuard = guard.split(" ", 2);
+    if (slicedGuard.length != 1) {
+      try {
+        new ValueGuard(guard);
+      } catch (ValueGuard.InsufficientStatementException e) {
+        throw new RuntimeException("Insufficient statement: " + guard);
+      } catch (ValueGuard.InvalidOperatorException e) {
+        throw new RuntimeException("Invalid operator: " + guard);
+      }
+    }
 
     if (getArrayFromProperty(KEY_GUARD) == null) {
       putNewArrayToProperty(KEY_GUARD);
@@ -178,7 +196,10 @@ public class ProcedureRun extends AbstractRun {
       reportFinishedRun(null);
     }
      */
+
     commit();
+
+    setState(State.Finished);
   }
 
   /*

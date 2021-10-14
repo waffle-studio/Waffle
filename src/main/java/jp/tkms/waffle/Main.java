@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.inspector.InspectorMaster;
+import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -167,6 +168,7 @@ public class Main {
     };
     fileWatcherThread.start();
 
+    ManagerMaster.startup();
     InspectorMaster.startup();
 
     staticFiles.location("/static");
