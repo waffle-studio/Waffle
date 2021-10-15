@@ -189,6 +189,10 @@ abstract public class MainTemplate extends AbstractTemplate {
               "                    tabTrigger: 'me.createConductorRun' \n" +
               "                });\n" +
               "                m.snippets.push({ \n" +
+              "                    content: 'me.createProcedureRun(\"${1:procedure name}\")', \n" +
+              "                    tabTrigger: 'me.createProcedureRun' \n" +
+              "                });\n" +
+              "                m.snippets.push({ \n" +
               "                    content: 'addFinalizer(\"${1:procedure name}\")', \n" +
               "                    tabTrigger: 'addFinalizer' \n" +
               "                });\n" +

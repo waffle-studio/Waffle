@@ -367,7 +367,19 @@ public class ProcedureRun extends AbstractRun {
     ConductorRun conductorRun = getParentConductorRun();
     if (!conductorRun.getConductor().getChildProcedureNameList().contains(procedureName)) {
       //throw new WorkspaceInternalException(getWorkspace(), "");
-      throw new RuntimeException("Procedure\"(" + conductorRun.getConductor().getName() + "/" + procedureName + "\") is not found");
+      boolean isNotFoundProcedureName = true;
+
+      for (String ext : ScriptProcessor.CLASS_NAME_MAP.keySet()) {
+        if (conductorRun.getConductor().getChildProcedureNameList().contains(procedureName + ext)) {
+          procedureName = procedureName + ext;
+          isNotFoundProcedureName = false;
+          break;
+        }
+      }
+
+      if (isNotFoundProcedureName) {
+        throw new RuntimeException("Procedure\"(" + conductorRun.getConductor().getName() + "/" + procedureName + "\") is not found");
+      }
     }
 
     ProcedureRun procedureRun = ProcedureRun.create(conductorRun, conductorRun.getConductor(), procedureName);

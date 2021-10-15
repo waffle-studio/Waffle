@@ -1,6 +1,9 @@
 package jp.tkms.waffle.data.internal.guard;
 
-public class ValueGuard {
+public class ValueGuard extends Guard {
+  public static final String KEY = "key";
+  public static final String VALUE = "value";
+
   String[] slicedGuard;
 
   public ValueGuard(String guard) throws InsufficientStatementException, InvalidOperatorException {
