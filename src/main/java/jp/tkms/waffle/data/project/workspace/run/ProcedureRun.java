@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.internal.guard.ValueGuard;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.Registry;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
@@ -126,6 +127,14 @@ public class ProcedureRun extends AbstractRun {
       putNewArrayToProperty(KEY_ACTIVE_GUARD);
     }
     putToArrayOfProperty(KEY_ACTIVE_GUARD, guard);
+  }
+
+  public void addGuard(HasLocalPath run) {
+    addGuard(run.getLocalPath().toString());
+  }
+
+  public void addGuard(HasLocalPath run, String key, String operator, String value) {
+    addGuard(run.getLocalPath().toString() + " " + key + " " + operator + " " + value);
   }
 
   public ArrayList<String> getGuardList() {
@@ -287,7 +296,7 @@ public class ProcedureRun extends AbstractRun {
       return instance;
     }
 
-    Path jsonPath = Constants.WORK_DIR.resolve(localPathString);
+    Path jsonPath = toJsonPath(Constants.WORK_DIR.resolve(localPathString));
 
     if (Files.exists(jsonPath)) {
       try {
