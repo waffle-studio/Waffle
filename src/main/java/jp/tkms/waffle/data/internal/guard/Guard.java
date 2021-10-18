@@ -10,7 +10,12 @@ public class Guard {
 
   private JsonObject jsonObject;
 
+  public Guard() {
+    //temporary
+  }
+
   public Guard(String jsonString) {
+    // todo: currently, this class is not used
     jsonObject = Json.parse(jsonString).asObject();
   }
 

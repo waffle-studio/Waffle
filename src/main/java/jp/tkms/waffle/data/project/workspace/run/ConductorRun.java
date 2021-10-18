@@ -14,6 +14,7 @@ import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.JSONWriter;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.manager.ManagerMaster;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -100,8 +101,9 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
       getResponsible().reportFinishedRun(this);
     }
     setState(State.Finished);
-
      */
+
+    ManagerMaster.signalFinished(this);
   }
 
   protected Path getVariablesStorePath() {
@@ -134,6 +136,8 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     } catch (IOException e) {
       e.printStackTrace();
     }
+
+    ManagerMaster.signalUpdated(this);
   }
 
   public long getVariablesStoreSize() {

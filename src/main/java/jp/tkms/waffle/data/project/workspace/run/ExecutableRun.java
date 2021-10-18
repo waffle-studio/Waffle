@@ -18,6 +18,7 @@ import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
 import jp.tkms.waffle.web.updater.RunStatusUpdater;
@@ -155,6 +156,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     processFinalizers();
     getResponsible().reportFinishedRun(this);
      */
+
+    ManagerMaster.signalFinished(this);
+
     setState(State.Finished);
   }
 
@@ -591,6 +595,8 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     } catch (IOException e) {
       e.printStackTrace();
     }
+
+    ManagerMaster.signalUpdated(this);
   }
 
   private Path getResultsStorePath() {
