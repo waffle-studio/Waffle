@@ -42,6 +42,29 @@ public class Main {
         PseudoTerminal pseudoTerminal = new PseudoTerminal(baseDirectory, args[2]);
         pseudoTerminal.run();
         break;
+      case "put_result":
+        if (args.length < 4) {
+          exitWithInvalidArgumentsMessage("put_result", "[KEY] [VALUE]");
+        }
+        EventRecorder.printEventString(args[2], args[3]);
+        break;
+      case "push_file":
+        if (args.length < 4) {
+          exitWithInvalidArgumentsMessage("push_file", "[TASK JSON PATH] [FILE NAME]");
+        }
+        (new PushFileCommand(baseDirectory, Paths.get(args[2]), Paths.get(args[3]))).run();
+        break;
+      case "get_value":
+        if (args.length == 4) {
+          (new GetValueCommand(baseDirectory, Paths.get(args[2]), args[3])).run();
+        } else if (args.length == 6) {
+          (new GetValueCommand(baseDirectory, Paths.get(args[2]), args[3], args[4], args[5])).run();
+        } else if (args.length == 7) {
+          (new GetValueCommand(baseDirectory, Paths.get(args[2]), args[3], args[4], args[5], Integer.parseInt(args[6]))).run();
+        } else {
+          exitWithInvalidArgumentsMessage("get_value", "[TASK JSON PATH] [KEY] [FILTER OP] [FILTER VAL]");
+        }
+        break;
       default:
         exitWithInvalidArgumentsMessage("", "");
     }

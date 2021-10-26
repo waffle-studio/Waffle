@@ -12,4 +12,6 @@ public class Constants {
   public static final String LOCAL_SHARED = "local_shared";
   public static final int DIRECTORY_SYNCHRONIZATION_TIMEOUT = 300;
   public static final String WAFFLE_SLOT_INDEX = "WAFFLE_SLOT_INDEX";
+  public static final String WAFFLE_BASE = "WAFFLE_BASE";
+  public static final String WAFFLE_TASK_JSONFILE = "WAFFLE_TASK_JASONFILE";
 }

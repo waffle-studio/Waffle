@@ -89,4 +89,12 @@ public class EventRecorder {
   private boolean isSameChars(char[] ch, char c) {
     return ch[0] == c && ch[1] == '\0';
   }
+
+  public static void printEventString(String key, String value) {
+    System.err.println(EVENT_LABEL
+      + key.replaceAll("\\\\", "\\\\").replaceAll(String.valueOf(SECTION_SEPARATING_MARK), "\\" + SECTION_SEPARATING_MARK)
+      + SECTION_SEPARATING_MARK
+      + value.replaceAll("\\\\", "\\\\").replaceAll(String.valueOf(END_MARK), "\\" + END_MARK)
+      + END_MARK);
+  }
 }
