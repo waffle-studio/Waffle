@@ -10,6 +10,8 @@ public class Guard {
 
   private JsonObject jsonObject;
 
+  public Guard() {}
+
   public Guard(String jsonString) {
     jsonObject = Json.parse(jsonString).asObject();
   }
