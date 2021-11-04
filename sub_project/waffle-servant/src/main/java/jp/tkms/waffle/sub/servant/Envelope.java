@@ -9,9 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -43,13 +43,10 @@ public class Envelope {
 
   public void add(Path path) {
     if (path.isAbsolute()) {
-      synchronized (filePathList) {
-        filePathList.add(baseDirectory.relativize(path).normalize());
-      }
-    } else {
-      synchronized (filePathList) {
-        filePathList.add(path);
-      }
+      path = baseDirectory.relativize(path).normalize();
+    }
+    synchronized (filePathList) {
+      filePathList.add(path);
     }
   }
 

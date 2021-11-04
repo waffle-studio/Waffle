@@ -21,6 +21,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.*;
+import jp.tkms.waffle.manager.Filter;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.TaskJson;
 import jp.tkms.waffle.sub.servant.message.request.*;
@@ -458,6 +459,10 @@ abstract public class AbstractSubmitter {
         }
       }
 
+      for (PutFileMessage message : response.getMessageBundle().getCastedMessageList(PutFileMessage.class)) {
+        message.putFile();
+      }
+
       for (UpdateResultMessage message : response.getMessageBundle().getCastedMessageList(UpdateResultMessage.class)) {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
@@ -513,6 +518,19 @@ abstract public class AbstractSubmitter {
             }
           }
         }
+      }
+
+      Envelope replies = new Envelope(Constants.WORK_DIR);
+      for (SendValueMessage message : response.getMessageBundle().getCastedMessageList(SendValueMessage.class)) {
+        String value = ExecutableRun.getResultFromFullKey(message.getKey());
+        if (message.getFilterOperator().equals("")
+          || (new Filter(message.getFilterOperator(), message.getFilterValue())).apply(value)
+        ) {
+          replies.add(new PutValueMessage(message, value == null ? "null" : value));
+        }
+      }
+      if (!replies.isEmpty()) {
+        sendAndReceiveEnvelope(replies);
       }
 
     } catch (Exception e) {

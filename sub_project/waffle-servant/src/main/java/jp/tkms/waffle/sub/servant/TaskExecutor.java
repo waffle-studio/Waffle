@@ -6,6 +6,7 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import jp.tkms.waffle.sub.servant.pod.PodTask;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,11 +18,9 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public class TaskExecutor {
+public class TaskExecutor extends TaskCommand {
 
   ArrayList<String> environmentList;
-  Path baseDirectory;
-  Path taskDirectory;
   Path executableBaseDirectory;
   String projectName;
   String command;
@@ -32,12 +31,7 @@ public class TaskExecutor {
   private long pid;
 
   public TaskExecutor(Path baseDirectory, Path taskJsonPath) throws Exception {
-    this.baseDirectory = baseDirectory;
-
-    if (!taskJsonPath.isAbsolute()) {
-      taskJsonPath = baseDirectory.resolve(taskJsonPath);
-    }
-    this.taskDirectory = taskJsonPath.getParent().normalize();
+    super(baseDirectory, taskJsonPath);
 
     this.environmentList = new ArrayList<>();
 
@@ -88,7 +82,9 @@ public class TaskExecutor {
         addEnvironment(Constants.WAFFLE_SLOT_INDEX, System.getenv().get(Constants.WAFFLE_SLOT_INDEX));
       }
 
-      addEnvironment("WAFFLE_BASE", executingBaseDirectory.toString());
+      addEnvironment("PATH", Main.getBinDirectory(baseDirectory).toString() + File.pathSeparator + System.getenv().get("PATH"));
+      addEnvironment(Constants.WAFFLE_BASE, executingBaseDirectory.toString());
+      addEnvironment(Constants.WAFFLE_TASK_JSONFILE, taskJsonPath.toString());
       addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.toString());
       addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.toString());
 

@@ -35,6 +35,11 @@ public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<Colle
         new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
           response.add(new UpdateResultMessage(message, name, value));
         });
+
+        PushFileCommand.process(message.getWorkingDirectory(), (m) -> response.add(m) );
+
+        GetValueCommand.process(message.getWorkingDirectory(), (m) -> response.add(m) );
+
         Path jobsDirectory = baseDirectory.resolve(message.getPodDirectory()).resolve(AbstractExecutor.JOBS_PATH);
         if (message.isForceFinish() || !Files.exists(jobsDirectory.resolve(message.getId()))) {
           int exitStatus = -2;

@@ -105,5 +105,8 @@ public class MessageBundle {
     kryo.register(PodTaskRefusedMessage.class);
     kryo.register(CancelPodTaskMessage.class);
     kryo.register(PodTaskCanceledMessage.class);
+    kryo.register(PutValueMessage.class);
+    kryo.register(PutFileMessage.class);
+    kryo.register(SendValueMessage.class);
   }
 }
