@@ -4,7 +4,6 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.*;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
-import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import jp.tkms.waffle.sub.servant.message.response.*;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
@@ -57,6 +56,11 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
           new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
             response.add(new UpdateResultMessage(message, name, value));
           });
+
+          PushFileCommand.process(message.getWorkingDirectory(), (m) -> response.add(m) );
+
+          GetValueCommand.process(message.getWorkingDirectory(), (m) -> response.add(m) );
+
           if (jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")) {
             int exitStatus = -2;
             try {

@@ -33,55 +33,7 @@ public class Manager {
   }
 
   private boolean isConformed(ValueGuard valueGuard, Object value) {
-    if (value == null) {
-      if (valueGuard.getValue().toLowerCase().equals("null") && valueGuard.getOperator().equals("==")) {
-        return true;
-      } else if (valueGuard.getOperator().equals("!=")) {
-        return true;
-      }
-    } else {
-      try {
-        double value1 = Double.valueOf(value.toString());
-        double value2 = Double.valueOf(valueGuard.getValue());
-        switch (valueGuard.getOperator()) {
-          case "==":
-            return value1 == value2;
-          case "!=":
-            return value1 != value2;
-          case "<=":
-            return value1 <= value2;
-          case ">=":
-            return value1 >= value2;
-          case "<":
-            return value1 < value2;
-          case ">":
-            return value1 > value2;
-        }
-      } catch (NumberFormatException e) {
-        if (valueGuard.getValue().toLowerCase().equals("true")) {
-          switch (valueGuard.getOperator()) {
-            case "==":
-              return value.toString().toLowerCase().equals("true");
-            case "!=":
-              return value.toString().toLowerCase().equals("false");
-          }
-        } else if (valueGuard.getValue().toLowerCase().equals("false")) {
-          switch (valueGuard.getOperator()) {
-            case "==":
-              return value.toString().toLowerCase().equals("false");
-            case "!=":
-              return value.toString().toLowerCase().equals("true");
-          }
-        }
-        switch (valueGuard.getOperator()) {
-          case "==":
-            return value.toString().equals(valueGuard.getValue());
-          case "!=":
-            return !value.toString().equals(valueGuard.getValue());
-        }
-      }
-    }
-    return false;
+    return (new Filter(valueGuard)).apply(value);
   }
 
   private void deactivateAndTryRun(ProcedureRunGuardStore store, ProcedureRunGuard guard) {

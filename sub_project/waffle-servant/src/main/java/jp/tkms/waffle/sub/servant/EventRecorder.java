@@ -91,7 +91,7 @@ public class EventRecorder {
   }
 
   public static void printEventString(String key, String value) {
-    System.err.println(EVENT_LABEL
+    System.err.println(String.valueOf(EVENT_LABEL)
       + key.replaceAll("\\\\", "\\\\").replaceAll(String.valueOf(SECTION_SEPARATING_MARK), "\\" + SECTION_SEPARATING_MARK)
       + SECTION_SEPARATING_MARK
       + value.replaceAll("\\\\", "\\\\").replaceAll(String.valueOf(END_MARK), "\\" + END_MARK)

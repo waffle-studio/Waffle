@@ -3,28 +3,36 @@ package jp.tkms.waffle.web.template;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static jp.tkms.waffle.web.template.Html.*;
 
 public class Lte {
-  private static String toDivSizeClass(DivSize divSize) {
-    switch (divSize) {
-      case F12Md6Sm3:
-        return "col-md-3 col-sm-6 col-12";
-      case F12Md12Sm6:
-        return "col-md-6 col-sm-12 col-12";
-    }
+  public enum DivSize {
+    F12, F12Md6Sm3, F12Md12Sm6;
 
-    return "col-12";
+    @Override
+    public String toString() {
+      switch (this) {
+        case F12Md6Sm3:
+          return "col-md-3 col-sm-6 col-12";
+        case F12Md12Sm6:
+          return "col-md-6 col-sm-12 col-12";
+      }
+      return "col-12";
+    }
   }
 
-  ;
+  public enum Color {
+    Primary, Secondary, Info, Success, Warning, Danger;
+
+    @Override
+    public String toString() {
+      return this.name().toLowerCase(Locale.ROOT);
+    }
+  }
 
   public static String divContainerFluid(String... values) {
     return div("container-fluid", values);
@@ -35,7 +43,7 @@ public class Lte {
   }
 
   public static String divCol(DivSize divSize, String... values) {
-    return div(toDivSizeClass(divSize), values);
+    return div(divSize.toString(), values);
   }
 
   public static String card(String title, String tools, String body, String footer, String additionalClass,
@@ -338,8 +346,6 @@ public class Lte {
       value);
   }
 
-  public enum DivSize {F12, F12Md6Sm3, F12Md12Sm6}
-
   public static class FormError {
 
   }
@@ -396,5 +402,9 @@ public class Lte {
         , contents
       )
     );
+  }
+
+  public static String alert(Color color, String text) {
+    return div("alert alert-" + color.toString(), text);
   }
 }

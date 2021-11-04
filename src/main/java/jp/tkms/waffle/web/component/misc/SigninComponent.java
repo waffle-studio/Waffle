@@ -3,6 +3,8 @@ package jp.tkms.waffle.web.component.misc;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.web.component.AbstractComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -18,13 +20,12 @@ import java.util.Arrays;
 import java.util.Map;
 
 public class SigninComponent extends AbstractComponent {
+  private static final String KEY_PASSWORD = "password";
   private Mode mode;
 
   public SigninComponent(Mode mode) {
     super();
     this.mode = mode;
-
-    makePasswordFile();
   }
 
   public SigninComponent() {
@@ -45,13 +46,68 @@ public class SigninComponent extends AbstractComponent {
     if (isPost()) {
       ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
       if (errors.isEmpty()) {
-        getAccess(request.queryParams(UserSession.KEY_SESSION_ID));
+        if (isNotPasswordEmpty()) {
+          getAccess(request.queryParams(KEY_PASSWORD));
+        } else {
+          setPassword(request.queryParams(KEY_PASSWORD));
+        }
       } else {
         renderSigninForm(errors);
       }
     } else {
-      renderSigninForm(new ArrayList<>());
+      if (isNotPasswordEmpty()) {
+        renderSigninForm(new ArrayList<>());
+      } else {
+        renderSetupForm(new ArrayList<>());
+      }
     }
+  }
+
+  private void renderSetupForm(ArrayList<Lte.FormError> errors) {
+    new MainTemplate() {
+      @Override
+      protected String renderPageSidebar() {
+        return "";
+      }
+
+      @Override
+      protected ArrayList<Map.Entry<String, String>> pageNavigation() {
+        return null;
+      }
+
+      @Override
+      protected ArrayList<String> pageRightNavigation() {
+        return null;
+      }
+
+      @Override
+      protected String pageTitle() {
+        return "Password Setup";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList());
+      }
+
+      @Override
+      protected String pageContent() {
+        return
+          Html.form(getUrl(), Html.Method.Post,
+            Lte.card("Register a password to access the web interface.", null,
+              Html.div(null,
+                Lte.formInputGroup("text", KEY_PASSWORD, null, "Password", null, errors),
+                Html.br(),
+                Lte.alert(Lte.Color.Danger,
+                  "Do not register a text that already used in other services, because the password will be saved as a plain text file on \".PASSWORD\". " +
+                    "In other words, you can get the registered password and change it by the file.")
+              ),
+              Lte.formSubmitButton("success", "Register"),
+              "card-secondary", null
+            )
+          );
+      }
+    }.render(this);
   }
 
   private void renderSigninForm(ArrayList<Lte.FormError> errors) {
@@ -87,7 +143,10 @@ public class SigninComponent extends AbstractComponent {
           Html.form(getUrl(), Html.Method.Post,
             Lte.card(null, null,
               Html.div(null,
-                Lte.formInputGroup("password", UserSession.KEY_SESSION_ID, null, "Password", null, errors)
+                Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors),
+                Html.br(),
+                Lte.alert(Lte.Color.Secondary,
+                    "You can get the registered password and change it from \".PASSWORD\".")
               ),
               Lte.formSubmitButton("primary", "Verify"),
               "card-warning", null
@@ -101,8 +160,44 @@ public class SigninComponent extends AbstractComponent {
     return new ArrayList<>();
   }
 
-  private void getAccess(String input) {
-    makePasswordFile();
+  private void getAccess(String password) {
+    String actualPassword = getPassword();
+    if (isNotPasswordEmpty(actualPassword) && password.equals(actualPassword)) {
+      UserSession session = UserSession.create();
+      response.cookie("/", UserSession.KEY_SESSION_ID, session.getSessionId(), -1, false);
+    }
+    response.redirect(ProjectsComponent.getUrl());
+  }
+
+  private void setPassword(String password) {
+    if (isNotPasswordEmpty(password)) {
+      try {
+        Path passwordFilePath = getPasswordFilePath();
+        Files.writeString(passwordFilePath, password);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+    response.redirect(ProjectsComponent.getUrl());
+  }
+
+  private static boolean isNotPasswordEmpty() {
+    return isNotPasswordEmpty(getPassword());
+  }
+
+  private static boolean isNotPasswordEmpty(String password) {
+    return !"".equals(password);
+  }
+
+  private static String getPassword() {
+    Path passwordFilePath = getPasswordFilePath();
+    if (!passwordFilePath.toFile().exists()) {
+      try {
+        Files.writeString(passwordFilePath, "");
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
 
     String password = null;
     try {
@@ -111,24 +206,12 @@ public class SigninComponent extends AbstractComponent {
       ErrorLogMessage.issue(e);
     }
 
-    if (input.equals(password)) {
-      UserSession session = UserSession.create();
-      response.cookie("/", UserSession.KEY_SESSION_ID, session.getSessionId(), -1, false);
-    }
-    response.redirect(ProjectsComponent.getUrl());
+    return password;
   }
 
-  public static void makePasswordFile() {
-    Path passwordFilePath = Constants.WORK_DIR.resolve(Constants.PASSWORD);
-    if (!passwordFilePath.toFile().exists()) {
-      try {
-        Files.writeString(passwordFilePath, Constants.INITIAL_PASSWORD);
-      } catch (IOException e) {
-        e.printStackTrace();
-        ErrorLogMessage.issue(e);
-      }
-    }
+  private static Path getPasswordFilePath() {
+    return Constants.WORK_DIR.resolve(Constants.PASSWORD);
   }
 
-  public enum Mode {Default, Add}
+  public enum Mode {Default, Setup}
 }

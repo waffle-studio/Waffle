@@ -6,6 +6,7 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import jp.tkms.waffle.sub.servant.pod.PodTask;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -81,6 +82,7 @@ public class TaskExecutor extends TaskCommand {
         addEnvironment(Constants.WAFFLE_SLOT_INDEX, System.getenv().get(Constants.WAFFLE_SLOT_INDEX));
       }
 
+      addEnvironment("PATH", Main.getBinDirectory(baseDirectory).toString() + File.pathSeparator + System.getenv().get("PATH"));
       addEnvironment(Constants.WAFFLE_BASE, executingBaseDirectory.toString());
       addEnvironment(Constants.WAFFLE_TASK_JSONFILE, taskJsonPath.toString());
       addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.toString());

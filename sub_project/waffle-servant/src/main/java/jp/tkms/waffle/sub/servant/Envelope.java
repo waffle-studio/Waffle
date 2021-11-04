@@ -24,13 +24,11 @@ public class Envelope {
   private Path baseDirectory;
   private MessageBundle messageBundle;
   private ArrayList<Path> filePathList;
-  private HashMap<Path, byte[]> removeFilePathList;
 
   public Envelope(Path baseDirectory) {
     this.baseDirectory = baseDirectory.toAbsolutePath();
     messageBundle = new MessageBundle();
     filePathList = new ArrayList<>();
-    removeFilePathList = new HashMap<>();
   }
 
   public boolean isEmpty() {
@@ -52,34 +50,11 @@ public class Envelope {
     }
   }
 
-  public void addWithRemove(Path path) {
-    if (path.isAbsolute()) {
-      path = baseDirectory.relativize(path).normalize();
-    }
-    synchronized (filePathList) {
-      filePathList.add(path);
-      removeFilePathList.put(baseDirectory.resolve(path), null);
-    }
-  }
-
   public MessageBundle getMessageBundle() {
     return messageBundle;
   }
 
   public void save(Path dataPath) throws Exception {
-    try {
-      MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-      for (Path path : new ArrayList<>(removeFilePathList.keySet())) {
-        try {
-          removeFilePathList.put(path, sha256.digest(Files.readAllBytes(path)));
-        } catch (IOException e) {
-          continue;
-        }
-      }
-    } catch (NoSuchAlgorithmException e) {
-      throw e;
-    }
-
     try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(dataPath.toFile()), StandardCharsets.UTF_8)) {
       Set<Path> sourceSet = new LinkedHashSet<>();
       for (Path filePath : filePathList) {
@@ -108,21 +83,6 @@ public class Envelope {
       zipOutputStream.finish();
 
     } catch (Exception e) {
-      throw e;
-    }
-
-    try {
-      MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-      for (Map.Entry<Path, byte[]> entry : removeFilePathList.entrySet()) {
-        try {
-          if (sha256.digest(Files.readAllBytes(entry.getKey())).equals(entry.getValue())) {
-            Files.deleteIfExists(entry.getKey());
-          }
-        } catch (IOException e) {
-          continue;
-        }
-      }
-    } catch (NoSuchAlgorithmException e) {
       throw e;
     }
   }

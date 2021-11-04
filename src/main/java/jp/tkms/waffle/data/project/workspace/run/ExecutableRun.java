@@ -40,6 +40,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   private static final String KEY_LOCAL_SHARED = "local_shared";
   private static final String KEY_TASK_ID = "task_id";
   protected static final String KEY_UPDATE_HANDLER = "update_handler";
+  protected static final String RESULT_PATH_SEPARATOR = ":";
 
   //private ProcedureRun parentRun = null;
   private ArchivedExecutable executable = null;
@@ -133,6 +134,23 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     } catch (RunNotFoundException e) {
       return null;
     }
+  }
+
+  public static String getResultFromFullKey(String fullKey) {
+    String[] separatedKey = fullKey.split(RESULT_PATH_SEPARATOR, 2);
+    if (separatedKey.length < 2) {
+      return null;
+    }
+    try {
+      ExecutableRun run = getInstance(separatedKey[0]);
+      return run.getResult(separatedKey[1]).toString();
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  public String getResultKey(String key) {
+    return getLocalPath().toString() + RESULT_PATH_SEPARATOR + key;
   }
 
   @Override
