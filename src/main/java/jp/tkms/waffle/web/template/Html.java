@@ -192,8 +192,16 @@ public class Html {
   public enum Method {Post, Get}
 
   public static class Attributes extends ArrayList<String> {
+    public Attributes() {
+    }
+
     public Attributes(String... values) {
       this.addAll(Arrays.asList(values));
+    }
+
+    public Attributes add(String name, String value) {
+      this.add(value(name, value));
+      return this;
     }
   }
 }

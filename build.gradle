@@ -98,6 +98,11 @@ task copyFilesToResource(dependsOn: buildServant) {
 		}
 		into 'build/resources/main'
 	}
+
+	copy {
+		from 'docs'
+		into 'build/resources/main/static/docs'
+	}
 }
 
 task updateVersionFile {

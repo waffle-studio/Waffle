@@ -124,6 +124,11 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
       }
 
       @Override
+      protected String helpLink() {
+        return "project";
+      }
+
+      @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList("Projects"));
       }

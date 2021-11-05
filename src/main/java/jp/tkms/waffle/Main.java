@@ -11,10 +11,7 @@ import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
-import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
-import jp.tkms.waffle.web.component.misc.ErrorComponent;
-import jp.tkms.waffle.web.component.misc.SigninComponent;
-import jp.tkms.waffle.web.component.misc.SystemComponent;
+import jp.tkms.waffle.web.component.misc.*;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
 import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
@@ -174,6 +171,7 @@ public class Main {
     staticFiles.location("/static");
 
     ErrorComponent.register();
+    HelpComponent.register();
 
     redirect.get("/", Constants.ROOT_PAGE);
 

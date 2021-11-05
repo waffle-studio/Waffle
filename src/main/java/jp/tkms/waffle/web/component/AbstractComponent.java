@@ -1,6 +1,8 @@
 package jp.tkms.waffle.web.component;
 
 import jp.tkms.waffle.exception.ProjectNotFoundException;
+import jp.tkms.waffle.web.component.misc.HelpComponent;
+import jp.tkms.waffle.web.template.Html;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;

@@ -6,6 +6,7 @@ import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
+import jp.tkms.waffle.web.component.misc.HelpComponent;
 import jp.tkms.waffle.web.component.misc.SystemComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
@@ -88,6 +89,11 @@ abstract public class MainTemplate extends AbstractTemplate {
                         pageTitle(),
                         element("small", null,
                           (pageSubTitle() != "" ? " / " + pageSubTitle() : "")
+                        ),
+                        ( helpLink() == null ? "" :
+                          Html.a(HelpComponent.getUrl(helpLink()), "text-secondary",
+                              new Html.Attributes().add("style", "font-size:0.5em;").add("target", "_blank"),
+                              Html.fasIcon("question-circle"))
                         )
                       )
                     ),
@@ -371,6 +377,10 @@ abstract public class MainTemplate extends AbstractTemplate {
   protected abstract ArrayList<Map.Entry<String, String>> pageNavigation();
 
   protected abstract String pageTitle();
+
+  protected String helpLink() {
+    return null;
+  }
 
   protected String pageSubTitle() {
     return "";
