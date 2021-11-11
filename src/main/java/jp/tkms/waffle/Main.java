@@ -135,6 +135,12 @@ public class Main {
       }
     });
 
+    try {
+      Files.deleteIfExists(getStartFlagPath());
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+
     InfoLogMessage.issue("Version is " + VERSION);
     InfoLogMessage.issue("PID is " + PID);
     InfoLogMessage.issue("Web port is " + port);
@@ -171,7 +177,6 @@ public class Main {
     staticFiles.location("/static");
 
     ErrorComponent.register();
-    HelpComponent.register();
 
     redirect.get("/", Constants.ROOT_PAGE);
 
@@ -187,6 +192,9 @@ public class Main {
 
     SystemComponent.register();
     SigninComponent.register();
+
+    HelpComponent.register();
+    redirect.get("/", Constants.ROOT_PAGE);
 
     gcInvokerThread = new Thread("Waffle_GCInvoker"){
       @Override
@@ -338,9 +346,14 @@ public class Main {
         updateProcess();
       }
 
+      /*
       final ProcessBuilder builder = new ProcessBuilder(command);
       System.out.println("System will fork and restart");
       builder.start();
+       */
+      System.out.println("Please restart " + currentJar.toString());
+      Files.createDirectories(getStartFlagPath().getParent());
+      Files.createFile(getStartFlagPath());
     } catch (URISyntaxException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -385,12 +398,13 @@ public class Main {
 
       dataInStream.close();
       dataOutStream.close();
-
-      Main.restart();
-
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  private static Path getStartFlagPath() {
+    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve("AUTO_START");
   }
 
   private static String getVersionId() {

@@ -62,6 +62,7 @@ dependencies {
 	implementation group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
 	implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.7.3'
 	implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
+	implementation 'com.vladsch.flexmark:flexmark-all:0.62.2'
 	implementation files("sub_project/waffle-servant/build/libs/waffle-servant-all.jar")
 }
 
@@ -158,4 +159,9 @@ copyFilesToResource.mustRunAfter(processResources)
 task runJar(type: Exec, dependsOn: build) {
 	executable "java"
 	args "-jar", "build/libs/waffle-all.jar"
+}
+
+task buildDocs(type: Exec, dependsOn: build) {
+	executable "java"
+	args "-cp", "build/libs/waffle-all.jar", "jp.tkms.waffle.DocumentBuilder"
 }
