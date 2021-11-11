@@ -91,7 +91,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                           (pageSubTitle() != "" ? " / " + pageSubTitle() : "")
                         ),
                         ( helpLink() == null ? "" :
-                          Html.a(HelpComponent.getUrl(helpLink()), "text-secondary",
+                          Html.a("/docs/" + helpLink() + ".html"/*HelpComponent.getUrl(helpLink())*/, "text-secondary",
                               new Html.Attributes().add("style", "font-size:0.5em;").add("target", "_blank"),
                               Html.fasIcon("question-circle"))
                         )

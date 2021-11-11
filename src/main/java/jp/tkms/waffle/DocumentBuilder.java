@@ -1,6 +1,7 @@
 package jp.tkms.waffle;
 
 import com.vladsch.flexmark.ext.anchorlink.AnchorLinkExtension;
+import com.vladsch.flexmark.ext.autolink.AutolinkExtension;
 import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
 import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.ext.toc.TocExtension;
@@ -15,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Locale;
 import java.util.stream.Stream;
 
@@ -26,6 +26,7 @@ public class DocumentBuilder {
     options.set(Parser.EXTENSIONS,
       Arrays.asList(
         //AnchorLinkExtension.create(),
+        AutolinkExtension.create(),
         StrikethroughExtension.create(),
         TablesExtension.create(),
         TocExtension.create()

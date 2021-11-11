@@ -1,1 +1,1 @@
-ok_en
++ [Quick Manual](quick.html)

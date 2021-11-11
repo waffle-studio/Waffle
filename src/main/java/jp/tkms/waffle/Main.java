@@ -193,7 +193,7 @@ public class Main {
     SystemComponent.register();
     SigninComponent.register();
 
-    HelpComponent.register();
+    //HelpComponent.register();
     redirect.get("/", Constants.ROOT_PAGE);
 
     gcInvokerThread = new Thread("Waffle_GCInvoker"){
