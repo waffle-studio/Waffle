@@ -20,4 +20,4 @@
 2. Click **Hibernate** button
 3. Wait few seconds 
 
-## Quick trial
+## A step-by-step Guide
