@@ -10,10 +10,7 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
-import jp.tkms.waffle.data.util.InstanceCache;
-import jp.tkms.waffle.data.util.JSONWriter;
-import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.data.util.StringFileUtil;
+import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.manager.ManagerMaster;
 import org.json.JSONObject;
 
@@ -21,16 +18,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
   public static final String JSON_FILE = CONDUCTOR_RUN + Constants.EXT_JSON;
   public static final String VARIABLES_JSON_FILE = "VARIABLES" + Constants.EXT_JSON;
   public static final String KEY_CONDUCTOR = "conductor";
-  protected static final String KEY_CHILDREN_RUN = "children_run";
-  protected static final String KEY_ACTIVE_CHILDREN_RUN = "active_children_run";
 
   private ArchivedConductor conductor;
+  private HashSet<ExecutableRun> activeChildrenSet = new HashSet();
 
   private static final InstanceCache<String, ConductorRun> instanceCache = new InstanceCache<>();
 
@@ -90,6 +88,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     }
      */
     //reportFinishedRun(null);
+    updateRunningStatus();
   }
 
   @Override
@@ -224,16 +223,16 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return instance;
   }
 
-  public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedPath) {
-    Path path = toNormalizedPath(workspace.getPath().resolve(AbstractRun.RUN), expectedPath);
+  public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedName) {
+    Path path = FileName.generateUniqueFilePath(workspace.getPath().resolve(AbstractRun.RUN).resolve(expectedName));
 
     return create(workspace,
       (conductor == null ? null : StagedConductor.getInstance(workspace, conductor).getArchivedInstance()),
       null, path);
   }
 
-  public static ConductorRun create(ProcedureRun procedureRun, Conductor conductor, String expectedPath) {
-    Path path = toNormalizedPath(procedureRun.getWorkingDirectory(), expectedPath);
+  public static ConductorRun create(ProcedureRun procedureRun, Conductor conductor, String expectedName) {
+    Path path = FileName.generateUniqueFilePath(procedureRun.getWorkingDirectory().resolve(expectedName));
 
     return create(procedureRun.getWorkspace(),
       StagedConductor.getInstance(procedureRun.getWorkspace(), conductor).getArchivedInstance(),
@@ -246,53 +245,79 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
       return instance;
     }
 
-    Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
-
-    if (Files.exists(jsonPath)) {
-      try {
-        JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-        ArchivedConductor conductor = null;
-        if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
-          String conductorName = jsonObject.getString(KEY_CONDUCTOR);
-          conductor = ArchivedConductor.getInstance(workspace, conductorName);
-        }
-        ConductorRun parent = null;
-        if (jsonObject.keySet().contains(KEY_PARENT_CONDUCTOR_RUN)) {
-          String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
-          parent = ConductorRun.getInstance(workspace, parentPath);
-        }
-        instance = new ConductorRun(workspace, conductor, parent, jsonPath.getParent());
-      } catch (Exception e) {
-        ErrorLogMessage.issue(jsonPath.toString() + " : " + ErrorLogMessage.getStackTrace(e));
+    synchronized (instanceCache) {
+      instance = instanceCache.get(localPathString);
+      if (instance != null) {
+        return instance;
       }
-    }
 
-    return instance;
+      Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
+
+      if (Files.exists(jsonPath)) {
+        try {
+          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
+          ArchivedConductor conductor = null;
+          if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
+            String conductorName = jsonObject.getString(KEY_CONDUCTOR);
+            conductor = ArchivedConductor.getInstance(workspace, conductorName);
+          }
+          ConductorRun parent = null;
+          if (jsonObject.keySet().contains(KEY_PARENT_CONDUCTOR_RUN)) {
+            String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
+            parent = ConductorRun.getInstance(workspace, parentPath);
+          }
+          instance = new ConductorRun(workspace, conductor, parent, jsonPath.getParent());
+        } catch (Exception e) {
+          ErrorLogMessage.issue(jsonPath.toString() + " : " + ErrorLogMessage.getStackTrace(e));
+        }
+      }
+
+      return instance;
+    }
   }
 
   static ConductorRun getTestRunConductorRun(ArchivedExecutable executable) {
     return create(executable.getWorkspace(), null, executable.getName());
   }
 
-  private final HashMap<Object, Object> variablesMapWrapper  = new HashMap<Object, Object>() {
-    @Override
-    public Object get(Object key) {
-      return getVariable(key.toString());
+  private HashMap<Object, Object> variablesWrapper = null;
+  public HashMap variables() {
+    if (variablesWrapper == null) {
+      variablesWrapper = new HashMap<Object, Object>(getVariables().toMap()) {
+        @Override
+        public Object get(Object key) {
+          return getVariable(key.toString());
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+          super.put(key, value);
+          putVariable(key.toString(), value);
+          return value;
+        }
+
+        @Override
+        public String toString() {
+          return getVariables().toString();
+        }
+      };
     }
 
-    @Override
-    public Object put(Object key, Object value) {
-      putVariable(key.toString(), value);
-      return value;
-    }
+    return variablesWrapper;
+  }
+  public HashMap v() { return variables(); }
 
-    @Override
-    public String toString() {
-      return getVariables().toString();
-    }
-  };
+  void registerChildExecutableRun(ExecutableRun executableRun) {
+    activeChildrenSet.add(executableRun);
+  }
 
-  public HashMap<Object, Object> getVariablesMapWrapper() {
-    return variablesMapWrapper;
+  public void updateRunningStatus() {
+    activeChildrenSet.removeAll(
+      activeChildrenSet.stream().filter(run -> !run.isRunning()).collect(Collectors.toSet())
+    );
+
+    if (activeChildrenSet.isEmpty()) {
+      finish();
+    }
   }
 }

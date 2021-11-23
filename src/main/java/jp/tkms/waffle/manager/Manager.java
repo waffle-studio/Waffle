@@ -79,6 +79,12 @@ public class Manager {
         deactivateAndTryRun(store, guard);
       }
     });
+
+    ConductorRun parentConductorRun = run.getParentConductorRun();
+    if (parentConductorRun != null) {
+      executorService.submit(parentConductorRun::updateRunningStatus);
+      //parentConductorRun.updateRunningStatus();
+    }
   }
 
   private void process(ProcedureRunGuardStore store, AbstractRun run, Consumer<ProcedureRunGuard> consumer) {

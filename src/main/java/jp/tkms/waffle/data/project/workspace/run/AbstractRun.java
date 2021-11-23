@@ -484,9 +484,9 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
   public Object getVariable(String key) {
     return getVariables().get(key);
   }
-   */
 
   protected static Path toNormalizedPath(Path basePath, String childPath) {
     return basePath.resolve(childPath);
   }
+   */
 }

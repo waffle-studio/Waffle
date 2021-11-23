@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data.util;
 
+import jp.tkms.waffle.Constants;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -20,5 +22,14 @@ public class FileName {
       result = name + '_' + count++;
     }
     return result;
+  }
+
+  public static Path generateUniqueFilePath(Path path) {
+    Path parent = path.getParent();
+    if (path.isAbsolute()) {
+      return parent.resolve(generateUniqueFileName(parent, path.getFileName().toString())).normalize();
+    } else {
+      return parent.resolve(generateUniqueFileName(Constants.WORK_DIR.resolve(parent), path.getFileName().toString())).normalize();
+    }
   }
 }

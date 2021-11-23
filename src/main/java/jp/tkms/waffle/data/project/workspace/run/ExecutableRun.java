@@ -59,6 +59,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   public ExecutableRun(Workspace workspace, ConductorRun parent, Path path) {
     super(workspace, parent, path);
     instanceCache.put(getLocalPath().toString(), this);
+    if (parent != null) {
+      parent.registerChildExecutableRun(this);
+    }
   }
 
   public static String debugReport() {
@@ -90,14 +93,14 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   public static ExecutableRun create(ConductorRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
-    Path path = toNormalizedPath(parent.getPath(), expectedName);
+    Path path = FileName.generateUniqueFilePath(parent.getPath().resolve(expectedName));
     ExecutableRun run = create(parent, path, executable, computer);
     run.setExpectedName(expectedName);
     return run;
   }
 
   public static ExecutableRun create(ProcedureRun parent, String expectedName, Executable executable, Computer computer) {
-    Path path = toNormalizedPath(parent.getWorkingDirectory(), expectedName);
+    Path path = FileName.generateUniqueFilePath(parent.getWorkingDirectory().resolve(expectedName));
     ExecutableRun run = create(parent.getParentConductorRun(), path, StagedExecutable.getInstance(parent.getWorkspace(), executable).getArchivedInstance(), computer);
     run.setExpectedName(expectedName);
     return run;
@@ -109,23 +112,30 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       return instance;
     }
 
-    Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
-    String[] splitPath = localPathString.split(File.separator, 5);
-    if (Files.exists(jsonPath) && splitPath.length >= 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
-      try {
-        Project project = Project.getInstance(splitPath[1]);
-        Workspace workspace = Workspace.getInstance(project, splitPath[3]);
-        JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-        String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
-        ConductorRun conductorRun = ConductorRun.getInstance(workspace, parentPath);
-        instance = new ExecutableRun(workspace, conductorRun, jsonPath.getParent());
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+    synchronized (instanceCache) {
+      instance = instanceCache.get(localPathString);
+      if (instance != null) {
+        return instance;
       }
-      return instance;
-    }
 
-    throw new RunNotFoundException();
+      Path jsonPath = Constants.WORK_DIR.resolve(localPathString).resolve(JSON_FILE);
+      String[] splitPath = localPathString.split(File.separator, 5);
+      if (Files.exists(jsonPath) && splitPath.length >= 5 && splitPath[0].equals(Project.PROJECT) && splitPath[2].equals(Workspace.WORKSPACE)) {
+        try {
+          Project project = Project.getInstance(splitPath[1]);
+          Workspace workspace = Workspace.getInstance(project, splitPath[3]);
+          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
+          String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
+          ConductorRun conductorRun = ConductorRun.getInstance(workspace, parentPath);
+          instance = new ExecutableRun(workspace, conductorRun, jsonPath.getParent());
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
+        }
+        return instance;
+      }
+
+      throw new RunNotFoundException();
+    }
   }
 
   public static ExecutableRun find(String localPathString) {

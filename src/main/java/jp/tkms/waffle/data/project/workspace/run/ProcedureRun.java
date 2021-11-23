@@ -55,9 +55,7 @@ public class ProcedureRun extends AbstractRun {
     return ProcedureRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
-  public Path cd(String directoryName) {
-    Path workingDirectory = getWorkingDirectory();
-    workingDirectory = workingDirectory.resolve(directoryName);
+  private Path cd(Path workingDirectory) {
     try {
       Files.createDirectories(workingDirectory);
     } catch (IOException e) {
@@ -65,6 +63,14 @@ public class ProcedureRun extends AbstractRun {
     }
     setWorkingDirectory(workingDirectory);
     return workingDirectory;
+  }
+
+  public Path cd(String directoryName) {
+    return cd(getWorkingDirectory().resolve(directoryName));
+  }
+
+  public Path mkcd(String directoryName) {
+    return cd(FileName.generateUniqueFilePath(getWorkingDirectory().resolve(directoryName)));
   }
 
   public void setWorkingDirectory(Path workingDirectory) {
@@ -296,31 +302,38 @@ public class ProcedureRun extends AbstractRun {
       return instance;
     }
 
-    Path jsonPath = toJsonPath(Constants.WORK_DIR.resolve(localPathString));
-
-    if (Files.exists(jsonPath)) {
-      try {
-        JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-        ConductorRun parent = ConductorRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN));
-        ArchivedConductor conductor = null;
-        if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
-          conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
-        }
-        String procedureName = null;
-        if (jsonObject.keySet().contains(KEY_PROCEDURE_NAME)) {
-          procedureName = jsonObject.getString(KEY_PROCEDURE_NAME);
-        }
-        Path workingDirectory = null;
-        if (jsonObject.keySet().contains(KEY_WORKING_DIRECTORY)) {
-          workingDirectory = Paths.get(jsonObject.getString(KEY_WORKING_DIRECTORY));
-        }
-        instance = new ProcedureRun(workspace, parent, Paths.get(localPathString), workingDirectory, conductor, procedureName);
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
+    synchronized (instanceCache) {
+      instance = instanceCache.get(localPathString);
+      if (instance != null) {
+        return instance;
       }
-    }
 
-    return instance;
+      Path jsonPath = toJsonPath(Constants.WORK_DIR.resolve(localPathString));
+
+      if (Files.exists(jsonPath)) {
+        try {
+          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
+          ConductorRun parent = ConductorRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN));
+          ArchivedConductor conductor = null;
+          if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
+            conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
+          }
+          String procedureName = null;
+          if (jsonObject.keySet().contains(KEY_PROCEDURE_NAME)) {
+            procedureName = jsonObject.getString(KEY_PROCEDURE_NAME);
+          }
+          Path workingDirectory = null;
+          if (jsonObject.keySet().contains(KEY_WORKING_DIRECTORY)) {
+            workingDirectory = Paths.get(jsonObject.getString(KEY_WORKING_DIRECTORY));
+          }
+          instance = new ProcedureRun(workspace, parent, Paths.get(localPathString), workingDirectory, conductor, procedureName);
+        } catch (Exception e) {
+          ErrorLogMessage.issue(e);
+        }
+      }
+
+      return instance;
+    }
   }
 
   public static ProcedureRun getInstance(Workspace workspace, Path path) {
@@ -505,6 +518,6 @@ public class ProcedureRun extends AbstractRun {
     return getParentConductorRun().getVariable(key);
   }
 
-  public HashMap variables() { return getParentConductorRun().getVariablesMapWrapper(); }
+  public HashMap variables() { return getParentConductorRun().variables(); }
   public HashMap v() { return variables(); }
 }
