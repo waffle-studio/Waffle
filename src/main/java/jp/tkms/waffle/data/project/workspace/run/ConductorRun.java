@@ -225,11 +225,18 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedName) {
-    Path path = FileName.generateUniqueFilePath(workspace.getPath().resolve(AbstractRun.RUN).resolve(expectedName));
+    Path path = workspace.getPath().resolve(AbstractRun.RUN);
+    if (expectedName != null) {
+      path = path.resolve(expectedName);
+    }
 
     return create(workspace,
       (conductor == null ? null : StagedConductor.getInstance(workspace, conductor).getArchivedInstance()),
       null, path);
+  }
+
+  public static ConductorRun create(Workspace workspace, Conductor conductor) {
+    return create(workspace, conductor, null);
   }
 
   public static ConductorRun create(ProcedureRun procedureRun, Conductor conductor, String expectedName) {

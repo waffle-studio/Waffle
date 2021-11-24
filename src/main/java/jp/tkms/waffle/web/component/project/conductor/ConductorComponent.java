@@ -131,7 +131,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         if (workspace == null) {
           response.redirect(LogsComponent.getUrl());
         } else {
-          ConductorRun conductorRun = ConductorRun.create(workspace, conductor, newRunName);
+          ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
           if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
             conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
           }
