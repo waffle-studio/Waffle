@@ -9,7 +9,9 @@ public class Constants {
   public static final String EVENT_SEPARATOR = new String(new byte[]{0x1e});
   public static final String EVENT_VALUE_SEPARATOR = new String(new byte[]{0x1f});
   public static final String EXIT_STATUS_FILE = "EXIT_STATUS.log";
-  public static final String LOCAL_SHARED = "local_shared";
+  public static final String LOCAL_SHARED = "LOCAL_SHARED";
+  public static final String PROJECT = "PROJECT";
+  public static final String WORKSPACE = "WORKSPACE";
   public static final int DIRECTORY_SYNCHRONIZATION_TIMEOUT = 300;
   public static final String WAFFLE_SLOT_INDEX = "WAFFLE_SLOT_INDEX";
   public static final String WAFFLE_BASE = "WAFFLE_BASE";

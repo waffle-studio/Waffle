@@ -8,6 +8,7 @@ public class TaskJson {
   public static final String COMMAND = "command";
   public static final String ARGUMENT = "argument";
   public static final String PROJECT = "project";
+  public static final String WORKSPACE = "workspace";
   public static final String ENVIRONMENT = "environment";
   public static final String TIMEOUT = "timeout";
 
@@ -17,14 +18,14 @@ public class TaskJson {
     this.instance = jsonObject;
   }
 
-  public TaskJson(String project, String executable, String command, JsonArray arguments, JsonObject environments, JsonObject localShared) {
+  public TaskJson(String project, String workspace, String executable, String command, JsonArray arguments, JsonObject environments) {
     this.instance = new JsonObject();
     instance.set(PROJECT, project);
+    instance.set(WORKSPACE, workspace);
     instance.set(EXECUTABLE, executable);
     instance.set(COMMAND, command);
     instance.set(ARGUMENT, arguments);
     instance.set(ENVIRONMENT, environments);
-    instance.set(Constants.LOCAL_SHARED, localShared);
   }
 
   public long getTimeout() {
@@ -41,6 +42,10 @@ public class TaskJson {
 
   public String getProject() throws Exception {
     return getStringOrThrowException(PROJECT);
+  }
+
+  public String getWorkspace() throws Exception {
+    return getStringOrThrowException(WORKSPACE);
   }
 
   public String getExecutable() throws Exception {

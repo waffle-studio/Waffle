@@ -23,9 +23,10 @@ public class TaskExecutor extends TaskCommand {
   ArrayList<String> environmentList;
   Path executableBaseDirectory;
   String projectName;
+  String workspaceName;
+  String executableName;
   String command;
   JsonArray argumentList;
-  JsonObject localSharedMap;
   JsonObject environmentMap;
   long timeout;
   private long pid;
@@ -42,9 +43,10 @@ public class TaskExecutor extends TaskCommand {
       executableBaseDirectory = null;
     }
     projectName = taskJson.getProject();
+    workspaceName = taskJson.getWorkspace();
+    executableName = taskJson.getExecutable();
     command = taskJson.getCommand();
     argumentList = taskJson.getArguments();
-    localSharedMap = taskJson.getLocalShared();
     environmentMap = taskJson.getEnvironments();
     timeout = taskJson.getTimeout();
 
@@ -72,7 +74,6 @@ public class TaskExecutor extends TaskCommand {
       }
 
       Path executingBaseDirectory = taskDirectory.resolve(Constants.BASE).normalize();
-      Path localSharedDirectory = baseDirectory.resolve(Constants.LOCAL_SHARED).resolve(projectName).normalize();
       Path stdoutPath = taskDirectory.resolve(Constants.STDOUT_FILE);
       Path stderrPath = taskDirectory.resolve(Constants.STDERR_FILE);
       Path eventFilePath = taskDirectory.resolve(Constants.EVENT_FILE);
@@ -113,8 +114,15 @@ public class TaskExecutor extends TaskCommand {
         Runtime.getRuntime().exec(new String[]{"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"},
           getEnvironments(), executableBaseDirectory.toFile()).waitFor();
 
+        // prepare local shared directory path
+        Path projectLocalSharedDirectory = baseDirectory.resolve(Constants.PROJECT).resolve(projectName)
+          .resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
+        Path workspaceLocalSharedDirectory = projectLocalSharedDirectory.getParent().resolve(Constants.WORKSPACE)
+          .resolve(workspaceName).resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
+
         // create link of executable entities
-        createRecursiveLink(executableBaseDirectory, executingBaseDirectory);
+        createRecursiveLink(executableBaseDirectory, executingBaseDirectory,
+          projectLocalSharedDirectory, workspaceLocalSharedDirectory);
       }
 
       // load custom environments
@@ -133,6 +141,7 @@ public class TaskExecutor extends TaskCommand {
         }
       } else {
         // pre-process for local shared
+        /*
         addEnvironment("WAFFLE_LOCAL_SHARED", localSharedDirectory.toString());
         Files.createDirectories(localSharedDirectory);
         for (JsonObject.Member member : localSharedMap) {
@@ -141,6 +150,7 @@ public class TaskExecutor extends TaskCommand {
           Runtime.getRuntime().exec(new String[]{"sh", "-c", "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi"},
             getEnvironments(), executingBaseDirectory.toFile()).waitFor();
         }
+         */
 
         // BEGIN of main command executing
         ArrayList<String> commandArray = new ArrayList<>();
@@ -171,6 +181,7 @@ public class TaskExecutor extends TaskCommand {
         // END of main command executing
 
         // post-process of local shared
+        /*
         for (JsonObject.Member member : localSharedMap) {
           String key = member.getName();
           String remote = member.getValue().asString();
@@ -178,6 +189,7 @@ public class TaskExecutor extends TaskCommand {
             new String[]{"sh", "-c", "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi"},
             getEnvironments(), executingBaseDirectory.toFile()).waitFor();
         }
+         */
 
         exitValue = process.exitValue();
       }
@@ -199,7 +211,7 @@ public class TaskExecutor extends TaskCommand {
     }
   }
 
-  private void createRecursiveLink(Path source, Path destination) throws IOException {
+  private void createRecursiveLink(Path source, Path destination, Path projectLocalShared, Path workspaceLocalShared) throws IOException {
     if (Files.isDirectory(source)) {
       Files.createDirectories(destination);
     }
@@ -207,9 +219,20 @@ public class TaskExecutor extends TaskCommand {
       stream.forEach(path -> {
         try {
           if (Files.isDirectory(path)) {
-            createRecursiveLink(path, destination.resolve(path.getFileName()));
+            createRecursiveLink(path, destination.resolve(path.getFileName()),
+              projectLocalShared.resolve(path.getFileName()), workspaceLocalShared.resolve(path.getFileName()));
           } else {
-            Files.createLink(destination.resolve(path.getFileName()), path);
+            switch (LocalSharedFlagFile.toFlag(path).getLevel()) {
+              Files.createSymbolicLink(destination.resolve(path.getFileName()), path);
+              case None:
+                break;
+              case Run:
+                break;
+              case Workspace:
+                break;
+              case Project:
+                break;
+            }
           }
         } catch (IOException e) {
           e.printStackTrace();

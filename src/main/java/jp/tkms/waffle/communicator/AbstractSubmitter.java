@@ -203,12 +203,7 @@ abstract public class AbstractSubmitter {
         run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
         String projectName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getProject().getName() : ".SYSTEM_TASK");
-        JSONArray localSharedList = (run instanceof ExecutableRun ? ((ExecutableRun) run).getLocalSharedList() : new JSONArray());
-        JsonObject localShared = new JsonObject();
-        for (int i = 0; i < localSharedList.length(); i++) {
-          JSONArray a = localSharedList.getJSONArray(i);
-          localShared.add(a.getString(0), a.getString(1));
-        }
+        String workspaceName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getWorkspace().getName() : ".SYSTEM_TASK");
 
         run.specializedPreProcess(this);
 
@@ -225,8 +220,8 @@ abstract public class AbstractSubmitter {
         }
 
         Path remoteBinPath = run.getRemoteBinPath();
-        TaskJson taskJson = new TaskJson(projectName, remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
-          arguments, environments, localShared);
+        TaskJson taskJson = new TaskJson(projectName, workspaceName, remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
+          arguments, environments);
         //putText(job, TASK_JSON, taskJson.toString());
         envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(TASK_JSON), taskJson.toString()));
 
