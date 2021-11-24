@@ -14,6 +14,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class StagedExecutable extends Executable implements HasWorkspace, HasArchivedInstance<ArchivedExecutable> {
+  private static final Object stagingLocker = new Object();
+
   Workspace workspace;
 
   public StagedExecutable(Workspace workspace, String name) {
@@ -43,27 +45,29 @@ public class StagedExecutable extends Executable implements HasWorkspace, HasArc
     StagedExecutable stagedExecutable = null;
     String name = executable.getName();
 
-    if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
-      stagedExecutable = new StagedExecutable(workspace, name);
-    }
-
-    if (executable != null && (forceStaging || stagedExecutable == null)) {
-      ArchivedExecutable currentArchived = null;
-      try {
-        if (stagedExecutable != null) {
-          currentArchived = stagedExecutable.getArchivedInstance();
-          stagedExecutable.deleteDirectory();
-        }
-        executable.copyDirectory(getDirectoryPath(workspace, name));
-        Files.deleteIfExists(getDirectoryPath(workspace, name).resolve(Executable.TESTRUN));
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-        return null;
+    synchronized (stagingLocker) {
+      if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
+        stagedExecutable = new StagedExecutable(workspace, name);
       }
-      stagedExecutable = new StagedExecutable(workspace, name);
-      ArchivedExecutable archivedExecutable = ArchivedExecutable.getInstanceOrCreate(stagedExecutable, currentArchived);
-      stagedExecutable.createNewFile(ARCHIVE_ID);
-      stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getReversedBase36Code());
+
+      if (executable != null && (forceStaging || stagedExecutable == null)) {
+        ArchivedExecutable currentArchived = null;
+        try {
+          if (stagedExecutable != null) {
+            currentArchived = stagedExecutable.getArchivedInstance();
+            stagedExecutable.deleteDirectory();
+          }
+          executable.copyDirectory(getDirectoryPath(workspace, name));
+          Files.deleteIfExists(getDirectoryPath(workspace, name).resolve(Executable.TESTRUN));
+        } catch (IOException e) {
+          ErrorLogMessage.issue(e);
+          return null;
+        }
+        stagedExecutable = new StagedExecutable(workspace, name);
+        ArchivedExecutable archivedExecutable = ArchivedExecutable.getInstanceOrCreate(stagedExecutable, currentArchived);
+        stagedExecutable.createNewFile(ARCHIVE_ID);
+        stagedExecutable.updateFileContents(ARCHIVE_ID, archivedExecutable.getId().getReversedBase36Code());
+      }
     }
 
     return stagedExecutable;

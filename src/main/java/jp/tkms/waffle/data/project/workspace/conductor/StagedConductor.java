@@ -14,6 +14,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class StagedConductor extends Conductor implements HasWorkspace, HasArchivedInstance<ArchivedConductor> {
+  private static final Object stagingLocker = new Object();
+
   Workspace workspace;
 
   public StagedConductor(Workspace workspace, String name) {
@@ -43,27 +45,29 @@ public class StagedConductor extends Conductor implements HasWorkspace, HasArchi
     StagedConductor stagedConductor = null;
     String name = conductor.getName();
 
-    if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
-      stagedConductor = new StagedConductor(workspace, name);
-    }
-
-    if (conductor != null && (forceStaging || stagedConductor == null)) {
-      ArchivedConductor currentArchived = null;
-      try {
-        if (stagedConductor != null) {
-          currentArchived = stagedConductor.getArchivedInstance();
-          stagedConductor.deleteDirectory();
-        }
-        conductor.copyDirectory(getDirectoryPath(workspace, name));
-        //Files.deleteIfExists(getDirectoryPath(workspace, name).resolve(Conductor.TESTRUN));
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-        return null;
+    synchronized (stagingLocker) {
+      if (name != null && !name.equals("") && Files.exists(getDirectoryPath(workspace, name))) {
+        stagedConductor = new StagedConductor(workspace, name);
       }
-      stagedConductor = new StagedConductor(workspace, name);
-      ArchivedConductor archivedConductor = ArchivedConductor.getInstanceOrCreate(stagedConductor, currentArchived);
-      stagedConductor.createNewFile(ARCHIVE_ID);
-      stagedConductor.updateFileContents(ARCHIVE_ID, archivedConductor.getId().getReversedBase36Code());
+
+      if (conductor != null && (forceStaging || stagedConductor == null)) {
+        ArchivedConductor currentArchived = null;
+        try {
+          if (stagedConductor != null) {
+            currentArchived = stagedConductor.getArchivedInstance();
+            stagedConductor.deleteDirectory();
+          }
+          conductor.copyDirectory(getDirectoryPath(workspace, name));
+          //Files.deleteIfExists(getDirectoryPath(workspace, name).resolve(Conductor.TESTRUN));
+        } catch (IOException e) {
+          ErrorLogMessage.issue(e);
+          return null;
+        }
+        stagedConductor = new StagedConductor(workspace, name);
+        ArchivedConductor archivedConductor = ArchivedConductor.getInstanceOrCreate(stagedConductor, currentArchived);
+        stagedConductor.createNewFile(ARCHIVE_ID);
+        stagedConductor.updateFileContents(ARCHIVE_ID, archivedConductor.getId().getReversedBase36Code());
+      }
     }
 
     return stagedConductor;

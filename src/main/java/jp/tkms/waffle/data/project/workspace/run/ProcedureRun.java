@@ -55,7 +55,8 @@ public class ProcedureRun extends AbstractRun {
     return ProcedureRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
-  private Path cd(Path workingDirectory) {
+  private Path cd(Path directory) {
+    workingDirectory = directory;
     try {
       Files.createDirectories(workingDirectory);
     } catch (IOException e) {
@@ -404,7 +405,7 @@ public class ProcedureRun extends AbstractRun {
       }
     }
 
-    ProcedureRun procedureRun = ProcedureRun.create(conductorRun, conductorRun.getConductor(), procedureName);
+    ProcedureRun procedureRun = ProcedureRun.create(this, conductorRun.getConductor(), procedureName);
     transactionRunList.add(procedureRun);
     return procedureRun;
   }

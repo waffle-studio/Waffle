@@ -60,7 +60,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     super(workspace, parent, path);
     instanceCache.put(getLocalPath().toString(), this);
     if (parent != null) {
-      parent.registerChildExecutableRun(this);
+      parent.registerChildRun(this);
     }
   }
 

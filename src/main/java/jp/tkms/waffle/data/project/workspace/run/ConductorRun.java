@@ -6,29 +6,30 @@ import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
 import jp.tkms.waffle.data.util.*;
+import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.manager.ManagerMaster;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.stream.Collectors;
 
 public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
   public static final String JSON_FILE = CONDUCTOR_RUN + Constants.EXT_JSON;
   public static final String VARIABLES_JSON_FILE = "VARIABLES" + Constants.EXT_JSON;
   public static final String KEY_CONDUCTOR = "conductor";
+  public static final String KEY_ACTIVE_RUN = "active_run";
 
   private ArchivedConductor conductor;
-  private HashSet<ExecutableRun> activeChildrenSet = new HashSet();
 
   private static final InstanceCache<String, ConductorRun> instanceCache = new InstanceCache<>();
 
@@ -307,16 +308,29 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
   public HashMap v() { return variables(); }
 
-  void registerChildExecutableRun(ExecutableRun executableRun) {
-    activeChildrenSet.add(executableRun);
+  void registerChildRun(HasLocalPath run) {
+    if (getArrayFromProperty(KEY_ACTIVE_RUN) == null) {
+      putNewArrayToProperty(KEY_ACTIVE_RUN);
+    }
+    putToArrayOfProperty(KEY_ACTIVE_RUN, run.getLocalPath().toString());
+  }
+
+  public void updateRunningStatus(HasLocalPath run) {
+    if (getArrayFromProperty(KEY_ACTIVE_RUN) == null) {
+      putNewArrayToProperty(KEY_ACTIVE_RUN);
+    }
+    removeFromArrayOfProperty(KEY_ACTIVE_RUN, run.getLocalPath().toString());
+
+    updateRunningStatus();
   }
 
   public void updateRunningStatus() {
-    activeChildrenSet.removeAll(
-      activeChildrenSet.stream().filter(run -> !run.isRunning()).collect(Collectors.toSet())
-    );
+    JSONArray jsonArray = getArrayFromProperty(KEY_ACTIVE_RUN);
+    if (jsonArray == null) {
+      putNewArrayToProperty(KEY_ACTIVE_RUN);
+    }
 
-    if (activeChildrenSet.isEmpty()) {
+    if (jsonArray.toList().isEmpty()) {
       finish();
     }
   }
