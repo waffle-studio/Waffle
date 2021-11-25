@@ -37,6 +37,12 @@ public class Main {
           exitWithInvalidArgumentsMessage("exec", "[TASK JSON PATH]");
         }
         TaskExecutor executor = new TaskExecutor(baseDirectory, Paths.get(args[2]));
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+          @Override
+          public void run() {
+            executor.shutdown();
+          }
+        });
         executor.execute();
         break;
       case "terminal":
@@ -44,6 +50,12 @@ public class Main {
           exitWithInvalidArgumentsMessage("terminal", "[TERMINAL ID]");
         }
         PseudoTerminal pseudoTerminal = new PseudoTerminal(baseDirectory, args[2]);
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+          @Override
+          public void run() {
+            pseudoTerminal.shutdown();
+          }
+        });
         pseudoTerminal.run();
         break;
       case "put_result":

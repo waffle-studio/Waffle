@@ -16,4 +16,5 @@ public class Constants {
   public static final String WAFFLE_SLOT_INDEX = "WAFFLE_SLOT_INDEX";
   public static final String WAFFLE_BASE = "WAFFLE_BASE";
   public static final String WAFFLE_TASK_JSONFILE = "WAFFLE_TASK_JASONFILE";
+  public static final int SHUTDOWN_TIMEOUT = 3;
 }

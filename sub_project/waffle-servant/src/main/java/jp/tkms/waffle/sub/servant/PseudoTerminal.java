@@ -57,7 +57,10 @@ public class PseudoTerminal {
     Files.delete(inputFilePath);
   }
 
-  private class InputFileReader extends Thread {
+    public void shutdown() {
+    }
+
+    private class InputFileReader extends Thread {
     long cursor;
     OutputStream outputStream;
 

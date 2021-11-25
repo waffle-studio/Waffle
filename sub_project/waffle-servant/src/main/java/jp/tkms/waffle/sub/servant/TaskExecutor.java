@@ -6,13 +6,9 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import jp.tkms.waffle.sub.servant.pod.PodTask;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +40,7 @@ public class TaskExecutor extends TaskCommand {
     }
     projectName = taskJson.getProject();
     workspaceName = taskJson.getWorkspace();
-    executableName = taskJson.getExecutable();
+    executableName = taskJson.getExecutableName();
     command = taskJson.getCommand();
     argumentList = taskJson.getArguments();
     environmentMap = taskJson.getEnvironments();
@@ -62,7 +58,32 @@ public class TaskExecutor extends TaskCommand {
   }
 
   public void shutdown() {
+    try {
+      for (int sec = 0; sec < Constants.SHUTDOWN_TIMEOUT; sec += 1) {
+        if (Runtime.getRuntime().exec("kill -0 " + getPid()).waitFor() == 1) {
+          return;
+        }
+        TimeUnit.SECONDS.sleep(1);
+      }
+      recursiveKill(String.valueOf(getPid()));
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
 
+  private void recursiveKill(String childPid) {
+    ProcessBuilder processBuilder
+      = new ProcessBuilder("ps", "--ppid", childPid, "-o", "pid=");
+    try {
+      Process process = processBuilder.start();
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        process.waitFor();
+        reader.lines().forEach((child) -> recursiveKill(childPid));
+      }
+      Runtime.getRuntime().exec("kill -9 " + childPid).waitFor();
+      } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 
   public void execute() {
@@ -117,8 +138,9 @@ public class TaskExecutor extends TaskCommand {
         // prepare local shared directory path
         Path projectLocalSharedDirectory = baseDirectory.resolve(Constants.PROJECT).resolve(projectName)
           .resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
-        Path workspaceLocalSharedDirectory = projectLocalSharedDirectory.getParent().resolve(Constants.WORKSPACE)
-          .resolve(workspaceName).resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
+        Path workspaceLocalSharedDirectory = baseDirectory.resolve(Constants.PROJECT).resolve(projectName)
+          .resolve(Constants.WORKSPACE).resolve(workspaceName)
+          .resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
 
         // create link of executable entities
         createRecursiveLink(executableBaseDirectory, executingBaseDirectory,
@@ -218,26 +240,74 @@ public class TaskExecutor extends TaskCommand {
     try (Stream<Path> stream = Files.list(source)) {
       stream.forEach(path -> {
         try {
+          Path localShared = projectLocalShared;
+
+          switch (LocalSharedFlag.getFlag(path).getLevel()) {
+            case None:
+              if (Files.isDirectory(path)) {
+                createRecursiveLink(path, destination.resolve(path.getFileName()),
+                  projectLocalShared.resolve(path.getFileName()), workspaceLocalShared.resolve(path.getFileName()));
+              } else {
+                Files.createSymbolicLink(destination.resolve(path.getFileName()), path);
+              }
+              break;
+            case Run:
+              if (Files.isDirectory(path)) {
+                recursiveMerge(path, destination.resolve(path.getFileName()));
+              } else {
+                Files.copy(path, destination.resolve(path.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+              }
+              break;
+            case Workspace: // replace localShared from project's.
+              localShared = workspaceLocalShared;
+            case Project: // localShared is projectLocalShared when Project case
+              Path sharedPath = localShared.resolve(path.getFileName());
+              if (Files.isDirectory(path)) {
+                recursiveMerge(path, sharedPath);
+              } else {
+                merge(path, sharedPath);
+              }
+              Files.createSymbolicLink(destination.resolve(path.getFileName()), sharedPath);
+              break;
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+          try {
+            Files.writeString(Paths.get("/tmp/err"), e.toString());
+          } catch (IOException ex) {
+            ex.printStackTrace();
+          }
+        }
+      });
+    }
+  }
+
+  private void recursiveMerge(Path source, Path destination) throws IOException {
+    if (Files.isDirectory(source)) {
+      Files.createDirectories(destination);
+    }
+    try (Stream<Path> stream = Files.list(source)) {
+      stream.forEach(path -> {
+        try {
           if (Files.isDirectory(path)) {
-            createRecursiveLink(path, destination.resolve(path.getFileName()),
-              projectLocalShared.resolve(path.getFileName()), workspaceLocalShared.resolve(path.getFileName()));
+            recursiveMerge(path, destination.resolve(path.getFileName()));
           } else {
-            switch (LocalSharedFlagFile.toFlag(path).getLevel()) {
-              Files.createSymbolicLink(destination.resolve(path.getFileName()), path);
-              case None:
-                break;
-              case Run:
-                break;
-              case Workspace:
-                break;
-              case Project:
-                break;
-            }
+            merge(path, destination.resolve(path.getFileName()));
           }
         } catch (IOException e) {
           e.printStackTrace();
         }
       });
+    }
+  }
+
+  private void merge(Path source, Path destination) {
+    if (!Files.exists(destination)) {
+      try {
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 

@@ -5,6 +5,7 @@ import com.eclipsesource.json.JsonObject;
 
 public class TaskJson {
   public static final String EXECUTABLE = "executable";
+  public static final String EXECUTABLE_NAME = "executable_name";
   public static final String COMMAND = "command";
   public static final String ARGUMENT = "argument";
   public static final String PROJECT = "project";
@@ -18,10 +19,11 @@ public class TaskJson {
     this.instance = jsonObject;
   }
 
-  public TaskJson(String project, String workspace, String executable, String command, JsonArray arguments, JsonObject environments) {
+  public TaskJson(String project, String workspace, String executableName, String executable, String command, JsonArray arguments, JsonObject environments) {
     this.instance = new JsonObject();
     instance.set(PROJECT, project);
     instance.set(WORKSPACE, workspace);
+    instance.set(EXECUTABLE_NAME, executableName);
     instance.set(EXECUTABLE, executable);
     instance.set(COMMAND, command);
     instance.set(ARGUMENT, arguments);
@@ -48,6 +50,10 @@ public class TaskJson {
     return getStringOrThrowException(WORKSPACE);
   }
 
+  public String getExecutableName() throws Exception {
+    return getStringOrThrowException(EXECUTABLE_NAME);
+  }
+
   public String getExecutable() throws Exception {
     return getStringOrThrowException(EXECUTABLE);
   }
@@ -58,10 +64,6 @@ public class TaskJson {
 
   public JsonArray getArguments() {
     return instance.get(ARGUMENT).asArray();
-  }
-
-  public JsonObject getLocalShared() {
-    return instance.get(Constants.LOCAL_SHARED).asObject();
   }
 
   public JsonObject getEnvironments() {

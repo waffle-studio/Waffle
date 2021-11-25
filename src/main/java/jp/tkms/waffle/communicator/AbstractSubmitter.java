@@ -204,6 +204,7 @@ abstract public class AbstractSubmitter {
 
         String projectName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getProject().getName() : ".SYSTEM_TASK");
         String workspaceName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getWorkspace().getName() : ".SYSTEM_TASK");
+        String executableName = (run instanceof ExecutableRun ? ((ExecutableRun)run).getExecutable().getName() : ".SYSTEM_TASK");
 
         run.specializedPreProcess(this);
 
@@ -220,7 +221,8 @@ abstract public class AbstractSubmitter {
         }
 
         Path remoteBinPath = run.getRemoteBinPath();
-        TaskJson taskJson = new TaskJson(projectName, workspaceName, remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
+        TaskJson taskJson = new TaskJson(projectName, workspaceName, executableName,
+          remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
           arguments, environments);
         //putText(job, TASK_JSON, taskJson.toString());
         envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(TASK_JSON), taskJson.toString()));

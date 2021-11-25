@@ -5,24 +5,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
-public class LocalSharedFlagFile {
+public class LocalSharedFlag {
   public static final String FLAG_PREFIX = ".WAFFLE_LOCAL_SHARED";
   public enum Level { None, Run, Workspace, Project };
-  private static LocalSharedFlagFile noneFlag = new LocalSharedFlagFile();
+  private static LocalSharedFlag noneFlag = new LocalSharedFlag();
 
   private Level level;
 
-  private LocalSharedFlagFile() {
+  private LocalSharedFlag() {
     level = Level.None;
   }
 
-  private LocalSharedFlagFile(Path path) throws IOException {
+  private LocalSharedFlag(Path path) throws IOException {
     if (Files.readString(path).toLowerCase(Locale.ROOT).startsWith("w")) {
       level = Level.Workspace;
-    } else if (Files.readString(path).toLowerCase(Locale.ROOT).startsWith("r")) {
-      level = Level.Run;
-    } else {
+    } else if (Files.readString(path).toLowerCase(Locale.ROOT).startsWith("p")) {
       level = Level.Project;
+    } else {
+      level = Level.Run;
     }
   }
 
@@ -30,10 +30,16 @@ public class LocalSharedFlagFile {
     return level;
   }
 
-  public static LocalSharedFlagFile toFlag(Path path) {
+  public static LocalSharedFlag getFlag(Path path) {
+    if (Files.isDirectory(path)) {
+      path = path.resolve(getFlagFileName());
+    } else {
+      path = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
+    }
+
     if (Files.isRegularFile(path)) {
       try {
-        return new LocalSharedFlagFile(path);
+        return new LocalSharedFlag(path);
       } catch (IOException e) {
         return noneFlag;
       }
@@ -42,7 +48,7 @@ public class LocalSharedFlagFile {
   }
 
   public static String getFlagFileName(String fileName) {
-    return FLAG_PREFIX + "." + fileName;
+    return FLAG_PREFIX + '.' + fileName;
   }
 
   public static String getFlagFileName() {

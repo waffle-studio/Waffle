@@ -340,28 +340,6 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     return exitStatus;
   }
 
-  public JSONArray getLocalSharedList() {
-    if (localSharedList == null) {
-      try {
-        localSharedList = getArrayFromProperty(KEY_LOCAL_SHARED);
-      } catch (Exception e) {}
-      if (localSharedList == null) {
-        putNewArrayToProperty(KEY_LOCAL_SHARED);
-        localSharedList = new JSONArray();
-      }
-    }
-    return localSharedList;
-  }
-
-  public void makeLocalShared(String key, String remote) {
-    localSharedList = getLocalSharedList();
-    JSONArray entry = new JSONArray();
-    entry.put(FileName.removeRestrictedCharacters(key));
-    entry.put(remote);
-    localSharedList.put(entry);
-    setToProperty(KEY_LOCAL_SHARED, this.localSharedList);
-  }
-
   public void setActualComputer(Computer computer) {
     this.actualComputer = computer;
     setToProperty(KEY_ACTUAL_COMPUTER, computer.getName());
