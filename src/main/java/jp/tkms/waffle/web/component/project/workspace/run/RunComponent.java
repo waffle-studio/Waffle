@@ -497,23 +497,25 @@ public class RunComponent extends AbstractAccessControlledComponent {
         content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
           Lte.cardToggleButton(false), Lte.divRow(parametersAndResults) , null);
 
-        if (Files.exists(executableRun.getPath().resolve(Constants.STDOUT_FILE))) {
+        String stdout = executableRun.getStdout();
+        if (stdout != null) {
           content += Lte.card(Html.fasIcon("file") + "Standard Output",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, executableRun.getFileContents(Constants.STDOUT_FILE))
+                Lte.readonlyTextAreaGroup("", null, stdout)
               )
             )
             , null, "collapsed-card.stop", null);
         }
 
-        if (Files.exists(executableRun.getPath().resolve(Constants.STDERR_FILE))) {
+        String stderr = executableRun.getStdout();
+        if (stderr != null) {
           content += Lte.card(Html.fasIcon("file") + "Standard Error",
             Lte.cardToggleButton(true),
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
-                Lte.readonlyTextAreaGroup("", null, executableRun.getFileContents(Constants.STDERR_FILE))
+                Lte.readonlyTextAreaGroup("", null, stderr)
               )
             )
             , null, "collapsed-card.stop", null);

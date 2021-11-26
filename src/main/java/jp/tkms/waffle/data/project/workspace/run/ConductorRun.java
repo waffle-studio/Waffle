@@ -1,5 +1,9 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.WriterConfig;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.DataDirectory;
@@ -110,7 +114,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return this.getPath().resolve(VARIABLES_JSON_FILE);
   }
 
-  protected void updateVariablesStore(JSONObject variables) {
+  protected void updateVariablesStore(JsonObject variables) {
     //protected void updateParametersStore() {
     if (! Files.exists(this.getPath())) {
       try {
@@ -121,18 +125,13 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     }
 
     if (variables == null) {
-      variables = new JSONObject();
+      variables = new JsonObject();
     }
 
     Path storePath = getVariablesStorePath();
 
     try {
-      JSONWriter.writeValue(storePath, variables);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(variables.toString(2));
-      filewriter.close();
-       */
+      Files.writeString(storePath, variables.toString(WriterConfig.PRETTY_PRINT));
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -157,37 +156,40 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return json;
   }
 
-  public void putVariables(JSONObject valueMap) {
+  public void putVariables(JsonObject valueMap) {
     getVariables(); // init.
-    JSONObject map = new JSONObject(getFromVariablesStore());
+    JsonObject map = Json.parse(getFromVariablesStore()).asObject();
     if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
+      map.merge(valueMap);
+      /*
+      for (String key : valueMap.names()) {
+        map.add(key, valueMap.get(key));
       }
+       */
       updateVariablesStore(map);
     }
   }
 
   public void putVariablesByJson(String json) {
     try {
-      putVariables(new JSONObject(json));
+      putVariables(Json.parse(json).asObject());
     } catch (Exception e) {
       WarnLogMessage.issue(e);
     }
   }
 
   public void putVariable(String key, Object value) {
-    JSONObject obj = new JSONObject();
-    obj.put(key, value);
+    JsonObject obj = new JsonObject();
+    obj.add(key, JsonUtil.toValue(value));
     putVariables(obj);
   }
 
-  public JSONObject getVariables() {
-    return new JSONObject(getFromVariablesStore());
+  public JsonObject getVariables() {
+    return Json.parse(getFromVariablesStore()).asObject();
   }
 
   public Object getVariable(String key) {
-    return getVariables().get(key);
+    return JsonUtil.toObject(getVariables().get(key));
   }
 
   public ConductorRun(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
@@ -288,10 +290,11 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return create(executable.getWorkspace(), null, executable.getName());
   }
 
+  /*
   private HashMap<Object, Object> variablesWrapper = null;
   public HashMap variables() {
     if (variablesWrapper == null) {
-      variablesWrapper = new HashMap<Object, Object>(getVariables().toMap()) {
+      variablesWrapper = new HashMap<Object, Object>() {
         @Override
         public Object get(Object key) {
           return getVariable(key.toString());
@@ -314,6 +317,14 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return variablesWrapper;
   }
   public HashMap v() { return variables(); }
+   */
+  public Object v(String key) {
+    return getVariable(key);
+  }
+
+  public void v(String key, Object value) {
+    putVariable(key, value);
+  }
 
   void registerChildRun(HasLocalPath run) {
     if (getArrayFromProperty(KEY_ACTIVE_RUN) == null) {

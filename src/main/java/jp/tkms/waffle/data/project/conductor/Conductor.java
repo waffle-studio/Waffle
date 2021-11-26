@@ -1,5 +1,9 @@
 package jp.tkms.waffle.data.project.conductor;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.WriterConfig;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.HasName;
@@ -166,7 +170,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     return list;
   }
 
-  public JSONObject getDefaultVariables() {
+  public JsonObject getDefaultVariables() {
     final String fileName = KEY_DEFAULT_VARIABLES + Constants.EXT_JSON;
     if (defaultVariables == null) {
       defaultVariables = getFileContents(fileName);
@@ -176,13 +180,13 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
         updateFileContents(fileName, defaultVariables);
       }
     }
-    return new JSONObject(defaultVariables);
+    return Json.parse(defaultVariables).asObject();
   }
 
   public void setDefaultVariables(String json) {
     try {
-      JSONObject object = new JSONObject(json);
-      updateFileContents(KEY_DEFAULT_VARIABLES + Constants.EXT_JSON, object.toString(2));
+      JsonObject object = Json.parse(json).asObject();
+      updateFileContents(KEY_DEFAULT_VARIABLES + Constants.EXT_JSON, object.toString(WriterConfig.PRETTY_PRINT));
       defaultVariables = object.toString();
     } catch (Exception e) {
       ErrorLogMessage.issue(e);

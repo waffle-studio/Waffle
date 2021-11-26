@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
+import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.guard.ValueGuard;
@@ -530,7 +531,7 @@ public class ProcedureRun extends AbstractRun {
     transactionRunList.clear();
   }
 
-  public void putVariables(JSONObject valueMap) {
+  public void putVariables(JsonObject valueMap) {
     getParentConductorRun().putVariables(valueMap);
   }
 
@@ -542,7 +543,7 @@ public class ProcedureRun extends AbstractRun {
     getParentConductorRun().putVariable(key, value);
   }
 
-  public JSONObject getVariables() {
+  public JsonObject getVariables() {
     return getParentConductorRun().getVariables();
   }
 
@@ -550,6 +551,9 @@ public class ProcedureRun extends AbstractRun {
     return getParentConductorRun().getVariable(key);
   }
 
-  public HashMap variables() { return getParentConductorRun().variables(); }
-  public HashMap v() { return variables(); }
+  /*
+  public HashMap variables() { return getParentConductorRun().getVariables(); }
+   */
+  public Object v(String key) { return getParentConductorRun().v(key); }
+  public void v(String key, Object value) { getParentConductorRun().v(key, value); }
 }
