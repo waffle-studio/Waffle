@@ -666,6 +666,20 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     return getResults().get(key);
   }
 
+  public String getStdout() {
+    if (Files.exists(getPath().resolve(Constants.STDOUT_FILE))) {
+      return getFileContents(Constants.STDOUT_FILE);
+    }
+    return null;
+  }
+
+  public String getStderr() {
+    if (Files.exists(getPath().resolve(Constants.STDERR_FILE))) {
+      return getFileContents(Constants.STDERR_FILE);
+    }
+    return null;
+  }
+
   public HashMap<Object, Object> environmentsWrapper = null;
   public HashMap environments() {
     if (environmentsWrapper == null) {

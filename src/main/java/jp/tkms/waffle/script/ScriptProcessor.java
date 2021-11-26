@@ -1,9 +1,11 @@
 package jp.tkms.waffle.script;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
+import jp.tkms.waffle.data.util.StringKeyHashMap;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
 
@@ -14,7 +16,7 @@ import java.util.HashMap;
 
 public abstract class ScriptProcessor {
 
-  abstract public void processProcedure(ProcedureRun run, ArrayList<AbstractRun> referable, String script, ArrayList<Object> arguments);
+  abstract public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script, ArrayList<Object> arguments);
   abstract public String procedureTemplate();
   abstract public void processExtractor(AbstractSubmitter submitter, ExecutableRun run, String extractorName);
   abstract public String extractorTemplate();
@@ -30,7 +32,7 @@ public abstract class ScriptProcessor {
     }
   };
 
-  public void processProcedure(ProcedureRun run, ArrayList<AbstractRun> referable, String script) {
+  public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script) {
     processProcedure(run, referable, script, null);
   }
 

@@ -2,10 +2,12 @@ package jp.tkms.waffle.script.ruby;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.Remote;
+import jp.tkms.waffle.data.util.StringKeyHashMap;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
@@ -19,7 +21,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_RUBY;
 
   @Override
-  public void processProcedure(ProcedureRun run, ArrayList<AbstractRun> referable, String script, ArrayList<Object> arguments) {
+  public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script, ArrayList<Object> arguments) {
     RubyScript.process((container) -> {
       try {
         container.runScriptlet(procedureTemplate());

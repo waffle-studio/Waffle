@@ -12,10 +12,9 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
-import jp.tkms.waffle.exception.OutOfDomainException;
+import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
-import org.checkerframework.checker.units.qual.A;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -34,11 +33,13 @@ public class ProcedureRun extends AbstractRun {
   public static final String KEY_WORKING_DIRECTORY = "working_directory";
   public static final String KEY_GUARD = "guard";
   public static final String KEY_ACTIVE_GUARD = "active_guard";
+  public static final String KEY_REFERABLE = "referable";
 
   private ArchivedConductor conductor;
   private String procedureName;
   private Registry registry;
   private Path workingDirectory;
+  private StringKeyHashMap<HasLocalPath> referableMap;
 
   private static final InstanceCache<String, ProcedureRun> instanceCache = new InstanceCache<>();
 
@@ -89,12 +90,42 @@ public class ProcedureRun extends AbstractRun {
     return Constants.WORK_DIR.resolve(this.workingDirectory);
   }
 
-  public void addReferable(AbstractRun run) {
+  public void addReferable(String key, HasLocalPath run) {
+    getReferables().put(key, run);
+    JSONObject jsonObject = getJSONObjectFromProperty(KEY_REFERABLE);
+    jsonObject.put(key, run.getLocalPath().toString());
+    setToProperty(KEY_REFERABLE, jsonObject);
   }
 
-  public ArrayList<AbstractRun> getReferable() {
-    ArrayList<AbstractRun> clonedList = new ArrayList<>();
-    return clonedList;
+  public void addReferable(HasLocalPath run) {
+    addReferable("", run);
+  }
+
+  public HasLocalPath getReferable(String key) {
+    return getReferables().get(key);
+  }
+
+  public HasLocalPath getReferable() {
+    return getReferables().get();
+  }
+
+  public StringKeyHashMap<HasLocalPath> getReferables() {
+    if (referableMap == null) {
+      JSONObject jsonObject = getJSONObjectFromProperty(KEY_REFERABLE);
+      referableMap = new StringKeyHashMap<>();
+      if (jsonObject == null) {
+        setToProperty(KEY_REFERABLE, new JSONObject());
+      } else {
+        for (String key : jsonObject.keySet()) {
+          try {
+            referableMap.put(key, (HasLocalPath) AbstractRun.getInstance(getWorkspace(), jsonObject.getString(key)));
+          } catch (RunNotFoundException e) {
+            ErrorLogMessage.issue(e);
+          }
+        }
+      }
+    }
+    return referableMap;
   }
 
   public void addGuard(String guard) {
@@ -198,10 +229,10 @@ public class ProcedureRun extends AbstractRun {
 
     if (conductor != null) {
       if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
-        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, getReferable(), conductor.getMainProcedureScript());
+        ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, getReferables(), conductor.getMainProcedureScript());
       } else {
         try {
-          ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, getReferable(), conductor.getChildProcedureScript(procedureName));
+          ScriptProcessor.getProcessor(conductor.getChildProcedureScriptPath(procedureName)).processProcedure(this, getReferables(), conductor.getChildProcedureScript(procedureName));
         } catch (ChildProcedureNotFoundException e) {
           //NOOP
         }
