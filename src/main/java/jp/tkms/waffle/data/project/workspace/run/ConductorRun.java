@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
 
 public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
@@ -114,7 +115,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return this.getPath().resolve(VARIABLES_JSON_FILE);
   }
 
-  protected void updateVariablesStore(JsonObject variables) {
+  protected void updateVariablesStore(WrappedJson variables) {
     //protected void updateParametersStore() {
     if (! Files.exists(this.getPath())) {
       try {
@@ -125,16 +126,11 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     }
 
     if (variables == null) {
-      variables = new JsonObject();
+      variables = new WrappedJson();
     }
 
     Path storePath = getVariablesStorePath();
-
-    try {
-      Files.writeString(storePath, variables.toString(WriterConfig.PRETTY_PRINT));
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    variables.writePrettyFile(storePath);
 
     ManagerMaster.signalUpdated(this);
   }
@@ -156,9 +152,9 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return json;
   }
 
-  public void putVariables(JsonObject valueMap) {
+  public void putVariables(WrappedJson valueMap) {
     getVariables(); // init.
-    JsonObject map = Json.parse(getFromVariablesStore()).asObject();
+    WrappedJson map = new WrappedJson(getFromVariablesStore());
     if (valueMap != null) {
       map.merge(valueMap);
       /*
@@ -172,24 +168,25 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
   public void putVariablesByJson(String json) {
     try {
-      putVariables(Json.parse(json).asObject());
+      putVariables(new WrappedJson(json));
     } catch (Exception e) {
+      System.err.println(json);
       WarnLogMessage.issue(e);
     }
   }
 
   public void putVariable(String key, Object value) {
-    JsonObject obj = new JsonObject();
-    obj.add(key, JsonUtil.toValue(value));
-    putVariables(obj);
+    WrappedJson json = new WrappedJson();
+    json.put(key, value);
+    putVariables(json);
   }
 
-  public JsonObject getVariables() {
-    return Json.parse(getFromVariablesStore()).asObject();
+  public WrappedJson getVariables() {
+    return new WrappedJson(getFromVariablesStore()).withUpdateHandler((v)->{ updateVariablesStore(v); });
   }
 
   public Object getVariable(String key) {
-    return JsonUtil.toObject(getVariables().get(key));
+    return getVariables().get(key);
   }
 
   public ConductorRun(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
@@ -291,17 +288,17 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   /*
-  private HashMap<Object, Object> variablesWrapper = null;
-  public HashMap variables() {
+  private Map<String, Object> variablesWrapper = null;
+  public Map variables() {
     if (variablesWrapper == null) {
-      variablesWrapper = new HashMap<Object, Object>() {
+      variablesWrapper = new HashMap<String, Object>() {
         @Override
         public Object get(Object key) {
           return getVariable(key.toString());
         }
 
         @Override
-        public Object put(Object key, Object value) {
+        public Object put(String key, Object value) {
           super.put(key, value);
           putVariable(key.toString(), value);
           return value;
@@ -316,10 +313,11 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
     return variablesWrapper;
   }
-  public HashMap v() { return variables(); }
+  public Map<String, Object> v() { return variables(); }
    */
-  public Object v(String key) {
-    return getVariable(key);
+
+  public Map<Object, Object> v() {
+    return getVariables();
   }
 
   public void v(String key, Object value) {

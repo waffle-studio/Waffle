@@ -1,15 +1,38 @@
 package jp.tkms.waffle.data.util;
 
 import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.WriterConfig;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 public class WrappedJsonArray implements List<Object> {
   JsonArray jsonArray;
+  private Runnable updateHandler;
+
+  public WrappedJsonArray(JsonArray jsonArray, Runnable updateHandler) {
+    this.jsonArray = jsonArray;
+    this.updateHandler = updateHandler;
+  }
 
   public WrappedJsonArray(JsonArray jsonArray) {
-    this.jsonArray = jsonArray;
+    this(jsonArray, null);
+  }
+
+  public WrappedJsonArray() {
+    this(new JsonArray());
+  }
+
+  private void update() {
+    if (updateHandler != null) {
+      updateHandler.run();
+    }
+  }
+
+  @Override
+  public String toString() {
+    return jsonArray.toString(WriterConfig.MINIMAL);
   }
 
   @Override
@@ -48,12 +71,15 @@ public class WrappedJsonArray implements List<Object> {
   @Override
   public boolean add(Object o) {
     jsonArray.add(WrappedJson.toJsonValue(o));
+    update();
     return true;
   }
 
   @Override
   public boolean remove(Object o) {
-    return jsonArray.values().remove(o);
+    boolean res = jsonArray.values().remove(o);
+    update();
+    return res;
   }
 
   @Override
@@ -76,27 +102,30 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public boolean removeAll(@NotNull Collection<?> collection) {
-    return jsonArray.values().removeAll(collection);
+    boolean res = jsonArray.values().removeAll(collection);
+    return res;
   }
 
   @Override
   public boolean retainAll(@NotNull Collection<?> collection) {
-    return jsonArray.values().retainAll(collection);
+    boolean res = jsonArray.values().retainAll(collection);
+    return res;
   }
 
   @Override
   public void clear() {
-    jsonArray = new JsonArray();
+    IntStream.range(0, size()).forEach(i -> remove(i));
   }
 
   @Override
   public Object get(int i) {
-    return WrappedJson.toObject(jsonArray.get(i));
+    return WrappedJson.toObject(jsonArray.get(i), updateHandler);
   }
 
   @Override
   public Object set(int i, Object o) {
     jsonArray.set(i, WrappedJson.toJsonValue(o));
+    update();
     return o;
   }
 
@@ -107,7 +136,9 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public Object remove(int i) {
-    return jsonArray.values().remove(i);
+    Object object = jsonArray.values().remove(i);
+    update();
+    return object;
   }
 
   @Override
@@ -123,18 +154,22 @@ public class WrappedJsonArray implements List<Object> {
   @NotNull
   @Override
   public ListIterator<Object> listIterator() {
-    return Arrays.stream(jsonArray.values().toArray()).iterator();
+    return listIterator(0);
   }
 
   @NotNull
   @Override
   public ListIterator<Object> listIterator(int i) {
-    return null;
+    return toArrayList().listIterator(i);
   }
 
   @NotNull
   @Override
   public List<Object> subList(int i, int i1) {
-    return null;
+    return toArrayList().subList(i, i1);
+  }
+
+  ArrayList<Object> toArrayList() {
+    return new ArrayList<Object>(jsonArray.values());
   }
 }

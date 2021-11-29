@@ -13,6 +13,7 @@ import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
@@ -170,7 +171,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     return list;
   }
 
-  public JsonObject getDefaultVariables() {
+  public WrappedJson getDefaultVariables() {
     final String fileName = KEY_DEFAULT_VARIABLES + Constants.EXT_JSON;
     if (defaultVariables == null) {
       defaultVariables = getFileContents(fileName);
@@ -180,7 +181,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
         updateFileContents(fileName, defaultVariables);
       }
     }
-    return Json.parse(defaultVariables).asObject();
+    return new WrappedJson(defaultVariables);
   }
 
   public void setDefaultVariables(String json) {

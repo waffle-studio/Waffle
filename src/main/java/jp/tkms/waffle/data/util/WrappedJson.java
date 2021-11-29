@@ -3,17 +3,81 @@ package jp.tkms.waffle.data.util;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.WriterConfig;
 import jp.tkms.util.Values;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jruby.RubySymbol;
 
+import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 
-public class WrappedJson implements Map<String, Object> {
+public class WrappedJson implements Map<Object, Object> {
   private JsonObject jsonObject;
+  private Runnable updateHandler;
+
+  public WrappedJson(JsonObject jsonObject, Runnable updateHandler) {
+    this.jsonObject = jsonObject;
+    this.updateHandler = updateHandler;
+  }
 
   public WrappedJson(JsonObject jsonObject) {
-    this.jsonObject = jsonObject;
+    this(jsonObject, null);
+  }
+
+  public WrappedJson() {
+    this(new JsonObject());
+  }
+
+  public WrappedJson withUpdateHandler(Consumer<WrappedJson> handler) {
+    updateHandler = () -> {handler.accept(this);};
+    return this;
+  }
+
+  private void update() {
+    if (updateHandler != null) {
+      updateHandler.run();
+    }
+  }
+
+  @Override
+  public String toString() {
+    return jsonObject.toString(WriterConfig.MINIMAL);
+  }
+
+  public WrappedJson(String jsonText) {
+    this(Json.parse(jsonText).asObject());
+  }
+
+  public void writePrettyFile(Path path) {
+    StringFileUtil.write(path, jsonObject.toString(WriterConfig.PRETTY_PRINT));
+  }
+
+  public void writeMinimalFile(Path path) {
+    StringFileUtil.write(path, toString());
+  }
+
+  public WrappedJson merge(WrappedJson wrappedJson) {
+    if (wrappedJson == null) {
+      throw new NullPointerException("object is null");
+    } else {
+      for (Object key : wrappedJson.keySet()) {
+        Object value = wrappedJson.get(key);
+        if (value instanceof WrappedJson) {
+          Object currentValue = get(key);
+          if (currentValue instanceof WrappedJson) {
+            ((WrappedJson)currentValue).merge((WrappedJson)value);
+          } else {
+            put(key, value);
+          }
+        } else {
+          put(key, value);
+        }
+      }
+
+      return this;
+    }
   }
 
   public static JsonValue toJsonValue(Object object) {
@@ -24,7 +88,7 @@ public class WrappedJson implements Map<String, Object> {
     }
   }
 
-  public static Object toObject(JsonValue value) {
+  public static Object toObject(JsonValue value, Runnable updateHandler) {
     if (value == null) {
       return null;
     } else if (value.isNumber()) {
@@ -39,16 +103,16 @@ public class WrappedJson implements Map<String, Object> {
     } else if (value.isString()) {
       return value.asString();
     } else if (value.isArray()) {
-      return new WrappedJsonArray(value.asArray());
+      return new WrappedJsonArray(value.asArray(), updateHandler);
     } else if (value.isObject()) {
-      return new WrappedJson(value.asObject());
+      return new WrappedJson(value.asObject(), updateHandler);
     }
     return value;
   }
 
   @Override
   public Object get(Object key) {
-    return toObject(jsonObject.get(key.toString()));
+    return toObject(jsonObject.get(key.toString()), () -> {update();});
   }
 
   @Override
@@ -78,8 +142,10 @@ public class WrappedJson implements Map<String, Object> {
 
   @Nullable
   @Override
-  public Object put(String key, Object value) {
-    jsonObject.add(key, toJsonValue(value));
+  public Object put(Object key, Object value) {
+    jsonObject.remove(key.toString());
+    jsonObject.add(key.toString(), toJsonValue(value));
+    update();
     return value;
   }
 
@@ -89,11 +155,12 @@ public class WrappedJson implements Map<String, Object> {
     if (object != null) {
       jsonObject.remove(key.toString());
     }
+    update();
     return object;
   }
 
   @Override
-  public void putAll(@NotNull Map<? extends String, ?> map) {
+  public void putAll(@NotNull Map<? extends Object, ?> map) {
     for (Map.Entry entry : map.entrySet()) {
       put(entry.getKey().toString(), entry.getValue());
     }
@@ -106,7 +173,7 @@ public class WrappedJson implements Map<String, Object> {
 
   @NotNull
   @Override
-  public Set<String> keySet() {
+  public Set<Object> keySet() {
     return new HashSet<>(jsonObject.names());
   }
 
@@ -121,15 +188,15 @@ public class WrappedJson implements Map<String, Object> {
   }
 
   @Override
-  public Set<Map.Entry<String, Object>> entrySet() {
-    Set<Map.Entry<String, Object>> set = new HashSet<>();
+  public Set<Map.Entry<Object, Object>> entrySet() {
+    Set<Map.Entry<Object, Object>> set = new HashSet<>();
     for (JsonObject.Member member : jsonObject) {
       set.add(new Entry(member));
     }
     return set;
   }
 
-  public class Entry implements Map.Entry<String, Object> {
+  public class Entry implements Map.Entry<Object, Object> {
     JsonObject.Member member;
 
     public Entry(JsonObject.Member member) {

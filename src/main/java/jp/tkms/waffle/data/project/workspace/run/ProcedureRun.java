@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class ProcedureRun extends AbstractRun {
   //public static final String PROCEDURE_RUN = "PROCEDURE_RUN";
@@ -531,7 +532,7 @@ public class ProcedureRun extends AbstractRun {
     transactionRunList.clear();
   }
 
-  public void putVariables(JsonObject valueMap) {
+  public void putVariables(WrappedJson valueMap) {
     getParentConductorRun().putVariables(valueMap);
   }
 
@@ -543,7 +544,7 @@ public class ProcedureRun extends AbstractRun {
     getParentConductorRun().putVariable(key, value);
   }
 
-  public JsonObject getVariables() {
+  public WrappedJson getVariables() {
     return getParentConductorRun().getVariables();
   }
 
@@ -554,6 +555,6 @@ public class ProcedureRun extends AbstractRun {
   /*
   public HashMap variables() { return getParentConductorRun().getVariables(); }
    */
-  public Object v(String key) { return getParentConductorRun().v(key); }
-  public void v(String key, Object value) { getParentConductorRun().v(key, value); }
+  public Map<Object, Object> v() { return getParentConductorRun().v(); }
+  public void v(String key, Object value) { getParentConductorRun().v().put(key, value); }
 }
