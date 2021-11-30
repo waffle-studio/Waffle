@@ -14,8 +14,6 @@ import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -41,8 +39,8 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   private Integer exitStatus;
 
   private State state = null;
-  private JSONObject environments = null;
-  private JSONArray arguments = null;
+  private WrappedJson environments = null;
+  private WrappedJsonArray arguments = null;
 
   private static final InstanceCache<String, SystemTaskRun> instanceCache = new InstanceCache<>();
 
@@ -56,14 +54,14 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     return SystemTaskRun.class.getSimpleName() + ": instanceCacheSize=" + instanceCache.size();
   }
 
-  JSONObject jsonObject = null;
+  WrappedJson jsonObject = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return jsonObject;
   }
 
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     jsonObject = cache;
   }
 
@@ -103,8 +101,8 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
       try {
         Class<SystemTaskRun> clazz = SystemTaskRun.class;
         try {
-          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-          String className = jsonObject.getString(KEY_CLASS);
+          WrappedJson jsonObject = new WrappedJson(StringFileUtil.read(jsonPath));
+          String className = jsonObject.getString(KEY_CLASS, null);
           clazz = (Class<SystemTaskRun>) Class.forName(className);
         } catch (ClassNotFoundException e) {
           ErrorLogMessage.issue(e);
@@ -327,18 +325,18 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
       } else {
         setArguments(new ArrayList<>());
       }
-      arguments = new JSONArray(json);
+      arguments = new WrappedJsonArray(json);
     }
-    return new ArrayList<>(arguments.toList());
+    return new ArrayList<>(arguments);
   }
 
   public void setArguments(ArrayList<Object> arguments) {
-    this.arguments = new JSONArray(arguments);
+    this.arguments = new WrappedJsonArray(arguments);
     //String argumentsJson = this.arguments.toString();
 
     Path storePath = getPath().resolve(ARGUMENTS_JSON_FILE);
     try {
-      JSONWriter.writeValue(storePath, this.arguments);
+      JsonWriter.writeValue(storePath, this.arguments);
       /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(argumentsJson);
@@ -355,9 +353,9 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     setArguments(arguments);
   }
 
-  public JSONObject getEnvironments() {
+  public WrappedJson getEnvironments() {
     if (environments == null) {
-      environments = getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
+      environments = getObjectFromProperty(KEY_ENVIRONMENTS, new WrappedJson());
     }
     return environments;
   }
@@ -378,7 +376,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     return environments;
   }
 
-  protected void updateParametersStore(JSONObject parameters) {
+  protected void updateParametersStore(WrappedJson parameters) {
     //protected void updateParametersStore() {
     if (! Files.exists(getPath())) {
       try {
@@ -389,12 +387,12 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     }
 
     if (parameters == null) {
-      parameters = new JSONObject();
+      parameters = new WrappedJson();
     }
 
     Path storePath = getParametersStorePath();
     try {
-      JSONWriter.writeValue(storePath, parameters);
+      JsonWriter.writeValue(storePath, parameters);
       /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(parameters.toString(2));
@@ -428,35 +426,31 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   public void putParametersByJson(String json) {
     getParameters(); // init.
-    JSONObject valueMap = null;
+    WrappedJson valueMap = null;
     try {
-      valueMap = new JSONObject(json);
+      valueMap = new WrappedJson(json);
     } catch (Exception e) {
       WarnLogMessage.issue(e);
       //BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       e.printStackTrace();
     }
-    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
-    JSONObject map = new JSONObject(getFromParametersStore());
+    //WrappedJson map = new WrappedJson(getFromDB(KEY_PARAMETERS));
+    WrappedJson map = new WrappedJson(getFromParametersStore());
     if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        //parameters.put(key, valueMap.get(key));
-      }
-
+      map.merge(valueMap);
       updateParametersStore(map);
     }
   }
 
   public void putParameter(String key, Object value) {
-    JSONObject obj = new JSONObject();
+    WrappedJson obj = new WrappedJson();
     obj.put(key, value);
     putParametersByJson(obj.toString());
   }
 
-  public JSONObject getParameters() {
+  public WrappedJson getParameters() {
     //if (parameters == null) {
-    JSONObject parameters = new JSONObject(getFromParametersStore());
+    WrappedJson parameters = new WrappedJson(getFromParametersStore());
     //}
     return parameters;
   }
@@ -465,7 +459,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     return getParameters().get(key);
   }
 
-  protected void updateResultsStore(JSONObject results) {
+  protected void updateResultsStore(WrappedJson results) {
     //protected void updateResultsStore() {
     if (! Files.exists(getPath())) {
       try {
@@ -476,12 +470,12 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     }
 
     if (results == null) {
-      results = new JSONObject();
+      results = new WrappedJson();
     }
 
     Path storePath = getResultsStorePath();
     try {
-      JSONWriter.writeValue(storePath, results);
+      JsonWriter.writeValue(storePath, results);
       /*
       FileWriter filewriter = new FileWriter(storePath.toFile());
       filewriter.write(results.toString(2));
@@ -515,38 +509,34 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
 
   public void putResultsByJson(String json) {
     getResults(); // init.
-    JSONObject valueMap = null;
+    WrappedJson valueMap = null;
     try {
-      valueMap = new JSONObject(json);
+      valueMap = new WrappedJson(json);
     } catch (Exception e) {
       WarnLogMessage.issue(e);
       //BrowserMessage.addMessage("toastr.error('json: " + e.getMessage().replaceAll("['\"\n]","\"") + "');");
       e.printStackTrace();
     }
-    //JSONObject map = new JSONObject(getFromDB(KEY_PARAMETERS));
-    JSONObject map = new JSONObject(getFromResultsStore());
+    //WrappedJson map = new WrappedJson(getFromDB(KEY_PARAMETERS));
+    WrappedJson map = new WrappedJson(getFromResultsStore());
     if (valueMap != null) {
-      for (String key : valueMap.keySet()) {
-        map.put(key, valueMap.get(key));
-        //results.put(key, valueMap.get(key));
-      }
-
+      map.merge(valueMap);
       updateResultsStore(map);
     }
   }
 
   public void putResult(String key, Object value) {
-    JSONObject obj = new JSONObject();
+    WrappedJson obj = new WrappedJson();
     obj.put(key, value);
     putResultsByJson(obj.toString());
   }
 
-  public JSONObject getResults() {
+  public WrappedJson getResults() {
     //if (results == null) {
-    //JSONObject results = new JSONObject(getFromResultsStore());
+    //WrappedJson results = new WrappedJson(getFromResultsStore());
     //}
     //return results;
-    return new JSONObject(getFromResultsStore());
+    return new WrappedJson(getFromResultsStore());
   }
 
   public Object getResult(String key) {
@@ -556,7 +546,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   public HashMap<Object, Object> environmentsWrapper = null;
   public HashMap environments() {
     if (environmentsWrapper == null) {
-      environmentsWrapper = new HashMap<>(getEnvironments().toMap()) {
+      environmentsWrapper = new HashMap<>(getEnvironments()) {
         @Override
         public Object get(Object key) {
           return getEnvironment(key.toString());
@@ -592,7 +582,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
   private HashMap<Object, Object> parametersWrapper = null;
   public HashMap parameters() {
     if (parametersWrapper == null) {
-      parametersWrapper = new HashMap<Object, Object>(getParameters().toMap()) {
+      parametersWrapper = new HashMap<Object, Object>(getParameters()) {
         @Override
         public Object get(Object key) {
           return getParameter(key.toString());

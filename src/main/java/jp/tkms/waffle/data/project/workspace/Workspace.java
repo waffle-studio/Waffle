@@ -7,11 +7,7 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.util.ChildElementsArrayList;
-import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.InstanceCache;
-import jp.tkms.waffle.data.util.StringFileUtil;
-import org.json.JSONObject;
+import jp.tkms.waffle.data.util.*;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -116,13 +112,13 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     return getBaseDirectoryPath(getProject()).resolve(name);
   }
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 }

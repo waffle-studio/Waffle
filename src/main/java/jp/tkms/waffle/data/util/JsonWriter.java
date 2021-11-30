@@ -3,25 +3,22 @@ package jp.tkms.waffle.data.util;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class JSONWriter {
+public class JsonWriter {
   final static ObjectWriter writer = new ObjectMapper().writer(new DefaultPrettyPrinter());
 
-  public static void writeValue(Path path, JSONObject jsonObject) throws IOException {
+  public static void writeValue(Path path, WrappedJson jsonObject) throws IOException {
     synchronized (PathLocker.getLocker(path)) {
-      writer.writeValue(path.toFile(), jsonObject.toMap());
+      writer.writeValue(path.toFile(), jsonObject);
     }
   }
 
-  public static void writeValue(Path path, JSONArray jsonArray) throws IOException {
+  public static void writeValue(Path path, WrappedJsonArray jsonArray) throws IOException {
     synchronized (PathLocker.getLocker(path)) {
-      writer.writeValue(path.toFile(), jsonArray.toList());
+      writer.writeValue(path.toFile(), jsonArray);
     }
   }
 }

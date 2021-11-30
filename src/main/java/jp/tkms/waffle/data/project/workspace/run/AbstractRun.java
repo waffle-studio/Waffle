@@ -9,8 +9,8 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.WorkspaceData;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -448,37 +448,37 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
   }
    */
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 
 /*
-  public void putVariables(JSONObject valueMap) {
+  public void putVariables(WrappedJson valueMap) {
     if () {}
   }
 
   public void putVariablesByJson(String json) {
     try {
-      putVariables(new JSONObject(json));
+      putVariables(new WrappedJson(json));
     } catch (Exception e) {
       WarnLogMessage.issue(e);
     }
   }
 
   public void putVariable(String key, Object value) {
-    JSONObject obj = new JSONObject();
+    WrappedJson obj = new WrappedJson();
     obj.put(key, value);
     putVariables(obj);
   }
 
-  public JSONObject getVariables() {
-    return new JSONObject(getFromVariablesStore());
+  public WrappedJson getVariables() {
+    return new WrappedJson(getFromVariablesStore());
   }
 
   public Object getVariable(String key) {

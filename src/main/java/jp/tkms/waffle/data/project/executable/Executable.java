@@ -6,15 +6,10 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
-import jp.tkms.waffle.data.util.ChildElementsArrayList;
+import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.script.ScriptProcessor;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -41,8 +36,8 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
   private String name = null;
   private String command = null;
-  private String defaultParameters = null;
-  private String dummyResults = null;
+  private WrappedJson defaultParameters = null;
+  private WrappedJson dummyResults = null;
   private Double requiredThread = null;
   private Double requiredMemory = null;
 
@@ -292,43 +287,41 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     setToProperty(KEY_REQUIRED_MEMORY, requiredMemory);
   }
 
-  public JSONObject getDefaultParameters() {
+  public WrappedJson getDefaultParameters() {
     if (defaultParameters == null) {
-      defaultParameters = getFileContents(DEFAULT_PARAMETERS_JSON_FILE);
-      if (defaultParameters.equals("")) {
-        defaultParameters = "{}";
+      defaultParameters = new WrappedJson(getFileContents(DEFAULT_PARAMETERS_JSON_FILE));
+      if (defaultParameters.isEmpty()) {
         createNewFile(DEFAULT_PARAMETERS_JSON_FILE);
-        updateFileContents(DEFAULT_PARAMETERS_JSON_FILE, defaultParameters);
+        defaultParameters.writePrettyFile(getPath().resolve(DEFAULT_PARAMETERS_JSON_FILE));
       }
     }
-    return new JSONObject(defaultParameters);
+    return defaultParameters;
   }
 
   public void setDefaultParameters(String json) {
     try {
-      defaultParameters = new JSONObject(json).toString(2);
-      updateFileContents(DEFAULT_PARAMETERS_JSON_FILE, defaultParameters);
+      defaultParameters = new WrappedJson(json);
+      defaultParameters.writePrettyFile(getPath().resolve(DEFAULT_PARAMETERS_JSON_FILE));
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
   }
 
-  public JSONObject getDummyResults() {
+  public WrappedJson getDummyResults() {
     if (dummyResults == null) {
-      dummyResults = getFileContents(DUMMY_RESULTS_JSON_FILE);
-      if (dummyResults.equals("")) {
-        dummyResults = "{}";
+      dummyResults = new WrappedJson(getFileContents(DUMMY_RESULTS_JSON_FILE));
+      if (dummyResults.isEmpty()) {
         createNewFile(DUMMY_RESULTS_JSON_FILE);
-        updateFileContents(DUMMY_RESULTS_JSON_FILE, dummyResults);
+        dummyResults.writePrettyFile(getPath().resolve(DUMMY_RESULTS_JSON_FILE));
       }
     }
-    return new JSONObject(dummyResults);
+    return dummyResults;
   }
 
   public void setDummyResults(String json) {
     try {
-      dummyResults = new JSONObject(json).toString(2);
-      updateFileContents(DUMMY_RESULTS_JSON_FILE, dummyResults);
+      dummyResults = new WrappedJson(json);
+      dummyResults.writePrettyFile(getPath().resolve(DUMMY_RESULTS_JSON_FILE));
     } catch (Exception e) {
       ErrorLogMessage.issue(e);
     }
@@ -394,39 +387,35 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public List<String> getExtractorNameList() {
-    List<String> list = null;
-    try {
-      JSONArray array = getArrayFromProperty(KEY_EXTRACTOR);
-      if (array == null) {
-        putNewArrayToProperty(KEY_EXTRACTOR);
-        array = new JSONArray();
+    WrappedJsonArray array = getArrayFromProperty(KEY_EXTRACTOR);
+    if (array == null) {
+      putNewArrayToProperty(KEY_EXTRACTOR);
+      array = new WrappedJsonArray();
+    }
+    List<String> list = new ArrayList<>();
+    for (Object o : array) {
+      String name = o.toString();
+      list.add(name);
+      if (! Files.exists(getExtractorScriptPath(name))) {
+        removeFromArrayOfProperty(KEY_EXTRACTOR, name);
       }
-      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
-      for (String name : list) {
-        if (! Files.exists(getExtractorScriptPath(name))) {
-          removeFromArrayOfProperty(KEY_EXTRACTOR, name);
-        }
-      }
-    } catch (JSONException e) {
     }
     return list;
   }
 
   public List<String> getCollectorNameList() {
-    List<String> list = null;
-    try {
-      JSONArray array = getArrayFromProperty(KEY_COLLECTOR);
-      if (array == null) {
-        putNewArrayToProperty(KEY_COLLECTOR);
-        array = new JSONArray();
+    WrappedJsonArray array = getArrayFromProperty(KEY_COLLECTOR);
+    if (array == null) {
+      putNewArrayToProperty(KEY_COLLECTOR);
+      array = new WrappedJsonArray();
+    }
+    List<String> list = new ArrayList<>();
+    for (Object o : array) {
+      String name = o.toString();
+      list.add(name);
+      if (! Files.exists(getCollectorScriptPath(name))) {
+        removeFromArrayOfProperty(KEY_COLLECTOR, name);
       }
-      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
-      for (String name : list) {
-        if (! Files.exists(getCollectorScriptPath(name))) {
-          removeFromArrayOfProperty(KEY_COLLECTOR, name);
-        }
-      }
-    } catch (JSONException e) {
     }
     return list;
   }
@@ -505,13 +494,13 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     //TODO:fix
   }
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 }

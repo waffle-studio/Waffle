@@ -2,7 +2,6 @@ package jp.tkms.waffle.data.project.conductor;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.eclipsesource.json.WriterConfig;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
@@ -14,12 +13,10 @@ import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.WrappedJson;
+import jp.tkms.waffle.data.util.WrappedJsonArray;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -148,26 +145,20 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public List<String> getChildProcedureNameList() {
-    List<String> list = null;
-    try {
-      JSONArray array = getArrayFromProperty(KEY_CHILD);
-      if (array == null) {
-        putNewArrayToProperty(KEY_CHILD);
-        array = new JSONArray();
-      }
-      list = Arrays.asList(array.toList().toArray(new String[array.toList().size()]));
-      for (String name : list) {
-        if (! Files.exists(getChildProcedureScriptPath(name))) {
-          removeFromArrayOfProperty(KEY_CHILD, name);
-        }
-      }
-    } catch (JSONException e) {
+    WrappedJsonArray array = getArrayFromProperty(KEY_CHILD);
+    if (array == null) {
+      putNewArrayToProperty(KEY_CHILD);
+      array = new WrappedJsonArray();
     }
 
-    if (list == null) {
-      return new ArrayList<>();
+    List<String> list = new ArrayList<>();
+    for (Object o : array) {
+      String name = o.toString();
+      list.add(name);
+      if (! Files.exists(getChildProcedureScriptPath(name))) {
+        removeFromArrayOfProperty(KEY_CHILD, name);
+      }
     }
-
     return list;
   }
 
@@ -247,13 +238,13 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     return true;
   }
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 }

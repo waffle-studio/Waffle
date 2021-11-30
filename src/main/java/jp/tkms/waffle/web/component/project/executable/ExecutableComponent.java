@@ -412,7 +412,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formSelectGroup(KEY_COMPUTER, ComputersComponent.COMPUTER, Computer.getViableList().stream().map(computer -> computer.getName()).collect(Collectors.toList()), null),
-                  Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", executable.getDefaultParameters().toString(2), null)
+                  Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", executable.getDefaultParameters().toPrettyString(), null)
                 )
               )
               ,Lte.formSubmitButton("primary", "Run")

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.util.InstanceCache;
@@ -14,7 +15,6 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.communicator.*;
-import org.json.JSONObject;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -69,8 +69,8 @@ public class Computer implements DataDirectory, PropertyFile {
   private Double maximumNumberOfThreads = null;
   private Double allocableMemorySize = null;
   private Integer maximumNumberOfJobs = null;
-  private JSONObject parameters = null;
-  private JSONObject xsubTemplate = null;
+  private WrappedJson parameters = null;
+  private WrappedJson xsubTemplate = null;
 
   public Computer(String name) {
     this.name = name;
@@ -191,7 +191,7 @@ public class Computer implements DataDirectory, PropertyFile {
   public void update() {
     try {
       AbstractSubmitter.checkWaffleServant(this, false);
-      JSONObject jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
+      WrappedJson jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
       if (jsonObject != null) {
         setXsubTemplate(jsonObject);
         setParameters(getParameters());
@@ -206,7 +206,7 @@ public class Computer implements DataDirectory, PropertyFile {
           setState(ComputerState.KeyNotFound);
         } else if (message.startsWith("invalid privatekey: ")) {
           if (getParameters().keySet().contains(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE)) {
-            String keyPath = getParameters().getString(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE);
+            String keyPath = getParameters().getString(JobNumberLimitedSshSubmitter.KEY_IDENTITY_FILE, "");
             if (keyPath.indexOf('~') == 0) {
               keyPath = keyPath.replaceFirst("^~", System.getProperty("user.home"));
             }
@@ -444,46 +444,46 @@ public class Computer implements DataDirectory, PropertyFile {
     }
   }
 
-  public JSONObject getXsubParameters() {
-    JSONObject jsonObject = new JSONObject();
-    for (String key : getXsubParametersTemplate().keySet()) {
-      jsonObject.put(key, getParameter(key));
+  public WrappedJson getXsubParameters() {
+    WrappedJson jsonObject = new WrappedJson();
+    for (Object key : getXsubParametersTemplate().keySet()) {
+      jsonObject.put(key.toString(), getParameter(key.toString()));
     }
     return jsonObject;
   }
 
-  public JSONObject getParametersWithDefaultParameters() {
-    JSONObject parameters = AbstractSubmitter.getParameters(this);
-    JSONObject jsonObject = getParameters();
-    for (String key : jsonObject.keySet()) {
+  public WrappedJson getParametersWithDefaultParameters() {
+    WrappedJson parameters = AbstractSubmitter.getParameters(this);
+    WrappedJson jsonObject = getParameters();
+    for (Object key : jsonObject.keySet()) {
       parameters.put(key, jsonObject.get(key));
     }
     return parameters;
   }
 
-  public JSONObject getParametersWithDefaultParametersFiltered() {
-    JSONObject parameters = AbstractSubmitter.getParameters(this);
-    JSONObject jsonObject = getParameters();
-    for (String key : jsonObject.keySet()) {
-      if (! key.startsWith(".")) {
+  public WrappedJson getParametersWithDefaultParametersFiltered() {
+    WrappedJson parameters = AbstractSubmitter.getParameters(this);
+    WrappedJson jsonObject = getParameters();
+    for (Object key : jsonObject.keySet()) {
+      if (! key.toString().startsWith(".")) {
         parameters.put(key, jsonObject.get(key));
       }
     }
     return parameters;
   }
 
-  public JSONObject getFilteredParameters() {
-    JSONObject jsonObject = new JSONObject();
-    JSONObject parameters = getParameters();
-    for (String key : parameters.keySet()) {
-      if (key.startsWith(".")) {
+  public WrappedJson getFilteredParameters() {
+    WrappedJson jsonObject = new WrappedJson();
+    WrappedJson parameters = getParameters();
+    for (Object key : parameters.keySet()) {
+      if (key.toString().startsWith(".")) {
         jsonObject.put(key, parameters.get(key));
       }
     }
     return jsonObject;
   }
 
-  public JSONObject getParameters() {
+  public WrappedJson getParameters() {
     synchronized (this) {
       if (parameters == null) {
         String json = getFileContents(KEY_PARAMETERS_JSON);
@@ -493,19 +493,13 @@ public class Computer implements DataDirectory, PropertyFile {
           updateFileContents(KEY_PARAMETERS_JSON, json);
         }
         parameters = getXsubParametersTemplate();
-        try {
-          JSONObject jsonObject = AbstractSubmitter.getInstance(Inspector.Mode.Normal, this).getDefaultParameters(this);
-          for (String key : jsonObject.toMap().keySet()) {
-            parameters.put(key, jsonObject.getJSONObject(key));
-          }
-        } catch (Exception e) {
-        }
-        JSONObject jsonObject = new JSONObject(json);
-        for (String key : jsonObject.keySet()) {
-          parameters.put(key, jsonObject.get(key));
-        }
+        parameters.merge(
+          AbstractSubmitter.getInstance(Inspector.Mode.Normal, this)
+            .getDefaultParameters(this)
+        );
+        parameters.merge(new WrappedJson(json));
       }
-      return new JSONObject(parameters.toString());
+      return parameters.clone();
     }
   }
 
@@ -513,21 +507,18 @@ public class Computer implements DataDirectory, PropertyFile {
     return getParameters().get(key);
   }
 
-  public void setParameters(JSONObject jsonObject) {
+  public void setParameters(WrappedJson jsonObject) {
     synchronized (this) {
-      JSONObject parameters = getFilteredParameters();
-      for (String key : jsonObject.keySet()) {
-        parameters.put(key, jsonObject.get(key));
-      }
-
-      updateFileContents(KEY_PARAMETERS_JSON, parameters.toString(2));
+      WrappedJson parameters = getFilteredParameters();
+      parameters.merge(jsonObject);
+      parameters.writePrettyFile(getPath().resolve(KEY_PARAMETERS_JSON));
       this.parameters = null;
     }
   }
 
   public void setParameters(String json) {
     try {
-      setParameters(new JSONObject(json));
+      setParameters(new WrappedJson(json));
     } catch (Exception e) {
       WarnLogMessage.issue(e);
     }
@@ -535,48 +526,48 @@ public class Computer implements DataDirectory, PropertyFile {
 
   public Object setParameter(String key, Object value) {
     synchronized (this) {
-      JSONObject jsonObject = getParameters();
+      WrappedJson jsonObject = getParameters();
       jsonObject.put(key, value);
       setParameters(jsonObject);
       return value;
     }
   }
 
-  public JSONObject getEnvironments() {
+  public WrappedJson getEnvironments() {
     synchronized (this) {
-      return getJSONObjectFromProperty(KEY_ENVIRONMENTS, new JSONObject());
+      return getObjectFromProperty(KEY_ENVIRONMENTS, new WrappedJson());
     }
   }
 
-  public void setEnvironments(JSONObject jsonObject) {
+  public void setEnvironments(WrappedJson jsonObject) {
     synchronized (this) {
       setToProperty(KEY_ENVIRONMENTS, jsonObject);
     }
   }
 
-  public JSONObject getXsubTemplate() {
+  public WrappedJson getXsubTemplate() {
     synchronized (this) {
       if (xsubTemplate == null) {
-        xsubTemplate = new JSONObject(getStringFromProperty(KEY_XSUB_TEMPLATE, "{}"));
+        xsubTemplate = new WrappedJson(getStringFromProperty(KEY_XSUB_TEMPLATE, "{}"));
       }
       return xsubTemplate;
     }
   }
 
-  public void setXsubTemplate(JSONObject jsonObject) {
+  public void setXsubTemplate(WrappedJson jsonObject) {
     synchronized (this) {
       this.xsubTemplate = jsonObject;
       setToProperty(KEY_XSUB_TEMPLATE, jsonObject.toString());
     }
   }
 
-  public JSONObject getXsubParametersTemplate() {
-    JSONObject jsonObject = new JSONObject();
+  public WrappedJson getXsubParametersTemplate() {
+    WrappedJson jsonObject = new WrappedJson();
 
     try {
-      JSONObject object = getXsubTemplate().getJSONObject("parameters");
-      for (String key : object.toMap().keySet()) {
-        jsonObject.put(key, object.getJSONObject(key).get("default"));
+      WrappedJson object = getXsubTemplate().getObject("parameters", new WrappedJson());
+      for (Object key : object.keySet()) {
+        jsonObject.put(key.toString(), object.getObject(key.toString(), new WrappedJson()).get("default"));
       }
     } catch (Exception e) {
     }
@@ -594,13 +585,13 @@ public class Computer implements DataDirectory, PropertyFile {
   }
 
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 

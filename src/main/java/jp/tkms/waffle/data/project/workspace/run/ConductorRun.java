@@ -1,9 +1,5 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-import com.eclipsesource.json.WriterConfig;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.DataDirectory;
@@ -16,15 +12,11 @@ import jp.tkms.waffle.data.project.workspace.archive.ArchivedConductor;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
 import jp.tkms.waffle.data.util.*;
-import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.manager.ManagerMaster;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 
 public class ConductorRun extends AbstractRun implements DataDirectory {
@@ -262,15 +254,15 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
       if (Files.exists(jsonPath)) {
         try {
-          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
+          WrappedJson jsonObject = new WrappedJson(StringFileUtil.read(jsonPath));
           ArchivedConductor conductor = null;
           if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
-            String conductorName = jsonObject.getString(KEY_CONDUCTOR);
+            String conductorName = jsonObject.getString(KEY_CONDUCTOR, null);
             conductor = ArchivedConductor.getInstance(workspace, conductorName);
           }
           ConductorRun parent = null;
           if (jsonObject.keySet().contains(KEY_PARENT_CONDUCTOR_RUN)) {
-            String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN);
+            String parentPath = jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN, null);
             parent = ConductorRun.getInstance(workspace, parentPath);
           }
           instance = new ConductorRun(workspace, conductor, parent, jsonPath.getParent());
@@ -341,12 +333,12 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public void updateRunningStatus() {
-    JSONArray jsonArray = getArrayFromProperty(KEY_ACTIVE_RUN);
+    WrappedJsonArray jsonArray = getArrayFromProperty(KEY_ACTIVE_RUN);
     if (jsonArray == null) {
       putNewArrayToProperty(KEY_ACTIVE_RUN);
     }
 
-    if (jsonArray.toList().isEmpty()) {
+    if (jsonArray.isEmpty()) {
       finish();
     }
   }

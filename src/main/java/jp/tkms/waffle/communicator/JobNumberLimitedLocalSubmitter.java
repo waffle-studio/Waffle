@@ -2,10 +2,10 @@ package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -126,8 +126,8 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Computer computer) {
-    return new JSONObject();
+  public WrappedJson getDefaultParameters(Computer computer) {
+    return new WrappedJson();
   }
 
   void transferDirectory(File src, File dest) throws IOException {

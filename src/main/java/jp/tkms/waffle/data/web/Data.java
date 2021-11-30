@@ -5,11 +5,9 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.template.ConductorTemplate;
-import jp.tkms.waffle.data.template.ListenerTemplate;
 import jp.tkms.waffle.data.util.Database;
 import jp.tkms.waffle.data.util.Sql;
-import org.json.JSONObject;
+import jp.tkms.waffle.data.util.WrappedJson;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -177,8 +175,6 @@ abstract public class Data implements PropertyFile {
   public static void initializeWorkDirectory() {
     createDirectories(Constants.WORK_DIR);
     createDirectories(Project.getBaseDirectoryPath());
-    createDirectories(ConductorTemplate.getBaseDirectoryPath());
-    createDirectories(ListenerTemplate.getBaseDirectoryPath());
     createDirectories(Computer.getBaseDirectoryPath());
   }
 
@@ -280,13 +276,13 @@ abstract public class Data implements PropertyFile {
     }
   }
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 }

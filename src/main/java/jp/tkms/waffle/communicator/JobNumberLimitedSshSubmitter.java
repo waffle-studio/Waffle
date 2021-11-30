@@ -3,11 +3,11 @@ package jp.tkms.waffle.communicator;
 import com.jcraft.jsch.JSchException;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.communicator.util.SshChannel;
 import jp.tkms.waffle.communicator.util.SshSession;
-import org.json.JSONObject;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,9 +36,9 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
       int port = 22;
       boolean useTunnel = false;
 
-      JSONObject parameters = computer.getParametersWithDefaultParameters();
-      for (Map.Entry<String, Object> entry : parameters.toMap().entrySet()) {
-        switch (entry.getKey()) {
+      WrappedJson parameters = computer.getParametersWithDefaultParameters();
+      for (Map.Entry<Object, Object> entry : parameters.entrySet()) {
+        switch (entry.getKey().toString()) {
           case "host" :
             hostName = entry.getValue().toString();
             break;
@@ -50,7 +50,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
             break;
           case "identity_pass" :
             if (entry.getValue().toString().equals(ENCRYPTED_MARK)) {
-              identityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS));
+              identityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS, null));
             } else {
               if (!entry.getValue().toString().equals("")) {
                 computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, computer.encryptText(entry.getValue().toString()));
@@ -69,15 +69,17 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
       }
 
       if (useTunnel) {
-        JSONObject object = computer.getParametersWithDefaultParameters().getJSONObject("tunnel");
+        WrappedJson object = computer.getParametersWithDefaultParameters().getObject("tunnel", null);
         tunnelSession = new SshSession(computer);
-        tunnelSession.setSession(object.getString("user"), object.getString("host"), object.getInt("port"));
-        String tunnelIdentityPass = object.getString("identity_pass");
+        tunnelSession.setSession(object.getString("user", ""),
+          object.getString("host", ""),
+          object.getInt("port", 22));
+        String tunnelIdentityPass = object.getString("identity_pass", "");
         if (tunnelIdentityPass == null) {
           tunnelIdentityPass = "";
         } else {
           if (tunnelIdentityPass.equals(ENCRYPTED_MARK)) {
-            tunnelIdentityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1"));
+            tunnelIdentityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1", ""));
           } else {
             if (! tunnelIdentityPass.equals("")) {
               computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", computer.encryptText(tunnelIdentityPass));
@@ -86,9 +88,9 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
           }
         }
         if (tunnelIdentityPass.equals("")) {
-          tunnelSession.addIdentity(object.getString("identity_file"));
+          tunnelSession.addIdentity(object.getString("identity_file", ""));
         } else {
-          tunnelSession.addIdentity(object.getString("identity_file"), tunnelIdentityPass);
+          tunnelSession.addIdentity(object.getString("identity_file", ""), tunnelIdentityPass);
         }
         tunnelSession.connect(retry);
         port = tunnelSession.setPortForwardingL(hostName, port);
@@ -222,8 +224,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Computer computer) {
-    JSONObject jsonObject = new JSONObject();
+  public WrappedJson getDefaultParameters(Computer computer) {
+    WrappedJson jsonObject = new WrappedJson();
     jsonObject.put("host", computer.getName());
     jsonObject.put("user", System.getProperty("user.name"));
     jsonObject.put("identity_file", "~/.ssh/id_rsa");

@@ -1,13 +1,13 @@
 package jp.tkms.waffle.web.component.computer;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
-import org.json.JSONObject;
 import spark.Spark;
 
 import java.util.*;
@@ -284,8 +284,8 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setAllocableMemorySize(Double.parseDouble(request.queryParams(KEY_ALLOCABLE_MEMORY)));
     computer.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_NUMBER_OF_CALCULATION_NODE)));
     computer.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
-    computer.setEnvironments(new JSONObject(request.queryParams(KEY_ENVIRONMENTS)));
-    computer.setParameters(new JSONObject(request.queryParams(KEY_PARAMETERS)));
+    computer.setEnvironments(new WrappedJson(request.queryParams(KEY_ENVIRONMENTS)));
+    computer.setParameters(new WrappedJson(request.queryParams(KEY_PARAMETERS)));
     computer.update();
     response.redirect(getUrl(computer));
   }

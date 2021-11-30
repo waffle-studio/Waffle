@@ -6,8 +6,8 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.data.util.WaffleId;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import org.json.JSONObject;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,13 +27,13 @@ public abstract class AbstractTask<T extends ComputerTask> implements PropertyFi
   private Double requiredThread = null;
   private Double requiredMemory = null;
 
-  JSONObject propertyStoreCache = null;
+  WrappedJson propertyStoreCache = null;
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return propertyStoreCache;
   }
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
   }
 

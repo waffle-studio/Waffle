@@ -3,8 +3,8 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.StringFileUtil;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import jp.tkms.waffle.data.util.WrappedJson;
+import jp.tkms.waffle.data.util.WrappedJsonArray;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,8 +12,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public interface PropertyFile {
-  JSONObject getPropertyStoreCache();
-  void setPropertyStoreCache(JSONObject cache);
+  WrappedJson getPropertyStoreCache();
+  void setPropertyStoreCache(WrappedJson cache);
 
   default Path getPropertyStorePath() {
     return Paths.get("waffle.json");
@@ -28,9 +28,9 @@ public interface PropertyFile {
     }
   }
 
-  private JSONObject getPropertyStore() {
+  private WrappedJson getPropertyStore() {
     synchronized (this) {
-      JSONObject cache = getPropertyStoreCache();
+      WrappedJson cache = getPropertyStoreCache();
       if (cache == null) {
         Path storePath = getAbsolutePropertyStorePath();
         String json = "{}";
@@ -39,13 +39,13 @@ public interface PropertyFile {
         }
         try {
           if (!"".equals(json)) {
-            cache = new JSONObject(json);
+            cache = new WrappedJson(json);
           }
         }catch (Exception e) {
           WarnLogMessage.issue(storePath.toString() + " is broken : " + json);
         }
         if (cache == null) {
-          cache = new JSONObject("{}");
+          cache = new WrappedJson();
         }
         setPropertyStoreCache(cache);
       }
@@ -62,19 +62,14 @@ public interface PropertyFile {
   private void updatePropertyStore() {
     synchronized (this) {
       if (getPropertyStoreCache() != null) {
-        Path storePath = getAbsolutePropertyStorePath();
-        StringFileUtil.write(storePath, getPropertyStoreCache().toString(2));
+        getPropertyStoreCache().writePrettyFile(getAbsolutePropertyStorePath());
       }
     }
   }
 
   default String getStringFromProperty(String key) {
     synchronized (this) {
-      try {
-        return getPropertyStore().getString(key);
-      } catch (Exception e) {
-      }
-      return null;
+      return getPropertyStore().getString(key, null);
     }
   }
 
@@ -83,9 +78,6 @@ public interface PropertyFile {
       String value = getStringFromProperty(key);
       if (value == null) {
         value = defaultValue;
-        if (value != null) {
-          setToProperty(key, defaultValue);
-        }
       }
       return value;
     }
@@ -93,11 +85,7 @@ public interface PropertyFile {
 
   default Boolean getBooleanFromProperty(String key) {
     synchronized (this) {
-      try {
-        return getPropertyStore().getBoolean(key);
-      } catch (Exception e) {
-      }
-      return null;
+      return getPropertyStore().getBoolean(key, null);
     }
   }
 
@@ -106,9 +94,6 @@ public interface PropertyFile {
       Boolean value = getBooleanFromProperty(key);
       if (value == null) {
         value = defaultValue;
-        if (value != null) {
-          setToProperty(key, defaultValue);
-        }
       }
       return value;
     }
@@ -116,11 +101,7 @@ public interface PropertyFile {
 
   default Integer getIntFromProperty(String key) {
     synchronized (this) {
-      try {
-        return getPropertyStore().getInt(key);
-      } catch (Exception e) {
-      }
-      return null;
+      return getPropertyStore().getInt(key, null);
     }
   }
 
@@ -129,9 +110,6 @@ public interface PropertyFile {
       Integer value = getIntFromProperty(key);
       if (value == null) {
         value = defaultValue;
-        if (value != null) {
-          setToProperty(key, defaultValue);
-        }
       }
       return value;
     }
@@ -139,11 +117,7 @@ public interface PropertyFile {
 
   default Long getLongFromProperty(String key) {
     synchronized (this) {
-      try {
-        return getPropertyStore().getLong(key);
-      } catch (Exception e) {
-      }
-      return null;
+      return getPropertyStore().getLong(key, null);
     }
   }
 
@@ -152,9 +126,6 @@ public interface PropertyFile {
       Long value = getLongFromProperty(key);
       if (value == null) {
         value = defaultValue;
-        if (value != null) {
-          setToProperty(key, defaultValue);
-        }
       }
       return value;
     }
@@ -162,11 +133,7 @@ public interface PropertyFile {
 
   default Double getDoubleFromProperty(String key) {
     synchronized (this) {
-      try {
-        return getPropertyStore().getDouble(key);
-      } catch (Exception e) {
-      }
-      return null;
+      return getPropertyStore().getDouble(key, null);
     }
   }
 
@@ -175,43 +142,40 @@ public interface PropertyFile {
       Double value = getDoubleFromProperty(key);
       if (value == null) {
         value = defaultValue;
-        if (value != null) {
-          setToProperty(key, defaultValue);
-        }
       }
       return value;
     }
   }
 
-  default JSONObject getJSONObjectFromProperty(String key) {
+  default WrappedJson getObjectFromProperty(String key) {
     synchronized (this) {
-      try {
-        return getPropertyStore().getJSONObject(key);
-      } catch (Exception e) {
-      }
-      return null;
+      return getPropertyStore().getObject(key, null);
     }
   }
 
-  default JSONObject getJSONObjectFromProperty(String key, JSONObject defaultValue) {
+  default WrappedJson getObjectFromProperty(String key, WrappedJson defaultValue) {
     synchronized (this) {
-      JSONObject value = getJSONObjectFromProperty(key);
+      WrappedJson value = getObjectFromProperty(key);
       if (value == null) {
         value = defaultValue;
-        if (value != null) {
-          setToProperty(key, defaultValue);
-        }
       }
       return value;
     }
   }
 
-  default JSONArray getArrayFromProperty(String key) {
+  default WrappedJsonArray getArrayFromProperty(String key) {
     synchronized (this) {
-      if (getPropertyStore().keySet().contains(key)) {
-        return getPropertyStore().getJSONArray(key);
+      return getPropertyStore().getArray(key, null);
+    }
+  }
+
+  default WrappedJsonArray getArrayFromProperty(String key, WrappedJsonArray defaultValue) {
+    synchronized (this) {
+      WrappedJsonArray value = getArrayFromProperty(key);
+      if (value == null) {
+        value = defaultValue;
       }
-      return null;
+      return value;
     }
   }
 
@@ -257,14 +221,14 @@ public interface PropertyFile {
     }
   }
 
-  default void setToProperty(String key, JSONObject value) {
+  default void setToProperty(String key, WrappedJson value) {
     synchronized (this) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
-  default void setToProperty(String key, JSONArray value) {
+  default void setToProperty(String key, WrappedJsonArray value) {
     synchronized (this) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
@@ -280,34 +244,21 @@ public interface PropertyFile {
 
   default void putToArrayOfProperty(String key, String value) {
     synchronized (this) {
-      JSONArray array = null;
-      boolean isContain = false;
-      try {
-        array = getPropertyStore().getJSONArray(key);
-        isContain = array.toList().contains(value);
-      } catch (Exception e) {
-      }
+      WrappedJsonArray array = getPropertyStore().getArray(key, null);
       if (array == null) {
-        getPropertyStore().put(key, new ArrayList<>());
-        array = getPropertyStore().getJSONArray(key);
+        array = new WrappedJsonArray();
+        getPropertyStore().put(key, array);
       }
-      if (!isContain) {
-        array.put(value);
+      if (!array.contains(value)) {
+        array.add(value);
       }
       updatePropertyStore();
     }
   }
 
-  default void removeFromArrayOfProperty(String key, String value) {
+  default void removeFromArrayOfProperty(String key, Object value) {
     synchronized (this) {
-      try {
-        JSONArray array = getPropertyStore().getJSONArray(key);
-        int index = array.toList().indexOf(value);
-        if (index >= 0) {
-          array.remove(index);
-        }
-      } catch (Exception e) {
-      }
+      getPropertyStore().getArray(key, new WrappedJsonArray()).remove(value);
       updatePropertyStore();
     }
   }

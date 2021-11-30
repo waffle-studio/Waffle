@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.data.util.WrappedJsonArray;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
@@ -10,7 +11,6 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.sub.servant.Envelope;
-import org.json.JSONArray;
 
 import java.util.*;
 
@@ -24,7 +24,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
   public double getMaximumNumberOfThreads(Computer computer) {
     double num = 0.0;
 
-    JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
+    WrappedJsonArray targetComputers = computer.getParameters().getWrappedJsonArray(KEY_TARGET_COMPUTERS);
     if (targetComputers != null) {
       for (Object object : targetComputers.toList()) {
         Computer targetComputer = Computer.getInstance(object.toString());
@@ -40,7 +40,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
   public double getAllocableMemorySize(Computer computer) {
     double size = 0.0;
 
-    JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
+    WrappedJsonArray targetComputers = computer.getParameters().getWrappedJsonArray(KEY_TARGET_COMPUTERS);
     if (targetComputers != null) {
       for (Object object : targetComputers.toList()) {
         Computer targetComputer = Computer.getInstance(object.toString());
@@ -61,9 +61,9 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
     int globalFreeJobSlot = computer.getMaximumNumberOfJobs();
 
     ArrayList<Computer> passableComputerList = new ArrayList<>();
-    JSONArray targetComputers = computer.getParameters().getJSONArray(KEY_TARGET_COMPUTERS);
+    WrappedJsonArray targetComputers = computer.getParameters().getArray(KEY_TARGET_COMPUTERS, null);
     if (targetComputers != null) {
-      for (Object object : targetComputers.toList()) {
+      for (Object object : targetComputers) {
         Computer targetComputer = Computer.getInstance(object.toString());
         if (targetComputer != null && targetComputer.getState().equals(ComputerState.Viable)) {
           passableComputerList.add(targetComputer);

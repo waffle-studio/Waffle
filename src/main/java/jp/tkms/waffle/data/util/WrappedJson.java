@@ -1,9 +1,7 @@
 package jp.tkms.waffle.data.util;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-import com.eclipsesource.json.WriterConfig;
+import afu.org.checkerframework.checker.oigj.qual.O;
+import com.eclipsesource.json.*;
 import jp.tkms.util.Values;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,6 +10,7 @@ import org.jruby.RubySymbol;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class WrappedJson implements Map<Object, Object> {
   private JsonObject jsonObject;
@@ -30,6 +29,15 @@ public class WrappedJson implements Map<Object, Object> {
     this(new JsonObject());
   }
 
+  public WrappedJson(String jsonText) {
+    try {
+      JsonValue value = Json.parse(jsonText);
+      this.jsonObject = value.isObject() ? value.asObject() : new JsonObject();
+    } catch (ParseException | NullPointerException e) {
+      this.jsonObject = new JsonObject();
+    }
+  }
+
   public WrappedJson withUpdateHandler(Consumer<WrappedJson> handler) {
     updateHandler = () -> {handler.accept(this);};
     return this;
@@ -46,16 +54,24 @@ public class WrappedJson implements Map<Object, Object> {
     return jsonObject.toString(WriterConfig.MINIMAL);
   }
 
-  public WrappedJson(String jsonText) {
-    this(Json.parse(jsonText).asObject());
+  public WrappedJson clone() {
+    return new WrappedJson(toString());
   }
 
-  public void writePrettyFile(Path path) {
-    StringFileUtil.write(path, jsonObject.toString(WriterConfig.PRETTY_PRINT));
+  public JsonObject toJsonObject() {
+    return jsonObject;
+  }
+
+  public String toPrettyString() {
+    return jsonObject.toString(WriterConfig.PRETTY_PRINT);
   }
 
   public void writeMinimalFile(Path path) {
     StringFileUtil.write(path, toString());
+  }
+
+  public void writePrettyFile(Path path) {
+    StringFileUtil.write(path, toPrettyString());
   }
 
   public WrappedJson merge(WrappedJson wrappedJson) {
@@ -83,6 +99,16 @@ public class WrappedJson implements Map<Object, Object> {
   public static JsonValue toJsonValue(Object object) {
     if (object instanceof String) {
       return Json.value((String) object);
+    } else if (object instanceof Map) {
+      WrappedJson wrappedJson = new WrappedJson();
+      wrappedJson.putAll((Map)object);
+      return wrappedJson.toJsonObject();
+    } else if (object instanceof List) {
+      WrappedJsonArray wrappedJsonArray = new WrappedJsonArray();
+      ((List) object).forEach((value) -> {
+        wrappedJsonArray.add(value);
+      });
+      return wrappedJsonArray.toJsonArray();
     } else {
       return Json.parse(object.toString());
     }
@@ -113,6 +139,50 @@ public class WrappedJson implements Map<Object, Object> {
   @Override
   public Object get(Object key) {
     return toObject(jsonObject.get(key.toString()), () -> {update();});
+  }
+
+  public <T> T get(String key, T defaultValue, Function<Object, T> convertor) {
+    try {
+      if (convertor != null) {
+        return containsKey(key) ? convertor.apply(get(key)) : defaultValue;
+      } else {
+        return containsKey(key) ? (T)get(key) : defaultValue;
+      }
+    } catch (ClassCastException | NullPointerException e) {
+      return defaultValue;
+    }
+  }
+
+  public Integer getInt(String key, Integer defaultValue) {
+    return get(key, defaultValue, v -> Integer.valueOf(v.toString()));
+  }
+
+  public Long getLong(String key, Long defaultValue) {
+    return get(key, defaultValue, v -> Long.valueOf(v.toString()));
+  }
+
+  public Float getFloat(String key, Float defaultValue) {
+    return get(key, defaultValue, v -> Float.valueOf(v.toString()));
+  }
+
+  public Double getDouble(String key, Double defaultValue) {
+    return get(key, defaultValue, v -> Double.valueOf(v.toString()));
+  }
+
+  public Boolean getBoolean(String key, Boolean defaultValue) {
+    return get(key, defaultValue, null);
+  }
+
+  public String getString(String key, String defaultValue) {
+    return get(key, defaultValue, v -> v.toString());
+  }
+
+  public WrappedJson getObject(String key, WrappedJson defaultValue) {
+    return get(key, defaultValue, null);
+  }
+
+  public WrappedJsonArray getArray(String key, WrappedJsonArray defaultValue) {
+    return get(key, defaultValue, null);
   }
 
   @Override
@@ -168,7 +238,8 @@ public class WrappedJson implements Map<Object, Object> {
 
   @Override
   public void clear() {
-    jsonObject = new JsonObject();
+    keySet().stream().forEach(k -> remove(k));
+    update();
   }
 
   @NotNull

@@ -1,6 +1,5 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
-import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.guard.ValueGuard;
@@ -16,15 +15,12 @@ import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 public class ProcedureRun extends AbstractRun {
@@ -94,7 +90,7 @@ public class ProcedureRun extends AbstractRun {
 
   public void addReferable(String key, HasLocalPath run) {
     getReferables().put(key, run);
-    JSONObject jsonObject = getJSONObjectFromProperty(KEY_REFERABLE);
+    WrappedJson jsonObject = getObjectFromProperty(KEY_REFERABLE);
     jsonObject.put(key, run.getLocalPath().toString());
     setToProperty(KEY_REFERABLE, jsonObject);
   }
@@ -113,14 +109,15 @@ public class ProcedureRun extends AbstractRun {
 
   public StringKeyHashMap<HasLocalPath> getReferables() {
     if (referableMap == null) {
-      JSONObject jsonObject = getJSONObjectFromProperty(KEY_REFERABLE);
+      WrappedJson jsonObject = getObjectFromProperty(KEY_REFERABLE);
       referableMap = new StringKeyHashMap<>();
       if (jsonObject == null) {
-        setToProperty(KEY_REFERABLE, new JSONObject());
+        setToProperty(KEY_REFERABLE, new WrappedJson());
       } else {
-        for (String key : jsonObject.keySet()) {
+        for (Map.Entry entry : jsonObject.entrySet()) {
           try {
-            referableMap.put(key, (HasLocalPath) AbstractRun.getInstance(getWorkspace(), jsonObject.getString(key)));
+            referableMap.put(entry.getKey().toString(),
+              (HasLocalPath) AbstractRun.getInstance(getWorkspace(), entry.getValue().toString()));
           } catch (RunNotFoundException e) {
             ErrorLogMessage.issue(e);
           }
@@ -179,13 +176,13 @@ public class ProcedureRun extends AbstractRun {
 
   public ArrayList<String> getGuardList() {
     ArrayList<String> list = new ArrayList<>();
-    JSONArray jsonArray = getArrayFromProperty(KEY_GUARD);
+    WrappedJsonArray jsonArray = getArrayFromProperty(KEY_GUARD);
     if (jsonArray == null) {
       putNewArrayToProperty(KEY_GUARD);
       return list;
     }
 
-    for (Object object : jsonArray.toList()) {
+    for (Object object : jsonArray) {
       list.add(object.toString());
     }
 
@@ -194,13 +191,13 @@ public class ProcedureRun extends AbstractRun {
 
   public ArrayList<String> getActiveGuardList() {
     ArrayList<String> list = new ArrayList<>();
-    JSONArray jsonArray = getArrayFromProperty(KEY_ACTIVE_GUARD);
+    WrappedJsonArray jsonArray = getArrayFromProperty(KEY_ACTIVE_GUARD);
     if (jsonArray == null) {
       putNewArrayToProperty(KEY_ACTIVE_GUARD);
       return list;
     }
 
-    for (Object object : jsonArray.toList()) {
+    for (Object object : jsonArray) {
       list.add(object.toString());
     }
 
@@ -346,19 +343,19 @@ public class ProcedureRun extends AbstractRun {
 
       if (Files.exists(jsonPath)) {
         try {
-          JSONObject jsonObject = new JSONObject(StringFileUtil.read(jsonPath));
-          ConductorRun parent = ConductorRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN));
+          WrappedJson jsonObject = new WrappedJson(StringFileUtil.read(jsonPath));
+          ConductorRun parent = ConductorRun.getInstance(workspace, jsonObject.getString(KEY_PARENT_CONDUCTOR_RUN, null));
           ArchivedConductor conductor = null;
           if (jsonObject.keySet().contains(KEY_CONDUCTOR)) {
-            conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR));
+            conductor = ArchivedConductor.getInstance(workspace, jsonObject.getString(KEY_CONDUCTOR, null));
           }
           String procedureName = null;
           if (jsonObject.keySet().contains(KEY_PROCEDURE_NAME)) {
-            procedureName = jsonObject.getString(KEY_PROCEDURE_NAME);
+            procedureName = jsonObject.getString(KEY_PROCEDURE_NAME, null);
           }
           Path workingDirectory = null;
           if (jsonObject.keySet().contains(KEY_WORKING_DIRECTORY)) {
-            workingDirectory = Paths.get(jsonObject.getString(KEY_WORKING_DIRECTORY));
+            workingDirectory = Paths.get(jsonObject.getString(KEY_WORKING_DIRECTORY, null));
           }
           instance = new ProcedureRun(workspace, parent, Paths.get(localPathString), workingDirectory, conductor, procedureName);
         } catch (Exception e) {

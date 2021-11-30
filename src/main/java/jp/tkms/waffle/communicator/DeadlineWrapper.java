@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
@@ -11,7 +12,6 @@ import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.sub.servant.Envelope;
-import org.json.JSONObject;
 
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -81,9 +81,9 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   @Override
   protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     try {
-      Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
+      Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE, ""));
       if (new Date().before(deadline)) {
-        Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
+        Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, ""));
         if (targetComputer != null) {
           AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance((next instanceof SystemTask ? Inspector.Mode.System : Inspector.Mode.Normal), targetComputer);
           return targetSubmitter.isSubmittable(targetComputer, next, list);
@@ -99,10 +99,10 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   @Override
   public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     try {
-      Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE));
+      Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE, ""));
       if (new Date().before(deadline)) {
         for (AbstractTask job : createdJobList) {
-          Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
+          Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, ""));
           if (targetComputer != null) {
             AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer);
             try {
@@ -124,8 +124,8 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Computer computer) {
-    JSONObject jsonObject = new JSONObject();
+  public WrappedJson getDefaultParameters(Computer computer) {
+    WrappedJson jsonObject = new WrappedJson();
     jsonObject.put(KEY_TARGET_COMPUTER, "LOCAL");
     jsonObject.put(KEY_DEADLINE, "2050-01-01 00:00");
     return jsonObject;

@@ -6,7 +6,7 @@ import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.WaffleId;
-import org.json.JSONObject;
+import jp.tkms.waffle.data.util.WrappedJson;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +21,7 @@ public class ProcedureRunGuard implements PropertyFile {
   public static final String KEY_TARGET = "target";
   public static final String KEY_VALUE_GUARD = "value_guard";
 
-  private JSONObject cache;
+  private WrappedJson cache;
 
   private WaffleId id;
   private Path procedureRunPath;
@@ -84,12 +84,12 @@ public class ProcedureRunGuard implements PropertyFile {
   }
 
   @Override
-  public JSONObject getPropertyStoreCache() {
+  public WrappedJson getPropertyStoreCache() {
     return cache;
   }
 
   @Override
-  public void setPropertyStoreCache(JSONObject cache) {
+  public void setPropertyStoreCache(WrappedJson cache) {
     this.cache = cache;
   }
 
@@ -107,13 +107,13 @@ public class ProcedureRunGuard implements PropertyFile {
     ProcedureRunGuard guard = null;
     try {
       if (jsonPath != null) {
-        JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
-        WaffleId id = WaffleId.valueOf(jsonObject.getLong(KEY_ID));
-        Path path = Paths.get(jsonObject.getString(KEY_PATH));
-        String projectName = jsonObject.getString(KEY_PROJECT);
-        String workspaceName = jsonObject.getString(KEY_WORKSPACE);
-        String targetRunPath = jsonObject.getString(KEY_TARGET);
-        boolean isValueGuard = jsonObject.getBoolean(KEY_VALUE_GUARD);
+        WrappedJson jsonObject = new WrappedJson(Files.readString(jsonPath));
+        WaffleId id = WaffleId.valueOf(jsonObject.getLong(KEY_ID, null));
+        Path path = Paths.get(jsonObject.getString(KEY_PATH, null));
+        String projectName = jsonObject.getString(KEY_PROJECT, null);
+        String workspaceName = jsonObject.getString(KEY_WORKSPACE, null);
+        String targetRunPath = jsonObject.getString(KEY_TARGET, null);
+        boolean isValueGuard = jsonObject.getBoolean(KEY_VALUE_GUARD, null);
         guard = new ProcedureRunGuard(id, path, projectName, workspaceName, targetRunPath, isValueGuard);
       }
     } catch (Exception e) {

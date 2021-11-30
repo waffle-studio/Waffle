@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
@@ -14,9 +15,6 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
-import jp.tkms.waffle.data.util.DateTime;
-import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
@@ -26,8 +24,6 @@ import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.*;
 import jp.tkms.waffle.sub.servant.pod.PodTask;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -221,9 +217,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
       runningExecutorList = new LinkedHashMap<>();
       activeExecutorList = new LinkedHashMap<>();
-      JSONArray runningArray = getArrayFromProperty(RUNNING);
-      for (int i = 0; i < runningArray.length(); i++) {
-        WaffleId waffleId = WaffleId.valueOf(runningArray.getString(i));
+      WrappedJsonArray runningArray = getArrayFromProperty(RUNNING);
+      for (Object running : runningArray) {
+        WaffleId waffleId = WaffleId.valueOf(running.toString());
         VirtualJobExecutor executor = VirtualJobExecutor.getInstance(this, waffleId);
         if (executor != null) {
           runningExecutorList.put(waffleId.getReversedBase36Code(), executor);
@@ -231,9 +227,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
           removeFromArrayOfProperty(RUNNING, waffleId.getReversedBase36Code());
         }
       }
-      JSONArray activeArray = getArrayFromProperty(ACTIVE);
-      for (int i = 0; i < activeArray.length(); i++) {
-        WaffleId waffleId = WaffleId.valueOf(activeArray.getString(i));
+      WrappedJsonArray activeArray = getArrayFromProperty(ACTIVE);
+      for (Object active : activeArray) {
+        WaffleId waffleId = WaffleId.valueOf(active.toString());
         VirtualJobExecutor executor = VirtualJobExecutor.getInstance(this, waffleId);
         if (executor != null) {
           activeExecutorList.put(waffleId.getReversedBase36Code(), executor);
@@ -337,7 +333,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         }
       }
 
-      result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER));
+      result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER, ""));
       if (result.targetComputer != null) {
         VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(), true,  0, 0, 0);
         AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, result.targetComputer);
@@ -493,14 +489,14 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       return getPath().resolve(JOB_MANAGER_JSON_FILE);
     }
 
-    JSONObject jsonObject = null;
+    WrappedJson jsonObject = null;
     @Override
-    public JSONObject getPropertyStoreCache() {
+    public WrappedJson getPropertyStoreCache() {
       return jsonObject;
     }
 
     @Override
-    public void setPropertyStoreCache(JSONObject cache) {
+    public void setPropertyStoreCache(WrappedJson cache) {
       jsonObject = cache;
     }
 
@@ -677,17 +673,17 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     public ArrayList<AbstractTask> getRunningList() {
       ArrayList<AbstractTask> runningList = new ArrayList<>();
-      JSONArray runningArray = getArrayFromProperty(RUNNING);
-      for (int i = 0; i < runningArray.length(); i++) {
-        if (jobCache.containsKey(runningArray.getString(i))) {
-          runningList.add(jobCache.get(runningArray.getString(i)));
+      WrappedJsonArray runningArray = getArrayFromProperty(RUNNING);
+      for (Object o : runningArray) {
+        if (jobCache.containsKey(o.toString())) {
+          runningList.add(jobCache.get(o.toString()));
         }
       }
       for (ExecutableRunTask job : InspectorMaster.getExecutableRunTaskList()) {
-        if (runningList.size() >= runningArray.length()) {
+        if (runningList.size() >= runningArray.size()) {
           break;
         }
-        if (runningArray.toList().contains(job.getJobId())) {
+        if (runningArray.contains(job.getJobId())) {
           runningList.add(job);
           jobCache.put(job.getJobId(), job);
         }
@@ -747,7 +743,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   @Override
   public AbstractSubmitter connect(boolean retry) {
-    Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER));
+    Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, ""));
     targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer).connect(retry);
     return this;
   }
@@ -808,8 +804,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public JSONObject getDefaultParameters(Computer computer) {
-    JSONObject jsonObject = new JSONObject();
+  public WrappedJson getDefaultParameters(Computer computer) {
+    WrappedJson jsonObject = new WrappedJson();
     jsonObject.put(KEY_TARGET_COMPUTER, "LOCAL");
     jsonObject.put(KEY_EMPTY_TIMEOUT, 120);
     jsonObject.put(KEY_FORCE_SHUTDOWN, 21500);

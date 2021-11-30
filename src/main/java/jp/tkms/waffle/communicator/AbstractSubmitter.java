@@ -3,6 +3,7 @@ package jp.tkms.waffle.communicator;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
@@ -26,8 +27,6 @@ import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.TaskJson;
 import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -68,7 +67,7 @@ abstract public class AbstractSubmitter {
   abstract public AbstractSubmitter connect(boolean retry);
   abstract public boolean isConnected();
 
-  abstract public JSONObject getDefaultParameters(Computer computer);
+  abstract public WrappedJson getDefaultParameters(Computer computer);
 
   abstract public Path parseHomePath(String pathString) throws FailedToControlRemoteException;
 
@@ -212,18 +211,15 @@ abstract public class AbstractSubmitter {
         for (Object object : run.getArguments()) {
           arguments.add(object.toString());
         }
-        JsonObject environments = new JsonObject();
-        for (Map.Entry<String, Object> entry : run.getActualComputer().getEnvironments().toMap().entrySet()) {
-          environments.add(entry.getKey(), entry.getValue().toString());
-        }
-        for (Map.Entry<String, Object> entry : run.getEnvironments().toMap().entrySet()) {
-          environments.add(entry.getKey(), entry.getValue().toString());
-        }
+        WrappedJson environments = new WrappedJson();
+        environments.merge(run.getActualComputer().getEnvironments());
+        environments.merge(run.getEnvironments());
 
         Path remoteBinPath = run.getRemoteBinPath();
         TaskJson taskJson = new TaskJson(projectName, workspaceName, executableName,
-          remoteBinPath == null ? null : remoteBinPath.toString(), run.getCommand(),
-          arguments, environments);
+          remoteBinPath == null ? null : remoteBinPath.toString(),
+          run.getCommand(), arguments, environments.toJsonObject()
+        );
         //putText(job, TASK_JSON, taskJson.toString());
         envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(TASK_JSON), taskJson.toString()));
 
@@ -359,9 +355,9 @@ abstract public class AbstractSubmitter {
     return result;
   }
 
-  public static JSONObject getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
+  public static WrappedJson getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
     AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
-    JSONObject jsonObject = new JSONObject();
+    WrappedJson jsonObject = new WrappedJson();
     if (!(submitter instanceof AbstractSubmitterWrapper)) {
       submitter.connect(retry);
       Envelope request = new Envelope(Constants.WORK_DIR);
@@ -369,7 +365,7 @@ abstract public class AbstractSubmitter {
       try {
         Envelope response = submitter.sendAndReceiveEnvelope(request);
         for (XsubTemplateMessage message : response.getMessageBundle().getCastedMessageList(XsubTemplateMessage.class)) {
-          jsonObject = new JSONObject(message.getTemplate());
+          jsonObject = new WrappedJson(message.getTemplate());
           break;
         }
       } catch (Exception e) {
@@ -380,9 +376,9 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
-  public static JSONObject getParameters(Computer computer) {
+  public static WrappedJson getParameters(Computer computer) {
     AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
-    JSONObject jsonObject = submitter.getDefaultParameters(computer);
+    WrappedJson jsonObject = submitter.getDefaultParameters(computer);
     return jsonObject;
   }
 

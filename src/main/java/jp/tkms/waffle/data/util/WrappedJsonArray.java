@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data.util;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.WriterConfig;
+import com.eclipsesource.json.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -20,6 +19,20 @@ public class WrappedJsonArray implements List<Object> {
     this(jsonArray, null);
   }
 
+  public WrappedJsonArray(String jsonText) {
+    try {
+      JsonValue value = Json.parse(jsonText);
+      this.jsonArray = value.isArray() ? value.asArray() : new JsonArray();
+    } catch (ParseException | NullPointerException e) {
+      this.jsonArray = new JsonArray();
+    }
+  }
+
+  public WrappedJsonArray(List<Object> list) {
+    this();
+    addAll(list);
+  }
+
   public WrappedJsonArray() {
     this(new JsonArray());
   }
@@ -35,6 +48,10 @@ public class WrappedJsonArray implements List<Object> {
     return jsonArray.toString(WriterConfig.MINIMAL);
   }
 
+  public JsonArray toJsonArray() {
+    return jsonArray;
+  }
+
   @Override
   public int size() {
     return jsonArray.size();
@@ -47,25 +64,25 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public boolean contains(Object o) {
-    return jsonArray.values().contains(o);
+    return toArrayList().contains(o);
   }
 
   @NotNull
   @Override
   public Iterator<Object> iterator() {
-    return Arrays.stream(jsonArray.values().toArray()).iterator();
+    return toArrayList().iterator();
   }
 
   @NotNull
   @Override
   public Object[] toArray() {
-    return jsonArray.values().toArray();
+    return toArrayList().toArray();
   }
 
   @NotNull
   @Override
   public <T> T[] toArray(@NotNull T[] ts) {
-    return jsonArray.values().toArray(ts);
+    return toArrayList().toArray(ts);
   }
 
   @Override
@@ -77,22 +94,29 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public boolean remove(Object o) {
-    boolean res = jsonArray.values().remove(o);
-    update();
-    return res;
+    int prevSize = size();
+
+    int index = -1;
+    while ((index = indexOf(o)) >= 0) {
+      jsonArray.remove(index);
+    }
+
+    if (prevSize != size()) {
+      update();
+      return true;
+    }
+    return false;
   }
 
   @Override
   public boolean containsAll(@NotNull Collection<?> collection) {
-    return jsonArray.values().containsAll(collection);
+    return toArrayList().containsAll(collection);
   }
 
   @Override
   public boolean addAll(@NotNull Collection<?> collection) {
-    for (Object o : collection) {
-      add(o);
-    }
-    return true;
+    collection.stream().forEach(o -> add(o));
+    return !collection.isEmpty();
   }
 
   @Override
@@ -102,8 +126,9 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public boolean removeAll(@NotNull Collection<?> collection) {
-    boolean res = jsonArray.values().removeAll(collection);
-    return res;
+    int prevSize = size();
+    collection.stream().forEach(o -> remove(o));
+    return prevSize != size();
   }
 
   @Override
@@ -114,7 +139,7 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public void clear() {
-    IntStream.range(0, size()).forEach(i -> remove(i));
+    IntStream.range(size(), 0).forEach(i -> remove(i));
   }
 
   @Override
@@ -136,19 +161,20 @@ public class WrappedJsonArray implements List<Object> {
 
   @Override
   public Object remove(int i) {
-    Object object = jsonArray.values().remove(i);
+    Object object = jsonArray.get(i);
+    jsonArray.remove(i);
     update();
     return object;
   }
 
   @Override
   public int indexOf(Object o) {
-    return jsonArray.values().indexOf(o);
+    return toArrayList().indexOf(o);
   }
 
   @Override
   public int lastIndexOf(Object o) {
-    return jsonArray.values().lastIndexOf(o);
+    return toArrayList().lastIndexOf(o);
   }
 
   @NotNull
@@ -170,6 +196,8 @@ public class WrappedJsonArray implements List<Object> {
   }
 
   ArrayList<Object> toArrayList() {
-    return new ArrayList<Object>(jsonArray.values());
+    ArrayList<Object> list = new ArrayList<>();
+    IntStream.range(0, size()).forEach(i -> list.add(get(i)));
+    return list;
   }
 }

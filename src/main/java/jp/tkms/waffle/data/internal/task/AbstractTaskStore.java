@@ -5,7 +5,7 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WaffleId;
-import org.json.JSONObject;
+import jp.tkms.waffle.data.util.WrappedJson;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,9 +94,9 @@ public abstract class AbstractTaskStore<T extends AbstractTask> {
             try {
               Path jsonPath = file.toPath();
               if (jsonPath != null) {
-                JSONObject jsonObject = new JSONObject(Files.readString(jsonPath));
-                WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTask.KEY_ID));
-                Path path = Paths.get(jsonObject.getString(SystemTask.KEY_PATH));
+                WrappedJson jsonObject = new WrappedJson(Files.readString(jsonPath));
+                WaffleId id = WaffleId.valueOf(jsonObject.getLong(SystemTask.KEY_ID, null));
+                Path path = Paths.get(jsonObject.getString(SystemTask.KEY_PATH, null));
                 String computerName = computerDir.getName();
                 instance.register(factory.apply(id, path, computerName));
                 fileCount += 1;

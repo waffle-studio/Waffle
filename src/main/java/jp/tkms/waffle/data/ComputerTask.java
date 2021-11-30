@@ -4,10 +4,10 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
-import org.json.JSONObject;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public interface ComputerTask extends DataDirectory {
   void specializedPreProcess(AbstractSubmitter submitter);
   void specializedPostProcess(AbstractSubmitter submitter, AbstractTask job) throws OccurredExceptionsException, RunNotFoundException;
   ArrayList<Object> getArguments();
-  JSONObject getEnvironments();
+  WrappedJson getEnvironments();
   void appendErrorNote(String note);
   void setExitStatus(int exitStatus);
   int getExitStatus();

@@ -13,9 +13,6 @@ import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.misc.*;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
-import jp.tkms.waffle.web.component.template.ConductorTemplatesComponent;
-import jp.tkms.waffle.web.component.template.ListenerTemplatesComponent;
-import jp.tkms.waffle.web.component.template.TemplatesComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
@@ -183,11 +180,8 @@ public class Main {
     BrowserMessageComponent.register();
 
     ProjectsComponent.register();
-    TemplatesComponent.register();
     JobsComponent.register();
     ComputersComponent.register();
-    ConductorTemplatesComponent.register();
-    ListenerTemplatesComponent.register();
     LogsComponent.register();
 
     SystemComponent.register();
