@@ -82,7 +82,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
 
   public static ArrayList<HasLocalPath> getDirectoryList(HasLocalPath localPath) {
     Path basePath = localPath.getPath();
-    return new ChildElementsArrayList().getList(basePath, name -> {
+    return new ChildElementsArrayList().getList(basePath, ChildElementsArrayList.Mode.OnlyNormal, name -> {
       /*
       try {
         return getInstance(workspace, DataDirectory.toLocalDirectoryPath(basePath.resolve(name.toString())).toString());

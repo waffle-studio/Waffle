@@ -101,7 +101,7 @@ public class WrappedJson implements Map<Object, Object> {
       return Json.value((String) object);
     } else if (object instanceof Map) {
       WrappedJson wrappedJson = new WrappedJson();
-      wrappedJson.putAll((Map)object);
+      wrappedJson.putAll((Map) object);
       return wrappedJson.toJsonObject();
     } else if (object instanceof List) {
       WrappedJsonArray wrappedJsonArray = new WrappedJsonArray();
@@ -109,6 +109,8 @@ public class WrappedJson implements Map<Object, Object> {
         wrappedJsonArray.add(value);
       });
       return wrappedJsonArray.toJsonArray();
+    } else if (object == null) {
+      return Json.NULL;
     } else {
       return Json.parse(object.toString());
     }

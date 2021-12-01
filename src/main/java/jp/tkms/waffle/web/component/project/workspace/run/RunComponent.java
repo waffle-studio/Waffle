@@ -36,6 +36,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   private Workspace workspace;
   private AbstractRun abstractRun;
   private ArrayList<HasLocalPath> childrenList = null;
+  private String directoryName;
 
   public enum Mode {Default, ReCheck, UpdateNote, Root}
 
@@ -49,7 +50,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getRootUrl(null), new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace));
+    Spark.get(getRootUrl(null), new RunComponent());
     Spark.get(getUrl(null), new RunComponent());
     Spark.get(getUrl(null, Mode.ReCheck), new RunComponent(Mode.ReCheck));
     Spark.get(getUrl(null, Mode.UpdateNote), new RunComponent(Mode.UpdateNote));
@@ -65,7 +66,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl(AbstractRun run) {
     if (run != null) {
-      return "/" ;//+ run.getLocalDirectoryPath().toString();
+      return '/' + ((HasLocalPath) run).getLocalPath().toString();
     } else {
       return WorkspaceComponent.getUrl(null, null) + "/RUN/*";
     }
@@ -92,6 +93,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
       conductorRunController();
     } else {
       String localPathString = request.uri().substring(1);
+      if (localPathString.endsWith("/")) {
+        localPathString = localPathString.substring(0, localPathString.length() -1);
+      }
+
+      directoryName = localPathString.substring(localPathString.lastIndexOf('/') +1);
 
       try {
         abstractRun = AbstractRun.getInstance(workspace, localPathString);
@@ -151,7 +157,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
         if (abstractRun != null) {
           return abstractRun.getName();
         }
-        return "Root Run";
+        return directoryName;
       }
 
       @Override
@@ -358,7 +364,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return abstractRun.getName();
+        return directoryName;
       }
 
       @Override
