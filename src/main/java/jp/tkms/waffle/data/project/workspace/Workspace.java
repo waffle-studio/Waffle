@@ -21,6 +21,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
   public static final String ARCHIVE = ".ARCHIVE";
   public static final String SCRIPT_LOG_FILE = "SCRIPT_LOG.txt";
+  public static final String KEY_NOTE_TXT = "NOTE.txt";
 
   private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
 
@@ -86,6 +87,11 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     if (workspace == null) {
       workspace = new Workspace(project, name);
     }
+    try {
+      Files.createFile(workspace.getPath().resolve(ChildElementsArrayList.DOT_SORT));
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
 
     return workspace;
   }
@@ -105,6 +111,15 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
+  }
+
+  public void setNote(String text) {
+    createNewFile(KEY_NOTE_TXT);
+    updateFileContents(KEY_NOTE_TXT, text);
+  }
+
+  public String getNote() {
+    return getFileContents(KEY_NOTE_TXT);
   }
 
   @Override

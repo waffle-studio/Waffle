@@ -29,8 +29,9 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   public static final String WORKSPACES = "Workspaces";
   public static final String WORKSPACE = "Workspace";
   public static final String KEY_WORKSPACE = "workspace";
+  public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, RedirectToWorkspace}
+  public enum Mode {Default, RedirectToWorkspace, UpdateNote}
   private Mode mode;
 
   private Project project;
@@ -46,123 +47,43 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new WorkspaceComponent());
-    Spark.get(getUrl(null, null), new WorkspaceComponent());
+    Spark.post(getUrl(null, Mode.UpdateNote), new WorkspaceComponent(Mode.UpdateNote));
 
     RunComponent.register();
     StagedExecutableComponent.register();
     StagedConductorComponent.register();
   }
 
-  public static String getUrl(Project project) {
-    return ProjectComponent.getUrl(project) + "/" + Workspace.WORKSPACE;
+  public static String getUrl(Workspace workspace) {
+    if (workspace == null) {
+      return ProjectComponent.getUrl(null) + "/" + Workspace.WORKSPACE + "/" + ':' + KEY_WORKSPACE;
+    } else {
+      return ProjectComponent.getUrl(workspace.getProject()) + "/" + Workspace.WORKSPACE + "/" + workspace.getName();
+    }
   }
 
-  public static String getUrl(Project project, Workspace workspace) {
-    return ProjectComponent.getUrl(project) + "/" + Workspace.WORKSPACE + "/" + (workspace == null ? ':' + KEY_WORKSPACE : workspace.getName());
+  public static String getUrl(Workspace workspace, Mode mode) {
+    if (workspace == null) {
+      return ProjectComponent.getUrl(null) + "/" + Workspace.WORKSPACE + "/" + ':' + KEY_WORKSPACE + "/@" + mode.name();
+    } else {
+      return ProjectComponent.getUrl(workspace.getProject()) + "/" + Workspace.WORKSPACE + "/" + workspace.getName() + "/@" + mode.name();
+    }
   }
 
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params(ProjectComponent.KEY_PROJECT));
-    String workspaceName = request.params(KEY_WORKSPACE);
-    if (workspaceName == null) {
-      renderWorkspaceList();
-    } else {
-      workspace = Workspace.getInstance(project, request.params(KEY_WORKSPACE));
-      if (mode.equals(Mode.RedirectToWorkspace)) {
-        response.redirect(getUrl(project, workspace));
-      } else {
+    workspace = Workspace.getInstance(project, request.params(KEY_WORKSPACE));
+
+    switch (mode) {
+      case UpdateNote:
+        workspace.setNote(request.queryParams(KEY_NOTE));
+      case RedirectToWorkspace:
+        response.redirect(getUrl(workspace));
+        break;
+      default:
         renderWorkspace();
-      }
     }
-  }
-
-  private void renderWorkspaceList() throws ProjectNotFoundException {
-    new ProjectMainTemplate(project) {
-      @Override
-      protected String pageTitle() {
-        return WORKSPACES;
-      }
-
-      @Override
-      protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName())));
-      }
-
-      @Override
-      protected String pageContent() {
-        /*
-        if (executableList.size() <= 0) {
-          return Lte.card(null, null,
-            Html.a(getUrl(project, jp.tkms.waffle.web.component.project.executable.ExecutablesComponent.Mode.New), null, null,
-              Html.fasIcon("plus-square") + "Add Executable"
-            ),
-            null
-          );
-        }
-         */
-        return Lte.card(null, null,
-          Lte.table("table-condensed table-sm", new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
-            }
-
-            @Override
-            public ArrayList<Future<Lte.TableRow>> tableRows() {
-              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Workspace workspace : Workspace.getList(project)) {
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(
-                      Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
-                  }
-                ));
-              }
-              if (list.isEmpty()) {
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
-                  }
-                ));
-              }
-              return list;
-            }
-          })
-          , null, "card-danger card-outline", "p-0")
-        + Lte.card( Html.fasIcon("eye-slash") + "Hidden Workspaces", Lte.cardToggleButton(true),
-          Lte.table("table-condensed table-sm", new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
-            }
-
-            @Override
-            public ArrayList<Future<Lte.TableRow>> tableRows() {
-              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Workspace workspace : Workspace.getHiddenList(project)) {
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(
-                      Html.a(WorkspaceComponent.getUrl(project, workspace), null, null, workspace.getName()));
-                  }
-                ));
-              }
-              if (list.isEmpty()) {
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
-                  }
-                ));
-              }
-              return list;
-            }
-          })
-          , null, "collapsed-card card-secondary card-outline", "p-0");
-      }
-    }.render(this);
   }
 
   private void renderWorkspace() throws ProjectNotFoundException {
@@ -177,7 +98,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(WorkspaceComponent.getUrl(project), WORKSPACES)
+          Html.a(WorkspacesComponent.getUrl(project), WORKSPACES)
         ));
       }
 
@@ -201,11 +122,13 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         }
          */
         return
-          Lte.card(Html.fasIcon("table") + workspace.getName(), null,
-            Html.div(null,
-              Lte.readonlyTextInputWithCopyButton("Workspace Directory", workspace.getPath().toAbsolutePath().toString())
-            )
-            , null, "card-danger", null)
+          Html.form(getUrl(workspace, Mode.UpdateNote), Html.Method.Post,
+            Lte.card(Html.fasIcon("table") + workspace.getName(), null,
+              Html.div(null,
+                Lte.readonlyTextInputWithCopyButton("Workspace Directory", workspace.getPath().toAbsolutePath().toString()),
+                Lte.formTextAreaGroup(KEY_NOTE, "Note", workspace.getNote(), null)
+              ),
+              Lte.formSubmitButton("success", "Update"), "card-danger", null))
             + Lte.divRow(
               Lte.divCol(Lte.DivSize.F12Md12Sm6, Lte.card(Html.fasIcon("user-tie") + "Staged" + ConductorComponent.CONDUCTORS, null,
                 Lte.table("table-condensed", new Lte.Table() {

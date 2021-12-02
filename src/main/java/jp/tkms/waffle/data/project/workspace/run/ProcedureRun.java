@@ -88,7 +88,11 @@ public class ProcedureRun extends AbstractRun {
     return Constants.WORK_DIR.resolve(this.workingDirectory);
   }
 
+  private int emptyKeyCount = 0;
   public void addReferable(String key, HasLocalPath run) {
+    if (key == null) {
+      key = StringKeyHashMap.toEmptyKey(emptyKeyCount++);
+    }
     getReferables().put(key, run);
     WrappedJson jsonObject = getObjectFromProperty(KEY_REFERABLE);
     jsonObject.put(key, run.getLocalPath().toString());
@@ -96,7 +100,7 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public void addReferable(HasLocalPath run) {
-    addReferable("", run);
+    addReferable(null, run);
   }
 
   public HasLocalPath getReferable(String key) {
@@ -170,8 +174,26 @@ public class ProcedureRun extends AbstractRun {
     addGuard(run.getLocalPath().toString());
   }
 
-  public void addGuard(HasLocalPath run, String key, String operator, String value) {
-    addGuard(run.getLocalPath().toString() + " " + key + " " + operator + " " + value);
+  public void addGuard(HasLocalPath run, String valueKey, String operator, String value) {
+    addGuard(run.getLocalPath().toString() + " " + valueKey + " " + operator + " " + value);
+  }
+
+  public void addReferableGuard(String key, HasLocalPath run) {
+    addReferable(key, run);
+    addGuard(run);
+  }
+
+  public void addReferableGuard(HasLocalPath run) {
+    addReferableGuard(null, run);
+  }
+
+  public void addReferableGuard(String key, HasLocalPath run, String valueKey, String operator, String value) {
+    addReferable(key, run);
+    addGuard(run, valueKey, operator, value);
+  }
+
+  public void addReferableGuard(HasLocalPath run, String valueKey, String operator, String value) {
+    addReferableGuard(null, run, valueKey, operator, value);
   }
 
   public ArrayList<String> getGuardList() {

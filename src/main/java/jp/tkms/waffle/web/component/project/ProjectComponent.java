@@ -7,6 +7,7 @@ import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspacesComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -48,7 +49,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     ExecutablesComponent.register();
     ExecutableComponent.register();
     ConductorComponent.register();
-    WorkspaceComponent.register();
+    WorkspacesComponent.register();
   }
 
   public static String getUrl(Project project) {
@@ -178,7 +179,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             //Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
             //  Html.a(RunsComponent.getUrl(project), "Runs"), ""),
             Lte.divCol(Lte.DivSize.F12Md12Sm6,
-              Lte.button(WorkspaceComponent.getUrl(project), Lte.Color.Outline_Danger, true,
+              Lte.button(WorkspacesComponent.getUrl(project), Lte.Color.Outline_Danger, true,
                 Html.fasIcon("table") + WorkspaceComponent.WORKSPACES)
             ),
             Lte.divCol(Lte.DivSize.F12Md12Sm6,

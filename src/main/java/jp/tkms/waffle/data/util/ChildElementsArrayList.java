@@ -14,6 +14,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class ChildElementsArrayList<T> extends ArrayList<T> {
+  public static final String DOT_SORT = ".SORT";
+
   public enum Mode {
     All, OnlyNormal, OnlyHidden, OnlyFavorite
   }
@@ -47,7 +49,11 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
             paths.filter(path -> Files.isDirectory(path)).sorted(
               Comparator.comparingLong(path -> {
                 try {
-                  return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+                  Path sortFilePath = path.resolve(DOT_SORT);
+                  if (!Files.exists(sortFilePath)) {
+                    sortFilePath = path;
+                  }
+                  return Files.readAttributes(sortFilePath, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
                 } catch (IOException e) {
                   return 0;
                 }
@@ -56,10 +62,8 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
               String name = path.getFileName().toString();
               if (
                 (Mode.OnlyNormal.equals(mode) && !name.startsWith("."))
-                  ||
-                  (Mode.OnlyHidden.equals(mode) && name.startsWith("."))
-                  ||
-                  (Mode.OnlyFavorite.equals(mode) && Files.exists(path.resolve(Constants.DOT_FAVORITE)))
+                  || (Mode.OnlyHidden.equals(mode) && name.startsWith("."))
+                  || (Mode.OnlyFavorite.equals(mode) && Files.exists(path.resolve(Constants.DOT_FAVORITE)))
               ) {
                 add(getInstance.apply(name));
               }

@@ -9,6 +9,7 @@ import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspacesComponent;
 import jp.tkms.waffle.web.component.project.workspace.conductor.StagedConductorComponent;
 import jp.tkms.waffle.web.template.Html;
 import spark.Spark;
@@ -39,14 +40,14 @@ public class StagedExecutableComponent extends ExecutableComponent {
   }
 
   protected static String getUrl() {
-    return WorkspaceComponent.getUrl(null, null) + "/" + Executable.EXECUTABLE;
+    return WorkspaceComponent.getUrl(null) + "/" + Executable.EXECUTABLE;
   }
 
   public static String getUrl(StagedExecutable executable) {
     if (executable == null) {
-      return WorkspaceComponent.getUrl(null, null) + "/" + Executable.EXECUTABLE + "/:" + KEY_EXECUTABLE;
+      return WorkspaceComponent.getUrl(null) + "/" + Executable.EXECUTABLE + "/:" + KEY_EXECUTABLE;
     } else {
-      return WorkspaceComponent.getUrl(executable.getProject(), executable.getWorkspace()) + "/" + Executable.EXECUTABLE + "/" + executable.getName();
+      return WorkspaceComponent.getUrl(executable.getWorkspace()) + "/" + Executable.EXECUTABLE + "/" + executable.getName();
     }
   }
 
@@ -93,8 +94,8 @@ public class StagedExecutableComponent extends ExecutableComponent {
     return new ArrayList<String>(Arrays.asList(
       Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),
       Html.a(ProjectComponent.getUrl(project), project.getName()),
-      Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
-      Html.a(WorkspaceComponent.getUrl(project, workspace), workspace.getName())
+      Html.a(WorkspacesComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
+      Html.a(WorkspaceComponent.getUrl(workspace), workspace.getName())
     ));
   }
 }

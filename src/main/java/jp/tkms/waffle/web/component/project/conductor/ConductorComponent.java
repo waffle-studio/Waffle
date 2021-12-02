@@ -137,7 +137,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           }
           conductorRun.start(true);
 
-          response.redirect(WorkspaceComponent.getUrl(workspace.getProject(), workspace));
+          response.redirect(WorkspaceComponent.getUrl(workspace));
         }
       } else if (mode == Mode.UpdateArguments) {
         if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {

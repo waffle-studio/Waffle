@@ -12,6 +12,7 @@ import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspacesComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -60,7 +61,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     if (workspace != null) {
       return '/' + workspace.getLocalPath().toString();
     } else {
-      return WorkspaceComponent.getUrl(null, null) + "/RUN";
+      return WorkspaceComponent.getUrl(null) + "/RUN";
     }
   }
 
@@ -68,7 +69,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
     if (run != null) {
       return '/' + ((HasLocalPath) run).getLocalPath().toString();
     } else {
-      return WorkspaceComponent.getUrl(null, null) + "/RUN/*";
+      return WorkspaceComponent.getUrl(null) + "/RUN/*";
     }
   }
 
@@ -382,8 +383,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
-          Html.a(WorkspaceComponent.getUrl(project, workspace), workspace.getName())
+          Html.a(WorkspacesComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
+          Html.a(WorkspaceComponent.getUrl(workspace), workspace.getName())
         ));
         ArrayList<String> runNodeList = new ArrayList<>();
         /*

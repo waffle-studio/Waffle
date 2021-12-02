@@ -121,7 +121,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         run.getProject().getName()
                       ),
                       Html.a(
-                        WorkspaceComponent.getUrl(run.getProject(), run.getWorkspace()),
+                        WorkspaceComponent.getUrl(run.getWorkspace()),
                         run.getWorkspace().getName()
                       ),
                       Html.a(

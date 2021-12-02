@@ -7,6 +7,7 @@ import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspacesComponent;
 import jp.tkms.waffle.web.template.Html;
 import spark.Spark;
 
@@ -37,14 +38,14 @@ public class StagedConductorComponent extends ConductorComponent {
   }
 
   protected static String getUrl() {
-    return WorkspaceComponent.getUrl(null, null) + "/" + Conductor.CONDUCTOR;
+    return WorkspaceComponent.getUrl( null) + "/" + Conductor.CONDUCTOR;
   }
 
   public static String getUrl(StagedConductor conductor) {
     if (conductor == null) {
-      return WorkspaceComponent.getUrl(null, null) + "/" + Conductor.CONDUCTOR + "/:" + KEY_CONDUCTOR;
+      return WorkspaceComponent.getUrl( null) + "/" + Conductor.CONDUCTOR + "/:" + KEY_CONDUCTOR;
     } else {
-      return WorkspaceComponent.getUrl(conductor.getProject(), conductor.getWorkspace()) + "/" + Conductor.CONDUCTOR + "/" + conductor.getName();
+      return WorkspaceComponent.getUrl(conductor.getWorkspace()) + "/" + Conductor.CONDUCTOR + "/" + conductor.getName();
     }
   }
 
@@ -91,8 +92,8 @@ public class StagedConductorComponent extends ConductorComponent {
     return new ArrayList<String>(Arrays.asList(
       Html.a(ProjectsComponent.getUrl(), ProjectComponent.PROJECTS),
       Html.a(ProjectComponent.getUrl(project), project.getName()),
-      Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
-      Html.a(WorkspaceComponent.getUrl(project, workspace), workspace.getName())
+      Html.a(WorkspacesComponent.getUrl(project), WorkspaceComponent.WORKSPACES),
+      Html.a(WorkspaceComponent.getUrl(workspace), workspace.getName())
     ));
   }
 }
