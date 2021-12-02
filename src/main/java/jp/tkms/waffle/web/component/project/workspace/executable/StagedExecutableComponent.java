@@ -62,7 +62,7 @@ public class StagedExecutableComponent extends ExecutableComponent {
   }
 
   @Override
-  protected String renderSubTitle() {
+  protected String renderPageTitle() {
     return TITLE;
   }
 
@@ -77,7 +77,7 @@ public class StagedExecutableComponent extends ExecutableComponent {
     Executable parent = Executable.getInstance(project, executable.getName());
     if (parent != null) {
       value += "&nbsp;" + Html.a(ExecutableComponent.getUrl(parent),
-        Html.span("right badge badge-info", null, Html.fasIcon("layer-group") + "Base Executable")
+        Html.span("right badge badge-light", null, Html.fasIcon("layer-group") + "Base Executable")
       );
     }
     return value;

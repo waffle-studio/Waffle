@@ -26,11 +26,12 @@ public class Lte {
   }
 
   public enum Color {
-    Primary, Secondary, Info, Success, Warning, Danger;
+    Primary, Secondary, Info, Success, Warning, Danger, Light,
+    Outline_Primary, Outline_Secondary, Outline_Info, Outline_Success, Outline_Warning, Outline_Danger, Outline_Light;
 
     @Override
     public String toString() {
-      return this.name().toLowerCase(Locale.ROOT);
+      return this.name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
   }
 
@@ -344,6 +345,11 @@ public class Lte {
     return element("button",
       new Attributes(value("class", "btn btn-" + color)),
       value);
+  }
+
+  public static String button(String href, Color color, boolean isBlock, String value) {
+    return a(href, "btn btn-" + color.toString()
+      + (isBlock ? " btn-block" : ""), null, value);
   }
 
   public static class FormError {

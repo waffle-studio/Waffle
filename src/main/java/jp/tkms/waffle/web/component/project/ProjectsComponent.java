@@ -175,7 +175,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
               return list;
             }
           })
-          , null, null, "p-0");
+          , null, "card-outline card-secondary", "p-0");
       }
     }.render(this);
   }

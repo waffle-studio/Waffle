@@ -515,7 +515,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
             , null, "collapsed-card.stop", null);
         }
 
-        String stderr = executableRun.getStdout();
+        String stderr = executableRun.getStderr();
         if (stderr != null) {
           content += Lte.card(Html.fasIcon("file") + "Standard Error",
             Lte.cardToggleButton(true),

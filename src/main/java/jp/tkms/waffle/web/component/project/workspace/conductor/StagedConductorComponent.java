@@ -60,7 +60,7 @@ public class StagedConductorComponent extends ConductorComponent {
   }
 
   @Override
-  protected String renderSubTitle() {
+  protected String renderPageTitle() {
     return TITLE;
   }
 

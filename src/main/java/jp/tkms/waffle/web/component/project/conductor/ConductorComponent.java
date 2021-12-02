@@ -166,7 +166,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   }
 
 
-  protected String renderSubTitle() {
+  protected String renderPageTitle() {
     return TITLE;
   }
 
@@ -273,12 +273,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return conductor.getName();
-      }
-
-      @Override
-      protected String pageSubTitle() {
-        return TITLE;
+        return renderPageTitle();
       }
 
       @Override
@@ -355,7 +350,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             "};"
         );
 
-        content += Lte.card(Html.fasIcon("terminal") + "Properties",
+        content += Lte.card(Html.fasIcon("user-tie") + conductor.getName(),
           Html.span(null, null,
             //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
             renderTool(),
@@ -364,7 +359,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           Html.div(null,
             Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getPath().toAbsolutePath().toString())
           )
-          , null, "collapsed-card.stop", null);
+          , null, "card-warning", null);
 
         content +=
           Html.form(getUrl(conductor, Mode.UpdateArguments), Html.Method.Post,
@@ -459,12 +454,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return conductor.getName();
-      }
-
-      @Override
-      protected String pageSubTitle() {
-        return renderSubTitle();
+        return renderPageTitle();
       }
 
       @Override

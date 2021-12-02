@@ -27,7 +27,7 @@ package jp.tkms.waffle.web.component.project.workspace;
 
 public class WorkspaceComponent extends AbstractAccessControlledComponent {
   public static final String WORKSPACES = "Workspaces";
-  public static final String WORKSPACE = "Workspaces";
+  public static final String WORKSPACE = "Workspace";
   public static final String KEY_WORKSPACE = "workspace";
 
   public enum Mode {Default, RedirectToWorkspace}
@@ -169,11 +169,6 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return workspace.getName();
-      }
-
-      @Override
-      protected String pageSubTitle() {
         return WORKSPACE;
       }
 
@@ -206,11 +201,11 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         }
          */
         return
-          Lte.card(Html.fasIcon("terminal") + "Properties", null,
+          Lte.card(Html.fasIcon("table") + workspace.getName(), null,
             Html.div(null,
               Lte.readonlyTextInputWithCopyButton("Workspace Directory", workspace.getPath().toAbsolutePath().toString())
             )
-            , null, "collapsed-card.stop", null)
+            , null, "card-danger", null)
             + Lte.divRow(
               Lte.divCol(Lte.DivSize.F12Md12Sm6, Lte.card(Html.fasIcon("user-tie") + "Staged" + ConductorComponent.CONDUCTORS, null,
                 Lte.table("table-condensed", new Lte.Table() {
@@ -302,7 +297,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                   return list;
                 }
               })
-              , null, "card-danger card-outline", "p-0");
+              , null, "card-outline", "p-0");
             /*,
             Lte.divRow(
               Html.section("col-lg-12",

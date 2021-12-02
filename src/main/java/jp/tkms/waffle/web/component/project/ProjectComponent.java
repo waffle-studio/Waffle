@@ -157,11 +157,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return project.getName();
-      }
-
-      @Override
-      protected String pageSubTitle() {
         return TITLE;
       }
 
@@ -174,14 +169,25 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         String content = Html.javascript("sessionStorage.setItem('latest-project-id','" + project.getName() + "');sessionStorage.setItem('latest-project-name','" + project.getName() + "');");
-        content += Lte.divRow(
-          //Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
-          //  Html.a(RunsComponent.getUrl(project), "Runs"), ""),
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "table", "bg-danger",
-            Html.a(WorkspaceComponent.getUrl(project), WorkspaceComponent.WORKSPACES), ""),
-          Lte.infoBox(Lte.DivSize.F12Md12Sm6, "layer-group", "bg-info",
-            Html.a(ExecutablesComponent.getUrl(project), ExecutablesComponent.EXECUTABLES), "")
-        );
+
+        content += Lte.card(Html.fasIcon("folder-open") + project.getName(), null,
+          Html.div(null,
+            Lte.readonlyTextInputWithCopyButton("Project Directory", project.getPath().toAbsolutePath().toString())
+          )
+          , Lte.divRow(
+            //Lte.infoBox(Lte.DivSize.F12Md12Sm6, "project-diagram", "bg-danger",
+            //  Html.a(RunsComponent.getUrl(project), "Runs"), ""),
+            Lte.divCol(Lte.DivSize.F12Md12Sm6,
+              Lte.button(WorkspaceComponent.getUrl(project), Lte.Color.Outline_Danger, true,
+                Html.fasIcon("table") + WorkspaceComponent.WORKSPACES)
+            ),
+            Lte.divCol(Lte.DivSize.F12Md12Sm6,
+              Lte.button(ExecutablesComponent.getUrl(project), Lte.Color.Outline_Info, true,
+                Html.fasIcon("layer-group") + ExecutablesComponent.EXECUTABLES)
+            ),
+            Html.br()
+          )
+          , "card-secondary", null);
 
         ArrayList<Conductor> conductorList = Conductor.getList(project);
         if (conductorList.size() <= 0) {

@@ -114,7 +114,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     }
   }
 
-  protected String renderSubTitle() {
+  protected String renderPageTitle() {
     return TITLE;
   }
 
@@ -128,7 +128,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   protected String renderTool() {
     return Html.a(getUrl(executable, Mode.TestRun),
-      Html.span("right badge badge-secondary", null, "TEST RUN")
+      Html.span("right badge badge-light", null, "TEST RUN")
     );
   }
 
@@ -140,12 +140,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return executable.getName();
-      }
-
-      @Override
-      protected String pageSubTitle() {
-        return renderSubTitle();
+        return renderPageTitle();
       }
 
       @Override
@@ -166,7 +161,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(executable, Mode.Update), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "Properties",
+            Lte.card(Html.fasIcon("layer-group") + executable.getName(),
               renderTool(),
               Html.div(null,
                 Lte.readonlyTextInputWithCopyButton("Executable Bin Directory (BASE)", executable.getBaseDirectory().toString()),
@@ -176,7 +171,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors)
               ),
               Lte.formSubmitButton("success", "Update"),
-              "card-outline card-info"
+              "card-info"
               , null
             )
           );
@@ -348,7 +343,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
-        return executable.getName();
+        return TITLE;
       }
 
       @Override
@@ -407,7 +402,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
         content +=
           Html.form(getUrl(executable, Mode.TestRun), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "Test Run",
+            Lte.card(Html.fasIcon("terminal") + executable.getName(),
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
