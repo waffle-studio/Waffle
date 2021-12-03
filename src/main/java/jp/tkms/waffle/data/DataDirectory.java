@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.HasLocalPath;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.TimedMap;
 
 import java.io.*;
@@ -41,12 +42,7 @@ public interface DataDirectory extends HasLocalPath {
       if (!path.isAbsolute()) {
         path = getPath().resolve(path);
       }
-      String contents = "";
-      try {
-        contents = new String(Files.readAllBytes(path));
-      } catch (IOException e) {
-      }
-      return contents;
+      return StringFileUtil.read(path);
     }
   }
 
@@ -56,13 +52,18 @@ public interface DataDirectory extends HasLocalPath {
         path = getPath().resolve(path);
       }
       if (Files.exists(path)) {
-        try {
-          FileWriter filewriter = new FileWriter(path.toFile());
-          filewriter.write(contents);
-          filewriter.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+        StringFileUtil.write(path, contents);
+      }
+    }
+  }
+
+  default void appendFileContents(Path path, String contents) {
+    synchronized (this) {
+      if (!path.isAbsolute()) {
+        path = getPath().resolve(path);
+      }
+      if (Files.exists(path)) {
+        StringFileUtil.append(path, contents);
       }
     }
   }
@@ -77,6 +78,10 @@ public interface DataDirectory extends HasLocalPath {
 
   default void updateFileContents(String fileName, String contents) {
     updateFileContents(Paths.get(fileName), contents);
+  }
+
+  default void appendFileContents(String fileName, String contents) {
+    appendFileContents(Paths.get(fileName), contents);
   }
 
   default String getDirectoryName() {

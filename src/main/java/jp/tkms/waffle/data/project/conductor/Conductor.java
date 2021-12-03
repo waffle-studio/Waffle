@@ -15,6 +15,7 @@ import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.data.util.WrappedJsonArray;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
+import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 
@@ -81,8 +82,11 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     });
   }
 
-  public static Conductor create(Project project, String name) {
+  public static Conductor create(Project project, String name) throws InvalidInputException {
     name = FileName.removeRestrictedCharacters(name);
+    if (name.length() <= 0) {
+      throw new InvalidInputException(name);
+    }
 
     Conductor conductor = getInstance(project, name);
     if (conductor == null) {

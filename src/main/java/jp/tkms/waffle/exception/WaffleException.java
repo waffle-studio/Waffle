@@ -6,6 +6,10 @@ public class WaffleException extends Exception {
   public WaffleException() {
   }
 
+  public WaffleException(String message) {
+    setMessage(message);
+  }
+
   public WaffleException(Throwable e) {
     message = e.getMessage();
   }

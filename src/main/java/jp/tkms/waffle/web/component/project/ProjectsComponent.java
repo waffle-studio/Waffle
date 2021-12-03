@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.component.project;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -153,11 +154,12 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
         }
 
         return Lte.card(null, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-nooverflow", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("", "Name"));
+              list.add(new Lte.TableValue("", "Note"));
               return list;
             }
 
@@ -167,7 +169,8 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
               for (Project project : Project.getList()) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
-                      Html.a(ProjectComponent.getUrl(project), null, null, project.getName())
+                      Html.a(ProjectComponent.getUrl(project), null, null, project.getName()),
+                      project.getNote()
                     );
                   }
                 ));
@@ -182,7 +185,13 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
   private void addProject() {
     String name = request.queryParams("name");
-    Project project = Project.create(name);
+    Project project = null;
+    try {
+      project = Project.create(name);
+    } catch (InvalidInputException e) {
+      response.redirect(ProjectsComponent.getUrl());
+      return;
+    }
     response.redirect(ProjectComponent.getUrl(project));
   }
 

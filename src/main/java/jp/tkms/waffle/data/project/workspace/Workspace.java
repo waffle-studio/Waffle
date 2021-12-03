@@ -122,6 +122,11 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     return getFileContents(KEY_NOTE_TXT);
   }
 
+  public void appendNote(String text) {
+    createNewFile(KEY_NOTE_TXT);
+    appendFileContents(KEY_NOTE_TXT, text + "\n");
+  }
+
   @Override
   public Path getPath() {
     return getBaseDirectoryPath(getProject()).resolve(name);

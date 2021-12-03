@@ -35,7 +35,7 @@ import static spark.Spark.*;
 public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
   public static final String VERSION = getVersionId();
-  public static int port = 4567;
+  public static int port = 8400;
   public static boolean aliveFlag = true;
   public static boolean hibernateFlag = false;
   public static boolean restartFlag = false;

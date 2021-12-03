@@ -10,6 +10,7 @@ import jp.tkms.waffle.data.util.ChildElementsArrayList;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
+import jp.tkms.waffle.exception.InvalidInputException;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 
 public class Project implements DataDirectory, Serializable {
   public static final String PROJECT = "PROJECT";
+  public static final String KEY_NOTE_TXT = "NOTE.txt";
   private static final InstanceCache<String, Project> instanceCache = new InstanceCache<>();
 
   protected String name;
@@ -52,10 +54,13 @@ public class Project implements DataDirectory, Serializable {
     });
   }
 
-  public static Project create(String name) {
+  public static Project create(String name) throws InvalidInputException {
     Data.initializeWorkDirectory();
 
     name = FileName.removeRestrictedCharacters(name);
+    if (name.length() <= 0) {
+      throw new InvalidInputException(name);
+    }
 
     Project project = getInstance(name);
     if (project == null) {
@@ -113,5 +118,19 @@ public class Project implements DataDirectory, Serializable {
       }
       Workspace.getTestRunWorkspace(this);
     }
+  }
+
+  public void setNote(String text) {
+    createNewFile(KEY_NOTE_TXT);
+    updateFileContents(KEY_NOTE_TXT, text);
+  }
+
+  public void appendNote(String text) {
+    createNewFile(KEY_NOTE_TXT);
+    appendFileContents(KEY_NOTE_TXT, text);
+  }
+
+  public String getNote() {
+    return getFileContents(KEY_NOTE_TXT);
   }
 }
