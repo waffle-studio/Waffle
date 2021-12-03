@@ -38,14 +38,6 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     return name;
   }
 
-  public String getScriptLog() {
-    return StringFileUtil.read(getPath().resolve(SCRIPT_LOG_FILE));
-  }
-
-  public void appendScriptLog(String value) {
-    StringFileUtil.append(getPath().resolve(SCRIPT_LOG_FILE), value);
-  }
-
   @Override
   public Path getPropertyStorePath() {
     return getPath().resolve(JSON_FILE);
@@ -125,6 +117,14 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public void appendNote(String text) {
     createNewFile(KEY_NOTE_TXT);
     appendFileContents(KEY_NOTE_TXT, text + "\n");
+  }
+
+  public String getScriptLog() {
+    return getFileContents(SCRIPT_LOG_FILE);
+  }
+
+  public void appendScriptLog(String text) {
+    appendFileContents(SCRIPT_LOG_FILE, text);
   }
 
   @Override
