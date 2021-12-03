@@ -109,96 +109,85 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-
-        String scriptLog = workspace.getScriptLog();
-        /*
-        if (executableList.size() <= 0) {
-          return Lte.card(null, null,
-            Html.a(getUrl(project, jp.tkms.waffle.web.component.project.executable.ExecutablesComponent.Mode.New), null, null,
-              Html.fasIcon("plus-square") + "Add Executable"
+        String contents = Html.form(getUrl(workspace, Mode.UpdateNote), Html.Method.Post,
+          Lte.card(Html.fasIcon("table") + workspace.getName(), null,
+            Html.div(null,
+              Lte.readonlyTextInputWithCopyButton("Workspace Directory", workspace.getPath().toAbsolutePath().toString()),
+              Lte.formTextAreaGroup(KEY_NOTE, "Note", workspace.getNote(), null)
             ),
-            null
-          );
-        }
-         */
-        return
-          Html.form(getUrl(workspace, Mode.UpdateNote), Html.Method.Post,
-            Lte.card(Html.fasIcon("table") + workspace.getName(), null,
-              Html.div(null,
-                Lte.readonlyTextInputWithCopyButton("Workspace Directory", workspace.getPath().toAbsolutePath().toString()),
-                Lte.formTextAreaGroup(KEY_NOTE, "Note", workspace.getNote(), null)
-              ),
-              Lte.formSubmitButton("success", "Update"), "card-danger", null))
-            + Lte.divRow(
-              Lte.divCol(Lte.DivSize.F12Md12Sm6, Lte.card(Html.fasIcon("user-tie") + "Staged" + ConductorComponent.CONDUCTORS, null,
-                Lte.table("table-condensed", new Lte.Table() {
-                  @Override
-                  public ArrayList<Lte.TableValue> tableHeaders() {
-                    return null;
-                  }
+            Lte.formSubmitButton("success", "Update"), "card-danger", null));
 
-                  @Override
-                  public ArrayList<Future<Lte.TableRow>> tableRows() {
-                    ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                    for (StagedConductor conductor : StagedConductor.getList(workspace)) {
-                      list.add(Main.interfaceThreadPool.submit(() -> {
-                          return new Lte.TableRow(
-                            Html.a(StagedConductorComponent.getUrl(conductor), null, null, conductor.getName()));
-                        }
-                      ));
-                    }
-                    if (list.isEmpty()) {
-                      list.add(Main.interfaceThreadPool.submit(() -> {
-                          return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
-                        }
-                      ));
-                    }
-                    return list;
-                  }
-                })
-                , null, "card-warning card-outline", "p-0")),
-              Lte.divCol(Lte.DivSize.F12Md12Sm6, Lte.card(Html.fasIcon("layer-group") + "Staged" + ExecutablesComponent.EXECUTABLES, null,
-                Lte.table("table-condensed", new Lte.Table() {
-                  @Override
-                  public ArrayList<Lte.TableValue> tableHeaders() {
-                    return null;
-                  }
+        contents += Lte.divRow(
+          Lte.divCol(Lte.DivSize.F12Md12Sm6, Lte.card(Html.fasIcon("user-tie") + "Staged" + ConductorComponent.CONDUCTORS, null,
+            Lte.table("table-condensed", new Lte.Table() {
+              @Override
+              public ArrayList<Lte.TableValue> tableHeaders() {
+                return null;
+              }
 
-                  @Override
-                  public ArrayList<Future<Lte.TableRow>> tableRows() {
-                    ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                    for (StagedExecutable executable : StagedExecutable.getList(workspace)) {
-                      list.add(Main.interfaceThreadPool.submit(() -> {
-                          return new Lte.TableRow(
-                            Html.a(StagedExecutableComponent.getUrl(executable), null, null, executable.getName()));
-                        }
-                      ));
+              @Override
+              public ArrayList<Future<Lte.TableRow>> tableRows() {
+                ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+                for (StagedConductor conductor : StagedConductor.getList(workspace)) {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
+                      return new Lte.TableRow(
+                        Html.a(StagedConductorComponent.getUrl(conductor), null, null, conductor.getName()));
                     }
-                    if (list.isEmpty()) {
-                      list.add(Main.interfaceThreadPool.submit(() -> {
-                          return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
-                        }
-                      ));
-                    }
-                    return list;
-                  }
-                }),
-                null, "card-info card-outline", "p-0"))
-            ) +
-            Lte.card(Html.fasIcon("project-diagram") + RunComponent.RUNS, null,
-              Lte.table("table-condensed", new Lte.Table() {
-                @Override
-                public ArrayList<Lte.TableValue> tableHeaders() {
-                  return null;
+                  ));
                 }
+                if (list.isEmpty()) {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
+                      return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
+                    }
+                  ));
+                }
+                return list;
+              }
+            })
+            , null, "card-warning card-outline", "p-0")),
+          Lte.divCol(Lte.DivSize.F12Md12Sm6, Lte.card(Html.fasIcon("layer-group") + "Staged" + ExecutablesComponent.EXECUTABLES, null,
+            Lte.table("table-condensed", new Lte.Table() {
+              @Override
+              public ArrayList<Lte.TableValue> tableHeaders() {
+                return null;
+              }
 
-                @Override
-                public ArrayList<Future<Lte.TableRow>> tableRows() {
-                  ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                  for (HasLocalPath localPath : AbstractRun.getDirectoryList(workspace)) {
-                    list.add(Main.interfaceThreadPool.submit(() -> {
-                        return new Lte.TableRow(
-                          Html.a(RunComponent.getUrlFromLocalPath(localPath), null, null, localPath.getPath().getFileName().toString()));
+              @Override
+              public ArrayList<Future<Lte.TableRow>> tableRows() {
+                ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+                for (StagedExecutable executable : StagedExecutable.getList(workspace)) {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
+                      return new Lte.TableRow(
+                        Html.a(StagedExecutableComponent.getUrl(executable), null, null, executable.getName()));
+                    }
+                  ));
+                }
+                if (list.isEmpty()) {
+                  list.add(Main.interfaceThreadPool.submit(() -> {
+                      return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
+                    }
+                  ));
+                }
+                return list;
+              }
+            }),
+            null, "card-info card-outline", "p-0"))
+        );
+
+        contents += Lte.card(Html.fasIcon("project-diagram") + RunComponent.RUNS, null,
+          Lte.table("table-condensed", new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              return null;
+            }
+
+            @Override
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              for (HasLocalPath localPath : AbstractRun.getDirectoryList(workspace)) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(
+                      Html.a(RunComponent.getUrlFromLocalPath(localPath), null, null, localPath.getPath().getFileName().toString()));
                         /*
                           if (abstractRun instanceof ExecutableRun) {
                             return new Lte.TableRow(
@@ -208,31 +197,33 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
                               Html.a(RunComponent.getUrl(abstractRun), null, null, abstractRun.getName()));
                           }
                          */
-                      }
-                    ));
                   }
-                  if (list.isEmpty()) {
-                    list.add(Main.interfaceThreadPool.submit(() -> {
-                        return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
-                      }
-                    ));
+                ));
+              }
+              if (list.isEmpty()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(new Lte.TableValue("text-align:center;color:silver;", Html.fasIcon("receipt") + "Empty"));
                   }
-                  return list;
-                }
-              })
-              , null, "card-outline", "p-0");
-            /*,
-            Lte.divRow(
+                ));
+              }
+              return list;
+            }
+          })
+          , null, "card-outline", "p-0");
+
+        String scriptLog = workspace.getScriptLog();
+        contents += Lte.divRow(
               Html.section("col-lg-12",
                 Lte.card(Html.fasIcon("sticky-note") + "Script Log", null,
                   (scriptLog.equals("") ?
                     Html.element("div",
                       new Html.Attributes(Html.value("style", "text-align:center;color:silver;")), Html.fasIcon("receipt") + "Empty")
-                    : Lte.readonlyTextAreaGroup("log", null, workspace.getScriptLog()) )
+                    : Lte.readonlyTextAreaGroup("log", null, scriptLog) )
                   , null, "card-secondary card-outline", null)
               )
-            )
-            */
+            );
+
+        return contents;
       }
     }.render(this);
   }
