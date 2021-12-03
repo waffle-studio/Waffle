@@ -11,15 +11,14 @@ import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class RubyScript {
-  private static Integer runningCount = 0;
+  private static AtomicInteger runningCount = new AtomicInteger(0);
 
   public static boolean hasRunning() {
-    synchronized (runningCount) {
-      return (runningCount > 0);
-    }
+    return (runningCount.get() > 0);
   }
 
   public static void process(Consumer<ScriptingContainer> process) {
@@ -67,7 +66,7 @@ public class RubyScript {
   }
 
   public static String debugReport() {
-    return RubyScript.class.getSimpleName() + " : runningCount=" + runningCount;
+    return RubyScript.class.getSimpleName() + " : runningCount=" + runningCount.get();
   }
 
   public static String getInitScript() {
@@ -87,9 +86,7 @@ public class RubyScript {
     public void run() {
       boolean failed;
       do {
-        synchronized (runningCount) {
-          runningCount += 1;
-        }
+        runningCount.incrementAndGet();
         failed = false;
         ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
         try {
@@ -109,9 +106,7 @@ public class RubyScript {
         } finally {
           container.terminate();
           container = null;
-          synchronized (runningCount) {
-            runningCount -= 1;
-          }
+          runningCount.decrementAndGet();
         }
       } while (failed);
     }

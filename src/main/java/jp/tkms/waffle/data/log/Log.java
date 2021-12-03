@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Log {
   protected static final String TABLE_NAME = "log";
@@ -32,7 +33,7 @@ public class Log {
   private static String currentDatabaseName = newDatabaseName();
   private static ExecutorService loggerThread = Executors.newSingleThreadExecutor();
   private static final Object objectLocker = new Object();
-  private static Long nextId = 0L;
+  private static AtomicLong nextId = new AtomicLong(0);
 
   private long timestamp = 0;
   private long id = -1;
@@ -47,13 +48,7 @@ public class Log {
   }
 
   private Log(Level level, String message) {
-    this(getNextId(), (System.currentTimeMillis() / 1000L), level, message);
-  }
-
-  public static long getNextId() {
-    synchronized (nextId) {
-      return nextId++;
-    }
+    this(nextId.getAndIncrement(), (System.currentTimeMillis() / 1000L), level, message);
   }
 
   public static String getCurrentDatabaseName() {
@@ -125,7 +120,7 @@ public class Log {
       }
     }
 
-    nextId = 0L;
+    nextId.set(0);
     db = getDatabase();
     log = new Log(Level.RotateFrom, currentDatabaseName);
     try {
