@@ -16,17 +16,18 @@ buildscript {
 		jcenter()
 	}
 	dependencies {
-		classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
 		classpath 'org.ajoberstar:grgit:1.7.2'
 	}
 }
 
+plugins {
+	id "com.github.johnrengelman.shadow" version "7.1.0"
+}
 
 //import org.apache.tools.ant.filters.ReplaceTokens
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
-apply plugin: 'com.github.johnrengelman.shadow'
 
 // Apply the application plugin to add support for building an application
 apply plugin: 'application'

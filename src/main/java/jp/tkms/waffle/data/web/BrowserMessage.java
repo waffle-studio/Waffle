@@ -2,31 +2,24 @@ package jp.tkms.waffle.data.web;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class BrowserMessage {
   private static ConcurrentLinkedQueue<BrowserMessage> messageQueue = new ConcurrentLinkedQueue<>();
-  private static Long nextId = 0L;
+  private static AtomicLong nextId = new AtomicLong(0);
 
   private long rowId;
   private long timestamp;
   private String message;
 
   public BrowserMessage(String message) {
-    this.rowId = getNextRowId();
+    this.rowId = nextId.getAndIncrement();
     this.timestamp = System.currentTimeMillis();
     this.message = message;
   }
 
-  public static long getNextRowId() {
-    synchronized (nextId) {
-      return nextId++;
-    }
-  }
-
   public static long getCurrentRowId() {
-    synchronized (nextId) {
-      return nextId;
-    }
+    return nextId.get();
   }
 
   public static ArrayList<BrowserMessage> getList(Long currentRowId) {
