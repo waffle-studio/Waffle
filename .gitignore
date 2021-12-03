@@ -13,6 +13,11 @@ waffle.dat
 
 /build/
 
+/waffle-jre/
+/servant-jre/
+/waffle-jre.tar.gz
+/servant-jre.tar.gz
+
 # Compiled class file
 *.class
 
