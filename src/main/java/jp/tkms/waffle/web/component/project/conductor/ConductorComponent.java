@@ -14,6 +14,7 @@ import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
+import jp.tkms.waffle.web.component.project.executable.ParameterExtractorComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -27,6 +28,7 @@ import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import static jp.tkms.waffle.web.template.Html.br;
 import static jp.tkms.waffle.web.template.Html.value;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
@@ -40,7 +42,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String NEW_WORKSPACE = "[Create new workspace]";
   private Mode mode;
 
-  public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure}
+  public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure}
 
   protected Project project;
   protected Conductor conductor;
@@ -64,6 +66,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, Mode.UpdateMainScript), new ConductorComponent(Mode.UpdateMainScript));
     Spark.post(getUrl(null, Mode.UpdateListenerScript), new ConductorComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, Mode.NewChildProcedure), new ConductorComponent(Mode.NewChildProcedure));
+    Spark.get(getUrl(null, Mode.RemoveConductor), new ConductorComponent(Mode.RemoveConductor));
   }
 
   protected static String getUrl() {
@@ -87,80 +90,65 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
 
-    if (Mode.List.equals(mode)) {
+    if (mode == Mode.List) {
       renderConductors();
     } else {
       conductor = getConductorEntity();
 
-      if (mode == Mode.Prepare) {
-        if (conductor.checkSyntax()) {
-        /*
-        parent = ActorRun.getInstance(project, request.params("parent"));
-        try {
-          baseRun = SimulatorRun.getInstance(project, request.params("base"));
-        } catch (RunNotFoundException e) {
-          baseRun = null;
-        }
-
-         */
-          renderPrepareForm();
-        } else {
-          response.redirect(getUrl(conductor));
-        }
-      } else if (mode == Mode.Run) {
-
-        String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
-        String newRunName = "" + request.queryParams(KEY_CONDUCTOR);
-        Workspace workspace = null;
-        if (NEW_WORKSPACE.equals(workspaceName)) {
-          workspace = Workspace.create(project, newRunName);
-        } else {
-          workspace = Workspace.getInstance(project, workspaceName);
-        }
-
-      /*
-      parent = ActorRun.getInstance(project, request.params("parent"));
-      String newRunNodeName = "" + request.queryParams(KEY_NAME);
-      ActorRun actorRun = ActorRun.createActorGroupRun(parent.getRunNode().createInclusiveRunNode(newRunNodeName), parent, conductor);
-      if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-        actorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
-      }
-      actorRun.start(null, true);
-       */
-
-        if (workspace == null) {
-          response.redirect(LogsComponent.getUrl());
-        } else {
-          ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
-          if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-            conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
+      switch (mode) {
+        case Prepare:
+          if (conductor.checkSyntax()) {
+            renderPrepareForm();
+          } else {
+            response.redirect(getUrl(conductor));
           }
-          conductorRun.start(true);
+          break;
+        case Run:
+          String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
+          String newRunName = "" + request.queryParams(KEY_CONDUCTOR);
+          Workspace workspace = null;
+          if (NEW_WORKSPACE.equals(workspaceName)) {
+            workspace = Workspace.create(project, newRunName);
+          } else {
+            workspace = Workspace.getInstance(project, workspaceName);
+          }
 
-          response.redirect(WorkspaceComponent.getUrl(workspace));
-        }
-      } else if (mode == Mode.UpdateArguments) {
-        if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-          conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
-        }
-        response.redirect(getUrl(conductor));
-      } else if (mode == Mode.UpdateMainScript) {
-        if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-          conductor.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
-        }
-        response.redirect(getUrl(conductor));
-      } else if (mode == Mode.NewChildProcedure) {
-        if (request.queryMap().hasKey(KEY_CONDUCTOR)) {
-          conductor.createNewChildProcedure(request.queryParams(KEY_CONDUCTOR));
-        }
-        response.redirect(getUrl(conductor));
-      } else if (mode == Mode.UpdateListenerScript) {
-        if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-          conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
-        }
-        response.redirect(getUrl(conductor));
-      } else {
-        renderConductor();
+          if (workspace == null) {
+            response.redirect(LogsComponent.getUrl());
+          } else {
+            ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
+            if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+              conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
+            }
+            conductorRun.start(true);
+
+            response.redirect(WorkspaceComponent.getUrl(workspace));
+          }
+          break;
+        case UpdateArguments:
+          if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+            conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
+          }
+          response.redirect(getUrl(conductor));
+          break;
+        case UpdateMainScript:
+          if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
+            conductor.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
+          }
+          response.redirect(getUrl(conductor));
+          break;
+        case UpdateListenerScript:
+          if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
+            conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
+          }
+          response.redirect(getUrl(conductor));
+          break;
+        case RemoveConductor:
+          conductor.deleteDirectory();
+          response.redirect(ProjectComponent.getUrl(project));
+          break;
+        default:
+          renderConductor();
       }
     }
   }
@@ -172,9 +160,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
   protected ArrayList<String> renderPageBreadcrumb() {
     return new ArrayList<String>(Arrays.asList(
-      Html.a(ProjectsComponent.getUrl(), "Projects"),
-      Html.a(ProjectComponent.getUrl(project), project.getName()),
-      "Conductors",
+      ProjectsComponent.getAnchorLink(),
+      ProjectComponent.getAnchorLink(project),
+      CONDUCTORS,
       Html.a(ConductorComponent.getUrl(conductor), conductor.getName())
     ));
   }
@@ -199,8 +187,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          ProjectsComponent.getAnchorLink(),
+          ProjectComponent.getAnchorLink(project),
           CONDUCTORS
         ));
       }
@@ -425,6 +413,16 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             //NOOP
           }
         }
+
+        content += Html.form(getUrl(conductor, Mode.RemoveConductor), Html.Method.Get,
+          Lte.card(Html.fasIcon("trash-alt") + "Remove",
+            Lte.cardToggleButton(true),
+            Html.div(null,
+              Lte.formSubmitButton("danger", "Remove")
+            )
+            , null, "collapsed-card", null
+          )
+        );
 
         return content;
       }

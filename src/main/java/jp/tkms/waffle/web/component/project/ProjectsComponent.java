@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 public class ProjectsComponent extends AbstractAccessControlledComponent {
+  public static final String PROJECTS = "Projects";
   private Mode mode;
 
   public ProjectsComponent(Mode mode) {
@@ -36,6 +37,10 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
 
   public static String getUrl() {
     return "/PROJECT";
+  }
+
+  public static String getAnchorLink() {
+    return Html.a(getUrl(), PROJECTS);
   }
 
   public static String getUrl(Mode mode) {

@@ -59,6 +59,10 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     return "/" + Project.PROJECT + "/" + (project == null ? ':' + KEY_PROJECT : project.getName());
   }
 
+  public static String getAnchorLink(Project project) {
+    return Html.a(getUrl(project), project.getName());
+  }
+
   public static String getUrl(Project project, Mode mode) {
     return getUrl(project) + "/@" + mode.name();
   }
