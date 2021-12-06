@@ -189,7 +189,11 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     }
   }
 
-  public String createNewChildProcedure(String name) {
+  public String createNewChildProcedure(String name) throws InvalidInputException {
+    if (name.length() <= 0) {
+      throw new InvalidInputException(name);
+    }
+
     if (!ScriptProcessor.CLASS_NAME_MAP.containsKey(name.replaceFirst("^.*\\.", "."))) {
       name = name + RubyScriptProcessor.EXTENSION;
     }

@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
+import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -137,6 +138,16 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           }
           response.redirect(getUrl(conductor));
           break;
+        case NewChildProcedure:
+          if (request.queryMap().hasKey(KEY_CONDUCTOR)) {
+            try {
+              conductor.createNewChildProcedure(request.queryParams(KEY_CONDUCTOR));
+            } catch (InvalidInputException e) {
+              // NOP // response.redirect(getUrl(conductor)); break;
+            }
+          }
+          response.redirect(getUrl(conductor));
+          break;
         case UpdateListenerScript:
           if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
             conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
@@ -144,8 +155,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           response.redirect(getUrl(conductor));
           break;
         case RemoveConductor:
-          conductor.deleteDirectory();
-          response.redirect(ProjectComponent.getUrl(project));
+          if (conductor.getName().equals(request.queryParams(KEY_CONDUCTOR))) {
+            conductor.deleteDirectory();
+            response.redirect(ProjectComponent.getUrl(project));
+          } else {
+            response.redirect(getUrl(conductor));
+          }
           break;
         default:
           renderConductor();
@@ -417,10 +432,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         content += Html.form(getUrl(conductor, Mode.RemoveConductor), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
-            Html.div(null,
-              Lte.formSubmitButton("danger", "Remove")
-            )
-            , null, "collapsed-card", null
+            Lte.formInputGroup("text", KEY_CONDUCTOR, "Type the name of Conductor.", conductor.getName(), null, null),
+            Lte.formSubmitButton("danger", "Remove")
+            , "collapsed-card", null
           )
         );
 
