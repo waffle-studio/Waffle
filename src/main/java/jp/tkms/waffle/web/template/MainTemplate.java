@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.template;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.web.AlertCookie;
 import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -248,7 +249,8 @@ abstract public class MainTemplate extends AbstractTemplate {
               "      textarea.val(editor.getText());\n" +
               "    })\n" +
               "  });\n" +
-              "});")
+              "});"),
+          AlertCookie.getAlertScript()
         )
       )
     );

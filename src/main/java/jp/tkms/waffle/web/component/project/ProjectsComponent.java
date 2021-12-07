@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.project;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.exception.InvalidInputException;
+import jp.tkms.waffle.web.AlertCookie;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -194,6 +195,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
     try {
       project = Project.create(name);
     } catch (InvalidInputException e) {
+      AlertCookie.putError(response, "The project's name is invalid.");
       response.redirect(ProjectsComponent.getUrl());
       return;
     }
