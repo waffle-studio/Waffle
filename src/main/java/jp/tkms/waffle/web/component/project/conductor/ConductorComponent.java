@@ -15,7 +15,6 @@ import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
-import jp.tkms.waffle.web.component.project.executable.ParameterExtractorComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -29,7 +28,6 @@ import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import static jp.tkms.waffle.web.template.Html.br;
 import static jp.tkms.waffle.web.template.Html.value;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
@@ -41,10 +39,10 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_LISTENER_NAME = "listener_name";
   public static final String KEY_CONDUCTOR = "conductor";
   private static final String NEW_WORKSPACE = "[Create new workspace]";
-  private Mode mode;
 
   public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure}
 
+  private Mode mode;
   protected Project project;
   protected Conductor conductor;
   //private ActorRun parent;
@@ -134,7 +132,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           break;
         case UpdateMainScript:
           if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-            conductor.updateRepresentativeActorScript(request.queryParams(KEY_MAIN_SCRIPT));
+            conductor.updateMainProcedureScript(request.queryParams(KEY_MAIN_SCRIPT));
           }
           response.redirect(getUrl(conductor));
           break;
@@ -150,7 +148,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           break;
         case UpdateListenerScript:
           if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-            conductor.updateActorScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
+            conductor.updateChildProcedureScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
           }
           response.redirect(getUrl(conductor));
           break;

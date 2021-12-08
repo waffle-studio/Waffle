@@ -4,6 +4,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.*;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.convertor.WorkspaceConvertor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.util.ChildElementsArrayList;
@@ -117,6 +118,14 @@ public class Project implements DataDirectory, Serializable {
         ErrorLogMessage.issue(e);
       }
       Workspace.getTestRunWorkspace(this);
+    }
+
+    if (! Files.exists(WorkspaceConvertor.getBaseDirectoryPath(this))) {
+      try {
+        Files.createDirectories(WorkspaceConvertor.getBaseDirectoryPath(this));
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
     }
   }
 

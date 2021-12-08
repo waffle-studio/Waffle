@@ -104,7 +104,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     }
 
     if (! Files.exists(getMainProcedureScriptPath())) {
-      updateRepresentativeActorScript(null);
+      updateMainProcedureScript(null);
     }
 
     if (! Files.exists(getPath().resolve(KEY_CHILD))) {
@@ -210,11 +210,11 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     removeFromArrayOfProperty(KEY_CHILD, name);
   }
 
-  public void updateActorScript(String name, String script) {
+  public void updateChildProcedureScript(String name, String script) {
     updateFileContents(getChildProcedureScriptPath(name), script);
   }
 
-  public void updateRepresentativeActorScript(String contents) {
+  public void updateMainProcedureScript(String contents) {
     Path path = getMainProcedureScriptPath();
     if (Files.exists(path)) {
       updateFileContents(path, contents);

@@ -2,9 +2,11 @@ package jp.tkms.waffle.web.component.project;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.conductor.Conductor;
+import jp.tkms.waffle.data.project.convertor.WorkspaceConvertor;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
+import jp.tkms.waffle.web.component.project.convertor.WorkspaceConvertorComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
@@ -28,7 +30,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   public static final String KEY_PROJECT = "project";
   public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, NotFound, EditConstModel, AddConductor, UpdateNote}
+  public enum Mode {Default, NotFound, EditConstModel, AddConductor, UpdateNote, AddWorkspaceConvertor}
   Mode mode;
 
   private String requestedId;
@@ -53,6 +55,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     ExecutableComponent.register();
     ConductorComponent.register();
     WorkspacesComponent.register();
+    WorkspaceConvertorComponent.register();
   }
 
   public static String getUrl(Project project) {
@@ -288,8 +291,40 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             , null, "card-warning card-outline", "p-0");
         }
 
-        contents +=
-          Html.form(getUrl( project, Mode.UpdateNote), Html.Method.Post,
+        contents += Lte.card(Html.fasIcon("broom") + WorkspaceConvertorComponent.WORKSPACE_CONVERTORS,
+          Html.a(getUrl(project, Mode.AddWorkspaceConvertor),
+            null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
+          ),
+          Lte.table(null, new Lte.Table() {
+            @Override
+            public ArrayList<Lte.TableValue> tableHeaders() {
+              return null;
+            }
+
+            @Override
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              for (WorkspaceConvertor convertor : WorkspaceConvertor.getList(project)) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                  return new Lte.TableRow(
+                    new Lte.TableValue("",
+                      WorkspaceConvertorComponent.getAnchorLink(convertor)
+                    ),
+                    new Lte.TableValue("text-align:right;",
+                      Html.a(WorkspaceConvertorComponent.getUrl(convertor, WorkspaceConvertorComponent.Mode.Prepare),
+                        Html.span("right badge badge-secondary", null, "RUN")
+                      )
+                    )
+                  );
+                } ));
+              }
+              return list;
+            }
+          })
+          , null, "card-outline", "p-0");
+
+      contents +=
+        Html.form(getUrl( project, Mode.UpdateNote), Html.Method.Post,
             Lte.card(Html.fasIcon("sticky-note") + "Note",null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
