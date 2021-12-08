@@ -11,9 +11,14 @@ import jp.tkms.waffle.data.util.StringKeyHashMap;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
+import org.apache.commons.io.output.NullOutputStream;
+import org.apache.commons.io.output.NullPrintStream;
 import org.jruby.Ruby;
+import org.jruby.RubyInstanceConfig;
 import org.jruby.embed.*;
+import org.jruby.embed.io.WriterOutputStream;
 
+import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
@@ -27,7 +32,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
         container.runScriptlet(procedureTemplate());
         container.runScriptlet(script);
         container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure", run, referable);
-    } catch (EvalFailedException e) {
+      } catch (EvalFailedException e) {
         WarnLogMessage.issue(e);
       }
     });

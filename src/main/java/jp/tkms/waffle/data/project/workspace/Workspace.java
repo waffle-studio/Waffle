@@ -20,7 +20,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public static final String JSON_FILE = WORKSPACE + Constants.EXT_JSON;
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
   public static final String ARCHIVE = ".ARCHIVE";
-  public static final String SCRIPT_LOG_FILE = "SCRIPT_LOG.txt";
+  public static final String SCRIPT_OUTPUT_FILE = "SCRIPT_OUTPUT.txt";
   public static final String KEY_NOTE_TXT = "NOTE.txt";
 
   private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
@@ -119,12 +119,13 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     appendFileContents(KEY_NOTE_TXT, text + "\n");
   }
 
-  public String getScriptLog() {
-    return getFileContents(SCRIPT_LOG_FILE);
+  public String getScriptOutput() {
+    return getFileContents(SCRIPT_OUTPUT_FILE);
   }
 
-  public void appendScriptLog(String text) {
-    appendFileContents(SCRIPT_LOG_FILE, text);
+  public void appendScriptOutput(String text) {
+    createNewFile(SCRIPT_OUTPUT_FILE);
+    appendFileContents(SCRIPT_OUTPUT_FILE, text);
   }
 
   @Override

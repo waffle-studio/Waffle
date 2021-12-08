@@ -211,10 +211,10 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
           })
           , null, "card-outline", "p-0");
 
-        String scriptLog = workspace.getScriptLog();
+        String scriptLog = workspace.getScriptOutput();
         contents += Lte.divRow(
               Html.section("col-lg-12",
-                Lte.card(Html.fasIcon("sticky-note") + "Script Log", null,
+                Lte.card(Html.fasIcon("sticky-note") + "Script Output", null,
                   (scriptLog.equals("") ?
                     Html.element("div",
                       new Html.Attributes(Html.value("style", "text-align:center;color:silver;")), Html.fasIcon("receipt") + "Empty")

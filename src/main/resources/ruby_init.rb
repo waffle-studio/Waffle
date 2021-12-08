@@ -90,6 +90,22 @@ module Waffle
     end
 end
 
+module Output
+  require "stringio"
+  def self.redirect(workspace)
+    defout = StringIO.new("", 'r+')
+    defout.instance_eval { @ws = workspace }
+    class << defout
+      def write(str)
+        STDOUT.write(str)
+        @ws.appendScriptOutput(str)
+      end
+    end
+    $stdout = defout
+    $stderr = defout
+  end
+end
+
 class Java::JavaLang::Object
     def is_group?()
         return self.is_a?(Java::JavaUtil::Map)
@@ -108,53 +124,24 @@ end
 
 
 def exec_parameter_extract(run)
+    Output.redirect(instance.getWorkspace())
     Dir.chdir(run.getBasePath().toString()) do
         parameter_extract(run)
     end
 end
 
 def exec_result_collect(run, remote)
+    Output.redirect(instance.getWorkspace())
     Dir.chdir(run.getBasePath().toString()) do
         result_collect(run, remote)
     end
 end
 
 def exec_procedure(instance, refs)
+    Output.redirect(instance.getWorkspace())
     result = true
     #local_instance = Waffle::ActorWrapper.new(instance)
     result = procedure(instance, refs)
-    #local_instance.close
-    return result
-end
-
-def exec_procedure_when_start_or_finished_all(instance, caller)
-    result = true
-    #local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure_when_start_or_finished_all(instance, caller)
-    #local_instance.close
-    return result
-end
-
-def exec_procedure_when_contain_fault(instance, caller)
-    result = true
-    #local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure_when_contain_fault(instance, caller)
-    #local_instance.close
-    return result
-end
-
-def exec_procedure_when_result_updated(instance, caller, key, value)
-    result = true
-    #local_instance = ActorWrapper.new(instance)
-    result = procedure_when_result_updated(instance, caller, key, value)
-    #local_instance.close
-    return result
-end
-
-def exec_procedure_when_appealed(instance, caller, appealer, message)
-    result = true
-    #local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure_when_appealed(instance, caller, appealer, message)
     #local_instance.close
     return result
 end
