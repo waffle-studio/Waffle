@@ -124,24 +124,24 @@ end
 
 
 def exec_parameter_extract(run)
-    Output.redirect(instance.getWorkspace())
+    Output.redirect(run.getWorkspace())
     Dir.chdir(run.getBasePath().toString()) do
         parameter_extract(run)
     end
 end
 
 def exec_result_collect(run, remote)
-    Output.redirect(instance.getWorkspace())
+    Output.redirect(run.getWorkspace())
     Dir.chdir(run.getBasePath().toString()) do
         result_collect(run, remote)
     end
 end
 
-def exec_procedure(instance, refs)
-    Output.redirect(instance.getWorkspace())
+def exec_procedure(run, refs)
+    Output.redirect(run.getWorkspace())
     result = true
     #local_instance = Waffle::ActorWrapper.new(instance)
-    result = procedure(instance, refs)
+    result = procedure(run, refs)
     #local_instance.close
     return result
 end
