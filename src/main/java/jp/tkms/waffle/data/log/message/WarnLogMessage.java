@@ -4,10 +4,19 @@ import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.exception.WaffleException;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 public class WarnLogMessage extends LogMessage {
   public WarnLogMessage(String message) {
     super(message);
-    new Throwable().printStackTrace();
+
+    /*
+    StringWriter stackTraceWriter = new StringWriter();
+    new Throwable().printStackTrace(new PrintWriter(stackTraceWriter));
+    stackTraceWriter.flush();
+    DebugLogMessage.issue(stackTraceWriter.toString());
+     */
   }
 
   public static void issue(String message) {
