@@ -25,6 +25,8 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   private static final String KEY_NUMBER_OF_CALCULATION_NODE = "number_of_calculation_node";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_ENVIRONMENTS = "environments";
+  private static final String KEY_NOTE = "note";
+
   public enum Mode {Default, New, Update}
   private Mode mode = null;
   private Computer computer = null;
@@ -181,13 +183,14 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         return Lte.card(null, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-nooverflow", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
               list.add(new Lte.TableValue("", "Name"));
-              list.add(new Lte.TableValue("width:8em;", "Job"));
-              list.add(new Lte.TableValue("width:2em;", ""));
+              list.add(new Lte.TableValue("", "Note"));
+              list.add(new Lte.TableValue("width:4em;", "Job"));
+              list.add(new Lte.TableValue("width:8em;", ""));
               return list;
             }
 
@@ -198,6 +201,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                   return new Lte.TableRow(
                     Html.a(ComputersComponent.getUrl(computer), null, null,  computer.getName()),
+                    Html.sanitaize(computer.getNote()),
                     String.valueOf(ExecutableRunTask.getList(computer).size()),
                     computer.getState().getStatusBadge()
                   );
@@ -266,7 +270,8 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", computer.getPollingInterval().toString(), errors),
               Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", computer.getEnvironments().toString(), null),
-              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  computer.getParametersWithDefaultParametersFiltered().toString(), null)
+              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  computer.getParametersWithDefaultParametersFiltered().toString(), null),
+              Lte.formTextAreaGroup(KEY_NOTE, "Note", computer.getNote(), null)
             )
             , Lte.formSubmitButton("success", "Update")
           )
@@ -286,6 +291,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
     computer.setEnvironments(new WrappedJson(request.queryParams(KEY_ENVIRONMENTS)));
     computer.setParameters(new WrappedJson(request.queryParams(KEY_PARAMETERS)));
+    computer.setNote(request.queryParams(KEY_NOTE));
     computer.update();
     response.redirect(getUrl(computer));
   }

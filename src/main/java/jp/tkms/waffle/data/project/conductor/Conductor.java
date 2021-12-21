@@ -6,6 +6,7 @@ import com.eclipsesource.json.WriterConfig;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.HasName;
+import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
@@ -24,7 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Conductor extends ProjectData implements DataDirectory, PropertyFile, HasName {
+public class Conductor extends ProjectData implements DataDirectory, PropertyFile, HasName, HasNote {
   public static final String CONDUCTOR = "CONDUCTOR";
   private static final String KEY_DEFAULT_VARIABLES = "DEFAULT_VARIABLES";
   private static final String KEY_CHILD = "CHILD";

@@ -2,6 +2,7 @@ package jp.tkms.waffle.data.project.workspace;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
+import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
@@ -15,7 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Workspace extends ProjectData implements DataDirectory, PropertyFile, Serializable {
+public class Workspace extends ProjectData implements DataDirectory, PropertyFile, HasNote, Serializable {
   public static final String WORKSPACE = "WORKSPACE";
   public static final String JSON_FILE = WORKSPACE + Constants.EXT_JSON;
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
@@ -103,20 +104,6 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-  }
-
-  public void setNote(String text) {
-    createNewFile(KEY_NOTE_TXT);
-    updateFileContents(KEY_NOTE_TXT, text);
-  }
-
-  public String getNote() {
-    return getFileContents(KEY_NOTE_TXT);
-  }
-
-  public void appendNote(String text) {
-    createNewFile(KEY_NOTE_TXT);
-    appendFileContents(KEY_NOTE_TXT, text + "\n");
   }
 
   public String getScriptOutput() {

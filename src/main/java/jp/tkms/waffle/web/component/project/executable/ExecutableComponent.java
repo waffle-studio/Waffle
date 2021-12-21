@@ -27,13 +27,14 @@ import java.util.stream.Collectors;
 
 public class ExecutableComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Executable";
+  private static final String KEY_NOTE = "note";
   private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
   private static final String KEY_DUMMY_RESULTS = "dummy_results";
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_COMPUTER = "computer";
   protected static final String KEY_EXECUTABLE = "executable";
 
-  public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun, List}
+  public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun, List, UpdateNote}
 
   protected Mode mode;
 
@@ -56,6 +57,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, Mode.UpdateDummyResults), new ExecutableComponent(Mode.UpdateDummyResults));
     Spark.get(getUrl(null, Mode.TestRun), new ExecutableComponent(Mode.TestRun));
     Spark.post(getUrl(null, Mode.TestRun), new ExecutableComponent(Mode.TestRun));
+    Spark.post(getUrl(null, Mode.UpdateNote), new ExecutableComponent(Mode.UpdateNote));
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();
@@ -108,6 +110,11 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         renderTestRun();
         break;
       }
+      case UpdateNote: {
+        executable.setNote(request.queryParams(KEY_NOTE));
+        response.redirect(getUrl(executable));
+        break;
+      }
       default:
         renderExecutable();
         break;
@@ -155,11 +162,11 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        String content = "";
+        String contents = "";
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        content +=
+        contents +=
           Html.form(getUrl(executable, Mode.Update), Html.Method.Post,
             Lte.card(Html.fasIcon("layer-group") + executable.getName(),
               renderTool(),
@@ -176,6 +183,17 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
             )
           );
 
+        contents +=
+          Html.form(getUrl(executable, Mode.UpdateNote), Html.Method.Post,
+            Lte.card(Html.fasIcon("sticky-note") + "Note",null,
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_NOTE, null, executable.getNote(), null)
+                )
+              )
+              ,Lte.formSubmitButton("success", "Update")
+              , null, null)
+          );
 
         /*
         ParameterGroup rootGroup = ParameterGroup.getRootInstance(simulator);
@@ -216,7 +234,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
         //String defaultParametersText = executable.getDefaultParameters().toString(2);
 
-        content += Lte.card(Html.fasIcon("file-import") + "Parameter Extractors",
+        contents += Lte.card(Html.fasIcon("file-import") + "Parameter Extractors",
           Html.a(ParameterExtractorComponent.getStaticUrl(executable, ParameterExtractorComponent.Mode.Add), Lte.badge("primary", null,  Html.fasIcon("plus-square") + "NEW")),
           Lte.table(null, new Lte.Table() {
             @Override
@@ -248,7 +266,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
           })
           , null, "card-secondary card-outline", "p-0");
 
-        content += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
+        contents += Lte.card(Html.fasIcon("dolly-flatbed") + "Result Collectors",
           Html.a(ResultCollectorComponent.getStaticUrl(executable, ResultCollectorComponent.Mode.Add), Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")),
           Lte.table(null, new Lte.Table() {
             @Override
@@ -280,7 +298,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
           })
           , null, "card-secondary card-outline", "p-0");
 
-        content +=
+        contents +=
           Html.form(getUrl(executable, Mode.UpdateDefaultParameters), Html.Method.Post,
             Lte.card(Html.fasIcon("list-ol") + "Default Parameters",
               Lte.cardToggleButton(false),
@@ -293,7 +311,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop card-secondary card-outline", null)
           );
 
-        content +=
+        contents +=
           Html.form(getUrl(executable, Mode.UpdateDummyResults), Html.Method.Post,
             Lte.card(Html.fasIcon("list-ol") + "Dummy Results",
               Lte.cardToggleButton(false),
@@ -306,7 +324,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop card-secondary card-outline", null)
           );
 
-        content += Lte.card(Html.fasIcon("file") + "Files in Executable Bin Directory (BASE)",
+        contents += Lte.card(Html.fasIcon("file") + "Files in Executable Bin Directory (BASE)",
           Lte.cardToggleButton(false),
           Lte.table("table-sm", new Lte.Table() {
             @Override
@@ -334,7 +352,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
           })
           , null, "collapsed-card.stop card-secondary card-outline", "p-0");
 
-        return content;
+        return contents;
       }
     }.render(this);
   }

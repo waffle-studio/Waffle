@@ -3,6 +3,7 @@ package jp.tkms.waffle.data.project.convertor;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.HasName;
+import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-public class WorkspaceConvertor extends ProjectData implements DataDirectory, PropertyFile, HasName {
+public class WorkspaceConvertor extends ProjectData implements DataDirectory, PropertyFile, HasName, HasNote {
   public static final String WORKSPACE_CONVERTOR = "WORKSPACE_CONVERTOR";
   public static final String KEY_FILENAME = "FILENAME";
   public static final String DEFAULT_FILENAME = WORKSPACE_CONVERTOR + ".rb";
@@ -34,7 +35,7 @@ public class WorkspaceConvertor extends ProjectData implements DataDirectory, Pr
     super(project);
     this.name = name;
 
-    if (this.getClass().getConstructors()[0].getDeclaringClass().equals(Conductor.class)) {
+    if (this.getClass().getConstructors()[0].getDeclaringClass().equals(WorkspaceConvertor.class)) {
       initialise();
     }
   }

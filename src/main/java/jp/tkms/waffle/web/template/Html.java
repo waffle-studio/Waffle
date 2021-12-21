@@ -181,7 +181,15 @@ public class Html {
     return result;
   }
 
-  protected String content() {
+    public static String sanitaize(String value) {
+      return value.replace("\"", "&quot;")
+        .replace("'", "&prime;")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;");
+    }
+
+    protected String content() {
     return "";
   }
 

@@ -38,9 +38,10 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_LISTENER_NAME = "listener_name";
   public static final String KEY_CONDUCTOR = "conductor";
+  public static final String KEY_NOTE = "note";
   private static final String NEW_WORKSPACE = "[Create new workspace]";
 
-  public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure}
+  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure, UpdateNote}
 
   private Mode mode;
   protected Project project;
@@ -57,7 +58,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new ConductorComponent(Mode.List));
     Spark.get(getUrl(null), new ConductorComponent());
     Spark.get(getUrl(null, Mode.Prepare), new ConductorComponent(Mode.Prepare));
     Spark.post(getUrl(null, Mode.Run), new ConductorComponent(Mode.Run));
@@ -66,15 +66,16 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, Mode.UpdateListenerScript), new ConductorComponent(Mode.UpdateListenerScript));
     Spark.post(getUrl(null, Mode.NewChildProcedure), new ConductorComponent(Mode.NewChildProcedure));
     Spark.get(getUrl(null, Mode.RemoveConductor), new ConductorComponent(Mode.RemoveConductor));
-  }
-
-  protected static String getUrl() {
-    return ProjectComponent.getUrl(null) + "/" + Conductor.CONDUCTOR;
+    Spark.post(getUrl(null, Mode.UpdateNote), new ConductorComponent(Mode.UpdateNote));
   }
 
   public static String getUrl(Conductor conductor) {
     return ProjectComponent.getUrl((conductor == null ? null : conductor.getProject())) + "/" + Conductor.CONDUCTOR + "/"
       + (conductor == null ? ":" + KEY_CONDUCTOR : conductor.getName());
+  }
+
+  public static String getAnchorLink(Conductor conductor) {
+    return Html.a(getUrl(conductor), conductor.getName());
   }
 
   public static String getUrl(Conductor conductor, Mode mode) {
@@ -88,81 +89,80 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   @Override
   public void controller() throws ProjectNotFoundException {
     project = Project.getInstance(request.params("project"));
+    conductor = getConductorEntity();
 
-    if (mode == Mode.List) {
-      renderConductors();
-    } else {
-      conductor = getConductorEntity();
+    switch (mode) {
+      case Prepare:
+        if (conductor.checkSyntax()) {
+          renderPrepareForm();
+        } else {
+          response.redirect(getUrl(conductor));
+        }
+        break;
+      case Run:
+        String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
+        String newRunName = "" + request.queryParams(KEY_CONDUCTOR);
+        Workspace workspace = null;
+        if (NEW_WORKSPACE.equals(workspaceName)) {
+          workspace = Workspace.create(project, newRunName);
+        } else {
+          workspace = Workspace.getInstance(project, workspaceName);
+        }
 
-      switch (mode) {
-        case Prepare:
-          if (conductor.checkSyntax()) {
-            renderPrepareForm();
-          } else {
-            response.redirect(getUrl(conductor));
-          }
-          break;
-        case Run:
-          String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
-          String newRunName = "" + request.queryParams(KEY_CONDUCTOR);
-          Workspace workspace = null;
-          if (NEW_WORKSPACE.equals(workspaceName)) {
-            workspace = Workspace.create(project, newRunName);
-          } else {
-            workspace = Workspace.getInstance(project, workspaceName);
-          }
-
-          if (workspace == null) {
-            response.redirect(LogsComponent.getUrl());
-          } else {
-            ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
-            if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-              conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
-            }
-            conductorRun.start(true);
-
-            response.redirect(WorkspaceComponent.getUrl(workspace));
-          }
-          break;
-        case UpdateArguments:
+        if (workspace == null) {
+          response.redirect(LogsComponent.getUrl());
+        } else {
+          ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
           if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-            conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
+            conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
           }
+          conductorRun.start(true);
+
+          response.redirect(WorkspaceComponent.getUrl(workspace));
+        }
+        break;
+      case UpdateArguments:
+        if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
+          conductor.setDefaultVariables(request.queryParams(KEY_DEFAULT_VARIABLES));
+        }
+        response.redirect(getUrl(conductor));
+        break;
+      case UpdateMainScript:
+        if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
+          conductor.updateMainProcedureScript(request.queryParams(KEY_MAIN_SCRIPT));
+        }
+        response.redirect(getUrl(conductor));
+        break;
+      case NewChildProcedure:
+        if (request.queryMap().hasKey(KEY_CONDUCTOR)) {
+          try {
+            conductor.createNewChildProcedure(request.queryParams(KEY_CONDUCTOR));
+          } catch (InvalidInputException e) {
+            // NOP // response.redirect(getUrl(conductor)); break;
+          }
+        }
+        response.redirect(getUrl(conductor));
+        break;
+      case UpdateListenerScript:
+        if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
+          conductor.updateChildProcedureScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
+        }
+        response.redirect(getUrl(conductor));
+        break;
+      case RemoveConductor:
+        if (conductor.getName().equals(request.queryParams(KEY_CONDUCTOR))) {
+          conductor.deleteDirectory();
+          response.redirect(ProjectComponent.getUrl(project));
+        } else {
           response.redirect(getUrl(conductor));
-          break;
-        case UpdateMainScript:
-          if (request.queryMap().hasKey(KEY_MAIN_SCRIPT)) {
-            conductor.updateMainProcedureScript(request.queryParams(KEY_MAIN_SCRIPT));
-          }
-          response.redirect(getUrl(conductor));
-          break;
-        case NewChildProcedure:
-          if (request.queryMap().hasKey(KEY_CONDUCTOR)) {
-            try {
-              conductor.createNewChildProcedure(request.queryParams(KEY_CONDUCTOR));
-            } catch (InvalidInputException e) {
-              // NOP // response.redirect(getUrl(conductor)); break;
-            }
-          }
-          response.redirect(getUrl(conductor));
-          break;
-        case UpdateListenerScript:
-          if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-            conductor.updateChildProcedureScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
-          }
-          response.redirect(getUrl(conductor));
-          break;
-        case RemoveConductor:
-          if (conductor.getName().equals(request.queryParams(KEY_CONDUCTOR))) {
-            conductor.deleteDirectory();
-            response.redirect(ProjectComponent.getUrl(project));
-          } else {
-            response.redirect(getUrl(conductor));
-          }
-          break;
-        default:
-          renderConductor();
-      }
+        }
+        break;
+      case UpdateNote:
+        conductor.setNote(request.queryParams(KEY_NOTE));
+        response.redirect(getUrl(conductor));
+        break;
+      default:
+        renderConductor();
     }
   }
 
@@ -190,86 +190,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return null;
   }
 
-  private void renderConductors() throws ProjectNotFoundException {
-    new ProjectMainTemplate(project) {
-      @Override
-      protected String pageTitle() {
-        return CONDUCTORS;
-      }
-
-      @Override
-      protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          ProjectsComponent.getAnchorLink(),
-          ProjectComponent.getAnchorLink(project),
-          CONDUCTORS
-        ));
-      }
-
-      @Override
-      protected String pageTool() {
-        return Html.a(ProjectComponent.getUrl(project, ProjectComponent.Mode.AddConductor),
-          null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
-        );
-      }
-
-      @Override
-      protected String pageContent() {
-        String content = Lte.card(null, null,
-          Lte.table(null, new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              return null;
-            }
-
-            @Override
-            public ArrayList<Future<Lte.TableRow>> tableRows() {
-              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (Conductor conductor : Conductor.getList(project)) {
-                int runningCount = 0;
-                  /*
-                  for (Actor notFinished : notFinishedList) {
-                    if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {
-                      runningCount += 1;
-                    }
-                  }
-                   */
-
-                int finalRunningCount = runningCount;
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                  return new Lte.TableRow(
-                    new Lte.TableValue("",
-                      Html.a(ConductorComponent.getUrl(conductor),
-                        null, null, conductor.getName()
-                      )),
-                    new Lte.TableValue("text-align:right;",
-                      Html.a(ConductorComponent.getUrl(conductor, ConductorComponent.Mode.Prepare),
-                        Html.span("right badge badge-secondary", null, "RUN")
-                      )
-                      /*,
-                      new Lte.TableValue("text-align:right;",
-                        Html.span(null, null,
-                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getLocalDirectoryPath().toString())))
-                          ,
-                          "gfhgfhjg"
-                          Html.a(ConductorComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
-                            Html.span("right badge badge-secondary", null, "run")
-                          ),
-                          Html.javascript("updateConductorJobNum('" + conductor.getLocalDirectoryPath().toString() + "'," + finalRunningCount + ")")
-                        )
-                      )*/)
-                  );
-                } ));
-              }
-              return list;
-            }
-          })
-          , null, "card-warning card-outline", "p-0");
-        return content;
-      }
-    }.render(this);
-  }
-
   private void renderConductor() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
@@ -289,7 +209,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageContent() {
-        String content = "";
+        String contents = "";
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
@@ -340,7 +260,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           snippetScript += "s('computer:" + computer.getName() + "','" + computer.getName() + "');";
         }
 
-        content += Html.element("script", new Html.Attributes(value("type", "text/javascript")),
+        contents += Html.element("script", new Html.Attributes(value("type", "text/javascript")),
           "var updateConductorJobNum = function(c,n) {" +
             "if (n > 0) {" +
             "document.getElementById('actorGroup-jobnum-' + c).style.display = 'inline-block';" +
@@ -351,18 +271,20 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             "};"
         );
 
-        content += Lte.card(Html.fasIcon("user-tie") + conductor.getName(),
-          Html.span(null, null,
-            //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
-            renderTool(),
-            Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
-          ),
-          Html.div(null,
-            Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getPath().toAbsolutePath().toString())
-          )
-          , null, "card-warning", null);
+        contents += Html.form(getUrl(conductor, Mode.UpdateNote), Html.Method.Post,
+          Lte.card(Html.fasIcon("user-tie") + conductor.getName(),
+            Html.span(null, null,
+              //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
+              renderTool(),
+              Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
+            ),
+            Html.div(null,
+              Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getPath().toAbsolutePath().toString()),
+              Lte.formTextAreaGroup(KEY_NOTE, "Note", conductor.getNote(), null)
+            ),
+            Lte.formSubmitButton("success", "Update"), "card-warning", null));
 
-        content +=
+        contents +=
           Html.form(getUrl(conductor, Mode.UpdateArguments), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "Default Variables",
               Lte.cardToggleButton(false),
@@ -376,7 +298,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           );
 
         String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
-        content +=
+        contents +=
           Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)",
               Lte.cardToggleButton(false),
@@ -391,7 +313,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop", null)
           );
 
-        content +=
+        contents +=
           Html.form(getUrl(conductor, Mode.NewChildProcedure), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + "New Procedure",
               Lte.cardToggleButton(true),
@@ -408,7 +330,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           Path path = conductor.getChildProcedureScriptPath(listenerName);
           String scriptSyntaxError = ScriptProcessor.getProcessor(path).checkSyntax(path);
           try {
-            content +=
+            contents +=
               Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
                 Lte.card(Html.fasIcon("terminal") + listenerName + " (Child Procedure)",
                   Lte.cardToggleButton(false),
@@ -427,7 +349,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           }
         }
 
-        content += Html.form(getUrl(conductor, Mode.RemoveConductor), Html.Method.Get,
+        contents += Html.form(getUrl(conductor, Mode.RemoveConductor), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Lte.formInputGroup("text", KEY_CONDUCTOR, "Type the name of Conductor.", conductor.getName(), null, null),
@@ -436,7 +358,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           )
         );
 
-        return content;
+        return contents;
       }
     }.render(this);
   }

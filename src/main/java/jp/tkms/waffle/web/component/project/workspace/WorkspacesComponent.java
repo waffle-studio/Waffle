@@ -92,7 +92,7 @@ public class WorkspacesComponent extends AbstractAccessControlledComponent {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       Html.a(WorkspaceComponent.getUrl(workspace), null, null, workspace.getName()),
-                      workspace.getNote()
+                      Html.sanitaize(workspace.getNote())
                     );
                   }
                 ));

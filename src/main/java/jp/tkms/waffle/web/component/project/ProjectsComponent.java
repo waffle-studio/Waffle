@@ -176,7 +176,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
                 list.add(Main.interfaceThreadPool.submit(() -> {
                     return new Lte.TableRow(
                       Html.a(ProjectComponent.getUrl(project), null, null, project.getName()),
-                      project.getNote()
+                      Html.sanitaize(project.getNote())
                     );
                   }
                 ));

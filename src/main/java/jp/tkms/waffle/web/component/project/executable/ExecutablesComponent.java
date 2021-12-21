@@ -36,6 +36,8 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null), new ExecutablesComponent());
     Spark.get(getUrl(null, Mode.New), new ExecutablesComponent(Mode.New));
     Spark.post(getUrl(null, Mode.New), new ExecutablesComponent(Mode.New));
+
+    ExecutableComponent.register();
   }
 
   public static String getUrl(Project project) {
@@ -63,7 +65,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
         renderAddForm(new ArrayList<>());
       }
     } else {
-      renderSimulatorList();
+      renderExecutableList();
     }
   }
 
@@ -114,7 +116,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
     return new ArrayList<>();
   }
 
-  private void renderSimulatorList() throws ProjectNotFoundException {
+  private void renderExecutableList() throws ProjectNotFoundException {
     new ProjectMainTemplate(project) {
       @Override
       protected String pageTitle() {
@@ -147,12 +149,13 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
           );
         }
         return Lte.card(null, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-nooverflow", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("", "Name"));
-              return list;
+              ArrayList<Lte.TableValue> headers = new ArrayList<>();
+              headers.add(new Lte.TableValue("", "Name"));
+              headers.add(new Lte.TableValue("", "Note"));
+              return headers;
             }
 
             @Override
@@ -160,8 +163,10 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Executable executable : executableList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                  return new Lte.TableRow(
-                      Html.a(ExecutableComponent.getUrl(executable), null, null, executable.getName()));
+                    return new Lte.TableRow(
+                      Html.a(ExecutableComponent.getUrl(executable), null, null, executable.getName()),
+                      Html.sanitaize(executable.getNote())
+                    );
                   }
                 ));
               }

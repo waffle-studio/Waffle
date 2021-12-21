@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
@@ -29,7 +30,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
-public class Computer implements DataDirectory, PropertyFile {
+public class Computer implements DataDirectory, PropertyFile, HasNote {
   private static final String KEY_LOCAL = "LOCAL";
   private static final String KEY_WORKBASE = "work_base_dir";
   //private static final String KEY_XSUB = "xsub_dir";

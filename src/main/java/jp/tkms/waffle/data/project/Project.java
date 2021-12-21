@@ -19,9 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-public class Project implements DataDirectory, Serializable {
+public class Project implements DataDirectory, HasNote, Serializable {
   public static final String PROJECT = "PROJECT";
-  public static final String KEY_NOTE_TXT = "NOTE.txt";
   private static final InstanceCache<String, Project> instanceCache = new InstanceCache<>();
 
   protected String name;
@@ -127,19 +126,5 @@ public class Project implements DataDirectory, Serializable {
         ErrorLogMessage.issue(e);
       }
     }
-  }
-
-  public void setNote(String text) {
-    createNewFile(KEY_NOTE_TXT);
-    updateFileContents(KEY_NOTE_TXT, text);
-  }
-
-  public void appendNote(String text) {
-    createNewFile(KEY_NOTE_TXT);
-    appendFileContents(KEY_NOTE_TXT, text);
-  }
-
-  public String getNote() {
-    return getFileContents(KEY_NOTE_TXT);
   }
 }

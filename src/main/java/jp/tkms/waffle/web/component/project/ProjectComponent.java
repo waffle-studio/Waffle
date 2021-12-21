@@ -6,7 +6,9 @@ import jp.tkms.waffle.data.project.convertor.WorkspaceConvertor;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
+import jp.tkms.waffle.web.component.project.conductor.ConductorsComponent;
 import jp.tkms.waffle.web.component.project.convertor.WorkspaceConvertorComponent;
+import jp.tkms.waffle.web.component.project.convertor.WorkspaceConvertorsComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutableComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
@@ -50,12 +52,13 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null, Mode.AddConductor), new ProjectComponent(Mode.AddConductor));
     Spark.post(getUrl(null, Mode.AddConductor), new ProjectComponent(Mode.AddConductor));
     Spark.post(getUrl(null, Mode.UpdateNote), new ProjectComponent(Mode.UpdateNote));
+    Spark.get(getUrl(null, Mode.AddWorkspaceConvertor), new ProjectComponent(Mode.AddWorkspaceConvertor));
+    Spark.post(getUrl(null, Mode.AddWorkspaceConvertor), new ProjectComponent(Mode.AddWorkspaceConvertor));
 
     ExecutablesComponent.register();
-    ExecutableComponent.register();
-    ConductorComponent.register();
+    ConductorsComponent.register();
     WorkspacesComponent.register();
-    WorkspaceConvertorComponent.register();
+    WorkspaceConvertorsComponent.register();
   }
 
   public static String getUrl(Project project) {
@@ -94,12 +97,25 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
           } else {
             renderConductorAddForm(errors);
           }
+        } else {
+          renderConductorAddForm(new ArrayList<>());
         }
-        renderConductorAddForm(new ArrayList<>());
         break;
       case UpdateNote:
         project.setNote(request.queryParams(KEY_NOTE));
         response.redirect(getUrl(project));
+        break;
+      case AddWorkspaceConvertor:
+        if (request.requestMethod().toLowerCase().equals("post")) {
+          ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+          if (errors.isEmpty()) {
+            addWorkspaceConvertor();
+          } else {
+            renderWorkspaceConvertorAddForm(errors);
+          }
+        } else {
+          renderWorkspaceConvertorAddForm(new ArrayList<>());
+        }
         break;
       case NotFound:
         renderProjectNotFound();
@@ -146,9 +162,9 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
+          ProjectsComponent.getAnchorLink(),
           Html.a(ProjectComponent.getUrl(project), project.getName()),
-          "Conductors"));
+          ConductorComponent.CONDUCTORS));
       }
 
       @Override
@@ -156,6 +172,43 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         return
           Html.form(getUrl(project, Mode.AddConductor), Html.Method.Post,
             Lte.card("New Conductor", null,
+              Html.div(null,
+                Html.inputHidden("cmd", "add"),
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
+              ),
+              Lte.formSubmitButton("success", "Add"),
+              "card-warning", null
+            )
+          );
+      }
+    }.render(this);
+  }
+
+  private void renderWorkspaceConvertorAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
+    new ProjectMainTemplate(project) {
+      @Override
+      protected String pageTitle() {
+        return "WorkspaceConvertor";
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return "(new)";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          ProjectsComponent.getAnchorLink(),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          WorkspaceConvertorComponent.WORKSPACE_CONVERTORS));
+      }
+
+      @Override
+      protected String pageContent() {
+        return
+          Html.form(getUrl(project, Mode.AddWorkspaceConvertor), Html.Method.Post,
+            Lte.card("New WorkspaceConvertor", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors)
@@ -240,91 +293,19 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
             Html.a(getUrl(project, Mode.AddConductor),
               null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
             ),
-            Lte.table(null, new Lte.Table() {
-              @Override
-              public ArrayList<Lte.TableValue> tableHeaders() {
-                return null;
-              }
-
-              @Override
-              public ArrayList<Future<Lte.TableRow>> tableRows() {
-                ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                for (Conductor conductor : Conductor.getList(project)) {
-                  int runningCount = 0;
-                  /*
-                  for (Actor notFinished : notFinishedList) {
-                    if (notFinished.getActorGroup() != null && notFinished.getActorGroup().getId().equals(conductor.getId())) {
-                      runningCount += 1;
-                    }
-                  }
-                   */
-
-                  int finalRunningCount = runningCount;
-                  list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(
-                      new Lte.TableValue("",
-                        Html.a(ConductorComponent.getUrl(conductor),
-                          null, null, conductor.getName()
-                        )),
-                      new Lte.TableValue("text-align:right;",
-                        Html.a(ConductorComponent.getUrl(conductor, ConductorComponent.Mode.Prepare),
-                          Html.span("right badge badge-secondary", null, "RUN")
-                        )
-                      /*,
-                      new Lte.TableValue("text-align:right;",
-                        Html.span(null, null,
-                          Html.span("right badge badge-warning", new Html.Attributes(value("id", "conductor-jobnum-" + conductor.getLocalDirectoryPath().toString())))
-                          ,
-                          "gfhgfhjg"
-                          Html.a(ConductorComponent.getUrl(conductor, "prepare", ActorRun.getRootInstance(project)),
-                            Html.span("right badge badge-secondary", null, "run")
-                          ),
-                          Html.javascript("updateConductorJobNum('" + conductor.getLocalDirectoryPath().toString() + "'," + finalRunningCount + ")")
-                        )
-                      )*/)
-                    );
-                  } ));
-                }
-                return list;
-              }
-            })
-            , null, "card-warning card-outline", "p-0");
+            ConductorsComponent.getConductorsTable(project, null),
+            null, "card-warning card-outline", "p-0");
         }
 
         contents += Lte.card(Html.fasIcon("broom") + WorkspaceConvertorComponent.WORKSPACE_CONVERTORS,
           Html.a(getUrl(project, Mode.AddWorkspaceConvertor),
             null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
           ),
-          Lte.table(null, new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              return null;
-            }
+          WorkspaceConvertorsComponent.getWorkspaceConvertorsTable(project, null),
+          null, "card-outline", "p-0");
 
-            @Override
-            public ArrayList<Future<Lte.TableRow>> tableRows() {
-              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-              for (WorkspaceConvertor convertor : WorkspaceConvertor.getList(project)) {
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                  return new Lte.TableRow(
-                    new Lte.TableValue("",
-                      WorkspaceConvertorComponent.getAnchorLink(convertor)
-                    ),
-                    new Lte.TableValue("text-align:right;",
-                      Html.a(WorkspaceConvertorComponent.getUrl(convertor, WorkspaceConvertorComponent.Mode.Prepare),
-                        Html.span("right badge badge-secondary", null, "RUN")
-                      )
-                    )
-                  );
-                } ));
-              }
-              return list;
-            }
-          })
-          , null, "card-outline", "p-0");
-
-      contents +=
-        Html.form(getUrl( project, Mode.UpdateNote), Html.Method.Post,
+        contents +=
+          Html.form(getUrl( project, Mode.UpdateNote), Html.Method.Post,
             Lte.card(Html.fasIcon("sticky-note") + "Note",null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
@@ -355,5 +336,18 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       return;
     }
     response.redirect(ConductorComponent.getUrl(conductor));
+  }
+
+  private void addWorkspaceConvertor() {
+    String name = request.queryParams("name");
+    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
+    WorkspaceConvertor convertor = null;
+    try {
+      convertor = WorkspaceConvertor.create(project, name);
+    } catch (InvalidInputException e) {
+      response.redirect(getUrl(project));
+      return;
+    }
+    response.redirect(WorkspaceConvertorComponent.getUrl(convertor));
   }
 }

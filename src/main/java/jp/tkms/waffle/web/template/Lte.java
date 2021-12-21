@@ -110,7 +110,7 @@ public class Lte {
             value("name", name),
             value("id", id)
         )
-        , contents
+        , Html.sanitaize(contents)
       )
     );
   }
