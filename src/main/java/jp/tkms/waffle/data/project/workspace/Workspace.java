@@ -81,7 +81,10 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
       workspace = new Workspace(project, name);
     }
     try {
-      Files.createFile(workspace.getPath().resolve(ChildElementsArrayList.DOT_SORT));
+      Path dotSortPath = workspace.getPath().resolve(ChildElementsArrayList.DOT_SORT);
+      if (!Files.exists(dotSortPath)) {
+        Files.createFile(dotSortPath);
+      }
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }

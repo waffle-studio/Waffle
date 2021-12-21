@@ -112,8 +112,12 @@ public class DirectoryHash {
     }
   }
 
+  private Path getHashFilePath() {
+    return directoryPath.resolve(HASH_FILE);
+  }
+
   public boolean hasHashFile() {
-    return Files.exists(directoryPath.resolve(HASH_FILE));
+    return Files.exists(getHashFilePath());
   }
 
   public boolean isMatchToHashFile() {
@@ -137,11 +141,23 @@ public class DirectoryHash {
     return isMatched;
   }
 
+  public void createEmptyHashFile() {
+    if (!hasHashFile()) {
+      try {
+        Files.createFile(getHashFilePath());
+        Runtime.getRuntime().exec("chmod 666 '" + getHashFilePath() + "'").waitFor();
+      } catch (IOException | InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
   public void save() {
-    try (FileOutputStream stream = new FileOutputStream(directoryPath.resolve(HASH_FILE).toFile(), false)) {
+    try (FileOutputStream stream = new FileOutputStream(getHashFilePath().toFile(), false)) {
       stream.write(getHash());
       stream.flush();
-    } catch (IOException e) {
+      Runtime.getRuntime().exec("chmod 666 '" + getHashFilePath() + "'").waitFor();
+    } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
   }
