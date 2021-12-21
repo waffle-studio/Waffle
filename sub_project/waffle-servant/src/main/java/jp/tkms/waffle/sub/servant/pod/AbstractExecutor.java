@@ -10,10 +10,9 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -116,6 +115,8 @@ public abstract class AbstractExecutor {
     this.marginTime = marginTime;
     Files.createDirectories(JOBS_PATH);
     Files.createDirectories(ENTITIES_PATH);
+    //Files.setPosixFilePermissions(JOBS_PATH, PosixFilePermissions.fromString("rwxrwxrwx"));
+    //Files.setPosixFilePermissions(ENTITIES_PATH, PosixFilePermissions.fromString("rwxrwxrwx"));
 
     try {
       if (!Files.exists(HASH_IGNORE_FILE_PATH)) {

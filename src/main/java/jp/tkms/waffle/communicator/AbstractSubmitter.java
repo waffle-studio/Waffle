@@ -141,15 +141,20 @@ abstract public class AbstractSubmitter {
       submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
       Files.delete(tmpFile);
 
-      String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replaceAll("\"", "\\\"");
+      String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
       if (!jvmActivationCommand.trim().equals("")) {
         jvmActivationCommand += ";";
       }
 
-      System.out.print(submitter.exec("sh -c \"" + jvmActivationCommand
+      String message = (submitter.exec(
+        getSanitizedEnvironments(submitter.computer)
+        + "sh -c \"" + jvmActivationCommand
         + "java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '"
         + getWaffleServantPath(submitter, submitter.computer)
-        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'\""));
+        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'\"")).trim();
+      if (!"".equals(message)) {
+        InfoLogMessage.issue(message);
+      }
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
       submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
       submitter.deleteFile(remoteResponsePath);
@@ -158,6 +163,16 @@ abstract public class AbstractSubmitter {
       return response;
     }
     return null;
+  }
+
+  public static String getSanitizedEnvironments(Computer computer) {
+    String environments = "";
+    for (Object key : computer.getEnvironments().keySet()) {
+      String name = key.toString().trim().replace("\"", "\\\"").replaceAll(" |#|;", "_");
+      String value = computer.getEnvironments().getString(name, "\"\"").replace("\\", "\\\\").replace("\"", "\\\"");
+      environments += name + "=\"" + value + "\" ";
+    }
+    return environments;
   }
 
   public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {

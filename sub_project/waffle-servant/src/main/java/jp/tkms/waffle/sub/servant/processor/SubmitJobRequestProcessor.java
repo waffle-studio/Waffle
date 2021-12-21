@@ -52,6 +52,9 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       StringWriter outputWriter = new StringWriter();
       StringWriter errorWriter = new StringWriter();
       try {
+        DirectoryHash directoryHash = new DirectoryHash(baseDirectory, message.getWorkingDirectory());
+        directoryHash.createEmptyHashFile();
+
         ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
         container.setEnvironment(environments);
         container.setCurrentDirectory(workingDirectory.toString());
@@ -61,7 +64,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
         container.clear();
         container.terminate();
-        (new DirectoryHash(baseDirectory, message.getWorkingDirectory())).save();
+        directoryHash.save();
         outputWriter.flush();
 
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
