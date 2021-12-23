@@ -27,7 +27,7 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
   public static final String KEY_SCRIPT = "script";
   public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, Prepare, UpdateNote, Run, UpdateArguments, UpdateScript, UpdateListenerScript, NewChildProcedure, Remove, RemoveProcedure}
+  public enum Mode {Default, Prepare, Update, Run, UpdateArguments, UpdateScript, UpdateListenerScript, NewChildProcedure, Remove, RemoveProcedure}
 
   private Mode mode;
   private Project project;
@@ -45,7 +45,8 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
   static public void register() {
     Spark.get(getUrl(null), new WorkspaceConvertorComponent());
     Spark.get(getUrl(null, Mode.Prepare), new WorkspaceConvertorComponent(Mode.Prepare));
-    Spark.post(getUrl(null, Mode.UpdateNote), new WorkspaceConvertorComponent(Mode.UpdateNote));
+    Spark.post(getUrl(null, Mode.Update), new WorkspaceConvertorComponent(Mode.Update));
+    Spark.get(getUrl(null, Mode.Remove), new WorkspaceConvertorComponent(Mode.Remove));
   }
 
   public static String getUrl(WorkspaceConvertor convertor) {
@@ -69,9 +70,18 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
     switch (mode) {
       case Prepare:
         break;
-      case UpdateNote:
+      case Update:
+        convertor.updateScript(request.queryParams(KEY_SCRIPT));
         convertor.setNote(request.queryParams(KEY_NOTE));
         response.redirect(getUrl(convertor));
+        break;
+      case Remove:
+        if (request.queryParams(KEY_CONVERTOR).equals(convertor.getName())) {
+          convertor.deleteDirectory();
+          response.redirect(ProjectComponent.getUrl(project));
+        } else {
+          response.redirect(getUrl(convertor));
+        }
         break;
       default:
         renderConvertor();
@@ -106,35 +116,25 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
-        contents += Html.form(getUrl(convertor, Mode.UpdateNote), Html.Method.Post,
-          Lte.card(Html.fasIcon("broom") + convertor.getName(),
-          Html.span(null, null,
-            //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
-            Html.a(WorkspaceConvertorComponent.getUrl(convertor, Mode.Prepare),
-              Html.span("right badge badge-secondary", null, "RUN")
-            )
-            //, Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
-          ),
-          Html.div(null,
-            Lte.readonlyTextInputWithCopyButton("WorkspaceConvertor Directory", convertor.getPath().toAbsolutePath().toString()),
-            Lte.formTextAreaGroup(KEY_NOTE, "Note", convertor.getNote(), null)
-          ), Lte.formSubmitButton("success", "Update"), null, null));
-
         String snippetScript = "";
         String scriptSyntaxError = ScriptProcessor.getProcessor(convertor.getScriptPath()).checkSyntax(convertor.getScriptPath());
-        contents +=
-          Html.form(getUrl(convertor, Mode.UpdateScript), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + " WorkspaceConvertor Script",
-              Lte.cardToggleButton(false),
-              Lte.divRow(
-                Lte.divCol(Lte.DivSize.F12,
-                  ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                  Lte.formDataEditorGroup(KEY_SCRIPT, null, "ruby", convertor.getScript(), snippetScript, errors)
-                )
-              ),
-              Lte.formSubmitButton("success", "Update"),
-              "collapsed-card.stop", null)
-          );
+
+        contents += Html.form(getUrl(convertor, Mode.Update), Html.Method.Post,
+          Lte.card(Html.fasIcon("broom") + convertor.getName(),
+            Html.span(null, null,
+              //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
+              Html.a(WorkspaceConvertorComponent.getUrl(convertor, Mode.Prepare),
+                Html.span("right badge badge-secondary", null, "RUN")
+              )
+              //, Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
+            ),
+            Html.div(null,
+              ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
+              Lte.readonlyTextInputWithCopyButton("WorkspaceConvertor Directory", convertor.getPath().toAbsolutePath().toString()),
+              Lte.formTextAreaGroup(KEY_NOTE, "Note", convertor.getNote(), null),
+              Lte.formDataEditorGroup(KEY_SCRIPT, "Script", "ruby", convertor.getScript(), snippetScript, errors)
+            ), Lte.formSubmitButton("success", "Update"), null, null)
+        );
 
         contents += Html.form(getUrl(convertor, Mode.Remove), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",

@@ -7,6 +7,11 @@ public class SystemTaskStore extends AbstractTaskStore<SystemTask> {
   public static final byte TYPE_CODE = 0;
   public static final String SYSTEM_TASK = "SYSTEM_TASK";
 
+  @Override
+  protected String getName() {
+    return "system";
+  }
+
   public SystemTaskStore() {
     super();
   }

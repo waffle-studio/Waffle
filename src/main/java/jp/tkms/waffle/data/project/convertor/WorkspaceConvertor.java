@@ -120,7 +120,7 @@ public class WorkspaceConvertor extends ProjectData implements DataDirectory, Pr
       updateFileContents(path, contents);
     } else {
       createNewFile(path);
-      updateFileContents(path, ScriptProcessor.getProcessor(path).procedureTemplate());
+      updateFileContents(path, ScriptProcessor.getProcessor(path).convertorTemplate());
     }
   }
 

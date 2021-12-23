@@ -30,3 +30,7 @@ table.table-nooverflow td{
     text-overflow: ellipsis;
     max-width: 0;
 }
+
+.navbar-nav {
+    white-space: nowrap;
+}

@@ -23,6 +23,7 @@ public abstract class ScriptProcessor {
   abstract public void processCollector(AbstractSubmitter submitter, ExecutableRun run, String collectorName);
   abstract public String collectorTemplate();
   abstract public String checkSyntax(Path scriptPath);
+  abstract public String convertorTemplate();
 
   private static HashMap<String, ScriptProcessor> instanceMap = new HashMap<>();
 

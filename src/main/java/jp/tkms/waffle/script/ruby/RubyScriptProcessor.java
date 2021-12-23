@@ -97,4 +97,10 @@ public class RubyScriptProcessor extends ScriptProcessor {
     container.terminate();
     return error;
   }
+
+  @Override
+  public String convertorTemplate() {
+    return "def convertor(me) \n" +
+      "end\n";
+  }
 }

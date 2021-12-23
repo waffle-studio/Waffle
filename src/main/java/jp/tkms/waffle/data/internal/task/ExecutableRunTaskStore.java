@@ -8,6 +8,11 @@ public class ExecutableRunTaskStore extends AbstractTaskStore<ExecutableRunTask>
   public static final byte TYPE_CODE = 1;
   public static final String TASK = "TASK";
 
+  @Override
+  protected String getName() {
+    return "normal";
+  }
+
   public ExecutableRunTaskStore() {
     super();
   }

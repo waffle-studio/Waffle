@@ -256,6 +256,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
           Lte.card(Html.fasIcon("terminal") + "Properties",
             computer.getState().getStatusBadge(),
             Html.div(null,
+              Lte.formTextAreaGroup(KEY_NOTE, "Note", computer.getNote(), null),
               Lte.readonlyTextInput("Submitter Type", computer.getSubmitterType()),
               Lte.formInputGroup("text", KEY_WORKBASE,
                 "Work base directory on the computer", "", computer.getWorkBaseDirectory(), errors),
@@ -270,8 +271,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               Lte.formInputGroup("text", KEY_POLLING,
                 "Polling interval (seconds)", "", computer.getPollingInterval().toString(), errors),
               Lte.formJsonEditorGroup(KEY_ENVIRONMENTS, "Environments", "tree", computer.getEnvironments().toString(), null),
-              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  computer.getParametersWithDefaultParametersFiltered().toString(), null),
-              Lte.formTextAreaGroup(KEY_NOTE, "Note", computer.getNote(), null)
+              Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree",  computer.getParametersWithDefaultParametersFiltered().toString(), null)
             )
             , Lte.formSubmitButton("success", "Update")
           )

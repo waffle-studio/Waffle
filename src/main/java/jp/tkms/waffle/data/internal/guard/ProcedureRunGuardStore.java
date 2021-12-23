@@ -119,7 +119,7 @@ public class ProcedureRunGuardStore {
   }
 
   public static ProcedureRunGuardStore load() {
-    InfoLogMessage.issue("Loading the snapshot of step store");
+    InfoLogMessage.issue("Loading the snapshot of guard store");
 
     ProcedureRunGuardStore store = new ProcedureRunGuardStore();
     Path directory = getDirectoryPath();
@@ -154,7 +154,7 @@ public class ProcedureRunGuardStore {
       }
     }
 
-    InfoLogMessage.issue(fileCount + " guard loaded");
+    InfoLogMessage.issue(fileCount + " guards loaded");
 
     return store;
   }

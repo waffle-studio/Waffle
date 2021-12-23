@@ -28,14 +28,18 @@ public abstract class ProjectMainTemplate extends MainTemplate {
     }
   }
 
+  private static String toHiddenWhenUnderSm(String contents) {
+    return Html.span("d-none d-md-inline", null, contents);
+  }
+
   @Override
   protected ArrayList<Map.Entry<String, String>> pageNavigation() {
     ArrayList<Map.Entry<String, String>> list = new ArrayList<Map.Entry<String, String>>(Arrays.asList(
-      Map.entry(Html.element("strong", null, Html.fasIcon("folder-open") + project.getName()), ProjectComponent.getUrl(project)),
-      Map.entry( Html.fasIcon("user-tie") + ConductorsComponent.CONDUCTORS, ConductorsComponent.getUrl(project)),
-      Map.entry( Html.fasIcon("layer-group") + ExecutablesComponent.EXECUTABLES, ExecutablesComponent.getUrl(project)),
-      Map.entry( Html.fasIcon("broom") + WorkspaceConvertorsComponent.WORKSPACE_CONVERTORS, WorkspaceConvertorsComponent.getUrl(project)),
-      Map.entry(Html.fasIcon("table") + WorkspaceComponent.WORKSPACES, WorkspacesComponent.getUrl(project))
+      Map.entry(Html.element("strong", null, Html.fasIcon("folder-open") + toHiddenWhenUnderSm(project.getName())), ProjectComponent.getUrl(project)),
+      Map.entry( Html.fasIcon("user-tie") + toHiddenWhenUnderSm(ConductorsComponent.CONDUCTORS), ConductorsComponent.getUrl(project)),
+      Map.entry( Html.fasIcon("layer-group") + toHiddenWhenUnderSm(ExecutablesComponent.EXECUTABLES), ExecutablesComponent.getUrl(project)),
+      Map.entry( Html.fasIcon("broom") + toHiddenWhenUnderSm(WorkspaceConvertorsComponent.WORKSPACE_CONVERTORS), WorkspaceConvertorsComponent.getUrl(project)),
+      Map.entry(Html.fasIcon("table") + toHiddenWhenUnderSm(WorkspaceComponent.WORKSPACES), WorkspacesComponent.getUrl(project))
     ));
 
     Workspace workspace = pageWorkspace();

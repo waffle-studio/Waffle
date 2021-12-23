@@ -17,9 +17,10 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 
 public abstract class AbstractTaskStore<T extends AbstractTask> {
-
   private LinkedHashMap<WaffleId, T> taskMap;
   private LinkedHashMap<String, ArrayList<T>> computerTaskListMap;
+
+  protected abstract String getName();
 
   protected AbstractTaskStore() {
     taskMap = new LinkedHashMap<>();
@@ -75,7 +76,7 @@ public abstract class AbstractTaskStore<T extends AbstractTask> {
   }
 
   protected static void load(AbstractTaskStore instance, Path directory, TaskFactoryFunction<WaffleId, Path, String, AbstractTask> factory) {
-    InfoLogMessage.issue("Loading the snapshot of job store");
+    InfoLogMessage.issue("Loading the snapshot of " + instance.getName() + " job store");
 
     try {
       Files.createDirectories(directory);
@@ -110,7 +111,7 @@ public abstract class AbstractTaskStore<T extends AbstractTask> {
       }
     }
 
-    InfoLogMessage.issue(fileCount + " job loaded");
+    InfoLogMessage.issue(fileCount + " " + instance.getName() + " jobs loaded");
   }
 
   @FunctionalInterface
