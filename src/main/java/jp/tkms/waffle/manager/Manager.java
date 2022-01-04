@@ -39,7 +39,7 @@ public class Manager {
   private void deactivateAndTryRun(ProcedureRunGuardStore store, ProcedureRunGuard guard) {
     store.remove(guard);
     ProcedureRun procedureRun = guard.getProcedureRun();
-    procedureRun.deactivateGuard(guard.getTargetRunPath());
+    procedureRun.deactivateGuard(guard.getOriginalDescription());
     if (procedureRun.getActiveGuardList().size() <= 0) {
       procedureRun.run();
     }

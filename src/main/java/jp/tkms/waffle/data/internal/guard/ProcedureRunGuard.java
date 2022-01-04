@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ProcedureRunGuard implements PropertyFile {
+  public static final String KEY_ORIGINAL = "original";
   public static final String KEY_PATH = "path";
   public static final String KEY_PROJECT = "project";
   public static final String KEY_WORKSPACE = "workspace";
@@ -23,6 +24,7 @@ public class ProcedureRunGuard implements PropertyFile {
 
   private WrappedJson cache;
 
+  private String originalDescription;
   private WaffleId id;
   private Path procedureRunPath;
   private String projectName;
@@ -30,11 +32,12 @@ public class ProcedureRunGuard implements PropertyFile {
   private String targetRunPath;
   private boolean isValueGuard;
 
-  public ProcedureRunGuard(WaffleId id, Path procedureRunPath, String projectName, String workspaceName, String targetRunPath, boolean isValueGuard) {
+  public ProcedureRunGuard(String originalDescription, WaffleId id, Path procedureRunPath, String projectName, String workspaceName, String targetRunPath, boolean isValueGuard) {
     if (procedureRunPath.isAbsolute()) {
       procedureRunPath = Constants.WORK_DIR.relativize(procedureRunPath);
     }
 
+    this.originalDescription = originalDescription;
     this.id = id;
     this.procedureRunPath = procedureRunPath;
     this.projectName = projectName;
@@ -42,6 +45,7 @@ public class ProcedureRunGuard implements PropertyFile {
     this.targetRunPath = targetRunPath;
     this.isValueGuard = isValueGuard;
 
+    setToProperty(KEY_ORIGINAL, originalDescription);
     setToProperty(KEY_ID, id.getId());
     setToProperty(KEY_PATH, procedureRunPath.normalize().toString());
     setToProperty(KEY_PROJECT, projectName);
@@ -79,6 +83,10 @@ public class ProcedureRunGuard implements PropertyFile {
     return targetRunPath;
   }
 
+  public String getOriginalDescription() {
+    return originalDescription;
+  }
+
   public boolean isValueGuard() {
     return isValueGuard;
   }
@@ -100,7 +108,8 @@ public class ProcedureRunGuard implements PropertyFile {
 
   public static ProcedureRunGuard factory(ProcedureRun procedureRun, String guard) {
     String[] slicedGuardString = guard.split(" ", 2);
-    return new ProcedureRunGuard(WaffleId.newId(), procedureRun.getPath(), procedureRun.getProject().getName(), procedureRun.getWorkspace().getName(), slicedGuardString[0], (slicedGuardString.length > 1));
+    ProcedureRunGuard procedureRunGuard = new ProcedureRunGuard(guard, WaffleId.newId(), procedureRun.getPath(), procedureRun.getProject().getName(), procedureRun.getWorkspace().getName(), slicedGuardString[0], (slicedGuardString.length > 1));
+    return procedureRunGuard;
   }
 
   static ProcedureRunGuard factory(Path jsonPath) throws IOException {
@@ -108,13 +117,14 @@ public class ProcedureRunGuard implements PropertyFile {
     try {
       if (jsonPath != null) {
         WrappedJson jsonObject = new WrappedJson(Files.readString(jsonPath));
+        String original = jsonObject.getString(KEY_ORIGINAL, null);
         WaffleId id = WaffleId.valueOf(jsonObject.getLong(KEY_ID, null));
         Path path = Paths.get(jsonObject.getString(KEY_PATH, null));
         String projectName = jsonObject.getString(KEY_PROJECT, null);
         String workspaceName = jsonObject.getString(KEY_WORKSPACE, null);
         String targetRunPath = jsonObject.getString(KEY_TARGET, null);
         boolean isValueGuard = jsonObject.getBoolean(KEY_VALUE_GUARD, null);
-        guard = new ProcedureRunGuard(id, path, projectName, workspaceName, targetRunPath, isValueGuard);
+        guard = new ProcedureRunGuard(original, id, path, projectName, workspaceName, targetRunPath, isValueGuard);
       }
     } catch (Exception e) {
       throw e;
