@@ -26,6 +26,7 @@ public class ManagerMaster {
       Manager manager = managerMap.get(workspace.getLocalPath().toString());
       if (manager == null) {
         manager = new Manager(workspace);
+        managerMap.put(workspace.getLocalPath().toString(), manager);
       }
       return manager;
     }
