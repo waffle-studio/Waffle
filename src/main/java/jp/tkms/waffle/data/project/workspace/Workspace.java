@@ -8,6 +8,7 @@ import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
+import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.*;
 
 import java.io.IOException;
@@ -131,5 +132,8 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   @Override
   public void setPropertyStoreCache(WrappedJson cache) {
     propertyStoreCache = cache;
+  }
+
+  public boolean acquireExecutableRunLock(ExecutableRun run) {
   }
 }

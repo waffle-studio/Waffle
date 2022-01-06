@@ -28,6 +28,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String TESTRUN = ".TESTRUN";
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
+  private static final String KEY_PARALLEL_PROHIBITED = "parallel_prohibited";
 
   public static final String BASE = "BASE";
 
@@ -40,6 +41,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   private WrappedJson dummyResults = null;
   private Double requiredThread = null;
   private Double requiredMemory = null;
+  private Boolean isParallelProhibited = null;
 
   public Executable(Project project, String name) {
     super(project);
@@ -246,11 +248,9 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public String getCommand() {
-    try {
-      if (command == null) {
-        command = getStringFromProperty(KEY_COMMAND);
-      }
-    } catch (Exception e) {}
+    if (command == null) {
+      command = getStringFromProperty(KEY_COMMAND);
+    }
     return command;
   }
 
@@ -260,11 +260,9 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public Double getRequiredThread() {
-    try {
-      if (requiredThread == null) {
-        requiredThread = getDoubleFromProperty(KEY_REQUIRED_THREAD, 1.0);
-      }
-    } catch (Exception e) {}
+    if (requiredThread == null) {
+      requiredThread = getDoubleFromProperty(KEY_REQUIRED_THREAD, 1.0);
+    }
     return requiredThread;
   }
 
@@ -274,17 +272,27 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public Double getRequiredMemory() {
-    try {
-      if (requiredMemory == null) {
-        requiredMemory = getDoubleFromProperty(KEY_REQUIRED_MEMORY, 1.0);
-      }
-    } catch (Exception e) {}
+    if (requiredMemory == null) {
+      requiredMemory = getDoubleFromProperty(KEY_REQUIRED_MEMORY, 1.0);
+    }
     return requiredMemory;
   }
 
   public void setRequiredMemory(double num) {
     requiredMemory = num;
     setToProperty(KEY_REQUIRED_MEMORY, requiredMemory);
+  }
+
+  public Boolean isParallelProhibited() {
+    if (isParallelProhibited == null) {
+      isParallelProhibited = getBooleanFromProperty(KEY_PARALLEL_PROHIBITED, false);
+    }
+    return isParallelProhibited;
+  }
+
+  public void isParallelProhibited(boolean isProhibited) {
+    isParallelProhibited = isProhibited;
+    setToProperty(KEY_PARALLEL_PROHIBITED, isParallelProhibited);
   }
 
   public WrappedJson getDefaultParameters() {

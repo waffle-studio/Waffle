@@ -11,7 +11,7 @@ public class ThreadAndMemoryLimitedSshSubmitter extends JobNumberLimitedSshSubmi
   }
 
   @Override
-  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+  protected boolean isSubmittableImpl(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     double thread = (next == null ? 0.0: next.getRequiredThread());
     thread += list.stream().mapToDouble(o->o.getRequiredThread()).sum();
     double memory = (next == null ? 0.0: next.getRequiredMemory());

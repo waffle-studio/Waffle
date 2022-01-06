@@ -1,7 +1,6 @@
 package jp.tkms.waffle.communicator;
 
 import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
@@ -34,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -397,11 +395,11 @@ abstract public class AbstractSubmitter {
     return jsonObject;
   }
 
-  protected boolean isSubmittable(Computer computer, ComputerTask next) {
+  protected final boolean isSubmittable(Computer computer, ComputerTask next) {
     return isSubmittable(computer, next, getJobList(Inspector.Mode.Normal, computer), getJobList(Inspector.Mode.System, computer));
   }
 
-  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<AbstractTask>... lists) {
+  protected final boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<AbstractTask>... lists) {
     ArrayList<ComputerTask> combinedList = new ArrayList<>();
     for (ArrayList<AbstractTask> list : lists) {
       for (AbstractTask job : list) {
@@ -415,7 +413,18 @@ abstract public class AbstractSubmitter {
     return isSubmittable(computer, next, combinedList);
   }
 
-  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+  protected final boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+    if (next instanceof ExecutableRun) {
+      ExecutableRun run = (ExecutableRun) next;
+      if (run.getExecutable().isParallelProhibited() && !run.getWorkspace().acquireExecutableRunLock(run)) {
+        return false;
+      }
+    }
+
+    return isSubmittableImpl(computer, next, list);
+  }
+
+  protected boolean isSubmittableImpl(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     return (list.size() + (next == null ? 0 : 1)) <= computer.getMaximumNumberOfJobs();
   }
 

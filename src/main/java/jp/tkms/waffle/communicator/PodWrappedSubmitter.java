@@ -83,7 +83,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+  protected boolean isSubmittableImpl(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     if (this.isConnected()) {
       JobManager.Submittable submittable = jobManager.getSubmittable(next);
       return (submittable.usableExecutor != null || submittable.isNewExecutorCreatable);
