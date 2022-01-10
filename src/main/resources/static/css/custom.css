@@ -34,3 +34,7 @@ table.table-nooverflow td{
 .navbar-nav {
     white-space: nowrap;
 }
+
+div.custom-switch {
+    margin: 0.5em;
+}

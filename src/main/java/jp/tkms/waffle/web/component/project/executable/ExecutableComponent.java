@@ -33,6 +33,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
   private static final String KEY_PARAMETERS = "parameters";
   private static final String KEY_COMPUTER = "computer";
   protected static final String KEY_EXECUTABLE = "executable";
+  protected static final String KEY_PARALLEL_INHIBITED = "parallel_inhibited";
 
   public enum Mode {Default, Update, UpdateDefaultParameters, UpdateDummyResults, TestRun, List, UpdateNote}
 
@@ -90,6 +91,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
         executable.setCommand(request.queryParams("sim_cmd"));
         executable.setRequiredThread(Double.parseDouble(request.queryParams("req_t")));
         executable.setRequiredMemory(Double.parseDouble(request.queryParams("req_m")));
+        executable.isParallelProhibited(KEY_PARALLEL_INHIBITED.equals(request.queryParams(KEY_PARALLEL_INHIBITED)));
         response.redirect(getUrl(executable));
         break;
       }
@@ -175,7 +177,8 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 //Lte.readonlyTextInput("Version ID", executable.getVersionId()),
                 Lte.formInputGroup("text", "sim_cmd", "Simulator command", "", executable.getCommand(), errors),
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
-                Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors)
+                Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors),
+                Lte.formSwitchGroup(KEY_PARALLEL_INHIBITED, "Inhibits parallel execution", executable.isParallelProhibited(), errors)
               ),
               Lte.formSubmitButton("success", "Update"),
               "card-info"

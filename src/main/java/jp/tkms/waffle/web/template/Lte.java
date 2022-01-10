@@ -227,6 +227,26 @@ public class Lte {
     );
   }
 
+  public static String formSwitchGroup(String name, String label, boolean state, ArrayList<FormError> errors) {
+    String id = "input" + name;
+    return div("form-group",
+      div("custom-control custom-switch",
+        attribute("input",
+          (state ? value("checked", "checked") : null),
+          value("name", name),
+          value("value", name),
+          value("id", id),
+          value("type", "checkbox"),
+          value("class", "custom-control-input")),
+        (label == null ? null :
+          element("label",
+            new Attributes(value("for", id), value("class", "custom-control-label")),
+            label)
+        )
+      )
+    );
+  }
+
   public static String formSubmitButton(String color, String value) {
     return element("button",
       new Attributes(value("type", "submit"), value("class", "btn btn-" + color)),

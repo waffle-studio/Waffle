@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.*;
@@ -23,7 +24,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public static final String TESTRUN_WORKSPACE = ".TESTRUN_WORKSPACE";
   public static final String ARCHIVE = ".ARCHIVE";
   public static final String SCRIPT_OUTPUT_FILE = "SCRIPT_OUTPUT.txt";
-  public static final String KEY_NOTE_TXT = "NOTE.txt";
+  public static final String KEY_EXECUTABLE_LOCK = "executable_lock#";
 
   private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
 
@@ -55,7 +56,13 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
       if (instance != null) {
         return instance;
       }
-      return new Workspace(project, name);
+      synchronized (instanceCache) {
+        instance = instanceCache.get(getBaseDirectoryPath(project).resolve(name).toString());
+        if (instance != null) {
+          return instance;
+        }
+        return new Workspace(project, name);
+      }
     }
     return null;
   }
@@ -77,20 +84,22 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static Workspace createForce(Project project, String name) {
-    Workspace workspace = getInstance(project, name);
-    if (workspace == null) {
-      workspace = new Workspace(project, name);
-    }
-    try {
-      Path dotSortPath = workspace.getPath().resolve(ChildElementsArrayList.DOT_SORT);
-      if (!Files.exists(dotSortPath)) {
-        Files.createFile(dotSortPath);
+    synchronized (instanceCache) {
+      Workspace workspace = getInstance(project, name);
+      if (workspace == null) {
+        workspace = new Workspace(project, name);
       }
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
+      try {
+        Path dotSortPath = workspace.getPath().resolve(ChildElementsArrayList.DOT_SORT);
+        if (!Files.exists(dotSortPath)) {
+          Files.createFile(dotSortPath);
+        }
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
 
-    return workspace;
+      return workspace;
+    }
   }
 
   public static Workspace getTestRunWorkspace(Project project) {
@@ -134,6 +143,39 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     propertyStoreCache = cache;
   }
 
-  public boolean acquireExecutableRunLock(ExecutableRun run) {
+  public boolean acquireExecutableLock(ExecutableRun run) {
+    synchronized (this) {
+      /*
+      if (lockerObject.containsKey(getExecutableLockKey(run.getExecutable()))) {
+        return false;
+      } else {
+        lockerObject.put(getExecutableLockKey(run.getExecutable()), run.getLocalPath().toString());
+        return true;
+      }
+       */
+      if (getStringFromProperty(getExecutableLockKey(run.getExecutable())) == null) {
+        setToProperty(getExecutableLockKey(run.getExecutable()), run.getLocalPath().toString());
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  public void releaseExecutableLock(ExecutableRun run) {
+    synchronized (this) {
+      /*
+      if (lockerObject.getString(getExecutableLockKey(run.getExecutable()), "").equals(run.getLocalPath().toString())) {
+        lockerObject.remove(getExecutableLockKey(run.getExecutable()));
+      }
+       */
+      if (getStringFromProperty(getExecutableLockKey(run.getExecutable()), "").equals(run.getLocalPath().toString())) {
+        removeFromProperty(getExecutableLockKey(run.getExecutable()));
+      }
+    }
+  }
+
+  private String getExecutableLockKey(Executable executable) {
+    return KEY_EXECUTABLE_LOCK + executable.getName();
   }
 }

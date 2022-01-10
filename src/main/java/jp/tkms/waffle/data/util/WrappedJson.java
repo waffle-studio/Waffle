@@ -151,7 +151,7 @@ public class WrappedJson implements Map<Object, Object> {
         return containsKey(key) ? (T)get(key) : defaultValue;
       }
     } catch (ClassCastException | NullPointerException e) {
-      return defaultValue;
+      return (T)put(key, defaultValue);
     }
   }
 

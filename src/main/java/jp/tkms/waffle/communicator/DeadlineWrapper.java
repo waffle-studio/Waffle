@@ -79,7 +79,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected boolean isSubmittableImpl(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE, ""));
       if (new Date().before(deadline)) {

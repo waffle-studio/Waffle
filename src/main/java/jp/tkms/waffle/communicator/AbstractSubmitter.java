@@ -413,18 +413,7 @@ abstract public class AbstractSubmitter {
     return isSubmittable(computer, next, combinedList);
   }
 
-  protected final boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
-    if (next instanceof ExecutableRun) {
-      ExecutableRun run = (ExecutableRun) next;
-      if (run.getExecutable().isParallelProhibited() && !run.getWorkspace().acquireExecutableRunLock(run)) {
-        return false;
-      }
-    }
-
-    return isSubmittableImpl(computer, next, list);
-  }
-
-  protected boolean isSubmittableImpl(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
+  protected boolean isSubmittable(Computer computer, ComputerTask next, ArrayList<ComputerTask> list) {
     return (list.size() + (next == null ? 0 : 1)) <= computer.getMaximumNumberOfJobs();
   }
 
@@ -788,7 +777,17 @@ abstract public class AbstractSubmitter {
       if (Main.hibernateFlag) { return; }
 
       try {
-        if (isSubmittable(computer, job.getRun(), submittedJobList)) {
+        ComputerTask run = job.getRun();;
+        if (isSubmittable(computer, run, submittedJobList)) {
+
+          if (run instanceof ExecutableRun) {
+            ExecutableRun executableRun = (ExecutableRun) run;
+            if (executableRun.getExecutable().isParallelProhibited()
+              && !executableRun.getWorkspace().acquireExecutableLock(executableRun)) {
+              continue;
+            }
+          }
+
           submit(envelope, job);
           submittedJobList.add(job);
           //createdProcessorManager.startup();
@@ -846,9 +845,11 @@ abstract public class AbstractSubmitter {
           if (Main.hibernateFlag) { return; }
 
           try {
-            if (!job.exists() && job.getRun().isRunning()) {
+            ComputerTask run = job.getRun();
+
+            if (!job.exists() && run.isRunning()) {
               job.cancel();
-              WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+              WarnLogMessage.issue(run, "The task file is not exists; The task will cancel.");
               continue;
             }
             switch (job.getState(true)) {
