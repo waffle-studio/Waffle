@@ -4,13 +4,17 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.PropertyFile;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
+import jp.tkms.waffle.data.internal.task.ExecutableRunTaskStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
+import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.*;
+import jp.tkms.waffle.exception.RunNotFoundException;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,6 +29,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public static final String ARCHIVE = ".ARCHIVE";
   public static final String SCRIPT_OUTPUT_FILE = "SCRIPT_OUTPUT.txt";
   public static final String KEY_EXECUTABLE_LOCK = "executable_lock#";
+  private static final String KEY_FINISHED = "finished";
 
   private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
 
@@ -177,5 +182,28 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
 
   private String getExecutableLockKey(Executable executable) {
     return KEY_EXECUTABLE_LOCK + executable.getName();
+  }
+
+  public void finish() {
+    setToProperty(KEY_FINISHED, true);
+  }
+
+  public boolean isFinished() {
+    return getBooleanFromProperty(KEY_FINISHED, false);
+  }
+
+  public void cancel() {
+    finish();
+
+    for (ExecutableRunTask task : ExecutableRunTask.getList()) {
+      try {
+        ExecutableRun run = task.getRun();
+        if (getLocalPath().equals(run.getWorkspace().getLocalPath())) {
+          run.cancel();
+        }
+      } catch (RunNotFoundException e) {
+        //NOP
+      }
+    }
   }
 }

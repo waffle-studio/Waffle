@@ -31,7 +31,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   public static final String KEY_WORKSPACE = "workspace";
   public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, RedirectToWorkspace, UpdateNote}
+  public enum Mode {Default, RedirectToWorkspace, UpdateNote, Cancel}
   private Mode mode;
 
   private Project project;
@@ -48,6 +48,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getUrl(null), new WorkspaceComponent());
     Spark.post(getUrl(null, Mode.UpdateNote), new WorkspaceComponent(Mode.UpdateNote));
+    Spark.get(getUrl(null, Mode.Cancel), new WorkspaceComponent(Mode.Cancel));
 
     RunComponent.register();
     StagedExecutableComponent.register();
@@ -78,6 +79,12 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
     switch (mode) {
       case UpdateNote:
         workspace.setNote(request.queryParams(KEY_NOTE));
+        response.redirect(getUrl(workspace));
+        break;
+      case Cancel:
+        workspace.cancel();
+        response.redirect(getUrl(workspace));
+        break;
       case RedirectToWorkspace:
         response.redirect(getUrl(workspace));
         break;
@@ -214,7 +221,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         String scriptLog = workspace.getScriptOutput();
         contents += Lte.divRow(
               Html.section("col-lg-12",
-                Lte.card(Html.fasIcon("sticky-note") + "Script Output", null,
+                Lte.card(Html.fasIcon("sticky-note") + "Script Output", Lte.cardToggleButton(false),
                   (scriptLog.equals("") ?
                     Html.element("div",
                       new Html.Attributes(Html.value("style", "text-align:center;color:silver;")), Html.fasIcon("receipt") + "Empty")
