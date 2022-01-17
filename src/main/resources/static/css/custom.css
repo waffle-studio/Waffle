@@ -38,3 +38,7 @@ table.table-nooverflow td{
 div.custom-switch {
     margin: 0.5em;
 }
+
+div.wd-button {
+    margin-left:1em;
+}

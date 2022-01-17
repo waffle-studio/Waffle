@@ -21,6 +21,7 @@ package jp.tkms.waffle.web.component.project.workspace;
   import jp.tkms.waffle.exception.ProjectNotFoundException;
   import spark.Spark;
 
+  import java.nio.file.Path;
   import java.util.ArrayList;
   import java.util.Arrays;
   import java.util.concurrent.Future;
@@ -107,6 +108,11 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
           Html.a(ProjectComponent.getUrl(project), project.getName()),
           Html.a(WorkspacesComponent.getUrl(project), WORKSPACES)
         ));
+      }
+
+      @Override
+      protected Path pageWorkingDirectory() {
+        return workspace.getPath();
       }
 
       @Override

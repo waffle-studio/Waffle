@@ -7,7 +7,6 @@ import jp.tkms.waffle.web.component.*;
 import jp.tkms.waffle.web.component.job.JobsComponent;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.misc.BrowserMessageComponent;
-import jp.tkms.waffle.web.component.misc.HelpComponent;
 import jp.tkms.waffle.web.component.misc.SystemComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
@@ -16,6 +15,7 @@ import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -99,6 +99,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     div("col-sm-6",
+                      renderPageWorkingDirectoryButton(),
                       renderPageBreadcrumb()
                     )
                   ),
@@ -256,6 +257,13 @@ abstract public class MainTemplate extends AbstractTemplate {
     );
   }
 
+  private String renderPageWorkingDirectoryButton() {
+    if (pageWorkingDirectory() != null) {
+      return Html.div("float-sm-right wd-button", " " + Lte.clipboardButton(Html.fasIcon("folder"), pageWorkingDirectory().toAbsolutePath().normalize().toString()));
+    }
+    return null;
+  }
+
   protected String renderPageSidebar() {
     return
       elementWithClass("li", "nav-item",
@@ -386,6 +394,10 @@ abstract public class MainTemplate extends AbstractTemplate {
 
   protected String pageSubTitle() {
     return "";
+  }
+
+  protected Path pageWorkingDirectory() {
+    return null;
   }
 
   protected String pageTool() { return ""; };
