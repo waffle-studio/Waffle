@@ -312,6 +312,19 @@ public class TaskExecutor extends TaskCommand {
   }
 
   public void addEnvironment(String name, String value) {
+    try {
+      //Process process = Runtime.getRuntime().exec(new String[]{"echo", "-n", value},
+        //getEnvironments(), executableBaseDirectory.toFile());
+      Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo -n " + value},
+        getEnvironments(), executableBaseDirectory.toFile());
+      InputStream inputStream = process.getInputStream();
+      process.waitFor();
+      value = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
     environmentList.add(name + '=' + value);
   }
 
