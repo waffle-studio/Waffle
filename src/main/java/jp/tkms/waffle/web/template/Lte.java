@@ -1,11 +1,15 @@
 package jp.tkms.waffle.web.template;
 
+import jp.tkms.util.Editor;
+import jp.tkms.util.FutureArrayList;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static jp.tkms.waffle.web.template.Html.*;
 
@@ -321,6 +325,43 @@ public class Lte {
       value("data-step", String.valueOf(step)),
       value("data-readonly", "true")
     ), br(), label));
+  }
+
+  public static String table(String classValue, String id, Editor<ArrayList<TableValue>> headersFunc, Editor<FutureArrayList<TableRow>> contentsFunc) {
+    ArrayList<TableValue> headers = (headersFunc == null ? null : headersFunc.apply(new ArrayList<>()));
+    FutureArrayList<TableRow> contents = (contentsFunc == null ? null : contentsFunc.apply(new FutureArrayList<>(Main.interfaceThreadPool)));
+    String headerValue = "";
+    StringBuilder stringBuilder = new StringBuilder();
+    try {
+      if (headers != null) {
+        for (TableValue header : headers) {
+          headerValue += element("th", new Attributes(value("style", header.style)), header.value);
+        }
+      }
+      for (TableRow row : contents) {
+        try {
+          StringBuilder rowValue = new StringBuilder();
+          for (TableValue value : row) {
+            rowValue.append(element("td", new Attributes(value("style", value.style)), value.value));
+          }
+          stringBuilder.append(element("tr", row.attributes, rowValue.toString()));
+        } catch (NullPointerException e) {
+          // NOP
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return elementWithClass("table", listBySpace("table", classValue),
+      (headers != null ?
+        element("thead", null, element("tr", null, headerValue)) : null),
+      element("tbody", new Attributes(value("id", id)), stringBuilder.toString())
+    );
+  }
+
+  public static String table(String classValue, Editor<ArrayList<TableValue>> headersFunc, Editor<FutureArrayList<TableRow>> contentsFunc) {
+    return table(classValue, UUID.randomUUID().toString(), headersFunc, contentsFunc);
   }
 
   public static String table(String classValue, Table table) {

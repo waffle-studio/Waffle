@@ -1,5 +1,6 @@
 package jp.tkms.waffle.web.component.project;
 
+import jp.tkms.util.FutureArrayList;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.web.AlertCookie;
@@ -160,31 +161,23 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
         }
 
         return Lte.card(null, null,
-          Lte.table("table-condensed table-nooverflow", new Lte.Table() {
-            @Override
-            public ArrayList<Lte.TableValue> tableHeaders() {
-              ArrayList<Lte.TableValue> list = new ArrayList<>();
+          Lte.table("table-condensed table-nooverflow",
+            (list) -> {
               list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("", "Note"));
               return list;
-            }
-
-            @Override
-            public ArrayList<Future<Lte.TableRow>> tableRows() {
-              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+            },
+            (list) -> {
               for (Project project : Project.getList()) {
-                list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(
-                      Html.a(ProjectComponent.getUrl(project), null, null, project.getName()),
-                      Html.sanitaize(project.getNote())
-                    );
-                  }
-                ));
+                list.add(() ->
+                  new Lte.TableRow(
+                    Html.a(ProjectComponent.getUrl(project), null, null, project.getName()),
+                    Html.sanitaize(project.getNote())
+                  ));
               }
               return list;
-            }
-          })
-          , null, "card-outline card-secondary", "p-0");
+            }),
+          null, "card-outline card-secondary", "p-0");
       }
     }.render(this);
   }
