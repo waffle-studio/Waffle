@@ -47,7 +47,9 @@ ext {
 }
 
 dependencies {
-    implementation 'com.sparkjava:spark-core:2.9.3'
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+
+	implementation 'com.sparkjava:spark-core:2.9.3'
     implementation 'com.jcraft:jsch:0.1.55'
 	//implementation 'org.json:json:20190722'
 	implementation 'org.jruby:jruby-complete:9.2.12.0'
@@ -167,3 +169,9 @@ task buildDocs(type: Exec, dependsOn: build) {
 	executable "java"
 	args "-cp", "build/libs/waffle-all.jar", "jp.tkms.waffle.DocumentBuilder"
 }
+
+tasks.named('test') {
+	// Use JUnit Platform for unit tests.
+	useJUnitPlatform()
+}
+
