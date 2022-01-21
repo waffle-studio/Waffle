@@ -46,6 +46,10 @@ public class Manager {
   }
 
   private void updateProcess(ProcedureRunGuardStore store, AbstractRun run) {
+    if (run.getWorkspace().isFinished()) {
+      return;
+    }
+
     store.getList(run).stream().filter(ProcedureRunGuard::isValueGuard)
         .forEach(guard -> {
           ProcedureRun procedureRun = guard.getProcedureRun();
@@ -73,6 +77,10 @@ public class Manager {
   }
 
   private void finishProcess(ProcedureRunGuardStore store, AbstractRun run) {
+    if (run.getWorkspace().isFinished()) {
+      return;
+    }
+
     store.getList(run).stream().filter(Predicate.not(ProcedureRunGuard::isValueGuard))
       .forEach(guard -> deactivateAndTryRun(store, guard));
 

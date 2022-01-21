@@ -20,6 +20,7 @@ import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -232,6 +233,11 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
       protected ArrayList<String> pageBreadcrumb() {
         return new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects")));
+      }
+
+      @Override
+      protected Path pageWorkingDirectory() {
+        return project.getPath();
       }
 
       @Override

@@ -310,6 +310,28 @@ public class Lte {
     );
   }
 
+  public static String clipboardButton(String label, String value) {
+    UUID uuid = UUID.randomUUID();
+    return span(null, null,
+      attribute("input",
+        value("type", "text"),
+        value("value", value),
+        value("id", uuid.toString()),
+        value("class", "form-control"),
+        value("style", "display:none;"),
+        value("readonly", null)),
+      element("button", new Attributes(value("class", "btn btn-sm btn-outline-secondary"),
+        value("type", "button"),
+        value("id", uuid.toString().concat("_")),
+        value("onclick",
+          "var element=document.getElementById('" + uuid.toString() + "');" +
+            "element.style.display='inline-block';" +
+            "element.select();" +
+            "document.execCommand('copy');toastr.info('Copied: ' + element.value);" +
+            "element.style.display='none';")), label)
+    );
+  }
+
   public static String disabledKnob(String name, String color, double min, double max, double step, boolean isClockwise, double value, String label) {
     String id = "input" + name;
     return div("d-inline-block", div("text-center", attribute("input",

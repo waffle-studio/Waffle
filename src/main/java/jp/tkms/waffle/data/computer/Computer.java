@@ -58,6 +58,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     MultiComputerSubmitter.class,
     LoadBalancingSubmitter.class,
     DeadlineWrapper.class,
+    BarrierWrapper.class,
     PodWrappedSubmitter.class
   ));
 

@@ -101,6 +101,10 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
      */
 
     ManagerMaster.signalFinished(this);
+
+    if (isRoot()) {
+      getWorkspace().finish();
+    }
   }
 
   protected Path getVariablesStorePath() {
@@ -203,6 +207,10 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   @Override
   public Path getPropertyStorePath() {
     return this.getPath().resolve(JSON_FILE);
+  }
+
+  public boolean isRoot() {
+    return getParentConductorRun() == null;
   }
 
   private static ConductorRun create(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
