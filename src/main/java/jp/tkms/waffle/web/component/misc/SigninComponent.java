@@ -34,8 +34,8 @@ public class SigninComponent extends AbstractComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ResponseBuilder(SigninComponent.class));
-    Spark.post(getUrl(), new ResponseBuilder(SigninComponent.class));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new SigninComponent()));
+    Spark.post(getUrl(), new ResponseBuilder(() -> new SigninComponent()));
   }
 
   public static String getUrl() {

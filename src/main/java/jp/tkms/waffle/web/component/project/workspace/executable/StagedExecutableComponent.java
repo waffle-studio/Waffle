@@ -31,13 +31,13 @@ public class StagedExecutableComponent extends ExecutableComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ResponseBuilder(WorkspaceComponent.class, WorkspaceComponent.Mode.RedirectToWorkspace));
-    Spark.get(getUrl(null), new ResponseBuilder(StagedExecutableComponent.class));
-    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(StagedExecutableComponent.class, Mode.Update));
-    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ResponseBuilder(StagedExecutableComponent.class, Mode.UpdateDefaultParameters));
-    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ResponseBuilder(StagedExecutableComponent.class, Mode.UpdateDummyResults));
-    Spark.get(getUrl(null, Mode.TestRun), new ResponseBuilder(StagedExecutableComponent.class, Mode.TestRun));
-    Spark.post(getUrl(null, Mode.TestRun), new ResponseBuilder(StagedExecutableComponent.class, Mode.TestRun));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace)));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new StagedExecutableComponent()));
+    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(() -> new StagedExecutableComponent(Mode.Update)));
+    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ResponseBuilder(() -> new StagedExecutableComponent(Mode.UpdateDefaultParameters)));
+    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ResponseBuilder(() -> new StagedExecutableComponent(Mode.UpdateDummyResults)));
+    Spark.get(getUrl(null, Mode.TestRun), new ResponseBuilder(() -> new StagedExecutableComponent(Mode.TestRun)));
+    Spark.post(getUrl(null, Mode.TestRun), new ResponseBuilder(() -> new StagedExecutableComponent(Mode.TestRun)));
   }
 
   protected static String getUrl() {

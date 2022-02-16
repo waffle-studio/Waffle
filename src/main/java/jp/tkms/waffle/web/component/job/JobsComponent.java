@@ -36,8 +36,8 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new ResponseBuilder(JobsComponent.class));
-    Spark.get(getUrl(Mode.Cancel, null), new ResponseBuilder(JobsComponent.class, Mode.Cancel));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new JobsComponent()));
+    Spark.get(getUrl(Mode.Cancel, null), new ResponseBuilder(() -> new JobsComponent(Mode.Cancel)));
   }
 
   public static String getUrl() {

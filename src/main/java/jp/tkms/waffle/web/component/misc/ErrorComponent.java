@@ -12,8 +12,8 @@ import java.util.Map;
 
 public class ErrorComponent extends AbstractAccessControlledComponent {
   static public void register() {
-    Spark.notFound(new ResponseBuilder(ErrorComponent.class));
-    Spark.internalServerError(new ResponseBuilder(ErrorComponent.class));
+    Spark.notFound(new ResponseBuilder(() -> new ErrorComponent()));
+    Spark.internalServerError(new ResponseBuilder(() -> new ErrorComponent()));
   }
 
   @Override

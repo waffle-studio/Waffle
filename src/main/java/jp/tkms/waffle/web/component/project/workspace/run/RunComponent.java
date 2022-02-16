@@ -52,10 +52,10 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getRootUrl(null), new ResponseBuilder(RunComponent.class));
-    Spark.get(getUrl(null), new ResponseBuilder(RunComponent.class));
-    Spark.get(getUrl(null, Mode.ReCheck), new ResponseBuilder(RunComponent.class, Mode.ReCheck));
-    Spark.get(getUrl(null, Mode.UpdateNote), new ResponseBuilder(RunComponent.class, Mode.UpdateNote));
+    Spark.get(getRootUrl(null), new ResponseBuilder(() -> new RunComponent()));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new RunComponent()));
+    Spark.get(getUrl(null, Mode.ReCheck), new ResponseBuilder(() -> new RunComponent(Mode.ReCheck)));
+    Spark.get(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new RunComponent(Mode.UpdateNote)));
   }
 
   public static String getRootUrl(Workspace workspace) {

@@ -48,9 +48,9 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(WorkspaceComponent.class));
-    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(WorkspaceComponent.class, Mode.UpdateNote));
-    Spark.get(getUrl(null, Mode.Cancel), new ResponseBuilder(WorkspaceComponent.class, Mode.Cancel));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceComponent()));
+    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new WorkspaceComponent(Mode.UpdateNote)));
+    Spark.get(getUrl(null, Mode.Cancel), new ResponseBuilder(() -> new WorkspaceComponent(Mode.Cancel)));
 
     RunComponent.register();
     StagedExecutableComponent.register();

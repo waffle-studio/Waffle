@@ -34,11 +34,11 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   }
 
   static public void register() {
-    Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(ResultCollectorComponent.class, Mode.Add));
-    Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(ResultCollectorComponent.class, Mode.Add));
-    Spark.get(getUrl(null, null), new ResponseBuilder(ResultCollectorComponent.class));
-    Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(ResultCollectorComponent.class, Mode.Update));
-    Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(ResultCollectorComponent.class, Mode.Remove));
+    Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(() -> new ResultCollectorComponent(Mode.Add)));
+    Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(() -> new ResultCollectorComponent(Mode.Add)));
+    Spark.get(getUrl(null, null), new ResponseBuilder(() -> new ResultCollectorComponent()));
+    Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(() -> new ResultCollectorComponent(Mode.Update)));
+    Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(() -> new ResultCollectorComponent(Mode.Remove)));
   }
 
   public static String getStaticUrl(Executable executable, Mode mode) {

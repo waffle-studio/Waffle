@@ -44,10 +44,10 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(WorkspaceConvertorComponent.class));
-    Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(WorkspaceConvertorComponent.class, Mode.Prepare));
-    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(WorkspaceConvertorComponent.class, Mode.Update));
-    Spark.get(getUrl(null, Mode.Remove), new ResponseBuilder(WorkspaceConvertorComponent.class, Mode.Remove));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceConvertorComponent()));
+    Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Prepare)));
+    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Update)));
+    Spark.get(getUrl(null, Mode.Remove), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Remove)));
   }
 
   public static String getUrl(WorkspaceConvertor convertor) {

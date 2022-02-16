@@ -28,14 +28,14 @@ public class StagedConductorComponent extends ConductorComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ResponseBuilder(WorkspaceComponent.class, WorkspaceComponent.Mode.RedirectToWorkspace));
-    Spark.get(getUrl(null), new ResponseBuilder(StagedConductorComponent.class));
-    Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(StagedConductorComponent.class, Mode.Prepare));
-    Spark.post(getUrl(null, Mode.Run), new ResponseBuilder(StagedConductorComponent.class, Mode.Run));
-    Spark.post(getUrl(null, Mode.UpdateArguments), new ResponseBuilder(StagedConductorComponent.class, Mode.UpdateArguments));
-    Spark.post(getUrl(null, Mode.UpdateMainScript), new ResponseBuilder(StagedConductorComponent.class, Mode.UpdateMainScript));
-    Spark.post(getUrl(null, Mode.UpdateListenerScript), new ResponseBuilder(StagedConductorComponent.class, Mode.UpdateListenerScript));
-    Spark.post(getUrl(null, Mode.NewChildProcedure), new ResponseBuilder(StagedConductorComponent.class, Mode.NewChildProcedure));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace)));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new StagedConductorComponent()));
+    Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(() -> new StagedConductorComponent(Mode.Prepare)));
+    Spark.post(getUrl(null, Mode.Run), new ResponseBuilder(() -> new StagedConductorComponent(Mode.Run)));
+    Spark.post(getUrl(null, Mode.UpdateArguments), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateArguments)));
+    Spark.post(getUrl(null, Mode.UpdateMainScript), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateMainScript)));
+    Spark.post(getUrl(null, Mode.UpdateListenerScript), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateListenerScript)));
+    Spark.post(getUrl(null, Mode.NewChildProcedure), new ResponseBuilder(() -> new StagedConductorComponent(Mode.NewChildProcedure)));
   }
 
   protected static String getUrl() {

@@ -53,13 +53,13 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   public static void register() {
     //Spark.get(getUrl(), new ExecutableComponent(Mode.List));
-    Spark.get(getUrl(null), new ResponseBuilder(ExecutableComponent.class));
-    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(ExecutableComponent.class, Mode.Update));
-    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ResponseBuilder(ExecutableComponent.class, Mode.UpdateDefaultParameters));
-    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ResponseBuilder(ExecutableComponent.class, Mode.UpdateDummyResults));
-    Spark.get(getUrl(null, Mode.TestRun), new ResponseBuilder(ExecutableComponent.class, Mode.TestRun));
-    Spark.post(getUrl(null, Mode.TestRun), new ResponseBuilder(ExecutableComponent.class, Mode.TestRun));
-    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(ExecutableComponent.class, Mode.UpdateNote));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new ExecutableComponent()));
+    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(() -> new ExecutableComponent(Mode.Update)));
+    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ResponseBuilder(() -> new ExecutableComponent(Mode.UpdateDefaultParameters)));
+    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ResponseBuilder(() -> new ExecutableComponent(Mode.UpdateDummyResults)));
+    Spark.get(getUrl(null, Mode.TestRun), new ResponseBuilder(() -> new ExecutableComponent(Mode.TestRun)));
+    Spark.post(getUrl(null, Mode.TestRun), new ResponseBuilder(() -> new ExecutableComponent(Mode.TestRun)));
+    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new ExecutableComponent(Mode.UpdateNote)));
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();

@@ -34,9 +34,9 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(ExecutablesComponent.class));
-    Spark.get(getUrl(null, Mode.New), new ResponseBuilder(ExecutablesComponent.class, Mode.New));
-    Spark.post(getUrl(null, Mode.New), new ResponseBuilder(ExecutablesComponent.class, Mode.New));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new ExecutablesComponent()));
+    Spark.get(getUrl(null, Mode.New), new ResponseBuilder(() -> new ExecutablesComponent(Mode.New)));
+    Spark.post(getUrl(null, Mode.New), new ResponseBuilder(() -> new ExecutablesComponent(Mode.New)));
 
     ExecutableComponent.register();
   }

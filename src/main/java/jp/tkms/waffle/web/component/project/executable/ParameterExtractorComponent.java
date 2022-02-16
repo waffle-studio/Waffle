@@ -34,11 +34,11 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   static public void register() {
-    Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Add));
-    Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Add));
-    Spark.get(getUrl(null, null), new ResponseBuilder(ParameterExtractorComponent.class));
-    Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Update));
-    Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Remove));
+    Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Add)));
+    Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Add)));
+    Spark.get(getUrl(null, null), new ResponseBuilder(() -> new ParameterExtractorComponent()));
+    Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Update)));
+    Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Remove)));
   }
 
   public static String getStaticUrl(Executable executable, Mode mode) {

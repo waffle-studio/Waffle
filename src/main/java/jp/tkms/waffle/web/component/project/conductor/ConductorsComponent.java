@@ -60,7 +60,7 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(ConductorsComponent.class, Mode.List));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new ConductorsComponent(Mode.List)));
 
     ConductorComponent.register();
   }

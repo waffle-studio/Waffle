@@ -32,8 +32,8 @@ public class LogsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(Mode.GetOld), new ResponseBuilder(LogsComponent.class, Mode.GetOld));
-    Spark.get(getUrl(true), new ResponseBuilder(LogsComponent.class));
+    Spark.get(getUrl(Mode.GetOld), new ResponseBuilder(() -> new LogsComponent(Mode.GetOld)));
+    Spark.get(getUrl(true), new ResponseBuilder(() -> new LogsComponent()));
   }
 
   public static String getUrl(Mode mode) {

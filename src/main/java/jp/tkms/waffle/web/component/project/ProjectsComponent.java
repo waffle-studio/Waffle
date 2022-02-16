@@ -31,9 +31,9 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ResponseBuilder(ProjectsComponent.class));
-    Spark.get(getUrl(Mode.New), new ResponseBuilder(ProjectsComponent.class, Mode.New));
-    Spark.post(getUrl(Mode.New), new ResponseBuilder(ProjectsComponent.class, Mode.New));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new ProjectsComponent()));
+    Spark.get(getUrl(Mode.New), new ResponseBuilder(() -> new ProjectsComponent(Mode.New)));
+    Spark.post(getUrl(Mode.New), new ResponseBuilder(() -> new ProjectsComponent(Mode.New)));
 
     ProjectComponent.register();
   }

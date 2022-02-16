@@ -11,7 +11,7 @@ public class BrowserMessageComponent extends AbstractAccessControlledComponent {
   private static final String KEY_CURRENT_ROWID = "cid";
 
   public static void register() {
-    Spark.post(getUrl(null), new ResponseBuilder(BrowserMessageComponent.class));
+    Spark.post(getUrl(null), new ResponseBuilder(() -> new BrowserMessageComponent()));
   }
 
   public static String getUrl(String id) {

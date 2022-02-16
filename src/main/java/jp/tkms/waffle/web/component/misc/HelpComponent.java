@@ -36,8 +36,8 @@ public class HelpComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new ResponseBuilder(HelpComponent.class, Mode.Default));
-    Spark.get(getUrl(null), new ResponseBuilder(HelpComponent.class, Mode.Default));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new HelpComponent(Mode.Default)));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new HelpComponent(Mode.Default)));
   }
 
   public static String getUrl() {

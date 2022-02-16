@@ -35,7 +35,7 @@ public class WorkspacesComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(WorkspacesComponent.class));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspacesComponent()));
 
     WorkspaceComponent.register();
   }

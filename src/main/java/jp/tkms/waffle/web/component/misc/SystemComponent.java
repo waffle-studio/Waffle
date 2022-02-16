@@ -37,14 +37,14 @@ public class SystemComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new ResponseBuilder(SystemComponent.class, Mode.Default));
-    Spark.get(getUrl(Mode.Hibernate), new ResponseBuilder(SystemComponent.class, Mode.Hibernate));
-    Spark.get(getUrl(Mode.Restart), new ResponseBuilder(SystemComponent.class, Mode.Restart));
-    Spark.get(getUrl(Mode.Update), new ResponseBuilder(SystemComponent.class, Mode.Update));
-    Spark.get(getUrl(Mode.DebugReport), new ResponseBuilder(SystemComponent.class, Mode.DebugReport));
-    Spark.get(getUrl(Mode.ReduceRubyContainerCache), new ResponseBuilder(SystemComponent.class, Mode.ReduceRubyContainerCache));
-    Spark.get(getUrl(Mode.Kill), new ResponseBuilder(SystemComponent.class, Mode.Kill));
-    Spark.get(getUrl(Mode.Gc), new ResponseBuilder(SystemComponent.class, Mode.Gc));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new SystemComponent(Mode.Default)));
+    Spark.get(getUrl(Mode.Hibernate), new ResponseBuilder(() -> new SystemComponent(Mode.Hibernate)));
+    Spark.get(getUrl(Mode.Restart), new ResponseBuilder(() -> new SystemComponent(Mode.Restart)));
+    Spark.get(getUrl(Mode.Update), new ResponseBuilder(() -> new SystemComponent(Mode.Update)));
+    Spark.get(getUrl(Mode.DebugReport), new ResponseBuilder(() -> new SystemComponent(Mode.DebugReport)));
+    Spark.get(getUrl(Mode.ReduceRubyContainerCache), new ResponseBuilder(() -> new SystemComponent(Mode.ReduceRubyContainerCache)));
+    Spark.get(getUrl(Mode.Kill), new ResponseBuilder(() -> new SystemComponent(Mode.Kill)));
+    Spark.get(getUrl(Mode.Gc), new ResponseBuilder(() -> new SystemComponent(Mode.Gc)));
   }
 
   public static String getUrl() {
