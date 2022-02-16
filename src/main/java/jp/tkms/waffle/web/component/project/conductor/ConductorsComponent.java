@@ -13,6 +13,7 @@ import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
@@ -59,7 +60,7 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ConductorsComponent(Mode.List));
+    Spark.get(getUrl(null), new ResponseBuilder(ConductorsComponent.class, Mode.List));
 
     ConductorComponent.register();
   }

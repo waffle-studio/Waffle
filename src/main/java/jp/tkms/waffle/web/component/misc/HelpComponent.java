@@ -11,6 +11,7 @@ import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -35,8 +36,8 @@ public class HelpComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new HelpComponent(Mode.Default));
-    Spark.get(getUrl(null), new HelpComponent(Mode.Default));
+    Spark.get(getUrl(), new ResponseBuilder(HelpComponent.class, Mode.Default));
+    Spark.get(getUrl(null), new ResponseBuilder(HelpComponent.class, Mode.Default));
   }
 
   public static String getUrl() {

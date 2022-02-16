@@ -7,6 +7,7 @@ package jp.tkms.waffle.web.component.project.workspace;
   import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
   import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
   import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+  import jp.tkms.waffle.web.component.ResponseBuilder;
   import jp.tkms.waffle.web.component.project.ProjectComponent;
   import jp.tkms.waffle.web.component.project.ProjectsComponent;
   import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
@@ -47,9 +48,9 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new WorkspaceComponent());
-    Spark.post(getUrl(null, Mode.UpdateNote), new WorkspaceComponent(Mode.UpdateNote));
-    Spark.get(getUrl(null, Mode.Cancel), new WorkspaceComponent(Mode.Cancel));
+    Spark.get(getUrl(null), new ResponseBuilder(WorkspaceComponent.class));
+    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(WorkspaceComponent.class, Mode.UpdateNote));
+    Spark.get(getUrl(null, Mode.Cancel), new ResponseBuilder(WorkspaceComponent.class, Mode.Cancel));
 
     RunComponent.register();
     StagedExecutableComponent.register();

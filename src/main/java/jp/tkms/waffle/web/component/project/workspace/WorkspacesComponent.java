@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
@@ -34,7 +35,7 @@ public class WorkspacesComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new WorkspacesComponent());
+    Spark.get(getUrl(null), new ResponseBuilder(WorkspacesComponent.class));
 
     WorkspaceComponent.register();
   }

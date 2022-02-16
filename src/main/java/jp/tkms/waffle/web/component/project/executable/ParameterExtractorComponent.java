@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.project.executable;
 
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -33,11 +34,11 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   }
 
   static public void register() {
-    Spark.get(getStaticUrl(null, Mode.Add), new ParameterExtractorComponent(Mode.Add));
-    Spark.post(getStaticUrl(null, Mode.Add), new ParameterExtractorComponent(Mode.Add));
-    Spark.get(getUrl(null, null), new ParameterExtractorComponent());
-    Spark.post(getUrl(null, null, Mode.Update), new ParameterExtractorComponent(Mode.Update));
-    Spark.get(getUrl(null, null, Mode.Remove), new ParameterExtractorComponent(Mode.Remove));
+    Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Add));
+    Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Add));
+    Spark.get(getUrl(null, null), new ResponseBuilder(ParameterExtractorComponent.class));
+    Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Update));
+    Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(ParameterExtractorComponent.class, Mode.Remove));
   }
 
   public static String getStaticUrl(Executable executable, Mode mode) {

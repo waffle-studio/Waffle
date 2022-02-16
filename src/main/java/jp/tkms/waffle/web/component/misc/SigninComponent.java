@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.web.component.AbstractComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
@@ -33,8 +34,8 @@ public class SigninComponent extends AbstractComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new SigninComponent());
-    Spark.post(getUrl(), new SigninComponent());
+    Spark.get(getUrl(), new ResponseBuilder(SigninComponent.class));
+    Spark.post(getUrl(), new ResponseBuilder(SigninComponent.class));
   }
 
   public static String getUrl() {

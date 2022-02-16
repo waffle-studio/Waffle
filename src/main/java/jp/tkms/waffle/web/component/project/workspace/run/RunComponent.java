@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.*;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
@@ -51,10 +52,10 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getRootUrl(null), new RunComponent());
-    Spark.get(getUrl(null), new RunComponent());
-    Spark.get(getUrl(null, Mode.ReCheck), new RunComponent(Mode.ReCheck));
-    Spark.get(getUrl(null, Mode.UpdateNote), new RunComponent(Mode.UpdateNote));
+    Spark.get(getRootUrl(null), new ResponseBuilder(RunComponent.class));
+    Spark.get(getUrl(null), new ResponseBuilder(RunComponent.class));
+    Spark.get(getUrl(null, Mode.ReCheck), new ResponseBuilder(RunComponent.class, Mode.ReCheck));
+    Spark.get(getUrl(null, Mode.UpdateNote), new ResponseBuilder(RunComponent.class, Mode.UpdateNote));
   }
 
   public static String getRootUrl(Workspace workspace) {

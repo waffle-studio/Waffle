@@ -4,6 +4,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.component.project.workspace.run.RunComponent;
@@ -35,8 +36,8 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new JobsComponent());
-    Spark.get(getUrl(Mode.Cancel, null), new JobsComponent(Mode.Cancel));
+    Spark.get(getUrl(), new ResponseBuilder(JobsComponent.class));
+    Spark.get(getUrl(Mode.Cancel, null), new ResponseBuilder(JobsComponent.class, Mode.Cancel));
   }
 
   public static String getUrl() {

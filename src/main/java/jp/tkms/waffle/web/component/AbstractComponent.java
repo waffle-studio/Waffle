@@ -9,7 +9,7 @@ import spark.Request;
 import spark.Response;
 import spark.Route;
 
-abstract public class AbstractComponent implements Route {
+abstract public class AbstractComponent {
   protected static Logger logger = LoggerFactory.getLogger("Component");
 
   public Request request;
@@ -21,7 +21,6 @@ abstract public class AbstractComponent implements Route {
 
   abstract public void controller() throws ProjectNotFoundException;
 
-  @Override
   public Object handle(Request request, Response response) throws Exception {
     this.request = request;
     this.response = response;

@@ -48,13 +48,13 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ProjectComponent());
-    Spark.get(getUrl(null, Mode.EditConstModel), new ProjectComponent());
-    Spark.get(getUrl(null, Mode.AddConductor), new ProjectComponent(Mode.AddConductor));
-    Spark.post(getUrl(null, Mode.AddConductor), new ProjectComponent(Mode.AddConductor));
-    Spark.post(getUrl(null, Mode.UpdateNote), new ProjectComponent(Mode.UpdateNote));
-    Spark.get(getUrl(null, Mode.AddWorkspaceConvertor), new ProjectComponent(Mode.AddWorkspaceConvertor));
-    Spark.post(getUrl(null, Mode.AddWorkspaceConvertor), new ProjectComponent(Mode.AddWorkspaceConvertor));
+    Spark.get(getUrl(null), new ResponseBuilder(ProjectComponent.class));
+    Spark.get(getUrl(null, Mode.EditConstModel), new ResponseBuilder(ProjectComponent.class));
+    Spark.get(getUrl(null, Mode.AddConductor), new ResponseBuilder(ProjectComponent.class, Mode.AddConductor));
+    Spark.post(getUrl(null, Mode.AddConductor), new ResponseBuilder(ProjectComponent.class, Mode.AddConductor));
+    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(ProjectComponent.class, Mode.UpdateNote));
+    Spark.get(getUrl(null, Mode.AddWorkspaceConvertor), new ResponseBuilder(ProjectComponent.class, Mode.AddWorkspaceConvertor));
+    Spark.post(getUrl(null, Mode.AddWorkspaceConvertor), new ResponseBuilder(ProjectComponent.class, Mode.AddWorkspaceConvertor));
 
     ExecutablesComponent.register();
     ConductorsComponent.register();

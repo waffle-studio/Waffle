@@ -11,6 +11,7 @@ import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -36,14 +37,14 @@ public class SystemComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(), new SystemComponent(Mode.Default));
-    Spark.get(getUrl(Mode.Hibernate), new SystemComponent(Mode.Hibernate));
-    Spark.get(getUrl(Mode.Restart), new SystemComponent(Mode.Restart));
-    Spark.get(getUrl(Mode.Update), new SystemComponent(Mode.Update));
-    Spark.get(getUrl(Mode.DebugReport), new SystemComponent(Mode.DebugReport));
-    Spark.get(getUrl(Mode.ReduceRubyContainerCache), new SystemComponent(Mode.ReduceRubyContainerCache));
-    Spark.get(getUrl(Mode.Kill), new SystemComponent(Mode.Kill));
-    Spark.get(getUrl(Mode.Gc), new SystemComponent(Mode.Gc));
+    Spark.get(getUrl(), new ResponseBuilder(SystemComponent.class, Mode.Default));
+    Spark.get(getUrl(Mode.Hibernate), new ResponseBuilder(SystemComponent.class, Mode.Hibernate));
+    Spark.get(getUrl(Mode.Restart), new ResponseBuilder(SystemComponent.class, Mode.Restart));
+    Spark.get(getUrl(Mode.Update), new ResponseBuilder(SystemComponent.class, Mode.Update));
+    Spark.get(getUrl(Mode.DebugReport), new ResponseBuilder(SystemComponent.class, Mode.DebugReport));
+    Spark.get(getUrl(Mode.ReduceRubyContainerCache), new ResponseBuilder(SystemComponent.class, Mode.ReduceRubyContainerCache));
+    Spark.get(getUrl(Mode.Kill), new ResponseBuilder(SystemComponent.class, Mode.Kill));
+    Spark.get(getUrl(Mode.Gc), new ResponseBuilder(SystemComponent.class, Mode.Gc));
   }
 
   public static String getUrl() {

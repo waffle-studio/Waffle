@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.component.project.executable;
 
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -33,11 +34,11 @@ public class ResultCollectorComponent extends AbstractAccessControlledComponent 
   }
 
   static public void register() {
-    Spark.get(getStaticUrl(null, Mode.Add), new ResultCollectorComponent(Mode.Add));
-    Spark.post(getStaticUrl(null, Mode.Add), new ResultCollectorComponent(Mode.Add));
-    Spark.get(getUrl(null, null), new ResultCollectorComponent());
-    Spark.post(getUrl(null, null, Mode.Update), new ResultCollectorComponent(Mode.Update));
-    Spark.get(getUrl(null, null, Mode.Remove), new ResultCollectorComponent(Mode.Remove));
+    Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(ResultCollectorComponent.class, Mode.Add));
+    Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(ResultCollectorComponent.class, Mode.Add));
+    Spark.get(getUrl(null, null), new ResponseBuilder(ResultCollectorComponent.class));
+    Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(ResultCollectorComponent.class, Mode.Update));
+    Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(ResultCollectorComponent.class, Mode.Remove));
   }
 
   public static String getStaticUrl(Executable executable, Mode mode) {

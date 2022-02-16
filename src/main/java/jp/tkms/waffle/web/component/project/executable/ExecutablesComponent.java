@@ -3,6 +3,7 @@ package jp.tkms.waffle.web.component.project.executable;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -33,9 +34,9 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ExecutablesComponent());
-    Spark.get(getUrl(null, Mode.New), new ExecutablesComponent(Mode.New));
-    Spark.post(getUrl(null, Mode.New), new ExecutablesComponent(Mode.New));
+    Spark.get(getUrl(null), new ResponseBuilder(ExecutablesComponent.class));
+    Spark.get(getUrl(null, Mode.New), new ResponseBuilder(ExecutablesComponent.class, Mode.New));
+    Spark.post(getUrl(null, Mode.New), new ResponseBuilder(ExecutablesComponent.class, Mode.New));
 
     ExecutableComponent.register();
   }

@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.template.Html;
@@ -40,7 +41,7 @@ public class WorkspaceConvertorsComponent extends AbstractAccessControlledCompon
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new WorkspaceConvertorsComponent(Mode.List));
+    Spark.get(getUrl(null), new ResponseBuilder(WorkspaceConvertorsComponent.class, Mode.List));
 
     WorkspaceConvertorComponent.register();
   }

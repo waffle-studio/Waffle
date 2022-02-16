@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.log;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -31,8 +32,8 @@ public class LogsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(Mode.GetOld), new LogsComponent(Mode.GetOld));
-    Spark.get(getUrl(true), new LogsComponent());
+    Spark.get(getUrl(Mode.GetOld), new ResponseBuilder(LogsComponent.class, Mode.GetOld));
+    Spark.get(getUrl(true), new ResponseBuilder(LogsComponent.class));
   }
 
   public static String getUrl(Mode mode) {

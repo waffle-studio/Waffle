@@ -1,6 +1,7 @@
 package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.MainTemplate;
 import spark.Spark;
@@ -11,8 +12,8 @@ import java.util.Map;
 
 public class ErrorComponent extends AbstractAccessControlledComponent {
   static public void register() {
-    Spark.notFound(new ErrorComponent());
-    Spark.internalServerError(new ErrorComponent());
+    Spark.notFound(new ResponseBuilder(ErrorComponent.class));
+    Spark.internalServerError(new ResponseBuilder(ErrorComponent.class));
   }
 
   @Override

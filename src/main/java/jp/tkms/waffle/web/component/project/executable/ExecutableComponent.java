@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
@@ -52,13 +53,13 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   public static void register() {
     //Spark.get(getUrl(), new ExecutableComponent(Mode.List));
-    Spark.get(getUrl(null), new ExecutableComponent());
-    Spark.post(getUrl(null, Mode.Update), new ExecutableComponent(Mode.Update));
-    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ExecutableComponent(Mode.UpdateDefaultParameters));
-    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ExecutableComponent(Mode.UpdateDummyResults));
-    Spark.get(getUrl(null, Mode.TestRun), new ExecutableComponent(Mode.TestRun));
-    Spark.post(getUrl(null, Mode.TestRun), new ExecutableComponent(Mode.TestRun));
-    Spark.post(getUrl(null, Mode.UpdateNote), new ExecutableComponent(Mode.UpdateNote));
+    Spark.get(getUrl(null), new ResponseBuilder(ExecutableComponent.class));
+    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(ExecutableComponent.class, Mode.Update));
+    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ResponseBuilder(ExecutableComponent.class, Mode.UpdateDefaultParameters));
+    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ResponseBuilder(ExecutableComponent.class, Mode.UpdateDummyResults));
+    Spark.get(getUrl(null, Mode.TestRun), new ResponseBuilder(ExecutableComponent.class, Mode.TestRun));
+    Spark.post(getUrl(null, Mode.TestRun), new ResponseBuilder(ExecutableComponent.class, Mode.TestRun));
+    Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(ExecutableComponent.class, Mode.UpdateNote));
 
     ParameterExtractorComponent.register();
     ResultCollectorComponent.register();

@@ -3,6 +3,7 @@ package jp.tkms.waffle.web.component.project.workspace.conductor;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
@@ -27,14 +28,14 @@ public class StagedConductorComponent extends ConductorComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace));
-    Spark.get(getUrl(null), new StagedConductorComponent());
-    Spark.get(getUrl(null, Mode.Prepare), new StagedConductorComponent(Mode.Prepare));
-    Spark.post(getUrl(null, Mode.Run), new StagedConductorComponent(Mode.Run));
-    Spark.post(getUrl(null, Mode.UpdateArguments), new StagedConductorComponent(Mode.UpdateArguments));
-    Spark.post(getUrl(null, Mode.UpdateMainScript), new StagedConductorComponent(Mode.UpdateMainScript));
-    Spark.post(getUrl(null, Mode.UpdateListenerScript), new StagedConductorComponent(Mode.UpdateListenerScript));
-    Spark.post(getUrl(null, Mode.NewChildProcedure), new StagedConductorComponent(Mode.NewChildProcedure));
+    Spark.get(getUrl(), new ResponseBuilder(WorkspaceComponent.class, WorkspaceComponent.Mode.RedirectToWorkspace));
+    Spark.get(getUrl(null), new ResponseBuilder(StagedConductorComponent.class));
+    Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(StagedConductorComponent.class, Mode.Prepare));
+    Spark.post(getUrl(null, Mode.Run), new ResponseBuilder(StagedConductorComponent.class, Mode.Run));
+    Spark.post(getUrl(null, Mode.UpdateArguments), new ResponseBuilder(StagedConductorComponent.class, Mode.UpdateArguments));
+    Spark.post(getUrl(null, Mode.UpdateMainScript), new ResponseBuilder(StagedConductorComponent.class, Mode.UpdateMainScript));
+    Spark.post(getUrl(null, Mode.UpdateListenerScript), new ResponseBuilder(StagedConductorComponent.class, Mode.UpdateListenerScript));
+    Spark.post(getUrl(null, Mode.NewChildProcedure), new ResponseBuilder(StagedConductorComponent.class, Mode.NewChildProcedure));
   }
 
   protected static String getUrl() {

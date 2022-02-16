@@ -5,6 +5,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.web.AlertCookie;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -30,9 +31,9 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new ProjectsComponent());
-    Spark.get(getUrl(Mode.New), new ProjectsComponent(ProjectsComponent.Mode.New));
-    Spark.post(getUrl(Mode.New), new ProjectsComponent(ProjectsComponent.Mode.New));
+    Spark.get(getUrl(), new ResponseBuilder(ProjectsComponent.class));
+    Spark.get(getUrl(Mode.New), new ResponseBuilder(ProjectsComponent.class, Mode.New));
+    Spark.post(getUrl(Mode.New), new ResponseBuilder(ProjectsComponent.class, Mode.New));
 
     ProjectComponent.register();
   }

@@ -3,6 +3,7 @@ package jp.tkms.waffle.web.component.computer;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -49,11 +50,11 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
       submitterTypeList.add(name);
     }
 
-    Spark.get(getUrl(), new ComputersComponent());
-    Spark.get(getUrl(Mode.New), new ComputersComponent(Mode.New));
-    Spark.post(getUrl(Mode.New), new ComputersComponent(Mode.New));
-    Spark.get(getUrl(null, null), new ComputersComponent());
-    Spark.post(getUrl(null, Mode.Update), new ComputersComponent(Mode.Update));
+    Spark.get(getUrl(), new ResponseBuilder(() -> new ComputersComponent()));
+    Spark.get(getUrl(Mode.New), new ResponseBuilder(() -> new ComputersComponent(Mode.New)));
+    Spark.post(getUrl(Mode.New), new ResponseBuilder(() -> new ComputersComponent(Mode.New)));
+    Spark.get(getUrl(null, null), new ResponseBuilder(() -> new ComputersComponent()));
+    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(() -> new ComputersComponent(Mode.Update)));
   }
 
   public static String getUrl() {

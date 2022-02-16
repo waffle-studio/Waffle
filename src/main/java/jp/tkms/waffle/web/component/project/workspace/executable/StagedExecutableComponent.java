@@ -4,6 +4,7 @@ import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
+import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
@@ -30,13 +31,13 @@ public class StagedExecutableComponent extends ExecutableComponent {
   }
 
   public static void register() {
-    Spark.get(getUrl(), new WorkspaceComponent(WorkspaceComponent.Mode.RedirectToWorkspace));
-    Spark.get(getUrl(null), new StagedExecutableComponent());
-    Spark.post(getUrl(null, Mode.Update), new StagedExecutableComponent(Mode.Update));
-    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new StagedExecutableComponent(Mode.UpdateDefaultParameters));
-    Spark.post(getUrl(null, Mode.UpdateDummyResults), new StagedExecutableComponent(Mode.UpdateDummyResults));
-    Spark.get(getUrl(null, Mode.TestRun), new StagedExecutableComponent(Mode.TestRun));
-    Spark.post(getUrl(null, Mode.TestRun), new StagedExecutableComponent(Mode.TestRun));
+    Spark.get(getUrl(), new ResponseBuilder(WorkspaceComponent.class, WorkspaceComponent.Mode.RedirectToWorkspace));
+    Spark.get(getUrl(null), new ResponseBuilder(StagedExecutableComponent.class));
+    Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(StagedExecutableComponent.class, Mode.Update));
+    Spark.post(getUrl(null, Mode.UpdateDefaultParameters), new ResponseBuilder(StagedExecutableComponent.class, Mode.UpdateDefaultParameters));
+    Spark.post(getUrl(null, Mode.UpdateDummyResults), new ResponseBuilder(StagedExecutableComponent.class, Mode.UpdateDummyResults));
+    Spark.get(getUrl(null, Mode.TestRun), new ResponseBuilder(StagedExecutableComponent.class, Mode.TestRun));
+    Spark.post(getUrl(null, Mode.TestRun), new ResponseBuilder(StagedExecutableComponent.class, Mode.TestRun));
   }
 
   protected static String getUrl() {
