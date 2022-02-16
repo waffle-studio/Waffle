@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.communicator.util.SshSession;
 import jp.tkms.waffle.data.SystemDataAgent;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
@@ -133,7 +134,9 @@ public class SystemComponent extends AbstractAccessControlledComponent {
                 GeneralUpdater.generateHtml("system.storage", (n,v)->Lte.disabledKnob(n, "#87ceeb",0,SystemDataAgent.getTotalStorage(), 1, false, Double.parseDouble(v), Html.span("font-weight-bold", null, "Available Storage (GB)"))),
                 GeneralUpdater.generateHtml("system.cpu", (n,v)->Lte.disabledKnob(n, "#f08080",0,100, 1, true, Double.parseDouble(v), Html.span("font-weight-bold", null, "CPU Usage (%)"))),
                 GeneralUpdater.generateHtml("system.memory", (n,v)->Lte.disabledKnob(n, "#deb887",0, SystemDataAgent.getTotalMemory(), 0.01, true, Double.parseDouble(v), Html.span("font-weight-bold", null,"Memory Usage (GB)")))
-                )
+                ),
+              p(),
+              Lte.readonlyTextAreaGroup("SSH Session", "SSH Session", SshSession.getSessionReport())
             )
             ,null, "card-success", null
           ) +

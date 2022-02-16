@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator.util;
 
 import com.jcraft.jsch.*;
+import jp.tkms.util.ObjectWrapper;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -11,24 +12,35 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SshSession {
+  private static final Map<String, SessionWrapper> sessionCache = new HashMap<>();
+
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
   private final String DEFAULT_PRIVKEY_FILE = System.getProperty("user.home") + "/.ssh/id_rsa";
-  protected JSch jsch;
-  protected Session session;
+  protected static JSch jsch = new JSch();
+  //protected Session session;
+  private SessionWrapper sessionWrapper = null;
   Semaphore channelSemaphore = new Semaphore(4);
   String username;
   String host;
   int port;
   Computer loggingTarget;
+  SshSession tunnelSession;
 
-  public SshSession(Computer loggingTarget) throws JSchException {
+  private String tunnelTargetHost;
+  private int tunnelTargetPort;
+
+  public SshSession(Computer loggingTarget, SshSession tunnelSession) throws JSchException {
     this.loggingTarget = loggingTarget;
-    this.jsch = new JSch();
+    this.tunnelSession = tunnelSession;
+    //this.jsch = new JSch();
     if (Files.exists(Paths.get(DEFAULT_CONFIG_FILE))) {
       try {
         jsch.setConfigRepository(OpenSSHConfig.parseFile(DEFAULT_CONFIG_FILE));
@@ -41,9 +53,33 @@ public class SshSession {
     }
   }
 
+  public static String getSessionReport() {
+    String report = "";
+    for (Map.Entry<String, SessionWrapper> entry : sessionCache.entrySet()) {
+      report += entry.getKey() + "[" + (entry.getValue() == null || entry.getValue().getValue() == null ? "null" : entry.getValue().size()) + "]\n";
+    }
+    return report;
+  }
+
+  public String getConnectionName() {
+    if (tunnelSession == null) {
+      return username + "@" + host + ":" + port;
+    } else {
+      return tunnelSession.getConnectionName() + " -> " + username + "@" + tunnelSession.getTunnelTargetHost() + ":" + tunnelSession.getTunnelTargetPort();
+    }
+  }
+
+  protected String getTunnelTargetHost() {
+    return tunnelTargetHost;
+  }
+
+  protected int getTunnelTargetPort() {
+    return tunnelTargetPort;
+  }
+
   public boolean isConnected() {
-    if (session != null) {
-      return session.isConnected();
+    if (sessionWrapper.getValue() != null) {
+      return sessionWrapper.getValue().isConnected();
     }
     return false;
   }
@@ -63,58 +99,102 @@ public class SshSession {
   }
 
   public void connect(boolean retry) throws JSchException {
-    boolean connected = false;
-    int waitTime = 10;
-    do {
-      try {
-        if (session != null) { session.disconnect(); }
-        session = jsch.getSession(username, host, port);
-        session.setConfig("StrictHostKeyChecking", "no");
-        session.connect();
-        connected = true;
-      } catch (JSchException e) {
-        if (Main.hibernateFlag) {
-          return;
-        }
-
-        if (e.getMessage().toLowerCase().equals("userauth fail")) {
-          throw e;
-        }
-
-        if (!retry) {
-          WarnLogMessage.issue(loggingTarget, e.getMessage());
-          throw e;
-        } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
-          WarnLogMessage.issue(loggingTarget, e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
-          session.disconnect();
-          try {
-            Thread.sleep(waitTime * 1000);
-          } catch (InterruptedException ex) {
-            ex.printStackTrace();
-          }
-          waitTime += 10;
-        }
+    synchronized (sessionCache) {
+      sessionWrapper = sessionCache.get(getConnectionName());
+      if (sessionWrapper == null) {
+        sessionWrapper = new SessionWrapper();
+        sessionCache.put(getConnectionName(), sessionWrapper);
       }
-    } while (!connected);
+    }
+
+    synchronized (sessionWrapper) {
+      sessionWrapper.link(this);
+
+      boolean connected = false;
+      int waitTime = 10;
+      do {
+        try {
+          /*
+          if (sessionWrapper.getValue() != null) {
+            session.disconnect();
+          }
+           */
+          if (sessionWrapper.getValue() == null || !sessionWrapper.getValue().isConnected()) {
+            sessionWrapper.setValue(jsch.getSession(username, host, port));
+            sessionWrapper.getValue().setConfig("StrictHostKeyChecking", "no");
+            sessionWrapper.getValue().connect();
+            connected = true;
+          } else if (sessionWrapper.getValue().isConnected()) {
+            connected = true;
+          }
+        } catch (JSchException e) {
+          if (Main.hibernateFlag) {
+            //sessionWrapper.unlink(this);
+            disconnect();
+            return;
+          }
+
+          if (e.getMessage().toLowerCase().equals("userauth fail")) {
+            //sessionWrapper.unlink(this);
+            disconnect();
+            throw e;
+          }
+
+          if (!retry) {
+            WarnLogMessage.issue(loggingTarget, e.getMessage());
+            //sessionWrapper.unlink(this);
+            disconnect();
+            throw e;
+          } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
+            WarnLogMessage.issue(loggingTarget, e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
+            //sessionWrapper.getValue().disconnect();
+            disconnect();
+            try {
+              TimeUnit.SECONDS.sleep(waitTime);
+            } catch (InterruptedException ex) {
+              ex.printStackTrace();
+            }
+            waitTime += 10;
+          }
+        }
+      } while (!connected);
+
+      if (!connected) {
+        //sessionWrapper.unlink(this);
+        disconnect();
+      }
+    }
   }
 
   public void disconnect() {
-    if (channelSftp != null) {
-      channelSftp.disconnect();
-    }
-    if (session != null) {
-      session.disconnect();
+    synchronized (sessionWrapper) {
+      if (channelSftp != null) {
+        channelSftp.disconnect();
+      }
+      if (sessionWrapper.getValue() != null) {
+        Session session = sessionWrapper.getValue();
+        if (sessionWrapper.unlink(this)) {
+          session.disconnect();
+          sessionCache.remove(getConnectionName());
+        }
+      }
+
+      if (tunnelSession != null) {
+        tunnelSession.disconnect();
+      }
     }
   }
 
   protected Channel openChannel(String type) throws JSchException, InterruptedException {
     channelSemaphore.acquire();
 
-    return session.openChannel(type);
+    return sessionWrapper.getValue().openChannel(type);
   }
 
   public int setPortForwardingL(String hostName, int rport) throws JSchException {
-    return session.setPortForwardingL(0, hostName, rport);
+    tunnelTargetHost = hostName;
+    tunnelTargetPort = rport;
+    return sessionWrapper.getValue().setPortForwardingL(0, hostName, rport);
   }
 
   public SshChannel exec(String command, String workDir) throws JSchException, InterruptedException {
@@ -310,7 +390,7 @@ public class SshSession {
 
         try {
           if (channelSftp == null || channelSftp.isClosed()) {
-            channelSftp = (ChannelSftp) session.openChannel("sftp");
+            channelSftp = (ChannelSftp) sessionWrapper.getValue().openChannel("sftp");
             channelSftp.connect();
           }
 

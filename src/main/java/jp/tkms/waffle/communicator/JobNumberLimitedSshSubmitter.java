@@ -19,7 +19,6 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
   SshSession session;
-  SshSession tunnelSession;
   String home = null;
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
@@ -68,9 +67,10 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         }
       }
 
+      SshSession tunnelSession = null;
       if (useTunnel) {
         WrappedJson object = computer.getParametersWithDefaultParameters().getObject("tunnel", null);
-        tunnelSession = new SshSession(computer);
+        tunnelSession = new SshSession(computer, null);
         tunnelSession.setSession(object.getString("user", ""),
           object.getString("host", ""),
           object.getInt("port", 22));
@@ -98,7 +98,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         computer.setParameter("tunnel", object);
       }
 
-      session = new SshSession(computer);
+      session = new SshSession(computer, tunnelSession);
       session.setSession(user, hostName, port);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
@@ -124,8 +124,10 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   public void close() {
     super.close();
-    if (session != null) { session.disconnect(); }
-    if (tunnelSession != null) { tunnelSession.disconnect(); }
+
+    if (session != null) {
+      session.disconnect();
+    }
   }
 
   @Override
