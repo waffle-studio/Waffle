@@ -198,30 +198,35 @@ public class SshSession {
   }
 
   public SshChannel exec(String command, String workDir) throws JSchException, InterruptedException {
-    SshChannel channel = new SshChannel((ChannelExec) openChannel("exec"));
-    boolean failed = false;
-    do {
-      try {
-        channel.exec(command, workDir);
-      } catch (JSchException e) {
-        if (e.getMessage().equals("channel is not opened.")) {
-          failed = true;
-          channelSemaphore.release();
+    synchronized (sessionWrapper) {
+      SshChannel channel = new SshChannel((ChannelExec) openChannel("exec"));
+      int count = 0;
+      boolean failed = false;
+      do {
+        try {
+          channel.exec(command, workDir);
+        } catch (JSchException e) {
+          if (e.getMessage().equals("channel is not opened.")) {
+            count += 1;
 
-          WarnLogMessage.issue(loggingTarget, "Retry to open channel after 1 sec.");
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ex) {
-            ex.printStackTrace();
+            failed = true;
+            channelSemaphore.release();
+
+            WarnLogMessage.issue(loggingTarget, "Retry to open channel after " + count + " sec.");
+            try {
+              TimeUnit.SECONDS.sleep(count);
+            } catch (InterruptedException ex) {
+              ex.printStackTrace();
+            }
+            channel = new SshChannel((ChannelExec) openChannel("exec"));
+          } else {
+            throw e;
           }
-          channel = new SshChannel((ChannelExec) openChannel("exec"));
-        } else {
-          throw e;
         }
-      }
-    } while (failed);
-    channelSemaphore.release();
-    return channel;
+      } while (failed);
+      channelSemaphore.release();
+      return channel;
+    }
   }
 
   public boolean chmod(int mod, Path path) throws JSchException {
@@ -380,9 +385,9 @@ public class SshSession {
   }
 
   private ChannelSftp channelSftp;
-  final Object sftpLocker = new Object();
   private boolean processSftp(Function<ChannelSftp, Boolean> process) throws JSchException {
-    synchronized (sftpLocker) {
+    synchronized (sessionWrapper) {
+      int count = 0;
       boolean result = false;
       boolean failed;
       do {
@@ -397,10 +402,16 @@ public class SshSession {
           result = process.apply(channelSftp);
         } catch (JSchException e) {
           if (e.getMessage().equals("channel is not opened.")) {
+            count += 1;
+
             failed = true;
             channelSftp = null;
-            WarnLogMessage.issue(loggingTarget, "Retry to open channel after 1 sec.");
-            try { Thread.sleep(1000); } catch (InterruptedException ex) { }
+            WarnLogMessage.issue(loggingTarget, "Retry to open channel after " + count + " sec.");
+            try {
+              TimeUnit.SECONDS.sleep(count);
+            } catch (InterruptedException ex) {
+              ex.printStackTrace();
+            }
           } else {
             throw e;
           }
