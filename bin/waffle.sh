@@ -52,9 +52,10 @@ if [ ! -e "$JRE_DIR" ];then
   fi
 fi
 
-JAVA="${JRE_DIR}/bin/java"
 if [ -n "${JAVA_HOME}" ];then
-  JAVA="${JAVA_HOME}/bin/${JAVA}"
+  JAVA="${JAVA_HOME}/bin/java"
+else
+  JAVA="${JRE_DIR}/bin/java"
 fi
 
 touch $START_FLAG
