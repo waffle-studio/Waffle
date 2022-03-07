@@ -179,6 +179,14 @@ public class RunComponent extends AbstractAccessControlledComponent {
       }
 
       @Override
+      protected Path pageWorkingDirectory() {
+        if (abstractRun != null) {
+          return abstractRun.getPath();
+        }
+        return null;
+      }
+
+      @Override
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
           Html.a(ProjectsComponent.getUrl(), "Projects"),
@@ -377,6 +385,11 @@ public class RunComponent extends AbstractAccessControlledComponent {
       @Override
       protected Workspace pageWorkspace() {
         return workspace;
+      }
+
+      @Override
+      protected Path pageWorkingDirectory() {
+        return abstractRun.getPath();
       }
 
       @Override
