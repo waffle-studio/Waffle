@@ -12,14 +12,23 @@ public class FileName {
   }
 
   public static String generateUniqueFileName(Path basePath, String name) {
-    name = FileName.removeRestrictedCharacters(name);
-    String result = name;
-    int count = 1;
-    if (result.length() <= 0) {
-      count = 0;
+    int count = 0;
+    int padding = 1;
+    String result;
+    if (name.length() <= 0) {
+      result = "@" + count;
+    } else if (name.endsWith("@")) {
+      String atRemoved = name.replaceFirst("@+$", "");
+      padding = name.length() - atRemoved.length();
+      name = FileName.removeRestrictedCharacters(atRemoved);
+      result = String.format("%s@%0" + padding + "d", name, count);
+    } else {
+      count = 1;
+      name = FileName.removeRestrictedCharacters(name);
+      result = name;
     }
     while (result.length() <= 0 || Files.exists(basePath.resolve(result))) {
-      result = name + '_' + count++;
+      result = String.format("%s@%0" + padding + "d", name, count);
     }
     return result;
   }

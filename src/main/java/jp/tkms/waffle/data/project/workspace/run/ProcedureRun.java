@@ -66,7 +66,7 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public Path cd(String directoryName) {
-    return cd(getWorkingDirectory().resolve(directoryName));
+    return cd(getWorkingDirectory().resolve(FileName.removeRestrictedCharacters(directoryName)));
   }
 
   public Path mkcd(String directoryName) {
