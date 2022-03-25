@@ -66,11 +66,33 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public Path cd(String directoryName) {
-    return cd(getWorkingDirectory().resolve(FileName.removeRestrictedCharacters(directoryName)));
+    return cd(resolveWorkingDirectory(false, directoryName));
   }
 
   public Path mkcd(String directoryName) {
-    return cd(FileName.generateUniqueFilePath(getWorkingDirectory().resolve(directoryName)));
+    return cd(resolveWorkingDirectory(true, directoryName));
+  }
+
+  Path resolveWorkingDirectory(boolean forceMake, String target) {
+    Path runDir = AbstractRun.getBaseDirectoryPath(getWorkspace()).toAbsolutePath().normalize();
+    Path virtualDir = Paths.get("/").resolve(
+      runDir.relativize(getWorkingDirectory())
+    ).resolve(target).normalize();
+    if (virtualDir.getParent() != null) {
+      Path cleanVirtualParentDir = Paths.get("/");
+      for (Path child : virtualDir.getParent()) {
+        cleanVirtualParentDir = cleanVirtualParentDir.resolve(FileName.removeRestrictedCharacters(child.toString()));
+      }
+      Path result = runDir.resolve(Paths.get("/").relativize(cleanVirtualParentDir));
+      if (forceMake) {
+        result = result.resolve(FileName.generateUniqueFileName(result, virtualDir.getFileName().toString()));
+      } else {
+        result = result.resolve(FileName.removeRestrictedCharacters(virtualDir.getFileName().toString()));
+      }
+      return result;
+    } else {
+      return runDir;
+    }
   }
 
   public void setWorkingDirectory(Path workingDirectory) {
