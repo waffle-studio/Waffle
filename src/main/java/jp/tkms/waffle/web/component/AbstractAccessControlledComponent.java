@@ -13,7 +13,7 @@ abstract public class AbstractAccessControlledComponent extends AbstractComponen
     this.request = request;
     this.response = response;
 
-    String sessionId = request.cookie(UserSession.KEY_SESSION_ID);
+    String sessionId = request.cookie(UserSession.getWaffleId());
     sessionId = (sessionId == null ? "" : sessionId);
 
     try {

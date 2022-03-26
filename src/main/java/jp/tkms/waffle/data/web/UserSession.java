@@ -1,8 +1,12 @@
 package jp.tkms.waffle.data.web;
 
+import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.util.Database;
 import jp.tkms.waffle.data.util.Sql;
+import jp.tkms.waffle.data.util.StringFileUtil;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,8 +16,23 @@ import java.util.UUID;
 
 public class UserSession extends Data {
   static final String TABLE_NAME = "user_session";
-  public static final String KEY_SESSION_ID = "session_id";
   private static final String KEY_TIMESTAMP_CREATE = "timestamp_create";
+
+  private static final Object objectLocker = new Object();
+  private static String waffleId = null;
+  public static String getWaffleId() {
+    if (waffleId == null) {
+      synchronized (objectLocker) {
+        if (Files.exists(Constants.UUID_FILE)) {
+          waffleId = StringFileUtil.read(Constants.UUID_FILE).trim();
+        } else {
+          waffleId = UUID.randomUUID().toString();
+          StringFileUtil.write(Constants.UUID_FILE, waffleId.toString());
+        }
+      }
+    }
+    return waffleId;
+  }
 
   public UserSession(String sessionId) {
     super(UUID.randomUUID(), sessionId);

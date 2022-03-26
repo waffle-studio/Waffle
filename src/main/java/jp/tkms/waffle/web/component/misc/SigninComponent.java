@@ -165,7 +165,7 @@ public class SigninComponent extends AbstractComponent {
     String actualPassword = getPassword();
     if (isNotPasswordEmpty(actualPassword) && password.equals(actualPassword)) {
       UserSession session = UserSession.create();
-      response.cookie("/", UserSession.KEY_SESSION_ID, session.getSessionId(), -1, false);
+      response.cookie("/", UserSession.getWaffleId(), session.getSessionId(), -1, false);
     }
     response.redirect(ProjectsComponent.getUrl());
   }
