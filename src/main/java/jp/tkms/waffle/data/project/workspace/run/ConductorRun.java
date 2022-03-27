@@ -341,10 +341,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public void updateRunningStatus() {
-    WrappedJsonArray jsonArray = getArrayFromProperty(KEY_ACTIVE_RUN);
-    if (jsonArray == null) {
-      putNewArrayToProperty(KEY_ACTIVE_RUN);
-    }
+    WrappedJsonArray jsonArray = getArrayFromProperty(KEY_ACTIVE_RUN, new WrappedJsonArray());
 
     if (jsonArray.isEmpty()) {
       finish();

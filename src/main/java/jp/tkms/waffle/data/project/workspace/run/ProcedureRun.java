@@ -74,7 +74,7 @@ public class ProcedureRun extends AbstractRun {
   }
 
   Path resolveWorkingDirectory(boolean forceMake, String target) {
-    Path runDir = AbstractRun.getBaseDirectoryPath(getWorkspace()).toAbsolutePath().normalize();
+    Path runDir = getParentConductorRun().getPath().toAbsolutePath().normalize();
     Path virtualDir = Paths.get("/").resolve(
       runDir.relativize(getWorkingDirectory())
     ).resolve(target).normalize();
