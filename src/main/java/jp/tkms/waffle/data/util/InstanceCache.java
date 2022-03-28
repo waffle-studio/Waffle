@@ -64,6 +64,8 @@ public class InstanceCache<K extends Object, V extends Object> {
   }
 
   public static void gc() {
+    return;
+    /*
     System.gc();
     ArrayList<Object> removingKeyList = new ArrayList();
     for (InstanceCache cache : cacheList) {
@@ -78,6 +80,7 @@ public class InstanceCache<K extends Object, V extends Object> {
         cache.removeAll(removingKeyList);
       }
     }
+     */
   }
 
   public static String debugReport() {

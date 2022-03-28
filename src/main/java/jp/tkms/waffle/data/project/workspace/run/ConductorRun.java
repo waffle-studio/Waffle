@@ -325,19 +325,24 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   void registerChildRun(HasLocalPath run) {
+    System.out.println("ADD: " + run.getLocalPath().toString() + "\n<" + getLocalPath().toString()+ ">" + "\n(" + hashCode() + ")");
     if (getArrayFromProperty(KEY_ACTIVE_RUN) == null) {
       putNewArrayToProperty(KEY_ACTIVE_RUN);
     }
     putToArrayOfProperty(KEY_ACTIVE_RUN, run.getLocalPath().toString());
   }
 
+  private static final Object lockerObject = new Object(); // TODO: fixit
   public void updateRunningStatus(HasLocalPath run) {
-    if (getArrayFromProperty(KEY_ACTIVE_RUN) == null) {
-      putNewArrayToProperty(KEY_ACTIVE_RUN);
-    }
-    removeFromArrayOfProperty(KEY_ACTIVE_RUN, run.getLocalPath().toString());
+    synchronized (lockerObject) {
+      System.out.println("REM: " + run.getLocalPath().toString() + "\n<" + getLocalPath().toString()+ ">" + "\n(" + hashCode() + ")");
+      if (getArrayFromProperty(KEY_ACTIVE_RUN) == null) {
+        putNewArrayToProperty(KEY_ACTIVE_RUN);
+      }
+      removeFromArrayOfProperty(KEY_ACTIVE_RUN, run.getLocalPath().toString());
 
-    updateRunningStatus();
+      updateRunningStatus();
+    }
   }
 
   public void updateRunningStatus() {

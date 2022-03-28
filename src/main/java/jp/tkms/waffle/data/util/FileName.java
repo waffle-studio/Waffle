@@ -24,7 +24,6 @@ public class FileName {
       name = FileName.removeRestrictedCharacters(atRemoved);
       result = String.format("%s%0" + padding + "d", name, count);
     } else {
-      count = 1;
       isAutoIndexing = true;
       name = FileName.removeRestrictedCharacters(name);
       result = name;

@@ -19,6 +19,10 @@ public interface PropertyFile {
     return Paths.get("waffle.json");
   }
 
+  private Object getLockerObject() {
+    return this;
+  }
+
   private Path getAbsolutePropertyStorePath() {
     Path path = getPropertyStorePath();
     if (path.isAbsolute()) {
@@ -29,7 +33,7 @@ public interface PropertyFile {
   }
 
   private WrappedJson getPropertyStore() {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       WrappedJson cache = getPropertyStoreCache();
       if (cache == null) {
         Path storePath = getAbsolutePropertyStorePath();
@@ -54,13 +58,13 @@ public interface PropertyFile {
   }
 
   default void reloadPropertyStore() {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       setPropertyStoreCache(null);
     }
   }
 
   private void updatePropertyStore() {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       if (getPropertyStoreCache() != null) {
         getPropertyStoreCache().writePrettyFile(getAbsolutePropertyStorePath());
       }
@@ -68,13 +72,13 @@ public interface PropertyFile {
   }
 
   default String getStringFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getString(key, null);
     }
   }
 
   default String getStringFromProperty(String key, String defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       String value = getStringFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -84,13 +88,13 @@ public interface PropertyFile {
   }
 
   default Boolean getBooleanFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getBoolean(key, null);
     }
   }
 
   default Boolean getBooleanFromProperty(String key, Boolean defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       Boolean value = getBooleanFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -100,13 +104,13 @@ public interface PropertyFile {
   }
 
   default Integer getIntFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getInt(key, null);
     }
   }
 
   default Integer getIntFromProperty(String key, Integer defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       Integer value = getIntFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -116,13 +120,13 @@ public interface PropertyFile {
   }
 
   default Long getLongFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getLong(key, null);
     }
   }
 
   default Long getLongFromProperty(String key, Long defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       Long value = getLongFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -132,13 +136,13 @@ public interface PropertyFile {
   }
 
   default Double getDoubleFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getDouble(key, null);
     }
   }
 
   default Double getDoubleFromProperty(String key, Double defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       Double value = getDoubleFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -148,13 +152,13 @@ public interface PropertyFile {
   }
 
   default WrappedJson getObjectFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getObject(key, null);
     }
   }
 
   default WrappedJson getObjectFromProperty(String key, WrappedJson defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       WrappedJson value = getObjectFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -164,13 +168,13 @@ public interface PropertyFile {
   }
 
   default WrappedJsonArray getArrayFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       return getPropertyStore().getArray(key, null);
     }
   }
 
   default WrappedJsonArray getArrayFromProperty(String key, WrappedJsonArray defaultValue) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       WrappedJsonArray value = getArrayFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -180,70 +184,70 @@ public interface PropertyFile {
   }
 
   default void removeFromProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().remove(key);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, String value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, boolean value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, int value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, long value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, double value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, WrappedJson value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, WrappedJsonArray value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void putNewArrayToProperty(String key) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().put(key, new ArrayList<>());
       updatePropertyStore();
     }
   }
 
   default void putToArrayOfProperty(String key, String value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       WrappedJsonArray array = getPropertyStore().getArray(key, null);
       if (array == null) {
         array = new WrappedJsonArray();
@@ -257,7 +261,7 @@ public interface PropertyFile {
   }
 
   default void removeFromArrayOfProperty(String key, Object value) {
-    synchronized (this) {
+    synchronized (getLockerObject()) {
       getPropertyStore().getArray(key, new WrappedJsonArray()).remove(value);
       updatePropertyStore();
     }
