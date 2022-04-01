@@ -56,9 +56,11 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   public ExecutableRun(Workspace workspace, ConductorRun parent, Path path) {
     super(workspace, parent, path);
     instanceCache.put(getLocalPath().toString(), this);
+    /*
     if (parent != null) {
       parent.registerChildRun(this);
     }
+     */
   }
 
   public static String debugReport() {
@@ -165,6 +167,11 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     if (started()) {
       return;
     }
+
+    if (getParentConductorRun() != null) {
+      getParentConductorRun().registerChildRun(this);
+    }
+
     //getResponsible().registerChildActiveRun(this);
     try {
       putResultsByJson(executable.getDummyResults().toString());
