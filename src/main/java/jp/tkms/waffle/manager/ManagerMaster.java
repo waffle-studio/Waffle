@@ -33,16 +33,29 @@ public class ManagerMaster {
   }
 
   public static void signalUpdated(AbstractRun run) {
+    Workspace workspace = run.getWorkspace();
     getManager(run.getWorkspace()).signalUpdated(procedureRunGuardStore, run);
+    tryManagerClosing(workspace);
   }
 
   public static void signalFinished(AbstractRun run) {
-    getManager(run.getWorkspace()).signalFinished(procedureRunGuardStore, run);
+    Workspace workspace = run.getWorkspace();
+    getManager(workspace).signalFinished(procedureRunGuardStore, run);
+    tryManagerClosing(workspace);
   }
 
   public static void register(ProcedureRun procedureRun) {
     for (String guard : procedureRun.getActiveGuardList()) {
       procedureRunGuardStore.register(ProcedureRunGuard.factory(procedureRun, guard));
+    }
+  }
+
+  public static void tryManagerClosing(Workspace workspace) {
+    if (workspace.isFinished()) {
+      synchronized (managerMap) {
+        managerMap.remove(workspace.getLocalPath().toString());
+        System.out.println("WS_CLOSED: " + workspace.getLocalPath().toString());
+      }
     }
   }
 }

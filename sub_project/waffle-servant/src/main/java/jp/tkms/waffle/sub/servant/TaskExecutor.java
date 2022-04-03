@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -67,6 +68,14 @@ public class TaskExecutor extends TaskCommand {
       }
       recursiveKill(String.valueOf(getPid()));
     } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void close() {
+    try {
+      Files.writeString(baseDirectory.resolve(Constants.NOTIFIER), UUID.randomUUID().toString());
+    } catch (IOException e) {
       e.printStackTrace();
     }
   }
@@ -230,6 +239,8 @@ public class TaskExecutor extends TaskCommand {
       directoryHash.update();
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
+    } finally {
+      close();
     }
   }
 

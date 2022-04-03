@@ -9,11 +9,14 @@ import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
 
+import java.util.concurrent.TimeUnit;
+
 public class Inspector extends Thread {
   public enum Mode {System, Normal}
 
-  private Mode mode;
-  private Computer computer;
+  protected Mode mode;
+  protected Computer computer;
+  protected int waitCount;
 
   Inspector(Mode mode, Computer computer) {
     super("Waffle_Polling(" + getThreadName(mode, computer) + ")");
@@ -27,10 +30,14 @@ public class Inspector extends Thread {
 
     AbstractSubmitter submitter = AbstractSubmitter.getInstance(mode, computer).connect();
 
-    int waitCount = submitter.getPollingInterval() - 1;
+    waitCount = (submitter.getPollingInterval() - 1) * 10;
     do {
-      while (waitCount < submitter.getPollingInterval()) {
-        try { sleep(1000); } catch (InterruptedException e) { e.printStackTrace(); }
+      while (waitCount < submitter.getPollingInterval() * 10) {
+        try {
+          TimeUnit.MILLISECONDS.sleep(100);
+        } catch (InterruptedException e) {
+          break;
+        }
         waitCount += 1;
         if (Main.hibernateFlag) {
           break;

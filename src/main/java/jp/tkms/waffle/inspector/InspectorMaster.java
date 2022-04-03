@@ -52,6 +52,15 @@ public class InspectorMaster {
 
   public static void registerExecutableRunTask(ExecutableRunTask job) {
     executableRunTaskStore.register(job);
+
+    Main.systemThreadPool.submit(() -> {
+      if (job.getComputer().isLocal()) {
+        LocalInspector inspector = (LocalInspector) inspectorMap.get(Inspector.getThreadName(Inspector.Mode.Normal, job.getComputer()));
+        if (inspector != null) {
+          inspector.notifyUpdate();
+        }
+      }
+    });
   }
 
   public static ExecutableRunTask getExecutableRunTask(WaffleId id) {
@@ -115,25 +124,24 @@ public class InspectorMaster {
         for (Computer computer : Computer.getList()) {
           if (computer.getState().equals(ComputerState.Viable)) {
             if (!inspectorMap.containsKey(Inspector.getThreadName(Inspector.Mode.Normal, computer)) && ExecutableRunTask.hasJob(computer)) {
-              computer.update();
-              if (computer.getState().equals(ComputerState.Viable)) {
-                Inspector inspector = new Inspector(Inspector.Mode.Normal, computer);
-                inspectorMap.put(Inspector.getThreadName(Inspector.Mode.Normal, computer), inspector);
-                inspector.start();
-              }
+              updateInspector(Inspector.Mode.Normal, computer);
             }
             if (!inspectorMap.containsKey(Inspector.getThreadName(Inspector.Mode.System, computer)) && SystemTask.hasJob(computer)) {
-              computer.update();
-              if (computer.getState().equals(ComputerState.Viable)) {
-                Inspector inspector = new Inspector(Inspector.Mode.System, computer);
-                inspectorMap.put(Inspector.getThreadName(Inspector.Mode.System, computer), inspector);
-                inspector.start();
-              }
+              updateInspector(Inspector.Mode.System, computer);
             }
           }
         }
       }
 
+    }
+  }
+
+  public static void updateInspector(Inspector.Mode mode, Computer computer) {
+    computer.update();
+    if (computer.getState().equals(ComputerState.Viable)) {
+      Inspector inspector = (computer.isLocal() ? new LocalInspector(mode, computer) : new Inspector(mode, computer));
+      inspectorMap.put(Inspector.getThreadName(mode, computer), inspector);
+      inspector.start();
     }
   }
 
