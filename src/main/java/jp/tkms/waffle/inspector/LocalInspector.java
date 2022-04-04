@@ -26,7 +26,6 @@ public class LocalInspector extends Inspector {
   }
 
   public void notifyUpdate(){
-    waitCount = computer.getPollingInterval() * 10;
-    System.out.println("NNNNNNNNNNNNNNNNN");
+    waitCount = toMilliSecond(computer.getPollingInterval()) - waitingStep;
   }
 }

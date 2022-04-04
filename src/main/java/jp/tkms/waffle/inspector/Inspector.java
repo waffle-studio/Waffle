@@ -12,16 +12,22 @@ import jp.tkms.waffle.communicator.AbstractSubmitter;
 import java.util.concurrent.TimeUnit;
 
 public class Inspector extends Thread {
+  protected static long waitingStep = 200;
+
   public enum Mode {System, Normal}
 
   protected Mode mode;
   protected Computer computer;
-  protected int waitCount;
+  protected long waitCount;
 
   Inspector(Mode mode, Computer computer) {
     super("Waffle_Polling(" + getThreadName(mode, computer) + ")");
     this.mode = mode;
     this.computer = computer;
+  }
+
+  long toMilliSecond(long second) {
+    return second * 1000;
   }
 
   @Override
@@ -30,15 +36,15 @@ public class Inspector extends Thread {
 
     AbstractSubmitter submitter = AbstractSubmitter.getInstance(mode, computer).connect();
 
-    waitCount = (submitter.getPollingInterval() - 1) * 10;
+    waitCount = toMilliSecond(submitter.getPollingInterval() - 1);
     do {
-      while (waitCount < submitter.getPollingInterval() * 10) {
+      while (waitCount < toMilliSecond(submitter.getPollingInterval())) {
         try {
-          TimeUnit.MILLISECONDS.sleep(100);
+          TimeUnit.MILLISECONDS.sleep(waitingStep);
         } catch (InterruptedException e) {
           break;
         }
-        waitCount += 1;
+        waitCount += waitingStep;
         if (Main.hibernateFlag) {
           break;
         }
