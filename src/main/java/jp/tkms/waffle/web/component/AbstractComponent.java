@@ -1,13 +1,10 @@
 package jp.tkms.waffle.web.component;
 
 import jp.tkms.waffle.exception.ProjectNotFoundException;
-import jp.tkms.waffle.web.component.misc.HelpComponent;
-import jp.tkms.waffle.web.template.Html;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
-import spark.Route;
 
 abstract public class AbstractComponent {
   protected static Logger logger = LoggerFactory.getLogger("Component");
@@ -48,7 +45,7 @@ abstract public class AbstractComponent {
     return request.requestMethod().toLowerCase().equals("post");
   }
 
-  public boolean isShownSidebar() {
-    return "1".equals(request.cookie("sidebar"));
+  public boolean isSidebarCollapsed() {
+    return "0".equals(request.cookie("sidebar"));
   }
 }
