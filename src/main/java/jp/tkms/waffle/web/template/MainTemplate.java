@@ -46,7 +46,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("src", "/jsoneditor/jsoneditor.min.js"))),
           element("script", new Attributes(value("src", "/js/jquery.min.js")))
         ),
-        body("hold-transition layout-footer-fixed layout-fixed",
+        body((component.isShownSidebar() ? "" : "sidebar-collapse ") + "hold-transition layout-footer-fixed layout-fixed",
           AbstractUpdater.getUpdaterElements(),
           div("wrapper",
             elementWithClass("nav", "main-header navbar navbar-expand navbar-light",
@@ -251,6 +251,8 @@ abstract public class MainTemplate extends AbstractTemplate {
               "    })\n" +
               "  });\n" +
               "});"),
+          Html.javascript( "$('body').on('collapsed.lte.pushmenu', function(){document.cookie='sidebar=0';});",
+            "$('body').on('shown.lte.pushmenu', function(){document.cookie='sidebar=1';});" ),
           AlertCookie.getAlertScript()
         )
       )

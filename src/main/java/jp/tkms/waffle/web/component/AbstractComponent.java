@@ -47,4 +47,8 @@ abstract public class AbstractComponent {
   public boolean isPost() {
     return request.requestMethod().toLowerCase().equals("post");
   }
+
+  public boolean isShownSidebar() {
+    return "1".equals(request.cookie("sidebar"));
+  }
 }
