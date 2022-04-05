@@ -16,6 +16,7 @@ import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
+import org.jruby.RubyProcess;
 import org.slf4j.impl.SimpleLoggerConfiguration;
 import spark.Spark;
 import spark.embeddedserver.EmbeddedServers;
@@ -237,6 +238,14 @@ public class Main {
     RubyScript.process(scriptingContainer -> {
       scriptingContainer.runScriptlet("print \"\"");
     });
+
+    if (System.getenv().containsKey(Constants.WAFFLE_OPEN_COMMAND)) {
+      try {
+        Runtime.getRuntime().exec(System.getenv().get(Constants.WAFFLE_OPEN_COMMAND) + " http://localhost:" + port + "/");
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
 
     return;
   }

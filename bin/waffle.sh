@@ -58,6 +58,10 @@ else
   JAVA="${JRE_DIR}/bin/java"
 fi
 
+if which xdg-open >/dev/null 2>&1; then
+  export WAFFLE_OPEN_COMMAND="xdg-open"
+fi
+
 touch $START_FLAG
 while [ -e "$START_FLAG" ];do
   rm -f $START_FLAG
