@@ -5,6 +5,8 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.communicator.util.SshSession;
 import jp.tkms.waffle.data.SystemDataAgent;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
@@ -30,7 +32,7 @@ import static jp.tkms.waffle.web.template.Html.*;
 public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill, Gc}
+  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill, Gc, Open}
 
   public SystemComponent(Mode mode) {
     this.mode = mode;
@@ -45,6 +47,8 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(Mode.ReduceRubyContainerCache), new ResponseBuilder(() -> new SystemComponent(Mode.ReduceRubyContainerCache)));
     Spark.get(getUrl(Mode.Kill), new ResponseBuilder(() -> new SystemComponent(Mode.Kill)));
     Spark.get(getUrl(Mode.Gc), new ResponseBuilder(() -> new SystemComponent(Mode.Gc)));
+    Spark.post(getUrl(Mode.Open), new ResponseBuilder(() -> new SystemComponent(Mode.Open)));
+    Spark.get(getUrl(Mode.Open), new ResponseBuilder(() -> new SystemComponent(Mode.Open)));
   }
 
   public static String getUrl() {
@@ -85,6 +89,11 @@ public class SystemComponent extends AbstractAccessControlledComponent {
       case Gc:
         redirectToReferer();
         InstanceCache.gc();
+        break;
+      case Open:
+        String path = request.body();
+        openFile(path);
+        setBody(path);
         break;
       default:
         renderSystem();
@@ -203,5 +212,18 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     return String.format("%,d", workDir.getUsableSpace() / gb) + "GB (" +
       ((int)(100.0 * workDir.getUsableSpace() / workDir.getTotalSpace())) + "% in " +
       String.format("%,d", workDir.getTotalSpace() / gb) + "GB)";
+  }
+
+  void openFile(String path) {
+    if (System.getenv().containsKey(Constants.WAFFLE_OPEN_COMMAND)) {
+      try {
+        InfoLogMessage.issue("Open: " + path);
+        Runtime.getRuntime().exec(System.getenv().get(Constants.WAFFLE_OPEN_COMMAND) + " " + path);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    } else {
+      WarnLogMessage.issue("WAFFLE_OPEN_COMMAND is not defined");
+    }
   }
 }

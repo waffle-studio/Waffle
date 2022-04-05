@@ -20,6 +20,7 @@ import jp.tkms.waffle.exception.RunNotFoundException;
 import spark.Spark;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -151,6 +152,11 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageTitle() {
         return renderPageTitle();
+      }
+
+      @Override
+      protected Path pageWorkingDirectory() {
+        return executable.getPath();
       }
 
       @Override

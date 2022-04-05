@@ -14,7 +14,9 @@ import jp.tkms.waffle.web.updater.AbstractUpdater;
 import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
+import org.jruby.RubyProcess;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
@@ -99,7 +101,7 @@ abstract public class MainTemplate extends AbstractTemplate {
                       )
                     ),
                     div("col-sm-6",
-                      renderPageWorkingDirectoryButton(),
+                      renderPageWorkingDirectoryButton(component.request.ip()),
                       renderPageBreadcrumb()
                     )
                   ),
@@ -259,9 +261,16 @@ abstract public class MainTemplate extends AbstractTemplate {
     );
   }
 
-  private String renderPageWorkingDirectoryButton() {
+  private String renderPageWorkingDirectoryButton(String clientIP) {
     if (pageWorkingDirectory() != null) {
-      return Html.div("float-sm-right wd-button", " " + Lte.clipboardButton(Html.fasIcon("folder"), pageWorkingDirectory().toAbsolutePath().normalize().toString()));
+      Path directoryPath = pageWorkingDirectory().toAbsolutePath().normalize();
+      if (Files.exists(directoryPath)) {
+        if ("127.0.0.1".equals(clientIP) && System.getenv().containsKey(Constants.WAFFLE_OPEN_COMMAND)) {
+          return Html.div("float-sm-right wd-button", " " + Lte.openButton(Html.fasIcon("folder"), directoryPath.toString()));
+        } else {
+          return Html.div("float-sm-right wd-button", " " + Lte.clipboardButton(Html.fasIcon("folder"), directoryPath.toString()));
+        }
+      }
     }
     return null;
   }

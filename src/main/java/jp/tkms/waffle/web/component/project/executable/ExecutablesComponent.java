@@ -13,6 +13,7 @@ import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import spark.Spark;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -122,6 +123,11 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageTitle() {
         return "Executables";
+      }
+
+      @Override
+      protected Path pageWorkingDirectory() {
+        return Executable.getBaseDirectoryPath(project);
       }
 
       @Override

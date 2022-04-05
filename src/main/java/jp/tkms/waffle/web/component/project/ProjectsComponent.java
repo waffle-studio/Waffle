@@ -53,7 +53,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
   @Override
   public void controller() {
     if (mode == Mode.New) {
-      if (request.requestMethod().toLowerCase().equals("post")) {
+      if (isPost()) {
         ArrayList<Lte.FormError> errors = checkAddFormError();
         if (errors.isEmpty()) {
           addProject();

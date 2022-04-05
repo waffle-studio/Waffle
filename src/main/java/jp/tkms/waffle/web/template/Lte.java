@@ -310,6 +310,16 @@ public class Lte {
     );
   }
 
+  public static String openButton(String label, String value) {
+    return span(null, null,
+      element("button", new Attributes(value("class", "btn btn-sm btn-outline-secondary"),
+        value("type", "button"),
+        value("onclick",
+          "simplepost('/@system/Open','" + value + "');" +
+            "toastr.info('Opened: " + value + "');")), label)
+    );
+  }
+
   public static String clipboardButton(String label, String value) {
     UUID uuid = UUID.randomUUID();
     return span(null, null,
