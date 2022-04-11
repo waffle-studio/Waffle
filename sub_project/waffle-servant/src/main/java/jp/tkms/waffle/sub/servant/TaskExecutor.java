@@ -87,7 +87,7 @@ public class TaskExecutor extends TaskCommand {
       Process process = processBuilder.start();
       try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
         process.waitFor();
-        reader.lines().forEach((child) -> recursiveKill(childPid));
+        reader.lines().forEach((child) -> recursiveKill(child));
       }
       Runtime.getRuntime().exec("kill -9 " + childPid).waitFor();
       } catch (IOException | InterruptedException e) {
@@ -326,8 +326,12 @@ public class TaskExecutor extends TaskCommand {
     try {
       //Process process = Runtime.getRuntime().exec(new String[]{"echo", "-n", value},
         //getEnvironments(), executableBaseDirectory.toFile());
+      Path workingDirectory = Paths.get(".");
+      if (executableBaseDirectory != null) {
+        workingDirectory = executableBaseDirectory;
+      }
       Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo -n " + value},
-        getEnvironments(), executableBaseDirectory.toFile());
+        getEnvironments(), workingDirectory.toFile());
       InputStream inputStream = process.getInputStream();
       process.waitFor();
       value = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);

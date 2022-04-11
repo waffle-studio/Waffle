@@ -20,10 +20,10 @@ public class ServantJarFile {
       synchronized (objectLocker) {
         if (!Files.exists(JAR_PATH)) {
           ResourceFile.copyFile(JAR_RESOURCE, JAR_PATH);
-          JAR_PATH.toFile().deleteOnExit();
         }
       }
     }
+    JAR_PATH.toFile().deleteOnExit();
     return JAR_PATH;
   }
 
