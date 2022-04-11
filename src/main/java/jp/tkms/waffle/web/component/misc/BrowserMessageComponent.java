@@ -20,9 +20,9 @@ public class BrowserMessageComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    String result = "try{rubyRunningStatus(" + (RubyScript.hasRunning() ? "true" : "false") + ");}catch(e){}";
+    //String result = "try{rubyRunningStatus(" + (RubyScript.hasRunning() ? "true" : "false") + ");}catch(e){}";
     //response.body(result);
-    result += "try{" + GeneralUpdater.getUpdateScriptDirectly(request.body()) + "}catch(e){}";
+    String result = "try{" + GeneralUpdater.getUpdateScriptDirectly(request.body()) + "}catch(e){}";
 
     String browserId = request.params(KEY_CURRENT_ROWID);
 

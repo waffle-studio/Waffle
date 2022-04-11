@@ -11,6 +11,7 @@ import jp.tkms.waffle.data.web.BrowserMessage;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.inspector.InspectorMaster;
+import jp.tkms.waffle.web.component.websocket.PushNotifier;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,7 +58,8 @@ public class ExecutableRunTask extends AbstractTask {
     run.setTaskId(job.getHexCode());
     InspectorMaster.registerExecutableRunTask(job);
     InfoLogMessage.issue(run, "was added to the queue");
-    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
+    //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
+    PushNotifier.broadcastMessage(PushNotifier.createJobNumMessage(getNum()));
   }
 
   @Override
@@ -78,7 +80,8 @@ public class ExecutableRunTask extends AbstractTask {
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+    //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
+    PushNotifier.broadcastMessage(PushNotifier.createJobNumMessage(getNum()));
   }
 
   @Override

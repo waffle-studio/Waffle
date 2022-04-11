@@ -3,6 +3,7 @@ package jp.tkms.waffle.script.ruby.util;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import org.jruby.embed.EvalFailedException;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
@@ -87,6 +88,7 @@ public class RubyScript {
       boolean failed;
       do {
         runningCount.incrementAndGet();
+        PushNotifier.sendRubyRunningStatus(true);
         failed = false;
         ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
         try {
@@ -107,6 +109,7 @@ public class RubyScript {
           container.terminate();
           container = null;
           runningCount.decrementAndGet();
+          PushNotifier.sendRubyRunningStatus(false);
         }
       } while (failed);
     }

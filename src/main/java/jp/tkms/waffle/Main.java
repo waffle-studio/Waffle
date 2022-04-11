@@ -14,6 +14,7 @@ import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.misc.*;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.computer.ComputersComponent;
+import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.jruby.RubyProcess;
@@ -176,6 +177,8 @@ public class Main {
 
     ErrorComponent.register();
 
+    PushNotifier.register();
+
     redirect.get("/", Constants.ROOT_PAGE);
 
     BrowserMessageComponent.register();
@@ -190,6 +193,7 @@ public class Main {
 
     //HelpComponent.register();
     redirect.get("/", Constants.ROOT_PAGE);
+    init();
 
     gcInvokerThread = new Thread("Waffle_GCInvoker"){
       @Override
