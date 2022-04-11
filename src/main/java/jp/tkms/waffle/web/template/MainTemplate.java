@@ -46,7 +46,8 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/custom.css"),
           link("stylesheet", "/jsoneditor/jsoneditor.min.css"),
           element("script", new Attributes(value("src", "/jsoneditor/jsoneditor.min.js"))),
-          element("script", new Attributes(value("src", "/js/jquery.min.js")))
+          element("script", new Attributes(value("src", "/js/jquery.min.js"))),
+          element("script", new Attributes(value("src", "/js/short.js")))
         ),
         body((component.isSidebarCollapsed() ? "sidebar-collapse " : "") + "hold-transition layout-footer-fixed layout-fixed",
           AbstractUpdater.getUpdaterElements(),
@@ -128,7 +129,9 @@ abstract public class MainTemplate extends AbstractTemplate {
           element("script", new Attributes(value("type", "text/javascript")),
               "$(function(){$('.dial').knob();});"
           ),
+          element("script", new Attributes(value("src", "/js/custom.js"))),
           element("script", new Attributes(value("src", "/js/simpleimport.js"))),
+          /*
           element("script", new Attributes(value("type", "text/javascript")),
             "var gotoParent = function() {" +
               "window.location.href = window.location.href.replace(/^(.*)\\/.*$/,'$1');" +
@@ -151,6 +154,8 @@ abstract public class MainTemplate extends AbstractTemplate {
               "document.getElementById('recently-accessed-project').innerHTML=\"<a class='nav-link' title='recently accessed' href='/PROJECT/\"+sessionStorage.getItem('latest-project-id')+\"'><i class='nav-icon fas fa-angle-right' style='margin-lefti:1rem;'></i><p>\"+sessionStorage.getItem('latest-project-name')+\"</p></a>\";" +
               "} else {document.getElementById('recently-accessed-project').style.display='none';}"
           ),
+           */
+          element("script", new Html.Attributes( Html.value("src", "/js/pushnotifier.js"), Html.value("type", "text/javascript")), ""),
           element("script", new Html.Attributes( Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
           element("script", new Html.Attributes( Html.value("src", "/ace/ext-language_tools.js"), Html.value("type", "text/javascript")), ""),
           element("script",new Html.Attributes(Html.value("type", "text/javascript")),

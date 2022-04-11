@@ -1,5 +1,6 @@
 package jp.tkms.waffle.web.updater;
 
+import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.data.web.BrowserMessage;
 
@@ -34,6 +35,7 @@ public abstract class AbstractUpdater {
   }
 
   public AbstractUpdater(String... values) {
+    PushNotifier.broadcastMessage(createUpdateScript(this.getClass(), values));
     BrowserMessage.addMessage(createUpdateScript(this.getClass(), values));
   }
 
