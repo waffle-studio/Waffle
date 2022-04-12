@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
@@ -19,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+@CommunicatorDescription("Deadline Wrapper (setting computer expiration datetime)")
 public class DeadlineWrapper extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTER = "target_computer";
   public static final String KEY_DEADLINE = "deadline";

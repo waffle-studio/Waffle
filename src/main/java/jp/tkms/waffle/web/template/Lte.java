@@ -206,10 +206,22 @@ public class Lte {
   }
 
   public static String formSelectGroup(String name, String label, List<String> optionList, ArrayList<FormError> errors) {
+    LinkedHashMap<String, String> map = new LinkedHashMap<>();
+    for (String value : optionList) {
+      map.put(value, null);
+    }
+    return formSelectGroup(name, label, map, errors);
+  }
+
+  public static String formSelectGroup(String name, String label, LinkedHashMap<String, String> optionMap, ArrayList<FormError> errors) {
     String id = "input" + name;
     String options = "";
-    for (String option : optionList) {
-      options += element("option", null, option);
+    for (Map.Entry<String, String> option : optionMap.entrySet()) {
+      if (option.getValue() == null) {
+        options += element("option", null, option.getKey());
+      } else {
+        options += element("option", new Html.Attributes(Html.value("value", option.getKey())), option.getValue());
+      }
     }
     return div("form-group",
       (label != null ? element("label", new Attributes(value("for", id)), label) : null),

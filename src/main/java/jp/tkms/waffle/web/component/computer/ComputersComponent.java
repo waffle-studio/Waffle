@@ -1,6 +1,8 @@
 package jp.tkms.waffle.web.component.computer;
 
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.communicator.AbstractSubmitter;
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescriptionUtil;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
@@ -31,8 +33,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   public enum Mode {Default, New, Update}
   private Mode mode = null;
   private Computer computer = null;
-  private static final HashMap<String, String> submitterTypeMap = new HashMap<>();
-  private static final ArrayList<String> submitterTypeList = new ArrayList<>();
+  private static final LinkedHashMap<String, String> submitterMap = new LinkedHashMap<>();
 
   public ComputersComponent(Mode mode) {
     super();
@@ -44,10 +45,8 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    for (String fullName : Computer.getSubmitterTypeNameList()) {
-      String name = fullName.replaceFirst("^jp\\.tkms\\.waffle\\.submitter\\.", "");
-      submitterTypeMap.put(name, fullName);
-      submitterTypeList.add(name);
+    for (Class<AbstractSubmitter>type : Computer.getSubmitterTypeList()) {
+      submitterMap.put(type.getCanonicalName(), CommunicatorDescriptionUtil.getDescription(type));
     }
 
     Spark.get(getUrl(), new ResponseBuilder(() -> new ComputersComponent()));
@@ -136,7 +135,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
               Html.div(null,
                 Html.inputHidden("cmd", "new"),
                 Lte.formInputGroup("text", "name", null, "Name", null, errors),
-                Lte.formSelectGroup("type", "type", submitterTypeList, errors)
+                Lte.formSelectGroup("type", "type", submitterMap, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null
@@ -217,7 +216,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   }
 
   private void addComputer() {
-    Computer computer = Computer.create(request.queryParams("name"), submitterTypeMap.get(request.queryParams("type")));
+    Computer computer = Computer.create(request.queryParams("name"), submitterMap.get(request.queryParams("type")));
     response.redirect(ComputersComponent.getUrl(computer));
   }
 

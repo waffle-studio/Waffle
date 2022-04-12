@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.util.WrappedJsonArray;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
@@ -14,6 +15,7 @@ import jp.tkms.waffle.sub.servant.Envelope;
 
 import java.util.*;
 
+@CommunicatorDescription("Load Balancer (round robin)")
 public class LoadBalancingSubmitter extends MultiComputerSubmitter {
 
   public LoadBalancingSubmitter(Computer computer) {

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
@@ -182,12 +183,8 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     return computer;
   }
 
-  public static ArrayList<String> getSubmitterTypeNameList() {
-    ArrayList<String> list = new ArrayList<>();
-    for (Class c : submitterTypeList) {
-      list.add(c.getCanonicalName());
-    }
-    return list;
+  public static ArrayList<Class<AbstractSubmitter>> getSubmitterTypeList() {
+    return submitterTypeList;
   }
 
   public void update() {

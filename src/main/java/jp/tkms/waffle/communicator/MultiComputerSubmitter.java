@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.data.util.WrappedJsonArray;
 import jp.tkms.waffle.inspector.Inspector;
@@ -18,6 +19,7 @@ import jp.tkms.waffle.sub.servant.Envelope;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+@CommunicatorDescription("Multi Computer (following priority)")
 public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTERS = "target_computers";
 

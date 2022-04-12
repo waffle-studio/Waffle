@@ -2,6 +2,7 @@ package jp.tkms.waffle.communicator;
 
 import com.eclipsesource.json.JsonArray;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+@CommunicatorDescription("ABSTRACT SUBMITTER")
 abstract public class AbstractSubmitter {
   protected static final String DOT_ENVELOPE = ".ENVELOPE";
   protected static final String TASK_JSON = "task.json";

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import com.jcraft.jsch.JSchException;
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.util.WrappedJson;
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+@CommunicatorDescription("SSH (limited by job number)")
 public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   public static final String KEY_IDENTITY_FILE = "identity_file";
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";

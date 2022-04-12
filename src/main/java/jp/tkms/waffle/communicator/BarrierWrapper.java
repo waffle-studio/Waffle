@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
@@ -19,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+@CommunicatorDescription("Barrier Wrapper (setting computer starting datetime)")
 public class BarrierWrapper extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTER = "target_computer";
   public static final String KEY_BARRIER = "barrier";

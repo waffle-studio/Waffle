@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.util.WrappedJson;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+@CommunicatorDescription("Local (limited by job number)")
 public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   public JobNumberLimitedLocalSubmitter(Computer computer) {

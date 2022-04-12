@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
@@ -31,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+@CommunicatorDescription("Pod Wrapper (pre-allocating workspace by a job)")
 public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public static final String KEY_TARGET_COMPUTER = "target_computer";
   public static final String JOB_MANAGER = "JOB_MANAGER";

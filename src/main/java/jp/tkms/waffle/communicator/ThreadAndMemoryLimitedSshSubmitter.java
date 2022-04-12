@@ -1,10 +1,12 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 
 import java.util.ArrayList;
 
+@CommunicatorDescription("SSH (limited by thread and memory)")
 public class ThreadAndMemoryLimitedSshSubmitter extends JobNumberLimitedSshSubmitter {
   public ThreadAndMemoryLimitedSshSubmitter(Computer computer) {
     super(computer);
