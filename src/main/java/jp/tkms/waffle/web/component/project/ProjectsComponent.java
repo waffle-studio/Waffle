@@ -169,7 +169,7 @@ public class ProjectsComponent extends AbstractAccessControlledComponent {
               return list;
             },
             (list) -> {
-              for (Project project : Project.getList()) {
+              for (Project project : projectList) {
                 list.add(() ->
                   new Lte.TableRow(
                     Html.a(ProjectComponent.getUrl(project), null, null, project.getName()),

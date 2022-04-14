@@ -2,6 +2,7 @@ package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import org.checkerframework.checker.units.qual.A;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,23 +18,27 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
   public static final String DOT_SORT = ".SORT";
 
   public enum Mode {
-    All, OnlyNormal, OnlyHidden, OnlyFavorite
+    All, OnlyNormal, OnlyHidden, OnlyFavorite, FavoriteFirst
   }
+
+  private static final Comparator<Path> comparator = Comparator.comparingLong(path -> {
+    try {
+      Path sortFilePath = path.resolve(DOT_SORT);
+      if (!Files.exists(sortFilePath)) {
+        sortFilePath = path;
+      }
+      return Files.readAttributes(sortFilePath, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
+    } catch (IOException e) {
+      return 0;
+    }
+  });
 
   public ChildElementsArrayList getList(Path baseDirectory, Mode mode, Function<String, T> getInstance) {
     if (Files.exists(baseDirectory)) {
       try {
         if (Mode.All.equals(mode)) {
           try (Stream<Path> paths = Files.list(baseDirectory)) {
-            paths.filter(path -> Files.isDirectory(path)).sorted(
-              Comparator.comparingLong(path -> {
-                try {
-                  return Files.readAttributes(path, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
-                } catch (IOException e) {
-                  return 0;
-                }
-              })
-            ).forEach(path -> {
+            paths.filter(path -> Files.isDirectory(path)).sorted(comparator).forEach(path -> {
               add(getInstance.apply(path.getFileName().toString()));
             });
           }
@@ -44,21 +49,22 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
           }
         }
          */
+        } else if (Mode.FavoriteFirst.equals(mode)) {
+          ArrayList<T> followings = new ArrayList<>();
+          try (Stream<Path> paths = Files.list(baseDirectory)) {
+            paths.filter(path -> Files.isDirectory(path)).sorted(comparator).forEach(path -> {
+              String name = path.getFileName().toString();
+              if (Files.exists(path.resolve(Constants.DOT_FAVORITE))) {
+                add(getInstance.apply(name));
+              } else {
+                followings.add(getInstance.apply(name));
+              }
+            });
+          }
+          addAll(followings);
         } else {
           try (Stream<Path> paths = Files.list(baseDirectory)) {
-            paths.filter(path -> Files.isDirectory(path)).sorted(
-              Comparator.comparingLong(path -> {
-                try {
-                  Path sortFilePath = path.resolve(DOT_SORT);
-                  if (!Files.exists(sortFilePath)) {
-                    sortFilePath = path;
-                  }
-                  return Files.readAttributes(sortFilePath, BasicFileAttributes.class).creationTime().toInstant().toEpochMilli() * -1;
-                } catch (IOException e) {
-                  return 0;
-                }
-              })
-            ).forEach(path -> {
+            paths.filter(path -> Files.isDirectory(path)).sorted(comparator).forEach(path -> {
               String name = path.getFileName().toString();
               if (
                 (Mode.OnlyNormal.equals(mode) && !name.startsWith("."))

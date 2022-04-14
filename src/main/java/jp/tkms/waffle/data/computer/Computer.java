@@ -3,10 +3,9 @@ package jp.tkms.waffle.data.computer;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.HasNote;
-import jp.tkms.waffle.data.util.WrappedJson;
+import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
-import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.PropertyFile;
@@ -14,8 +13,6 @@ import jp.tkms.waffle.exception.WaffleException;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.util.FileName;
-import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.communicator.*;
 
 import javax.crypto.*;
@@ -127,15 +124,9 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
   public static ArrayList<Computer> getList() {
     initializeWorkDirectory();
 
-    ArrayList<Computer> list = new ArrayList<>();
-
-    for (File file : getBaseDirectoryPath().toFile().listFiles()) {
-      if (file.isDirectory()) {
-        list.add(getInstance(file.getName()));
-      }
-    }
-
-    return list;
+    return new ChildElementsArrayList<>().getList(getBaseDirectoryPath(), name -> {
+      return getInstance(name);
+    });
   }
 
   public void initialize() {
