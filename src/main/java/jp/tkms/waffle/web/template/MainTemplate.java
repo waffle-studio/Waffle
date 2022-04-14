@@ -45,6 +45,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           link("stylesheet", "/css/toastr.min.css"),
           link("stylesheet", "/css/custom.css"),
           link("stylesheet", "/jsoneditor/jsoneditor.min.css"),
+          javascript("var waffle_uri='" + component.request.uri() + "';"),
           element("script", new Attributes(value("src", "/jsoneditor/jsoneditor.min.js"))),
           element("script", new Attributes(value("src", "/js/jquery.min.js"))),
           element("script", new Attributes(value("src", "/js/short.js")))

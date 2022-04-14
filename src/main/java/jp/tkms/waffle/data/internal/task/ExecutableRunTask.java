@@ -59,7 +59,7 @@ public class ExecutableRunTask extends AbstractTask {
     InspectorMaster.registerExecutableRunTask(job);
     InfoLogMessage.issue(run, "was added to the queue");
     //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
-    PushNotifier.broadcastMessage(PushNotifier.createJobNumMessage(getNum()));
+    PushNotifier.sendJobNumMessage(getNum());
   }
 
   @Override
@@ -81,7 +81,7 @@ public class ExecutableRunTask extends AbstractTask {
       ErrorLogMessage.issue(e);
     }
     //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");");
-    PushNotifier.broadcastMessage(PushNotifier.createJobNumMessage(getNum()));
+    PushNotifier.sendJobNumMessage(getNum());
   }
 
   @Override

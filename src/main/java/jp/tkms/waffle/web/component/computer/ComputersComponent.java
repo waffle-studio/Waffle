@@ -6,6 +6,7 @@ import jp.tkms.waffle.communicator.annotation.CommunicatorDescriptionUtil;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
+import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
@@ -15,6 +16,7 @@ import spark.Spark;
 
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class ComputersComponent extends AbstractAccessControlledComponent {
   public static final String COMPUTERS = "Computers";
@@ -249,6 +251,10 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         String content = "";
 
+        if (computer.isLocked()) {
+          return Lte.loading();
+        }
+
         ArrayList<Lte.FormError> errors = new ArrayList<>();
 
         content += ("".equals(computer.getMessage()) ? "" : Lte.errorNoticeTextAreaGroup(computer.getMessage()));
@@ -292,7 +298,15 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setEnvironments(new WrappedJson(request.queryParams(KEY_ENVIRONMENTS)));
     computer.setParameters(new WrappedJson(request.queryParams(KEY_PARAMETERS)));
     computer.setNote(request.queryParams(KEY_NOTE));
-    computer.update();
+    computer.lock(true);
+    String uri = request.uri().replaceFirst("/@.*$", "");
+    PushNotifier.sendReloadIfSameUriMessage(uri);
+    Main.interfaceThreadPool.submit(() -> {
+      computer.update();
+      computer.lock(false);
+      try { TimeUnit.SECONDS.sleep(1); } catch (InterruptedException e) { }
+      PushNotifier.sendReloadIfSameUriMessage(uri);
+    });
     response.redirect(getUrl(computer));
   }
 }

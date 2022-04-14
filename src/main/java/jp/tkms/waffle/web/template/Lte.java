@@ -39,6 +39,11 @@ public class Lte {
     }
   }
 
+  public static String loading() {
+    return div("overlay text-center", fasIcon("2x", "fa-sync-alt fa-spin"));
+  }
+
+
   public static String divContainerFluid(String... values) {
     return div("container-fluid", values);
   }

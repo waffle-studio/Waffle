@@ -1,5 +1,5 @@
 var gotoParent = function() {
-    window.location.href = window.location.href.replace('/^(.*)/.*$/','$1');
+    window.location.href = window.location.href.replace(/^(.*)\/.*$/, '$1');
 };
 
 if (sessionStorage.getItem('latest-project-id') != null) {

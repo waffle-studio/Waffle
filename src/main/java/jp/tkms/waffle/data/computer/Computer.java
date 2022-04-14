@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -211,7 +212,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
             }
             try {
               if (!"".equals(keyPath) && (new String(Files.readAllBytes(Paths.get(keyPath)))).indexOf("OPENSSH PRIVATE KEY") > 0) {
-                message = keyPath + " is a OpenSSH private key type and WAFFLE does not supported the key type";
+                message = keyPath + " is a OpenSSH private key type and WAFFLE does not support the key type.\nYou can change the key file type to a supported type by following command if the key path is ~/.ssh/id_rsa:\n$ ssh-keygen -p -f ~/.ssh/id_rsa -t rsa -m PEM";
                 setState(ComputerState.UnsupportedKey);
               }
             } catch (IOException ioException) {
@@ -219,8 +220,8 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
             }
           }
         } else {
-          message = message.replaceFirst("Auth fail", "probably, invalid user or key");
-          message = message.replaceFirst("USERAUTH fail", "probably, invalid key passphrase (identity_pass)");
+          message = message.replaceFirst("Auth fail", "[Auth fail]\nProbably, invalid user or key.\nYou should setup the host to login with public key authentication.");
+          message = message.replaceFirst("USERAUTH fail", "[USERAUTH fail]\nProbably, invalid key passphrase (identity_pass).");
           message = message.replaceFirst("java\\.net\\.UnknownHostException: (.*)", "$1 is unknown host");
           message = message.replaceFirst("java\\.net\\.ConnectException: Connection refused \\(Connection refused\\)", "Connection refused (could not connect to the SSH server)");
           setState(ComputerState.Unviable);
@@ -583,6 +584,25 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     return getBaseDirectoryPath().resolve(name);
   }
 
+  private Path getLockFilePath() {
+    return getPath().resolve(Constants.DOT_LOCK);
+  }
+
+  public boolean isLocked() {
+    return Files.exists(getLockFilePath());
+  }
+
+  public void lock(boolean isLock) {
+    try {
+      if (isLock) {
+        Files.writeString(getLockFilePath(), "");
+      } else {
+        Files.deleteIfExists(getLockFilePath());
+      }
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+  }
 
   WrappedJson propertyStoreCache = null;
   @Override
