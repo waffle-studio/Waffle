@@ -251,6 +251,7 @@ abstract public class AbstractSubmitter {
         Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
         if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
           envelope.add(run.getBinPath());
+          envelope.add(new ChangePermissionMessage(remoteExecutableBaseDirectory.resolve(Executable.BASE), "a-w"));
         }
 
         envelope.add(run.getBasePath());

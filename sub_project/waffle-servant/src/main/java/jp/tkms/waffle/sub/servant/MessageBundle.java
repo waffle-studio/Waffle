@@ -108,5 +108,6 @@ public class MessageBundle {
     kryo.register(PutValueMessage.class);
     kryo.register(PutFileMessage.class);
     kryo.register(SendValueMessage.class);
+    kryo.register(ChangePermissionMessage.class);
   }
 }
