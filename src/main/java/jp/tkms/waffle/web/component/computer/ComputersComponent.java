@@ -324,7 +324,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
       long val = 0;
       int[] coef = {86400, 3600, 60, 1};
       String[] tmp = ((String)value).toLowerCase().split(":");
-      if (tmp.length >= 1) {
+      if (tmp.length > 1) {
         // style: 0:1:00:00
         for (int d = 1; d <= tmp.length; d += 1) {
           val += Long.valueOf(tmp[tmp.length - d]) * coef[coef.length - d];
