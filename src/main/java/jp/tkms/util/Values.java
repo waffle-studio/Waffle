@@ -4,7 +4,7 @@ public class Values {
   public static Object convertString(String s) {
     try {
       if (s.indexOf('.') < 0) {
-        return Integer.parseInt(s);
+        return Long.parseLong(s);
       } else {
         return Double.parseDouble(s);
       }

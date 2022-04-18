@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.computer;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
+import jp.tkms.waffle.communicator.PodWrappedSubmitter;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescriptionUtil;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
@@ -296,7 +297,14 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
     computer.setMaximumNumberOfJobs(Integer.parseInt(request.queryParams(KEY_NUMBER_OF_CALCULATION_NODE)));
     computer.setPollingInterval(Integer.parseInt(request.queryParams(KEY_POLLING)));
     computer.setEnvironments(new WrappedJson(request.queryParams(KEY_ENVIRONMENTS)));
-    computer.setParameters(new WrappedJson(request.queryParams(KEY_PARAMETERS)));
+
+    /* TODO: refactoring following descriptions */
+    WrappedJson parameters = new WrappedJson(request.queryParams(KEY_PARAMETERS));
+    parseAndChangeParameterValue(parameters, PodWrappedSubmitter.KEY_SHUTDOWN_PREPARATION_MARGIN);
+    parseAndChangeParameterValue(parameters, PodWrappedSubmitter.KEY_FORCE_SHUTDOWN);
+    parseAndChangeParameterValue(parameters, PodWrappedSubmitter.KEY_EMPTY_TIMEOUT);
+    computer.setParameters(parameters);
+
     computer.setNote(request.queryParams(KEY_NOTE));
     computer.lock(true);
     String uri = request.uri().replaceFirst("/@.*$", "");
@@ -308,5 +316,37 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
       PushNotifier.sendReloadIfSameUriMessage(uri);
     });
     response.redirect(getUrl(computer));
+  }
+
+  private static void parseAndChangeParameterValue(WrappedJson parameters, String key) {
+    Object value = parameters.get(key);
+    if (value instanceof String) {
+      long val = 0;
+      int[] coef = {86400, 3600, 60, 1};
+      String[] tmp = ((String)value).toLowerCase().split(":");
+      if (tmp.length >= 1) {
+        // style: 0:1:00:00
+        for (int d = 1; d <= tmp.length; d += 1) {
+          val += Long.valueOf(tmp[tmp.length - d]) * coef[coef.length - d];
+        }
+      } else {
+        // style: 0d1h0m0s
+        char[] unit = {'d', 'h', 'm'};
+        tmp = tmp[0].split("s");
+        for (int i = 0; i < unit.length; i += 1) {
+          if (tmp[0].contains(String.valueOf(unit[i]))) {
+            tmp = tmp[0].split(String.valueOf(unit[i]));
+            val += coef[i] * Long.valueOf(tmp[0]);
+            if (tmp.length <= 1) {
+              tmp[0] = "0";
+              break;
+            }
+            tmp[0] = tmp[1];
+          }
+        }
+        val += Long.valueOf(tmp[0]);
+      }
+      parameters.put(key, val);
+    }
   }
 }

@@ -48,9 +48,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public static final Path ALIVE_NOTIFIER_PATH = Paths.get("ALIVE_NOTIFIER");
   public static final Path LOCKOUT_FILE_PATH = ALIVE_NOTIFIER_PATH.resolve("LOCKOUT");
   public static final String KEY_ADDITIONAL_PREPARE_COMMAND = "additional_preparation_command";
-  private static final String KEY_EMPTY_TIMEOUT = "empty_timeout";
-  private static final String KEY_FORCE_SHUTDOWN = "force_shutdown";
-  private static final String KEY_SHUTDOWN_PREPARATION_MARGIN = "shutdown_preparation_margin";
+  public static final String KEY_EMPTY_TIMEOUT = "empty_timeout";
+  public static final String KEY_FORCE_SHUTDOWN = "force_shutdown";
+  public static final String KEY_SHUTDOWN_PREPARATION_MARGIN = "shutdown_preparation_margin";
 
   //private static final InstanceCache<String, Boolean> existsCheckCache = new InstanceCache<>();
 
