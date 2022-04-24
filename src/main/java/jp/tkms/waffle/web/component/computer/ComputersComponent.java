@@ -219,7 +219,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
   }
 
   private void addComputer() {
-    Computer computer = Computer.create(request.queryParams("name"), submitterMap.get(request.queryParams("type")));
+    Computer computer = Computer.create(request.queryParams("name"), request.queryParams("type"));
     response.redirect(ComputersComponent.getUrl(computer));
   }
 
