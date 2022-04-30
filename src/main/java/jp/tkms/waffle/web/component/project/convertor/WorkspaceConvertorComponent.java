@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.convertor.WorkspaceConvertor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
@@ -12,6 +13,7 @@ import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
 import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
+import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.ProjectMainTemplate;
@@ -20,6 +22,7 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 public class WorkspaceConvertorComponent extends AbstractAccessControlledComponent {
   public static final String WORKSPACE_CONVERTOR = "WorkspaceConvertor";
@@ -45,6 +48,7 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
 
   static public void register() {
     Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceConvertorComponent()));
+    Spark.get(getUrl(null, Mode.Run), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Run)));
     Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Prepare)));
     Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Update)));
     Spark.get(getUrl(null, Mode.Remove), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Remove)));
@@ -69,7 +73,14 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
     convertor = WorkspaceConvertor.getInstance(project, request.params(KEY_CONVERTOR));
 
     switch (mode) {
+      case Run:
+        break;
       case Prepare:
+        if (convertor.checkSyntax()) {
+          renderPrepareForm();
+        } else {
+          response.redirect(getUrl(convertor));
+        }
         break;
       case Update:
         convertor.updateScript(request.queryParams(KEY_SCRIPT));
@@ -87,6 +98,64 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
       default:
         renderConvertor();
     }
+  }
+
+  protected String renderPageTitle() {
+    return WORKSPACE_CONVERTOR;
+  }
+
+  protected ArrayList<String> renderPageBreadcrumb() {
+    return new ArrayList<String>(Arrays.asList(
+      ProjectsComponent.getAnchorLink(),
+      ProjectComponent.getAnchorLink(project),
+      WORKSPACE_CONVERTORS,
+      Html.a(getUrl(convertor), convertor.getName())
+    ));
+  }
+
+  private void renderPrepareForm() throws ProjectNotFoundException {
+    new ProjectMainTemplate(project) {
+      @Override
+      protected String pageTitle() {
+        return renderPageTitle();
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return renderPageBreadcrumb();
+      }
+
+      @Override
+      protected String pageContent() {
+        String content = "";
+
+        String name = convertor.getName() + '_' + Main.DATE_FORMAT.format(System.currentTimeMillis());
+        //String variables = convertor.getDefaultVariables().toString();
+
+        content +=
+          Html.form(getUrl(convertor, Mode.Run), Html.Method.Post,
+            Lte.card(Html.fasIcon("feather-alt") + "Prepare",
+              null,
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formSelectGroup(WorkspaceComponent.WORKSPACE, WorkspaceComponent.WORKSPACE,
+                    new ArrayList<>(Workspace.getList(project).stream().map(workspace -> workspace.getName()).collect(Collectors.toList()))
+                    , null)
+                ),
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formInputGroup("text", KEY_CONVERTOR, "Name", "name", FileName.removeRestrictedCharacters(name), null)
+                )//,
+                //Lte.divCol(Lte.DivSize.F12,
+                //  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form", variables, null)
+                //)
+              )
+              ,Lte.formSubmitButton("primary", "Run"), "card-info", null
+            )
+          );
+
+        return content;
+      }
+    }.render(this);
   }
 
   private void renderConvertor() throws ProjectNotFoundException {

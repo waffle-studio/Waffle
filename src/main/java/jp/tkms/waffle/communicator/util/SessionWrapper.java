@@ -1,7 +1,7 @@
 package jp.tkms.waffle.communicator.util;
 
 import com.jcraft.jsch.Session;
-import jp.tkms.util.ObjectWrapper;
+import jp.tkms.utils.value.ObjectWrapper;
 
 import java.util.HashSet;
 
@@ -18,7 +18,7 @@ public class SessionWrapper extends ObjectWrapper<Session> {
     synchronized (sessionSet) {
       sessionSet.remove(sshSession);
       if (sessionSet.isEmpty()) {
-        setValue(null);
+        set(null);
       }
       return sessionSet.isEmpty();
     }

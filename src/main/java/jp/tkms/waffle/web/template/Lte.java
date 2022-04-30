@@ -1,15 +1,13 @@
 package jp.tkms.waffle.web.template;
 
-import jp.tkms.util.Editor;
-import jp.tkms.util.FutureArrayList;
+import jp.tkms.utils.concurrent.FutureArrayList;
+import jp.tkms.utils.stream.Editor;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 
 import static jp.tkms.waffle.web.template.Html.*;
 

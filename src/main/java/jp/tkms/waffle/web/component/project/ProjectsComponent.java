@@ -1,7 +1,5 @@
 package jp.tkms.waffle.web.component.project;
 
-import jp.tkms.util.FutureArrayList;
-import jp.tkms.waffle.Main;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.web.AlertCookie;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
@@ -15,7 +13,6 @@ import spark.Spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.Future;
 
 public class ProjectsComponent extends AbstractAccessControlledComponent {
   public static final String PROJECTS = "Projects";

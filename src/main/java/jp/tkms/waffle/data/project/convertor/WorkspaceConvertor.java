@@ -125,23 +125,10 @@ public class WorkspaceConvertor extends ProjectData implements DataDirectory, Pr
   }
 
   public boolean checkSyntax() {
-    /*
-    String mainScriptSyntaxError = RubyConductor.checkSyntax(getScriptPath());
-    if (! "".equals(mainScriptSyntaxError)) {
+    String scriptSyntaxError = ScriptProcessor.getProcessor(getScriptPath()).checkSyntax(getScriptPath());
+    if (! "".equals(scriptSyntaxError)) {
       return false;
     }
-
-    for (File child : getDirectoryPath().toFile().listFiles()) {
-      String fileName = child.getName();
-      if (child.isFile() && fileName.startsWith(KEY_ACTOR + "-") && fileName.endsWith(KEY_EXT_RUBY)) {
-        String scriptSyntaxError = RubyConductor.checkSyntax(child.toPath());
-        if (! "".equals(scriptSyntaxError)) {
-          return false;
-        }
-      }
-    }
-
-     */
 
     return true;
   }

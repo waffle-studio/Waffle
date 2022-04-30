@@ -1,7 +1,6 @@
 package jp.tkms.waffle.communicator.util;
 
 import com.jcraft.jsch.*;
-import jp.tkms.util.ObjectWrapper;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -56,7 +55,7 @@ public class SshSession {
   public static String getSessionReport() {
     String report = "";
     for (Map.Entry<String, SessionWrapper> entry : sessionCache.entrySet()) {
-      report += entry.getKey() + "[" + (entry.getValue() == null || entry.getValue().getValue() == null ? "null" : entry.getValue().size()) + "]\n";
+      report += entry.getKey() + "[" + (entry.getValue() == null || entry.getValue().get() == null ? "null" : entry.getValue().size()) + "]\n";
     }
     return report;
   }
@@ -78,8 +77,8 @@ public class SshSession {
   }
 
   public boolean isConnected() {
-    if (sessionWrapper.getValue() != null) {
-      return sessionWrapper.getValue().isConnected();
+    if (sessionWrapper.get() != null) {
+      return sessionWrapper.get().isConnected();
     }
     return false;
   }
@@ -119,12 +118,12 @@ public class SshSession {
             session.disconnect();
           }
            */
-          if (sessionWrapper.getValue() == null || !sessionWrapper.getValue().isConnected()) {
-            sessionWrapper.setValue(jsch.getSession(username, host, port));
-            sessionWrapper.getValue().setConfig("StrictHostKeyChecking", "no");
-            sessionWrapper.getValue().connect();
+          if (sessionWrapper.get() == null || !sessionWrapper.get().isConnected()) {
+            sessionWrapper.set(jsch.getSession(username, host, port));
+            sessionWrapper.get().setConfig("StrictHostKeyChecking", "no");
+            sessionWrapper.get().connect();
             connected = true;
-          } else if (sessionWrapper.getValue().isConnected()) {
+          } else if (sessionWrapper.get().isConnected()) {
             connected = true;
           }
         } catch (JSchException e) {
@@ -171,8 +170,8 @@ public class SshSession {
       if (channelSftp != null) {
         channelSftp.disconnect();
       }
-      if (sessionWrapper.getValue() != null) {
-        Session session = sessionWrapper.getValue();
+      if (sessionWrapper.get() != null) {
+        Session session = sessionWrapper.get();
         if (sessionWrapper.unlink(this)) {
           session.disconnect();
           sessionCache.remove(getConnectionName());
@@ -188,13 +187,13 @@ public class SshSession {
   protected Channel openChannel(String type) throws JSchException, InterruptedException {
     channelSemaphore.acquire();
 
-    return sessionWrapper.getValue().openChannel(type);
+    return sessionWrapper.get().openChannel(type);
   }
 
   public int setPortForwardingL(String hostName, int rport) throws JSchException {
     tunnelTargetHost = hostName;
     tunnelTargetPort = rport;
-    return sessionWrapper.getValue().setPortForwardingL(0, hostName, rport);
+    return sessionWrapper.get().setPortForwardingL(0, hostName, rport);
   }
 
   public SshChannel exec(String command, String workDir) throws JSchException, InterruptedException {
@@ -395,7 +394,7 @@ public class SshSession {
 
         try {
           if (channelSftp == null || channelSftp.isClosed()) {
-            channelSftp = (ChannelSftp) sessionWrapper.getValue().openChannel("sftp");
+            channelSftp = (ChannelSftp) sessionWrapper.get().openChannel("sftp");
             channelSftp.connect();
           }
 

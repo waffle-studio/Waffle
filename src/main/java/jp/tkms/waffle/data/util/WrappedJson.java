@@ -1,11 +1,9 @@
 package jp.tkms.waffle.data.util;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
 import com.eclipsesource.json.*;
-import jp.tkms.util.Values;
+import jp.tkms.utils.value.Values;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jruby.RubySymbol;
 
 import java.nio.file.Path;
 import java.util.*;
