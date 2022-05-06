@@ -66,10 +66,8 @@ public class Main {
 
     avoidMultipleLaunch();
 
-    if (args.length >= 1) {
-      if (Integer.valueOf(args[0]) >= 1024) {
-        port = Integer.valueOf(args[0]);
-      }
+    if (args.length >= 1 && Integer.valueOf(args[0]) >= 1024) {
+      port = Integer.valueOf(args[0]);
     } else {
       port = getValidPort();
     }
