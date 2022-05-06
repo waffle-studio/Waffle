@@ -564,7 +564,7 @@ abstract public class AbstractSubmitter {
     ArrayList<AbstractTask> cancelJobList = new ArrayList<>();
 
     for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-      if (Main.hibernateFlag) { return; }
+      if (Main.hibernatingFlag) { return; }
 
       try {
         if (!job.exists() && job.getRun().isRunning()) {
@@ -591,11 +591,11 @@ abstract public class AbstractSubmitter {
       }
     }
 
-    if (!Main.hibernateFlag) {
+    if (!Main.hibernatingFlag) {
       processSubmitted(envelope, submittedJobList, runningJobList, cancelJobList);
     }
 
-    if (!Main.hibernateFlag) {
+    if (!Main.hibernatingFlag) {
       preparingProcessorManager.startup();
     }
 
@@ -610,7 +610,7 @@ abstract public class AbstractSubmitter {
     submittedJobList.addAll(runningJobList);
 
     for (AbstractTask job : cancelJobList) {
-      if (Main.hibernateFlag) { return; }
+      if (Main.hibernatingFlag) { return; }
       try {
         cancel(envelope, job);
       } catch (RunNotFoundException e) {
@@ -619,7 +619,7 @@ abstract public class AbstractSubmitter {
     }
 
     for (AbstractTask job : submittedJobList) {
-      if (Main.hibernateFlag) { return; }
+      if (Main.hibernatingFlag) { return; }
       try {
         update(envelope, job);
       } catch (RunNotFoundException e) {
@@ -721,7 +721,7 @@ abstract public class AbstractSubmitter {
       ArrayList<AbstractTask> preparedJobList = new ArrayList<>();
 
       for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-        if (Main.hibernateFlag) { return; }
+        if (Main.hibernatingFlag) { return; }
         try {
           if (!job.exists() && job.getRun().isRunning()) {
             job.cancel();
@@ -749,7 +749,7 @@ abstract public class AbstractSubmitter {
         }
       }
 
-      if (!Main.hibernateFlag) {
+      if (!Main.hibernatingFlag) {
         try {
           processPreparing(envelope, submittedJobList, createdJobList, preparedJobList);
         } catch (FailedToControlRemoteException e) {
@@ -777,7 +777,7 @@ abstract public class AbstractSubmitter {
     });
 
     for (AbstractTask job : queuedJobList) {
-      if (Main.hibernateFlag) { return; }
+      if (Main.hibernatingFlag) { return; }
 
       try {
         ComputerTask run = job.getRun();;
@@ -838,14 +838,14 @@ abstract public class AbstractSubmitter {
       ArrayList<AbstractTask> finalizingJobList = new ArrayList<>();
 
       do {
-        if (Main.hibernateFlag) { return; }
+        if (Main.hibernatingFlag) { return; }
 
         Envelope envelope = new Envelope(Constants.WORK_DIR);
 
         finalizingJobList.clear();
 
         for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-          if (Main.hibernateFlag) { return; }
+          if (Main.hibernatingFlag) { return; }
 
           try {
             ComputerTask run = job.getRun();
@@ -892,7 +892,7 @@ abstract public class AbstractSubmitter {
 
   public void processFinished(ArrayList<AbstractTask> finalizingJobList) throws FailedToControlRemoteException {
     for (AbstractTask job : finalizingJobList) {
-      if (Main.hibernateFlag) { return; }
+      if (Main.hibernatingFlag) { return; }
 
       try {
         jobFinalizing(job);

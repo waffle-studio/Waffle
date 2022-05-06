@@ -127,7 +127,7 @@ public class SshSession {
             connected = true;
           }
         } catch (JSchException e) {
-          if (Main.hibernateFlag) {
+          if (Main.hibernatingFlag) {
             //sessionWrapper.unlink(this);
             disconnect();
             return;

@@ -1,5 +1,6 @@
 package jp.tkms.waffle;
 
+import jp.tkms.utils.value.Init;
 import jp.tkms.waffle.data.log.Log;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
@@ -17,7 +18,6 @@ import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
-import org.jruby.RubyProcess;
 import org.slf4j.impl.SimpleLoggerConfiguration;
 import spark.Spark;
 import spark.embeddedserver.EmbeddedServers;
@@ -32,53 +32,74 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.IntStream;
 
-import static spark.Spark.*;
-
 public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
-  public static final String VERSION = getVersionId();
+  public static final String VERSION = new Init<String>().call(() -> {
+    String version = ResourceFile.getContents("/version.txt").trim();
+    if ("".equals(version)) {
+      return "?";
+    }
+    return version;
+  });
+
   public static int port = 8400;
   public static boolean aliveFlag = true;
-  public static boolean hibernateFlag = false;
+  public static boolean hibernatingFlag = false;
   public static boolean restartFlag = false;
   public static boolean updateFlag = false;
   public static ExecutorService interfaceThreadPool = Executors.newWorkStealingPool();//new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static ExecutorService systemThreadPool = Executors.newWorkStealingPool();//new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
-  //public static ExecutorService filesThreadPool = new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
-  private static WatchService fileWatchService = null;
-  private static HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
-  private static Thread fileWatcherThread;
-  private static Thread gcInvokerThread;
-  private static Thread commandLineThread;
-  public static SimpleDateFormat DATE_FORMAT_FOR_WAFFLE_ID = new SimpleDateFormat("yyyyMMddHHmmss");
-  public static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private static final FileWatcherThread fileWatcherThread = new FileWatcherThread();
+  private static final Thread gcInvokerThread = new GCInvokerThread();
+  private static final Thread commandLineThread = new CommandLineThread();
+  public static final SimpleDateFormat DATE_FORMAT_FOR_WAFFLE_ID = new Init<SimpleDateFormat>().call(new SimpleDateFormat("yyyyMMddHHmmss"), (o) -> {
+    o.setTimeZone(TimeZone.getTimeZone("GMT+9"));
+  } );
+  public static final SimpleDateFormat DATE_FORMAT = new Init<SimpleDateFormat>().call(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"), (o) -> {
+    o.setTimeZone(TimeZone.getTimeZone("GMT+9"));
+  });
 
   public static void main(String[] args) {
     //NOTE: for https://bugs.openjdk.java.net/browse/JDK-8246714
     URLConnection.setDefaultUseCaches("classloader", false);
     URLConnection.setDefaultUseCaches("jar", false);
 
-    //NOTE: for including slf4j to jar file
-    SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
+    avoidMultipleLaunch();
 
-    EmbeddedServers.add(EmbeddedServers.Identifiers.JETTY, new EmbeddedJettyFactory(new JettyServerFactory() {
-      @Override
-      public Server create(int maxThreads, int minThreads, int threadTimeoutMillis) {
-        return create(null);
+    if (args.length >= 1) {
+      if (Integer.valueOf(args[0]) >= 1024) {
+        port = Integer.valueOf(args[0]);
       }
+    } else {
+      port = getValidPort();
+    }
+    Spark.port(port);
 
-      @Override
-      public Server create(ThreadPool threadPool) {
-        Server server = new Server();
-        server.setAttribute("org.eclipse.jetty.server.Request.maxFormContentSize", Math.pow(1024, 3));
-        return server;
-      }
-    }));
+    addShutdownHook();
 
-    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
-    DATE_FORMAT_FOR_WAFFLE_ID.setTimeZone(TimeZone.getTimeZone("GMT+9"));
-    DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT+9"));
+    resetAutomaticRestartingFlag();
 
+    InfoLogMessage.issue("Version is " + VERSION);
+    InfoLogMessage.issue("PID is " + PID);
+    InfoLogMessage.issue("Web port is " + port);
+
+    fileWatcherThread.start();
+
+    ManagerMaster.startup();
+    InspectorMaster.startup();
+
+    initSpark();
+
+    gcInvokerThread.start();
+    commandLineThread.start();
+    bootRubyScript();
+
+    tryToOpenWebBrowser();
+
+    return;
+  }
+
+  private static void avoidMultipleLaunch() {
     //Check already running process
     try {
       if (Constants.PID_FILE.toFile().exists()) {
@@ -96,30 +117,27 @@ public class Main {
     } catch (IOException | InterruptedException e) {
       ErrorLogMessage.issue(e);
     }
+  }
 
-    if (args.length >= 1) {
-      if (Integer.valueOf(args[0]) >= 1024) {
-        port = Integer.valueOf(args[0]);
-      }
-    } else {
-      port = IntStream.range(port, 65535)
-        .filter(i -> {
-          try (ServerSocket socket = new ServerSocket(i, 1, InetAddress.getByName("localhost"))) {
-            return true;
-          } catch (IOException e) {
-            return false;
-          }
-        })
-        .findFirst().orElseThrow(IllegalStateException::new); // Finding free port from 4567
-    }
-    port(port);
+  private static int getValidPort() {
+    return IntStream.range(port, 65535)
+      .filter(i -> {
+        try (ServerSocket socket = new ServerSocket(i, 1, InetAddress.getByName("localhost"))) {
+          return true;
+        } catch (IOException e) {
+          return false;
+        }
+      })
+      .findFirst().orElseThrow(IllegalStateException::new); // Finding free port from 8400
+  }
 
+  private static void addShutdownHook() {
     Runtime.getRuntime().addShutdownHook(new Thread()
     {
       @Override
       public void run()
       {
-        if (!hibernateFlag) {
+        if (!hibernatingFlag) {
           hibernate();
         }
 
@@ -133,53 +151,34 @@ public class Main {
         return;
       }
     });
+  }
 
-    try {
-      Files.deleteIfExists(getStartFlagPath());
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
+  private static void initSpark() {
+    //NOTE: for including slf4j to jar file
+    SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
 
-    InfoLogMessage.issue("Version is " + VERSION);
-    InfoLogMessage.issue("PID is " + PID);
-    InfoLogMessage.issue("Web port is " + port);
-
-    try {
-      fileWatchService = FileSystems.getDefault().newWatchService();
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
-    fileWatcherThread = new Thread("Waffle_FileWatcher"){
+    EmbeddedServers.add(EmbeddedServers.Identifiers.JETTY, new EmbeddedJettyFactory(new JettyServerFactory() {
       @Override
-      public void run() {
-        try {
-          WatchKey watchKey = null;
-          while (!hibernateFlag && (watchKey = fileWatchService.take()) != null) {
-            for (WatchEvent<?> event : watchKey.pollEvents()) {
-              Runnable runnable = fileChangedEventListenerMap.get((Path)watchKey.watchable());
-              if (runnable != null) {
-                runnable.run();
-              }
-            }
-            watchKey.reset();
-          }
-        } catch (InterruptedException e) {
-          return;
-        }
+      public Server create(int maxThreads, int minThreads, int threadTimeoutMillis) {
+        return create(null);
       }
-    };
-    fileWatcherThread.start();
 
-    ManagerMaster.startup();
-    InspectorMaster.startup();
+      @Override
+      public Server create(ThreadPool threadPool) {
+        Server server = new Server();
+        server.setAttribute("org.eclipse.jetty.server.Request.maxFormContentSize", Math.pow(1024, 3));
+        return server;
+      }
+    }));
 
-    staticFiles.location("/static");
+    Spark.staticFiles.location("/static");
 
     ErrorComponent.register();
 
     PushNotifier.register();
 
-    redirect.get("/", Constants.ROOT_PAGE);
+    Spark.redirect.get("/", Constants.ROOT_PAGE);
 
     BrowserMessageComponent.register();
 
@@ -192,57 +191,11 @@ public class Main {
     SigninComponent.register();
 
     //HelpComponent.register();
-    redirect.get("/", Constants.ROOT_PAGE);
-    init();
+    Spark.redirect.get("/", Constants.ROOT_PAGE);
+    Spark.init();
+  }
 
-    gcInvokerThread = new Thread("Waffle_GCInvoker"){
-      @Override
-      public void run() {
-        while (!hibernateFlag) {
-          try {
-            currentThread().sleep(60000);
-          } catch (InterruptedException e) {
-            return;
-          }
-          InstanceCache.gc();
-        }
-        return;
-      }
-    };
-    gcInvokerThread.start();
-
-    commandLineThread = new Thread("Waffle_CommandLine"){
-      @Override
-      public void run() {
-        try {
-          Scanner in = new Scanner(System.in);
-          while (true) {
-            String command = in.nextLine();
-            System.out.println("-> " + command);
-            switch (command) {
-              case "exit":
-              case "quit":
-              case "hibernate":
-                hibernate();
-                break;
-              case "kill":
-                aliveFlag = false;
-                System.exit(1);
-                break;
-            }
-          }
-        } catch (Exception e) {
-          InfoLogMessage.issue("console command feature is disabled (could not gets user inputs)");
-          return;
-        }
-      }
-    };
-    commandLineThread.start();
-
-    RubyScript.process(scriptingContainer -> {
-      scriptingContainer.runScriptlet("print \"\"");
-    });
-
+  private static void tryToOpenWebBrowser() {
     if (System.getenv().containsKey(Constants.WAFFLE_OPEN_COMMAND)) {
       try {
         Runtime.getRuntime().exec(System.getenv().get(Constants.WAFFLE_OPEN_COMMAND) + " http://localhost:" + port + "/");
@@ -250,14 +203,110 @@ public class Main {
         ErrorLogMessage.issue(e);
       }
     }
+  }
 
-    return;
+  private static void bootRubyScript() {
+    RubyScript.process(scriptingContainer -> {
+      scriptingContainer.runScriptlet("print \"\"");
+    });
+  }
+
+  static class FileWatcherThread extends Thread {
+    private WatchService fileWatchService = null;
+    private HashMap<Path, Runnable> fileChangedEventListenerMap = new HashMap<>();
+
+    public FileWatcherThread() {
+      super("Waffle_FileWatcher");
+
+      try {
+        fileWatchService = FileSystems.getDefault().newWatchService();
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+
+    @Override
+    public void run() {
+      try {
+        WatchKey watchKey = null;
+        while (!hibernatingFlag && (watchKey = fileWatchService.take()) != null) {
+          for (WatchEvent<?> event : watchKey.pollEvents()) {
+            Runnable runnable = fileChangedEventListenerMap.get((Path)watchKey.watchable());
+            if (runnable != null) {
+              runnable.run();
+            }
+          }
+          watchKey.reset();
+        }
+      } catch (InterruptedException e) {
+        return;
+      }
+    }
+
+    public void registerFileChangeEventListener(Path path, Runnable function) {
+      fileChangedEventListenerMap.put(path, function);
+      try {
+        path.register(fileWatchService, StandardWatchEventKinds.ENTRY_MODIFY);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+  }
+
+  static class GCInvokerThread extends Thread {
+    public GCInvokerThread() {
+      super("Waffle_GCInvoker");
+    }
+
+    @Override
+    public void run() {
+      while (!hibernatingFlag) {
+        try {
+          currentThread().sleep(60000);
+        } catch (InterruptedException e) {
+          return;
+        }
+        InstanceCache.gc();
+      }
+      return;
+    }
+  }
+
+  static class CommandLineThread extends Thread {
+
+    public CommandLineThread() {
+      super("Waffle_CommandLine");
+    }
+    @Override
+    public void run() {
+      try {
+        Scanner in = new Scanner(System.in);
+        while (true) {
+          String command = in.nextLine();
+          System.out.println("-> " + command);
+          switch (command) {
+            case "exit":
+            case "quit":
+            case "hibernate":
+              hibernate();
+              break;
+            case "kill":
+              aliveFlag = false;
+              System.exit(1);
+              break;
+          }
+        }
+      } catch (Exception e) {
+        InfoLogMessage.issue("console command feature is disabled (could not gets user inputs)");
+        return;
+      }
+    }
   }
 
   public static Thread hibernate() {
     Thread processThread = null;
 
-    if (hibernateFlag) {
+    if (hibernatingFlag) {
       return processThread;
     }
 
@@ -265,7 +314,7 @@ public class Main {
       @Override
       public void run() {
         System.out.println("(0/6) System will hibernate");
-        hibernateFlag = true;
+        hibernatingFlag = true;
 
         try {
           commandLineThread.interrupt();
@@ -316,12 +365,7 @@ public class Main {
   }
 
   public static void registerFileChangeEventListener(Path path, Runnable function) {
-    fileChangedEventListenerMap.put(path, function);
-    try {
-      path.register(fileWatchService, StandardWatchEventKinds.ENTRY_MODIFY);
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
+    fileWatcherThread.registerFileChangeEventListener(path, function);
   }
 
   public static void restart() {
@@ -336,89 +380,72 @@ public class Main {
 
   public static void restartProcess() {
     try {
+      /*
       final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
       final File currentJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
       if(!currentJar.getName().endsWith(".jar")) {
         return;
       }
-
-      final ArrayList<String> command = new ArrayList<String>();
-      command.add(javaBin);
-      command.add("-jar");
-      command.add(currentJar.getPath());
-      command.add(String.valueOf(port));
+       */
 
       if (updateFlag) {
+        System.out.println("System updating...");
         updateProcess();
       }
 
       /*
-      final ProcessBuilder builder = new ProcessBuilder(command);
+      System.out.println("If it is not restart automatically, please restart " + currentJar.toString());
+      final ProcessBuilder builder = new ProcessBuilder(javaBin, "-jar", currentJar.getPath(), String.valueOf(port));
       System.out.println("System will fork and restart");
       builder.start();
        */
-      System.out.println("Please restart " + currentJar.toString());
-      Files.createDirectories(getStartFlagPath().getParent());
-      Files.createFile(getStartFlagPath());
-    } catch (URISyntaxException e) {
-      e.printStackTrace();
+      createAutomaticRestartingFlag();
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  private static void createAutomaticRestartingFlag() throws IOException {
+    Files.createDirectories(Constants.AUTO_START_FILE.getParent());
+    Files.createFile(Constants.AUTO_START_FILE);
+  }
+
+  private static void resetAutomaticRestartingFlag() {
+    try {
+      Files.deleteIfExists(Constants.AUTO_START_FILE);
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
     }
   }
 
   public static void updateProcess() {
     try {
       final File currentJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
       if(!currentJar.getName().endsWith(".jar")) {
-        return;
+        throw new Exception("Failed to detect JAR file name");
       }
 
-      URL url = new URL(Constants.JAR_URL);
-
+      final URL url = new URL(Constants.JAR_URL);
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.setAllowUserInteraction(false);
       connection.setInstanceFollowRedirects(true);
       connection.setRequestMethod("GET");
       connection.connect();
-
-      int httpStatusCode = connection.getResponseCode();
-
-      if(httpStatusCode != HttpURLConnection.HTTP_OK){
-        throw new Exception();
+      if(connection.getResponseCode() != HttpURLConnection.HTTP_OK){
+        throw new Exception("Failed to download JAR file");
       }
 
-      DataInputStream dataInStream = new DataInputStream( connection.getInputStream());
-
-      DataOutputStream dataOutStream = new DataOutputStream( new BufferedOutputStream( new FileOutputStream(
-        currentJar.getPath()
-      )));
-
-      byte[] b = new byte[4096];
+      DataInputStream dataInStream = new DataInputStream(connection.getInputStream());
+      DataOutputStream dataOutStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream( currentJar.getPath() )));
+      byte[] buffer = new byte[4096];
       int readByte = 0;
-
-      while(-1 != (readByte = dataInStream.read(b))){
-        dataOutStream.write(b, 0, readByte);
+      while(-1 != (readByte = dataInStream.read(buffer))){
+        dataOutStream.write(buffer, 0, readByte);
       }
-
       dataInStream.close();
       dataOutStream.close();
     } catch (Exception e) {
       e.printStackTrace();
     }
-  }
-
-  private static Path getStartFlagPath() {
-    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve("AUTO_START");
-  }
-
-  private static String getVersionId() {
-    String version = ResourceFile.getContents("/version.txt").trim();
-    if ("".equals(version)) {
-      return "?";
-    }
-    return version;
   }
 }

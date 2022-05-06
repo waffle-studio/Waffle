@@ -45,15 +45,15 @@ public class Inspector extends Thread {
           break;
         }
         waitCount += waitingStep;
-        if (Main.hibernateFlag) {
+        if (Main.hibernatingFlag) {
           break;
         }
       }
-      if (Main.hibernateFlag) {
+      if (Main.hibernatingFlag) {
         break;
       }
       waitCount = 0;
-      if (!Main.hibernateFlag) {
+      if (!Main.hibernatingFlag) {
         if (submitter == null || !submitter.isConnected()) {
           InfoLogMessage.issue(computer, "will be reconnected");
           if (submitter != null) {

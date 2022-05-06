@@ -120,7 +120,7 @@ public class InspectorMaster {
   public static void forceCheck() {
     synchronized (inspectorMap) {
       // startup all inspectors
-      if (!Main.hibernateFlag) {
+      if (!Main.hibernatingFlag) {
         for (Computer computer : Computer.getList()) {
           if (computer.getState().equals(ComputerState.Viable)) {
             if (!inspectorMap.containsKey(Inspector.getThreadName(Inspector.Mode.Normal, computer)) && ExecutableRunTask.hasJob(computer)) {
