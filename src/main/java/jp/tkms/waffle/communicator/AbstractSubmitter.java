@@ -334,8 +334,8 @@ abstract public class AbstractSubmitter {
   }
 
   public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) throws FailedToControlRemoteException {
-    //return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
-    return Paths.get(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+    return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
+    //return Paths.get(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
   }
 
   public Path getWaffleServantPath() throws FailedToControlRemoteException {

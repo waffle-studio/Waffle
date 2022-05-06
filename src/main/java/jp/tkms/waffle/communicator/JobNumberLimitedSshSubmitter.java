@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import com.jcraft.jsch.JSchException;
+import jp.tkms.utils.value.ObjectWrapper;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
@@ -21,7 +22,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
   SshSession session;
-  String home = null;
+  ObjectWrapper<String> home = new ObjectWrapper<>();
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
     super(computer);
@@ -135,14 +136,13 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
     if (pathString.indexOf('~') == 0) {
-      if (home == null) {
-        try {
-          home = session.exec("echo -n $HOME", "~/").getStdout().replaceAll("\\r|\\n", "");
-        } catch (JSchException | InterruptedException e) {
-          throw new FailedToControlRemoteException(e);
-        }
+      try {
+        pathString = pathString.replaceAll("^~", home.get(() -> {
+          return session.exec("echo -n $HOME", "~/").getStdout().replaceAll("\\r|\\n", "");
+        }));
+      } catch (Exception e) {
+        throw new FailedToControlRemoteException(e);
       }
-      pathString = pathString.replaceAll("^~", home);
     }
     return Paths.get(pathString);
   }
