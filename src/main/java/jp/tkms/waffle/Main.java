@@ -64,6 +64,10 @@ public class Main {
     URLConnection.setDefaultUseCaches("classloader", false);
     URLConnection.setDefaultUseCaches("jar", false);
 
+    //NOTE: for including slf4j to jar file
+    SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
+
     avoidMultipleLaunch();
 
     if (args.length >= 1 && Integer.valueOf(args[0]) >= 1024) {
@@ -71,7 +75,6 @@ public class Main {
     } else {
       port = getValidPort();
     }
-    Spark.port(port);
 
     addShutdownHook();
 
@@ -86,7 +89,7 @@ public class Main {
     ManagerMaster.startup();
     InspectorMaster.startup();
 
-    initSpark();
+    initSpark(port);
 
     gcInvokerThread.start();
     commandLineThread.start();
@@ -151,11 +154,7 @@ public class Main {
     });
   }
 
-  private static void initSpark() {
-    //NOTE: for including slf4j to jar file
-    SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
-    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
-
+  private static void initSpark(int port) {
     EmbeddedServers.add(EmbeddedServers.Identifiers.JETTY, new EmbeddedJettyFactory(new JettyServerFactory() {
       @Override
       public Server create(int maxThreads, int minThreads, int threadTimeoutMillis) {
@@ -170,26 +169,21 @@ public class Main {
       }
     }));
 
+    Spark.port(port);
+
     Spark.staticFiles.location("/static");
-
     ErrorComponent.register();
-
     PushNotifier.register();
-
-    Spark.redirect.get("/", Constants.ROOT_PAGE);
-
     BrowserMessageComponent.register();
-
     ProjectsComponent.register();
     JobsComponent.register();
     ComputersComponent.register();
     LogsComponent.register();
-
     SystemComponent.register();
     SigninComponent.register();
-
     //HelpComponent.register();
     Spark.redirect.get("/", Constants.ROOT_PAGE);
+
     Spark.init();
   }
 

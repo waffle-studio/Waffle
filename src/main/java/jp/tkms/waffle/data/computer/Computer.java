@@ -614,7 +614,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     Data.initializeWorkDirectory();
     if (! Files.exists(getBaseDirectoryPath().resolve(KEY_LOCAL))) {
       Computer computer = create(KEY_LOCAL, JobNumberLimitedLocalSubmitter.class.getCanonicalName());
-      Path localWorkBaseDirectoryPath = Constants.WORK_DIR.resolve("local");
+      Path localWorkBaseDirectoryPath = Paths.get(".").toAbsolutePath().relativize(Constants.WORK_DIR.resolve(KEY_LOCAL));
       try {
         Files.createDirectories(localWorkBaseDirectoryPath);
       } catch (IOException e) {

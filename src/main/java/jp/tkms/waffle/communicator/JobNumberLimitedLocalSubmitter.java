@@ -34,8 +34,10 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   @Override
   public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
-    if (pathString.indexOf('~') == 0) {
+    if (pathString.startsWith("~")) {
       pathString = pathString.replaceAll("^~", System.getProperty("user.home"));
+    } else if (!pathString.startsWith("/")) {
+      pathString = Paths.get(pathString).toAbsolutePath().toString();
     }
     return Paths.get(pathString);
   }

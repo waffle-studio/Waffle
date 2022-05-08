@@ -253,7 +253,7 @@ public class ComputersComponent extends AbstractAccessControlledComponent {
         String content = "";
 
         if (computer.isLocked()) {
-          return Lte.loading();
+          return Lte.loading() + Html.javascript("setTimeout(function(){location.reload();}, 10000);");
         }
 
         ArrayList<Lte.FormError> errors = new ArrayList<>();
