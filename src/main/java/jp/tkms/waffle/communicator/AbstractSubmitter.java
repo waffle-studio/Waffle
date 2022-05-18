@@ -266,8 +266,8 @@ abstract public class AbstractSubmitter {
     return computer.getJvmActivationCommand();
   }
 
-  public Path getWorkBaseDirectory() {
-    return Paths.get(computer.getWorkBaseDirectory());
+  public Path getWorkBaseDirectory() throws FailedToControlRemoteException {
+    return parseHomePath(computer.getWorkBaseDirectory());
   }
 
   public Path getBaseDirectory(ComputerTask run) throws FailedToControlRemoteException {

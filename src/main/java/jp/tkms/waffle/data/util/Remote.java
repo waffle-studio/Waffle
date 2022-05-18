@@ -6,6 +6,8 @@ import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -41,8 +43,9 @@ public class Remote {
   public void pull(String path) {
     try {
       Path local = run.getBasePath().resolve(path);
+      Files.createDirectories(local.getParent());
       submitter.transferFilesFromRemote(submitter.getBaseDirectory(run).resolve(path), local);
-    } catch (FailedToTransferFileException | FailedToControlRemoteException e) {
+    } catch (FailedToTransferFileException | FailedToControlRemoteException | IOException e) {
       WarnLogMessage.issue(run, e);
     }
   }
