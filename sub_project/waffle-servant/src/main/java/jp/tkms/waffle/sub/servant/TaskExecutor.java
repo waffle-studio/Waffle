@@ -330,7 +330,7 @@ public class TaskExecutor extends TaskCommand {
       if (executableBaseDirectory != null) {
         workingDirectory = executableBaseDirectory;
       }
-      Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo -n " + value},
+      Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo -n \"" + value + "\""},
         getEnvironments(), workingDirectory.toFile());
       InputStream inputStream = process.getInputStream();
       process.waitFor();

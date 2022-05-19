@@ -165,7 +165,7 @@ public interface DataDirectory extends HasLocalPath {
       }
 
       try {
-        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        ExecutorService executorService = Executors.newWorkStealingPool();
         ArrayList<Future<Boolean>> futureList = new ArrayList<>();
         for (Map.Entry<Path, File> entry : ownFileMap.entrySet()) {
           futureList.add(executorService.submit(new CompareFiles(entry.getValue(), targetFileMap.get(entry.getKey()))));
