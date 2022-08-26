@@ -67,7 +67,7 @@ dependencies {
 	implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.7.3'
 	implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
 	implementation 'com.vladsch.flexmark:flexmark-all:0.62.2'
-	implementation 'jp.tkms:tkms-java-utils:1.0.0'
+	implementation 'jp.tkms:tkms-java-utils:1.0.1'
 	implementation files("sub_project/waffle-servant/build/libs/waffle-servant-all.jar")
 	implementation files("lib/covid19-all.jar")
 }

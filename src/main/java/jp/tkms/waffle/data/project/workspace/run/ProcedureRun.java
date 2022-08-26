@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
+import jp.tkms.utils.debug.DebugElapsedTime;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.guard.ValueGuard;
@@ -487,6 +488,7 @@ public class ProcedureRun extends AbstractRun {
   }
 
   public ExecutableRun createExecutableRun(String executableName, String computerName, String name) {
+    DebugElapsedTime elapsedTime =new DebugElapsedTime();
     Executable executable = Executable.getInstance(getProject(), executableName);
     if (executable == null) {
       throw new RuntimeException("Executable(\"" + executableName + "\") is not found");
@@ -502,7 +504,7 @@ public class ProcedureRun extends AbstractRun {
 
     ExecutableRun executableRun = ExecutableRun.create(this, name, executable, computer);
     transactionRunList.add(executableRun);
-
+    elapsedTime.print("cER: ");
     return executableRun;
   }
 

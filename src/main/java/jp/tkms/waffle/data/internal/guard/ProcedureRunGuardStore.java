@@ -10,9 +10,11 @@ import jp.tkms.waffle.data.util.WaffleId;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ProcedureRunGuardStore {
 
@@ -104,7 +106,7 @@ public class ProcedureRunGuardStore {
         }
 
         try {
-          Path filePath = removedStep.getProcedureRunPath();
+          Path filePath = removedStep.getPropertyStorePath();
           Files.delete(filePath);
           tryDeleteEmptyDirectory(filePath.getParent());
         } catch (IOException e) {
@@ -132,6 +134,20 @@ public class ProcedureRunGuardStore {
 
     ArrayList<String> nameList = new ArrayList<>();
     HashMap<String, Path> pathMap = new HashMap<>();
+
+    try (Stream<Path> stream = Files.walk(directory)) {
+      stream.forEach(path -> {
+        String name = path.getFileName().toString().toLowerCase();
+        if (Files.isRegularFile(path)) {
+          if (name.endsWith(".json")) {
+            nameList.add(name);
+            pathMap.put(name, path);
+          }
+        }
+      });
+    } catch (IOException e) {
+      WarnLogMessage.issue(e);
+    }
 
     nameList.sort(Comparator.naturalOrder());
 
@@ -172,6 +188,9 @@ public class ProcedureRunGuardStore {
   }
 
   private static void tryDeleteEmptyDirectory(Path directory) {
+    if (directory.toAbsolutePath().normalize().equals(getDirectoryPath())) {
+      return;
+    }
     if (Files.isDirectory(directory)) {
       if (directory.toFile().listFiles().length <= 0) {
         try {
