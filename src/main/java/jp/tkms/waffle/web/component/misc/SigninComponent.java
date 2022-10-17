@@ -1,21 +1,17 @@
 package jp.tkms.waffle.web.component.misc;
 
-import jp.tkms.waffle.Constants;
+import jp.tkms.utils.crypt.DecryptingException;
+import jp.tkms.utils.crypt.RSA;
+import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.web.component.AbstractComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
-import jp.tkms.waffle.web.component.project.executable.ExecutablesComponent;
-import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
 import jp.tkms.waffle.web.template.MainTemplate;
 import jp.tkms.waffle.data.web.UserSession;
-import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import spark.Spark;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -23,6 +19,8 @@ import java.util.Map;
 public class SigninComponent extends AbstractComponent {
   private static final String KEY_PASSWORD = "password";
   private Mode mode;
+
+  private static RSA rsaKeyPair = null;
 
   public SigninComponent(Mode mode) {
     super();
@@ -46,17 +44,25 @@ public class SigninComponent extends AbstractComponent {
   public void controller() {
     if (isPost()) {
       ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
-      if (errors.isEmpty()) {
-        if (isNotPasswordEmpty()) {
-          getAccess(request.queryParams(KEY_PASSWORD));
-        } else {
-          setPassword(request.queryParams(KEY_PASSWORD));
+      if (errors.isEmpty() && rsaKeyPair != null) {
+        try {
+          String password = rsaKeyPair.decryptToString(request.queryParams(KEY_PASSWORD));
+          if (Password.isNotEmpty()) {
+            getAccess(password);
+          } else {
+            Password.setPassword(password);
+            response.redirect(ProjectsComponent.getUrl());
+          }
+        } catch (DecryptingException e) {
+          // NOP
         }
       } else {
+        rsaKeyPair = new RSA();
         renderSigninForm(errors);
       }
     } else {
-      if (isNotPasswordEmpty()) {
+      rsaKeyPair = new RSA();
+      if (Password.isNotEmpty()) {
         renderSigninForm(new ArrayList<>());
       } else {
         renderSetupForm(new ArrayList<>());
@@ -93,15 +99,19 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        return
-          Html.form(getUrl(), Html.Method.Post,
+        return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
+          Html.javascript("var pubkey='" + rsaKeyPair.getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
+          Html.element("form",
+            new Html.Attributes(Html.value("action", getUrl()),
+              Html.value("onsubmit", "onsubmit()"),
+              Html.value("method", "post")
+            ),
             Lte.card("Register a password to access the web interface.", null,
               Html.div(null,
                 Lte.formInputGroup("text", KEY_PASSWORD, null, "Password", null, errors),
                 Html.br(),
-                Lte.alert(Lte.Color.Danger,
-                  "Do not register a text that already used in other services, because the password will be saved as a plain text file on \".PASSWORD\". " +
-                    "In other words, you can get the registered password and change it by the file.")
+                Lte.alert(Lte.Color.Secondary,
+                  "You can reset your password by deleting a file \"WAFFLE/.PASSWORD\".")
               ),
               Lte.formSubmitButton("success", "Register"),
               "card-secondary", null
@@ -140,14 +150,19 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        return
-          Html.form(getUrl(), Html.Method.Post,
+        return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
+          Html.javascript("var pubkey='" + rsaKeyPair.getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
+          Html.element("form",
+            new Html.Attributes(Html.value("action", getUrl()),
+              Html.value("onsubmit", "onsubmit()"),
+              Html.value("method", "post")
+            ),
             Lte.card(null, null,
               Html.div(null,
                 Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
-                    "You can get the registered password and change it from \".PASSWORD\".")
+                  "You can reset your password by deleting a file \"WAFFLE/.PASSWORD\".")
               ),
               Lte.formSubmitButton("primary", "Verify"),
               "card-warning", null
@@ -162,57 +177,17 @@ public class SigninComponent extends AbstractComponent {
   }
 
   private void getAccess(String password) {
-    String actualPassword = getPassword();
-    if (isNotPasswordEmpty(actualPassword) && password.equals(actualPassword)) {
+    String passwordHash = Password.getPasswordHash();
+    if (Password.isNotEmpty(passwordHash) &&
+      (password.equals(passwordHash) || // OLD STYLE, plain password
+      Password.authenticate(password)) // SHA-256 hash
+    ) {
       UserSession session = UserSession.create();
       response.cookie("/", UserSession.getWaffleId(), session.getSessionId(), -1, false);
     }
     response.redirect(ProjectsComponent.getUrl());
   }
 
-  private void setPassword(String password) {
-    if (isNotPasswordEmpty(password)) {
-      try {
-        Path passwordFilePath = getPasswordFilePath();
-        Files.writeString(passwordFilePath, password);
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-    response.redirect(ProjectsComponent.getUrl());
-  }
-
-  private static boolean isNotPasswordEmpty() {
-    return isNotPasswordEmpty(getPassword());
-  }
-
-  private static boolean isNotPasswordEmpty(String password) {
-    return !"".equals(password);
-  }
-
-  private static String getPassword() {
-    Path passwordFilePath = getPasswordFilePath();
-    if (!passwordFilePath.toFile().exists()) {
-      try {
-        Files.writeString(passwordFilePath, "");
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
-    }
-
-    String password = null;
-    try {
-      password = Files.readString(Constants.WORK_DIR.resolve(Constants.PASSWORD)).trim();
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
-
-    return password;
-  }
-
-  private static Path getPasswordFilePath() {
-    return Constants.WORK_DIR.resolve(Constants.PASSWORD);
-  }
 
   public enum Mode {Default, Setup}
 }
