@@ -311,33 +311,6 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     }
   }
 
-  public String encryptText(String text) {
-    if (text != null) {
-      try {
-        Cipher encrypter = Cipher.getInstance(ENCRYPT_ALGORITHM);
-        encrypter.init(Cipher.ENCRYPT_MODE, getEncryptKey(), IV_PARAMETER_SPEC);
-        byte[] byteToken = encrypter.doFinal(text.getBytes());
-        return new String(Base64.getEncoder().encode(byteToken));
-      } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
-      }
-    }
-    return "";
-  }
-
-  public String decryptText(String text) {
-    if (text != null) {
-      try {
-        Cipher decrypter = Cipher.getInstance(ENCRYPT_ALGORITHM);
-        decrypter.init(Cipher.DECRYPT_MODE, getEncryptKey(), IV_PARAMETER_SPEC);
-        byte[] byteToken = Base64.getDecoder().decode(text);
-        return new String(decrypter.doFinal(byteToken));
-      } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
-        e.printStackTrace();
-      }
-    }
-    return "";
-  }
-
   /*
   public String getOs() {
     if (os == null) {

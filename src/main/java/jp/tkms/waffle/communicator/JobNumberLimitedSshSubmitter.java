@@ -5,6 +5,7 @@ import jp.tkms.utils.value.ObjectWrapper;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.computer.MasterPassword;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
@@ -52,10 +53,10 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
             break;
           case "identity_pass" :
             if (entry.getValue().toString().equals(ENCRYPTED_MARK)) {
-              identityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS, null));
+              identityPass = MasterPassword.getDecrypted(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS, null));
             } else {
               if (!entry.getValue().toString().equals("")) {
-                computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, computer.encryptText(entry.getValue().toString()));
+                computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS, MasterPassword.getEncrypted(entry.getValue().toString()));
                 identityPass = entry.getValue().toString();
                 computer.setParameter("identity_pass", ENCRYPTED_MARK);
               }
@@ -82,10 +83,10 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
           tunnelIdentityPass = "";
         } else {
           if (tunnelIdentityPass.equals(ENCRYPTED_MARK)) {
-            tunnelIdentityPass = computer.decryptText(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1", ""));
+            tunnelIdentityPass = MasterPassword.getDecrypted(parameters.getString(KEY_ENCRYPTED_IDENTITY_PASS + "_1", ""));
           } else {
             if (! tunnelIdentityPass.equals("")) {
-              computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", computer.encryptText(tunnelIdentityPass));
+              computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", MasterPassword.getEncrypted(tunnelIdentityPass));
               object.put("identity_pass", ENCRYPTED_MARK);
             }
           }

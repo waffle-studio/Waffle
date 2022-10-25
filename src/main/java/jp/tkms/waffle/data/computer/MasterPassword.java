@@ -4,6 +4,8 @@ import jp.tkms.utils.crypt.AES;
 import jp.tkms.utils.crypt.DecryptingException;
 import jp.tkms.utils.crypt.EncryptingException;
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.web.UserSession;
 
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
@@ -12,12 +14,20 @@ public class MasterPassword {
   private static String masterPassword = null;
 
   public static void register(String password) {
-    masterPassword = Base64.getEncoder().encodeToString(AES.toSHA256(Constants.APP_NAME + password));
+    masterPassword = Base64.getEncoder().encodeToString(AES.toSHA256(UserSession.getWaffleId() + password));
   }
 
   private static void waitForPreparing() throws InterruptedException {
-    while (masterPassword == null) {
-      TimeUnit.SECONDS.sleep(1);
+    try {
+      if (masterPassword == null) {
+        InfoLogMessage.issue("Wait to input your master password");
+      }
+      while (masterPassword == null) {
+        TimeUnit.SECONDS.sleep(1);
+      }
+    } catch (InterruptedException e) {
+      InfoLogMessage.issue("Abort a crypting process by a master password");
+      throw e;
     }
   }
 

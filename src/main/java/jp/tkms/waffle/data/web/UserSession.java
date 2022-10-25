@@ -50,7 +50,7 @@ public class UserSession {
   }
 
   public static boolean isContains(String sessionId) {
-    return idMap.contains(sessionId);
+    return idMap.containsKey(sessionId);
   }
 
   public static UserSession getInstance(String id) {
