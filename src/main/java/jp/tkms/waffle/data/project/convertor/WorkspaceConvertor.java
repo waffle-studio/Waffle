@@ -26,10 +26,12 @@ public class WorkspaceConvertor extends ProjectData implements DataDirectory, Pr
   public static final String WORKSPACE_CONVERTOR = "WORKSPACE_CONVERTOR";
   public static final String KEY_FILENAME = "FILENAME";
   public static final String DEFAULT_FILENAME = WORKSPACE_CONVERTOR + ".rb";
+  private static final String DEFAULT_PARAMETERS_JSON_FILE = "DEFAULT_PARAMETERS" + Constants.EXT_JSON;
 
   private static final Map<String, WorkspaceConvertor> instanceMap = new WeakHashMap<>();
 
   private String name = null;
+  private WrappedJson defaultParameters = null;
 
   public WorkspaceConvertor(Project project, String name) {
     super(project);
@@ -38,6 +40,10 @@ public class WorkspaceConvertor extends ProjectData implements DataDirectory, Pr
     if (this.getClass().getConstructors()[0].getDeclaringClass().equals(WorkspaceConvertor.class)) {
       initialise();
     }
+  }
+
+  public static Project getProject(WorkspaceConvertor convertor, Project defaults) {
+    return (convertor == null ? defaults : convertor.getProject());
   }
 
   @Override
@@ -101,6 +107,25 @@ public class WorkspaceConvertor extends ProjectData implements DataDirectory, Pr
     }
   }
 
+  public WrappedJson getDefaultParameters() {
+    if (defaultParameters == null) {
+      defaultParameters = new WrappedJson(getFileContents(DEFAULT_PARAMETERS_JSON_FILE));
+      if (defaultParameters.isEmpty()) {
+        createNewFile(DEFAULT_PARAMETERS_JSON_FILE);
+        defaultParameters.writePrettyFile(getPath().resolve(DEFAULT_PARAMETERS_JSON_FILE));
+      }
+    }
+    return defaultParameters;
+  }
+
+  public void setDefaultParameters(String json) {
+    try {
+      defaultParameters = new WrappedJson(json);
+      defaultParameters.writePrettyFile(getPath().resolve(DEFAULT_PARAMETERS_JSON_FILE));
+    } catch (Exception e) {
+      ErrorLogMessage.issue(e);
+    }
+  }
   @Override
   public Path getPath() {
     return getBaseDirectoryPath(getProject()).resolve(name);

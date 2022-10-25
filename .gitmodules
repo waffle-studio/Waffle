@@ -1,3 +1,6 @@
 [submodule "sub_project/waffle-servant/xsub"]
 	path = sub_project/waffle-servant/xsub
 	url = https://github.com/tkmnet/xsub.git
+[submodule "sub_project/tkms-java-utils"]
+	path = sub_project/tkms-java-utils
+	url = git@github.com:tkmnet/tkms-java-utils.git

@@ -145,3 +145,12 @@ def exec_procedure(run, refs)
     #local_instance.close
     return result
 end
+
+def exec_convertor(run)
+    Output.redirect(run.getWorkspace())
+    result = true
+    #local_instance = Waffle::ActorWrapper.new(instance)
+    result = convertor(run)
+    #local_instance.close
+    return result
+end

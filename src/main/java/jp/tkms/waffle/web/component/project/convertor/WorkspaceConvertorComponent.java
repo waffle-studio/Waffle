@@ -1,18 +1,21 @@
 package jp.tkms.waffle.web.component.project.convertor;
 
+import jp.tkms.utils.value.Values;
 import jp.tkms.waffle.Main;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
-import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.convertor.WorkspaceConvertor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.data.project.workspace.convertor.WorkspaceConvertorRun;
+import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
+import jp.tkms.waffle.web.component.log.LogsComponent;
 import jp.tkms.waffle.web.component.project.ProjectComponent;
 import jp.tkms.waffle.web.component.project.ProjectsComponent;
-import jp.tkms.waffle.web.component.project.conductor.ConductorComponent;
 import jp.tkms.waffle.web.component.project.workspace.WorkspaceComponent;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.web.template.Lte;
@@ -21,15 +24,17 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class WorkspaceConvertorComponent extends AbstractAccessControlledComponent {
   public static final String WORKSPACE_CONVERTOR = "WorkspaceConvertor";
   public static final String WORKSPACE_CONVERTORS = "WorkspaceConvertors";
   public static final String KEY_CONVERTOR = "convertor";
+  public static final String KEY_RUNNAME = "runname";
+  public static final String KEY_PROJECT = "project";
   public static final String KEY_SCRIPT = "script";
   public static final String KEY_NOTE = "note";
+  private static final String KEY_DEFAULT_PARAMETERS = "default_parameters";
 
   public enum Mode {Default, Prepare, Update, Run, UpdateArguments, UpdateScript, UpdateListenerScript, NewChildProcedure, Remove, RemoveProcedure}
 
@@ -48,15 +53,16 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
 
   static public void register() {
     Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceConvertorComponent()));
-    Spark.get(getUrl(null, Mode.Run), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Run)));
     Spark.get(getUrl(null, Mode.Prepare), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Prepare)));
+    Spark.post(getUrl(null, Mode.Run), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Run)));
     Spark.post(getUrl(null, Mode.Update), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Update)));
     Spark.get(getUrl(null, Mode.Remove), new ResponseBuilder(() -> new WorkspaceConvertorComponent(Mode.Remove)));
   }
 
   public static String getUrl(WorkspaceConvertor convertor) {
-    return ProjectComponent.getUrl((convertor == null ? null : convertor.getProject())) + "/" + WorkspaceConvertor.WORKSPACE_CONVERTOR + "/"
-      + (convertor == null ? ":" + KEY_CONVERTOR : convertor.getName());
+    return ProjectComponent.getUrl(WorkspaceConvertor.getProject(convertor, null))
+      + "/" + WorkspaceConvertor.WORKSPACE_CONVERTOR
+      + "/" + Values.ifNull(convertor, ":" + KEY_CONVERTOR, ()->convertor.getName());
   }
 
   public static String getAnchorLink(WorkspaceConvertor convertor) {
@@ -69,11 +75,28 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
 
   @Override
   public void controller() throws ProjectNotFoundException {
-    project = Project.getInstance(request.params("project"));
+    project = Project.getInstance(request.params(KEY_PROJECT));
     convertor = WorkspaceConvertor.getInstance(project, request.params(KEY_CONVERTOR));
 
     switch (mode) {
       case Run:
+        renderConvertor();
+
+        String workspaceName = "" + request.queryParams(WorkspaceComponent.WORKSPACE);
+        String newRunName = "" + request.queryParams(KEY_RUNNAME);
+        Workspace workspace = null;
+        workspace = Workspace.getInstance(project, workspaceName);
+
+        if (workspace == null) {
+          ErrorLogMessage.issue("Workspace(" + workspaceName + ") is not found.");
+          response.redirect(LogsComponent.getUrl());
+        } else {
+          WorkspaceConvertorRun convertorRun = WorkspaceConvertorRun.create(workspace, convertor, newRunName);
+          convertorRun.putParametersByJson(request.queryParams(KEY_DEFAULT_PARAMETERS));
+          convertorRun.start(true);
+
+          response.redirect(WorkspaceComponent.getUrl(workspace));
+        }
         break;
       case Prepare:
         if (convertor.checkSyntax()) {
@@ -143,7 +166,7 @@ public class WorkspaceConvertorComponent extends AbstractAccessControlledCompone
                     , null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_CONVERTOR, "Name", "name", FileName.removeRestrictedCharacters(name), null)
+                  Lte.formInputGroup("text", KEY_RUNNAME, "Name", "name", FileName.removeRestrictedCharacters(name), null)
                 )//,
                 //Lte.divCol(Lte.DivSize.F12,
                 //  Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form", variables, null)

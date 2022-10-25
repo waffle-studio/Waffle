@@ -25,6 +25,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String VARIABLES_JSON_FILE = "VARIABLES" + Constants.EXT_JSON;
   public static final String KEY_CONDUCTOR = "conductor";
   public static final String KEY_ACTIVE_RUN = "active_run";
+  private static final String ESCAPING_WAFFLE_WORKSPACE_NAME = "<#WAFFLE_WORKSPACE_NAME>";
 
   private ArchivedConductor conductor;
 
@@ -163,6 +164,10 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public void putVariablesByJson(String json) {
+    json = json.replace(ESCAPING_WAFFLE_WORKSPACE_NAME, getWorkspace().getName());
+
+    if (json == null) { return; }
+
     try {
       putVariables(new WrappedJson(json));
     } catch (Exception e) {
@@ -183,6 +188,12 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
 
   public Object getVariable(String key) {
     return getVariables().get(key);
+  }
+
+  void loadDefaultVariables() {
+    if (conductor != null) {
+      putVariables(conductor.getDefaultVariables());
+    }
   }
 
   public ConductorRun(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
@@ -216,17 +227,14 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   private static ConductorRun create(Workspace workspace, ArchivedConductor conductor, ConductorRun parent, Path path) {
     ConductorRun instance = new ConductorRun(workspace, conductor, parent, path);
     instance.setState(State.Created);
-    //instance.updateResponsible();
-    if (conductor != null) {
-      instance.putVariables(conductor.getDefaultVariables());
-    }
+    instance.loadDefaultVariables();
     return instance;
   }
 
-  public static ConductorRun create(Workspace workspace, Conductor conductor, String expectedName) {
-    Path path = workspace.getPath().resolve(AbstractRun.RUN);
-    if (expectedName != null) {
-      path = path.resolve(expectedName);
+  public static ConductorRun create(Workspace workspace, Conductor conductor, String name) {
+    Path path = getBaseDirectoryPath(workspace);
+    if (name != null) {
+      path = path.resolve(name);
     }
 
     return create(workspace,

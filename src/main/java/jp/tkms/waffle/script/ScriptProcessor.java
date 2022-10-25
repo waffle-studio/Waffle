@@ -2,6 +2,7 @@ package jp.tkms.waffle.script;
 
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.HasLocalPath;
+import jp.tkms.waffle.data.project.workspace.convertor.WorkspaceConvertorRun;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
@@ -16,13 +17,14 @@ import java.util.HashMap;
 
 public abstract class ScriptProcessor {
 
+  abstract public String checkSyntax(Path scriptPath);
   abstract public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script, ArrayList<Object> arguments);
   abstract public String procedureTemplate();
   abstract public void processExtractor(AbstractSubmitter submitter, ExecutableRun run, String extractorName);
   abstract public String extractorTemplate();
   abstract public void processCollector(AbstractSubmitter submitter, ExecutableRun run, String collectorName);
   abstract public String collectorTemplate();
-  abstract public String checkSyntax(Path scriptPath);
+  abstract public void processConvertor(WorkspaceConvertorRun run);
   abstract public String convertorTemplate();
 
   private static HashMap<String, ScriptProcessor> instanceMap = new HashMap<>();

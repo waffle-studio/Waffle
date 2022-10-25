@@ -297,19 +297,6 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
   }
    */
 
-  private SecretKeySpec getEncryptKey() {
-    synchronized (this) {
-      if (encryptKey == null) {
-        String encryptKeyText = getStringFromProperty(KEY_ENCRYPT_KEY);
-        if (encryptKeyText == null || encryptKeyText.length() != 16) {
-          encryptKeyText = UUID.randomUUID().toString().replace("-", "").substring(16, 32);
-          setToProperty(KEY_ENCRYPT_KEY, encryptKeyText);
-        }
-        encryptKey = new SecretKeySpec(encryptKeyText.getBytes(), "AES");
-      }
-      return encryptKey;
-    }
-  }
 
   /*
   public String getOs() {

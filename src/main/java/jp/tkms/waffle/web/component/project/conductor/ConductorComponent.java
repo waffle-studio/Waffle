@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.project.conductor;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.executable.Executable;
@@ -41,7 +42,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   public static final String KEY_CONDUCTOR = "conductor";
   public static final String KEY_NOTE = "note";
   private static final String NEW_WORKSPACE = "[Create new workspace]";
-  private static final String ESCAPING_WAFFLE_WORKSPACE_NAME = "<#WAFFLE_WORKSPACE_NAME>";
 
   public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure, UpdateNote}
 
@@ -112,12 +112,11 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         }
 
         if (workspace == null) {
+          ErrorLogMessage.issue("Workspace(" + workspaceName + ") is not found.");
           response.redirect(LogsComponent.getUrl());
         } else {
           ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
-          if (request.queryMap().hasKey(KEY_DEFAULT_VARIABLES)) {
-            conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES).replace(ESCAPING_WAFFLE_WORKSPACE_NAME, workspace.getName()));
-          }
+          conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
           conductorRun.start(true);
 
           response.redirect(WorkspaceComponent.getUrl(workspace));

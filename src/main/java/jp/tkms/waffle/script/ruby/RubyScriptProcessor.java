@@ -3,6 +3,7 @@ package jp.tkms.waffle.script.ruby;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.workspace.HasLocalPath;
+import jp.tkms.waffle.data.project.workspace.convertor.WorkspaceConvertorRun;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
@@ -24,6 +25,19 @@ import java.util.ArrayList;
 
 public class RubyScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_RUBY;
+
+  @Override
+  public String checkSyntax(Path scriptPath) {
+    String error = "";
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+    try {
+      container.parse(PathType.ABSOLUTE, scriptPath.toString());
+    } catch (ParseFailedException e) {
+      error = e.getMessage().replaceFirst("^.*?:", "");
+    }
+    container.terminate();
+    return error;
+  }
 
   @Override
   public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script, ArrayList<Object> arguments) {
@@ -86,16 +100,16 @@ public class RubyScriptProcessor extends ScriptProcessor {
   }
 
   @Override
-  public String checkSyntax(Path scriptPath) {
-    String error = "";
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
-    try {
-      container.parse(PathType.ABSOLUTE, scriptPath.toString());
-    } catch (ParseFailedException e) {
-      error = e.getMessage().replaceFirst("^.*?:", "");
-    }
-    container.terminate();
-    return error;
+  public void processConvertor(WorkspaceConvertorRun run) {
+    RubyScript.process((container) -> {
+      try {
+        container.runScriptlet(collectorTemplate());
+        container.runScriptlet(run.getConvertor().getScript());
+        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_convertor", run);
+      } catch (EvalFailedException e) {
+        WarnLogMessage.issue(e);
+      }
+    });
   }
 
   @Override
