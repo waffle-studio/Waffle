@@ -9,8 +9,8 @@ import jp.tkms.waffle.data.computer.MasterPassword;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.communicator.util.SshChannel;
-import jp.tkms.waffle.communicator.util.SshSession;
+import jp.tkms.waffle.communicator.util.SshChannel3;
+import jp.tkms.waffle.communicator.util.SshSession3;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,7 +22,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
-  SshSession session;
+  SshSession3 session;
   ObjectWrapper<String> home = new ObjectWrapper<>();
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
@@ -71,10 +71,10 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         }
       }
 
-      SshSession tunnelSession = null;
+      SshSession3 tunnelSession = null;
       if (useTunnel) {
         WrappedJson object = computer.getParametersWithDefaultParameters().getObject("tunnel", null);
-        tunnelSession = new SshSession(computer, null);
+        tunnelSession = new SshSession3(computer, null);
         tunnelSession.setSession(object.getString("user", ""),
           object.getString("host", ""),
           object.getInt("port", 22));
@@ -102,7 +102,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         computer.setParameter("tunnel", object);
       }
 
-      session = new SshSession(computer, tunnelSession);
+      session = new SshSession3(computer, tunnelSession);
       session.setSession(user, hostName, port);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
@@ -171,7 +171,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     String result = "";
 
     try {
-      SshChannel channel = session.exec(command, "");
+      SshChannel3 channel = session.exec(command, "");
       result += channel.getStdout();
       result += channel.getStderr();
     } catch (JSchException | InterruptedException e) {

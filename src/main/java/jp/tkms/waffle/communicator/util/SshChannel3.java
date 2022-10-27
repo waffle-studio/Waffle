@@ -8,7 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-public class SshChannel {
+public class SshChannel3 {
   private final int waitTime = 25;
   private final int maxOfWait = 400;
 
@@ -19,7 +19,7 @@ public class SshChannel {
   private String stderr;
   private int exitStatus;
 
-  public SshChannel(ChannelExec channel) throws JSchException {
+  public SshChannel3(ChannelExec channel) throws JSchException {
     this.channel = channel;
     stdout = "";
     stderr = "";
@@ -42,7 +42,7 @@ public class SshChannel {
     return submittedCommand;
   }
 
-  public SshChannel exec(String command, String workDir) throws JSchException {
+  public SshChannel3 exec(String command, String workDir) throws JSchException {
     submittedCommand = "cd " + workDir + " && " + command;
     channel.setCommand("sh -c '" +  submittedCommand.replaceAll("'", "'\\\\''") + "'");
     channel.connect();

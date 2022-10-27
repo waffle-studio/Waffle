@@ -1,6 +1,7 @@
 package jp.tkms.waffle;
 
 import jp.tkms.utils.value.Init;
+import jp.tkms.waffle.communicator.util.SshSession;
 import jp.tkms.waffle.data.log.Log;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
