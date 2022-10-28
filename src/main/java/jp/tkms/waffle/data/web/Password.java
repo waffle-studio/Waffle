@@ -32,7 +32,6 @@ public class Password {
   }
 
   public static String getPasswordHash() {
-    Path passwordFilePath = getPasswordFilePath();
     String password = null;
     try {
       NewFile.createIfNotExists(getPasswordFilePath());
@@ -44,7 +43,10 @@ public class Password {
   }
 
   public static boolean authenticate(String password) {
-    if (getPasswordHash().equals(SHA_PREFIX + HashString.toSHA256Base64(password))) {
+    if (
+      getPasswordHash().equals(SHA_PREFIX + HashString.toSHA256Base64(password)) || //SHA256
+      getPasswordHash().equals(password) //OLD: Plain
+    ) {
       MasterPassword.register(password);
       return true;
     }

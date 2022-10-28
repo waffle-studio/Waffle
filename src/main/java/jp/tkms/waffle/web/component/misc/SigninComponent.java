@@ -2,6 +2,7 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.utils.crypt.DecryptingException;
 import jp.tkms.utils.crypt.RSA;
+import jp.tkms.waffle.data.computer.MasterPassword;
 import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.web.component.AbstractComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
@@ -178,10 +179,7 @@ public class SigninComponent extends AbstractComponent {
 
   private void getAccess(String password) {
     String passwordHash = Password.getPasswordHash();
-    if (Password.isNotEmpty(passwordHash) &&
-      (password.equals(passwordHash) || // OLD STYLE, plain password
-      Password.authenticate(password)) // SHA-256 hash
-    ) {
+    if (Password.isNotEmpty(passwordHash) && Password.authenticate(password)) {
       UserSession session = UserSession.create();
       response.cookie("/", UserSession.getWaffleId(), session.getSessionId(), -1, false);
     }

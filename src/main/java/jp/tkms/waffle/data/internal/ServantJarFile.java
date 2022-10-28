@@ -37,6 +37,6 @@ public class ServantJarFile {
     } catch (NoSuchAlgorithmException | IOException e) {
       e.printStackTrace();
     }
-    return hash.toString();
+    return hash.toString().trim();
   }
 }

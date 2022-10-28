@@ -43,9 +43,6 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
   private static final String KEY_ENVIRONMENTS = "environments";
   private static final String KEY_MESSAGE = "message";
   private static final String KEY_JVM_ACTIVATION_COMMAND = "jvm_activation_commnad";
-  private static final String ENCRYPT_ALGORITHM = "AES/CBC/PKCS5Padding";
-  private static final IvParameterSpec IV_PARAMETER_SPEC = new IvParameterSpec("0123456789ABCDEF".getBytes());
-  private static final String KEY_ENCRYPT_KEY = "encrypt_key";
   private static final String KEY_PARAMETERS_JSON = "PARAMETERS" + Constants.EXT_JSON;
 
   private static final InstanceCache<String, Computer> instanceCache = new InstanceCache<>();
@@ -203,7 +200,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
             }
             try {
               if (!"".equals(keyPath) && (new String(Files.readAllBytes(Paths.get(keyPath)))).indexOf("OPENSSH PRIVATE KEY") > 0) {
-                message = keyPath + " is a OpenSSH private key type and WAFFLE does not support the key type.\nYou can change the key file type to a supported type by following command if the key path is ~/.ssh/id_rsa:\n$ ssh-keygen -p -f ~/.ssh/id_rsa -t rsa -m PEM";
+                message = keyPath + " is a OpenSSH private key type and WAFFLE does not support the key type.\nYou can change the key file type to a supported type by following command if the key path is ~/.ssh/id_rsa:\n$ ssh-keygen -p -f ~/.ssh/id_rsa -t rsa2 -m PEM";
                 setState(ComputerState.UnsupportedKey);
               }
             } catch (IOException ioException) {
@@ -215,6 +212,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
           message = message.replaceFirst("USERAUTH fail", "[USERAUTH fail]\nProbably, invalid key passphrase (identity_pass).");
           message = message.replaceFirst("java\\.net\\.UnknownHostException: (.*)", "$1 is unknown host");
           message = message.replaceFirst("java\\.net\\.ConnectException: Connection refused \\(Connection refused\\)", "Connection refused (could not connect to the SSH server)");
+          message = message.replaceFirst("jp.tkms.utils.crypt.DecryptingException: .*", "Could not decrypt passphrases because your master password was changed. Re-register passphrases which is displayed \"#*# = ENCRYPTED = #*#\".");
           setState(ComputerState.Unviable);
         }
         setMessage(message);
@@ -547,6 +545,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     try {
       if (isLock) {
         Files.writeString(getLockFilePath(), "");
+        getLockFilePath().toFile().deleteOnExit();
       } else {
         Files.deleteIfExists(getLockFilePath());
       }

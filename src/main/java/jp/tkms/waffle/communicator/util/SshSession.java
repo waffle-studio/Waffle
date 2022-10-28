@@ -9,6 +9,7 @@ import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
 import org.apache.sshd.common.session.SessionHeartbeatController;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
@@ -18,12 +19,10 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.sftp.common.SftpException;
 
 import java.io.*;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.time.Duration;
@@ -37,7 +36,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
-public class SshSession {
+public class SshSession implements AutoCloseable {
   static final int TIMEOUT = 15;
   private static final Map<String, SessionWrapper> sessionCache = new HashMap<>();
 
@@ -48,12 +47,12 @@ public class SshSession {
   String host;
   int port;
   Computer loggingTarget;
-  SshSession3 tunnelSession;
+  SshSession tunnelSession;
 
   private String tunnelTargetHost;
   private int tunnelTargetPort;
 
-  public SshSession(Computer loggingTarget, SshSession3 tunnelSession) {
+  public SshSession(Computer loggingTarget, SshSession tunnelSession) {
     this.loggingTarget = loggingTarget;
     this.tunnelSession = tunnelSession;
 
@@ -61,9 +60,11 @@ public class SshSession {
   }
 
   static void initialize() {
-    if (client == null) {
-      client = SshClient.setUpDefaultClient();
-      client.start();
+    synchronized (sessionCache) {
+      if (client == null) {
+        client = SshClient.setUpDefaultClient();
+        client.start();
+      }
     }
   }
 
@@ -105,7 +106,7 @@ public class SshSession {
 
   public void addIdentity(String privKeyPath, String pass) throws GeneralSecurityException, IOException {
     FilePasswordProvider passwordProvider = (pass == null ? null : FilePasswordProvider.of(pass));
-    for (KeyPair keyPair : SecurityUtils.getKeyPairResourceParser().loadKeyPairs(null, Paths.get(privKeyPath), passwordProvider)) {
+    for (KeyPair keyPair : SecurityUtils.getKeyPairResourceParser().loadKeyPairs(null, Paths.get(privKeyPath.replaceFirst("^~", System.getProperty("user.home"))), passwordProvider)) {
       client.addPublicKeyIdentity(keyPair);
     }
   }
@@ -116,62 +117,7 @@ public class SshSession {
     this.port = port;
   }
 
-  public void start() {
-    SshClient client = SshClient.setUpDefaultClient();
-// override any default configuration...
-    //client.setSomeConfiguration(...);
-    //client.setOtherConfiguration(...);
-    client.start();
-
-    String user = "takami";
-    String host = "localhost";
-    int port = 22;
-
-    // using the client for multiple sessions...
-    System.out.println("@GET SESSION");
-    try (ClientSession session = client.connect(user, host, port).verify(5, TimeUnit.SECONDS).getSession()) {
-
-      for (KeyPair keyPair : SecurityUtils.getKeyPairResourceParser().loadKeyPairs(null, Paths.get("/home/takami/.ssh/iso/id_rsa"), FilePasswordProvider.of("stakami"))) {
-        session.addPublicKeyIdentity(keyPair);
-      }
-
-      //session.addPublicKeyIdentity();
-      //session.addPasswordIdentity(...password..); // for password-based authentication
-      //session.addPublicKeyIdentity(...key-pair...); // for password-less authentication
-      // Note: can add BOTH password AND public key identities - depends on the client/server security setup
-
-      System.out.println("@VERIFY");
-      session.auth().verify(5, TimeUnit.SECONDS);
-      // start using the session to run commands, do SCP/SFTP, create local/remote port forwarding, etc...
-
-      String command = "ls /";
-
-      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-      try (OutputStream stdout = byteArrayOutputStream;
-           OutputStream stderr = byteArrayOutputStream;
-           ClientChannel channel = session.createExecChannel(command)) {
-        channel.setOut(stdout);
-        channel.setErr(stderr);
-        channel.open().verify(5, TimeUnit.SECONDS);
-        // Wait (forever) for the channel to close - signalling command finished
-        channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 0L);
-
-        System.out.println(byteArrayOutputStream.toString());
-      }
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (GeneralSecurityException e) {
-      throw new RuntimeException(e);
-    }
-    System.out.println("@END");
-
-// exiting in an orderly fashion once the code no longer needs to establish SSH session
-// NOTE: this can/should be done when the application exits.
-    client.stop();
-  }
-
-  public void connect(boolean retry) throws IOException {
+  public void connect(boolean retry) throws IOException, UnresolvedAddressException {
     synchronized (sessionCache) {
       sessionWrapper = sessionCache.get(getConnectionName());
       if (sessionWrapper == null) {
@@ -207,7 +153,7 @@ public class SshSession {
             return;
           }
 
-          if (e.getMessage().toLowerCase().equals("userauth fail")) {
+          if (e.getCause() instanceof UnresolvedAddressException || e.getMessage().toLowerCase().equals("userauth fail")) {
             disconnect();
             throw e;
           }
@@ -217,6 +163,7 @@ public class SshSession {
             disconnect();
             throw e;
           } else if (!e.getMessage().toLowerCase().equals("session is already connected")) {
+            ((IOException) e).printStackTrace();
             WarnLogMessage.issue(loggingTarget, e.getMessage() + "\nRetry connection after " + waitTime + " sec.");
             disconnect();
             Simple.sleep(TimeUnit.SECONDS, waitTime);
@@ -261,6 +208,13 @@ public class SshSession {
       if (tunnelSession != null) {
         tunnelSession.disconnect();
       }
+
+      synchronized (sessionCache) {
+        if (sessionCache.isEmpty()) {
+          client.stop();
+          client = null;
+        }
+      }
     }
   }
 
@@ -274,7 +228,7 @@ public class SshSession {
     return sessionWrapper.get().startLocalPortForwarding(0, new SshdSocketAddress(hostName, rport)).getPort();
   }
 
-  public SshChannel exec(String command, String workDir) throws InterruptedException, IOException {
+  public SshChannel exec(String command, String workDir) throws Exception {
     synchronized (sessionWrapper) {
       SshChannel channel = new SshChannel();
       int count = 0;
@@ -282,7 +236,7 @@ public class SshSession {
       do {
         try {
           channel.exec(command, workDir);
-        } catch (IOException e) {
+        } catch (Exception e) {
           if (e.getMessage().equals("channel is not opened.") && !Main.hibernatingFlag) {
             if (count < 60) {
               count += 1;
@@ -300,6 +254,10 @@ public class SshSession {
       } while (failed);
       return channel;
     }
+  }
+
+  public SshChannel createChannel() throws Exception {
+    return new SshChannel(false);
   }
 
   public boolean chmod(int mod, Path path) throws IOException {
@@ -366,7 +324,7 @@ public class SshSession {
     });
   }
 
-  public boolean rmdir(String path, String workDir) throws IOException, InterruptedException {
+  public boolean rmdir(String path, String workDir) throws Exception {
     SshChannel channel = exec("rm -rf " + path, workDir);
 
     return (channel.getExitStatus() == 0);
@@ -577,16 +535,38 @@ public class SshSession {
     }
   }
 
-  public class SshChannel {
+  @Override
+  public void close() throws Exception {
+    disconnect();
+  }
+
+  public class SshChannel implements AutoCloseable {
     private String submittedCommand;
     private String stdout;
     private String stderr;
     private int exitStatus;
+    private boolean isAutoClose;
+    ClientChannel channel = null;
+    PipedOutputStream commandOutputStream = null;
 
-    public SshChannel() {
+    public SshChannel(boolean isAutoClose) throws Exception {
+      this.isAutoClose = isAutoClose;
       stdout = "";
       stderr = "";
       exitStatus = -1;
+
+      if (!isAutoClose) {
+        channel = createChannel("sh");
+        commandOutputStream = new PipedOutputStream();
+        InputStream inputStream = new PipedInputStream(commandOutputStream);
+        channel.setIn(inputStream);
+        channel.open().verify(TIMEOUT, TimeUnit.SECONDS);
+        channel.waitFor(EnumSet.of(ClientChannelEvent.OPENED), Duration.of(TIMEOUT, ChronoUnit.MINUTES));
+      }
+    }
+
+    public SshChannel() throws Exception {
+      this(true);
     }
 
     public String getStdout() {
@@ -605,27 +585,55 @@ public class SshSession {
       return submittedCommand;
     }
 
-    public SshChannel exec(String command, String workDir) throws InterruptedException, IOException {
+    private ClientChannel createChannel(String fullCommand) throws Exception {
+      channelSemaphore.acquire();
+      return sessionWrapper.get().createExecChannel(fullCommand);
+    }
+
+    public SshChannel exec(String command, String workDir) throws Exception {
       submittedCommand = "cd " + workDir + " && " + command;
       String fullCommand = "sh -c '" + submittedCommand.replaceAll("'", "'\\\\''") + "'";
 
-      channelSemaphore.acquire();
       try (ByteArrayOutputStream stdoutOutputStream = new ByteArrayOutputStream();
-           ByteArrayOutputStream stderrOutputStream = new ByteArrayOutputStream();
-           ClientChannel channel = sessionWrapper.get().createExecChannel(fullCommand)) {
-        channel.setOut(stdoutOutputStream);
-        channel.setErr(stderrOutputStream);
-        channel.open().verify(TIMEOUT, TimeUnit.SECONDS);
-        // Wait (forever) for the channel to close - signalling command finished
-        channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.of(TIMEOUT, ChronoUnit.MINUTES));
-        stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
-        stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
-        exitStatus = channel.getExitStatus();
+           ByteArrayOutputStream stderrOutputStream = new ByteArrayOutputStream();) {
+        if (isAutoClose) {
+          channel = createChannel(fullCommand);
+          channel.setOut(stdoutOutputStream);
+          channel.setErr(stderrOutputStream);
+          channel.open().verify(TIMEOUT, TimeUnit.SECONDS);
+        } else {
+          channel.setOut(stdoutOutputStream);
+          channel.setErr(stderrOutputStream);
+          commandOutputStream.write((fullCommand + "\necho -e @\n").getBytes());
+        }
+
+        if (isAutoClose) {
+          channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.of(TIMEOUT, ChronoUnit.MINUTES));
+          stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
+          stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
+          exitStatus = channel.getExitStatus();
+        } else {
+          while (!stdoutOutputStream.toString().endsWith("@\n")) {
+            Simple.sleep(TimeUnit.MILLISECONDS, 100);
+            System.out.print(".");
+          }
+          stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
+          stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
+          System.out.println();
+        }
       } finally {
-        channelSemaphore.release();
+        if (isAutoClose) {
+          close();
+        }
       }
 
       return this;
+    }
+
+    @Override
+    public void close() throws Exception {
+      channelSemaphore.release();
+      channel.close();
     }
   }
 }
