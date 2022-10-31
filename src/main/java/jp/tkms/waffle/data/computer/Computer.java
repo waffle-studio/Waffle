@@ -20,6 +20,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -207,6 +208,9 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
               ErrorLogMessage.issue(ioException);
             }
           }
+        } else if (message.contains("UnresolvedAddressException")) {
+          message = "Host not found";
+          setState(ComputerState.Unviable);
         } else {
           message = message.replaceFirst("Auth fail", "[Auth fail]\nProbably, invalid user or key.\nYou should setup the host to login with public key authentication.");
           message = message.replaceFirst("USERAUTH fail", "[USERAUTH fail]\nProbably, invalid key passphrase (identity_pass).");

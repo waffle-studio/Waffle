@@ -6,11 +6,11 @@ import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.computer.MasterPassword;
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.communicator.util.SshChannel3;
-import jp.tkms.waffle.communicator.util.SshSession3;
+import jp.tkms.waffle.communicator.util.SshSession;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,7 +22,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
-  SshSession3 session;
+  SshSession session;
   ObjectWrapper<String> home = new ObjectWrapper<>();
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
@@ -71,10 +71,10 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         }
       }
 
-      SshSession3 tunnelSession = null;
+      SshSession tunnelSession = null;
       if (useTunnel) {
         WrappedJson object = computer.getParametersWithDefaultParameters().getObject("tunnel", null);
-        tunnelSession = new SshSession3(computer, null);
+        tunnelSession = new SshSession(computer, null);
         tunnelSession.setSession(object.getString("user", ""),
           object.getString("host", ""),
           object.getInt("port", 22));
@@ -102,7 +102,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         computer.setParameter("tunnel", object);
       }
 
-      session = new SshSession3(computer, tunnelSession);
+      session = new SshSession(computer, tunnelSession);
       session.setSession(user, hostName, port);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
@@ -151,8 +151,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   public void createDirectories(Path path) throws FailedToControlRemoteException {
     try {
-      session.mkdir(path);
-    } catch (JSchException e) {
+      session.mkdir(path.toString());
+    } catch (Exception e) {
       throw new FailedToControlRemoteException(e);
     }
   }
@@ -160,8 +160,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   public void chmod(int mod, Path path) throws FailedToControlRemoteException {
     try {
-      session.chmod(mod, path);
-    } catch (JSchException e) {
+      session.chmod(mod, path.toString());
+    } catch (Exception e) {
       throw new FailedToControlRemoteException(e);
     }
   }
@@ -171,11 +171,11 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     String result = "";
 
     try {
-      SshChannel3 channel = session.exec(command, "");
+      SshSession.SshChannel channel = session.exec(command, "");
       result += channel.getStdout();
       result += channel.getStderr();
-    } catch (JSchException | InterruptedException e) {
-      //e.printStackTrace();
+    } catch (Exception e) {
+      WarnLogMessage.issue(computer, e);
       return null;
     }
 
@@ -185,8 +185,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   boolean exists(Path path) throws FailedToControlRemoteException {
     try {
-      return session.exists(path);
-    } catch (JSchException e) {
+      return session.exists(path.toString());
+    } catch (Exception e) {
       throw new FailedToControlRemoteException(e);
     }
   }
@@ -194,8 +194,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   @Override
   boolean deleteFile(Path path) throws FailedToControlRemoteException {
     try {
-      return session.rm(path);
-    } catch (JSchException e) {
+      return session.rm(path.toString());
+    } catch (Exception e) {
       throw new FailedToControlRemoteException(e);
     }
   }
@@ -204,7 +204,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   public String getFileContents(ComputerTask run, Path path) {
     try {
       return session.getText(getContentsPath(run, path).toString(), "");
-    } catch (JSchException | FailedToControlRemoteException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
     return null;
@@ -214,7 +214,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException {
     try {
       session.scp(localPath.toFile(), remotePath.toString(), "/tmp");
-    } catch (JSchException e) {
+    } catch (Exception e) {
       throw new FailedToTransferFileException(e);
     }
   }
@@ -223,7 +223,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
     try {
       session.scp(remotePath.toString(), localPath.toFile(), "/tmp");
-    } catch (JSchException e) {
+    } catch (Exception e) {
       throw new FailedToTransferFileException(e);
     }
   }

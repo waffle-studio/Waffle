@@ -4,6 +4,7 @@ import jp.tkms.utils.abbreviation.Simple;
 import jp.tkms.utils.io.IOStreamUtil;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ClientChannel;
@@ -48,9 +49,9 @@ public class SshSession implements AutoCloseable {
   int port;
   Computer loggingTarget;
   SshSession tunnelSession;
-
   private String tunnelTargetHost;
   private int tunnelTargetPort;
+  String homePath;
 
   public SshSession(Computer loggingTarget, SshSession tunnelSession) {
     this.loggingTarget = loggingTarget;
@@ -218,10 +219,6 @@ public class SshSession implements AutoCloseable {
     }
   }
 
-  ClientChannel openChannel(String type) throws IOException, InterruptedException {
-    return sessionWrapper.get().createChannel(type);
-  }
-
   public int setPortForwardingL(String hostName, int rport) throws IOException {
     tunnelTargetHost = hostName;
     tunnelTargetPort = rport;
@@ -256,16 +253,13 @@ public class SshSession implements AutoCloseable {
     }
   }
 
-  public SshChannel createChannel() throws Exception {
-    return new SshChannel(false);
-  }
-
-  public boolean chmod(int mod, Path path) throws IOException {
+  public boolean chmod(int mod, String path) throws Exception {
+    String finalPath = path.replaceFirst("^~", getHomePath());
     return processSftp(sftpClient -> {
       try {
-        SftpClient.Attributes attributes = sftpClient.stat(path.toString());
+        SftpClient.Attributes attributes = sftpClient.stat(finalPath);
         attributes.setPermissions(Integer.parseInt("" + mod, 8));
-        sftpClient.setStat(path.toString(), attributes);
+        sftpClient.setStat(finalPath, attributes);
       } catch (IOException e) {
         return false;
       }
@@ -273,13 +267,14 @@ public class SshSession implements AutoCloseable {
     });
   }
 
-  public boolean exists(Path path) throws IOException {
+  public boolean exists(String path) throws Exception {
+    String finalPath = path.replaceFirst("^~", getHomePath());
     if (path == null) {
       return false;
     }
     return processSftp(sftpClient -> {
       try {
-        sftpClient.stat(path.toString());
+        sftpClient.stat(finalPath);
       } catch (IOException e) {
         return false;
       }
@@ -287,14 +282,16 @@ public class SshSession implements AutoCloseable {
     });
   }
 
-  public boolean mkdir(Path path) throws IOException {
+  public boolean mkdir(String path) throws Exception {
+    String resolvedPath = path.replaceFirst("^~", getHomePath());
     return processSftp(sftpClient -> {
+      String parentPath = Paths.get(resolvedPath).getParent().toString();
       try {
-        sftpClient.stat(path.getParent().toString());
+        sftpClient.stat(parentPath);
       } catch (IOException e) {
         if (e.getMessage().startsWith("No such file")) {
           try {
-            mkdir(path.getParent());
+            mkdir(parentPath);
           } catch (Exception ex) {
             WarnLogMessage.issue(loggingTarget, e);
             return false;
@@ -305,19 +302,19 @@ public class SshSession implements AutoCloseable {
         }
       }
       try {
-        sftpClient.stat(path.toString());
+        sftpClient.stat(resolvedPath);
         return true;
       } catch (IOException e) {
         if (e.getMessage().startsWith("No such file")) {
           try {
-            sftpClient.mkdir(path.toString());
+            sftpClient.mkdir(resolvedPath);
           } catch (IOException ex) {
             WarnLogMessage.issue(loggingTarget, ex);
             return false;
           }
         }
         else {
-          e.printStackTrace();
+          WarnLogMessage.issue(loggingTarget, e);
         }
       }
       return true;
@@ -337,14 +334,15 @@ public class SshSession implements AutoCloseable {
     final String[] resultText = new String[1];
     processSftp(sftpClient -> {
       try {
-        String finalPath = path;
+        String resolvedPath = path;
         if (workDir != null && !"".equals(workDir)) {
-          finalPath = Paths.get(workDir).resolve(path).normalize().toString();
+          resolvedPath = Paths.get(workDir).resolve(path).normalize().toString();
         }
-        InputStream inputStream = sftpClient.read(finalPath);
+        resolvedPath = resolvedPath.replaceFirst("^~", getHomePath());
+        InputStream inputStream = sftpClient.read(resolvedPath);
         resultText[0] = IOStreamUtil.readString(inputStream);
         inputStream.close();
-      } catch (IOException e) {
+      } catch (Exception e) {
         WarnLogMessage.issue(loggingTarget, e);
         return false;
       }
@@ -359,13 +357,27 @@ public class SshSession implements AutoCloseable {
   public synchronized boolean putText(String text, String path, String workDir) throws IOException {
     return processSftp(sftpClient -> {
       try {
-        String finalPath = path;
+        String resolvedPath = path;
         if (workDir != null && !"".equals(workDir)) {
-          finalPath = Paths.get(workDir).resolve(path).normalize().toString();
+          resolvedPath = Paths.get(workDir).resolve(path).normalize().toString();
         }
-        OutputStream outputStream = this.sftpClient.write(finalPath);
+        resolvedPath = resolvedPath.replaceFirst("^~", getHomePath());
+        OutputStream outputStream = this.sftpClient.write(resolvedPath);
         outputStream.write(text.getBytes());
         outputStream.close();
+      } catch (Exception e) {
+        WarnLogMessage.issue(loggingTarget, e);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  public synchronized boolean rm(String path) throws Exception {
+    String finalPath = path.replaceFirst("^~", getHomePath());
+    return processSftp(sftpClient -> {
+      try {
+        sftpClient.remove(finalPath);
       } catch (IOException e) {
         WarnLogMessage.issue(loggingTarget, e);
         return false;
@@ -374,33 +386,33 @@ public class SshSession implements AutoCloseable {
     });
   }
 
-  public synchronized boolean rm(Path path) throws IOException {
-    return processSftp(sftpClient -> {
-      try {
-        sftpClient.remove(path.toString());
-      } catch (IOException e) {
-        WarnLogMessage.issue(loggingTarget, e);
-        return false;
-      }
-      return true;
-    });
+  public synchronized String getHomePath() throws Exception {
+    if (homePath == null) {
+      homePath = exec("cd;pwd", "/").getStdout().trim();
+    }
+    return homePath;
   }
 
   public synchronized boolean scp(String remote, File local, String workDir) throws IOException {
     return processSftp(sftpClient -> {
       try {
-        String finalRemote = remote;
+        String resolvedRemote = remote;
         if (workDir != null && !"".equals(workDir)) {
-          finalRemote = Paths.get(workDir).resolve(remote).normalize().toString();
+          resolvedRemote = Paths.get(workDir).resolve(remote).normalize().toString();
         }
-        if(sftpClient.stat(finalRemote).isDirectory()) {
+        resolvedRemote = resolvedRemote.replaceFirst("^~", getHomePath());
+
+        if(sftpClient.stat(resolvedRemote).isDirectory()) {
           Files.createDirectories(local.toPath());
-          for (SftpClient.DirEntry entry : sftpClient.readDir(finalRemote)) {
-            transferFiles(entry.getFilename(), local.toPath(), sftpClient);
+          for (SftpClient.DirEntry entry : sftpClient.readDir(resolvedRemote)) {
+            if (entry.getFilename().equals(".") || entry.getFilename().equals("..") ) {
+              continue;
+            }
+            transferFiles(resolvedRemote + "/" + entry.getFilename(), local.toPath(), sftpClient);
           }
         } else {
           Files.createDirectories(local.toPath().getParent());
-          transferFile(finalRemote, local.toPath(), sftpClient);
+          transferFile(resolvedRemote, local.toPath(), sftpClient);
         }
       } catch (Exception e) {
         WarnLogMessage.issue(loggingTarget, e);
@@ -413,17 +425,18 @@ public class SshSession implements AutoCloseable {
   public synchronized boolean scp(File local, String remote, String workDir) throws IOException {
     return processSftp(channelSftp -> {
       try {
-        String finalRemote = remote;
+        String resolvedRemote = remote;
         if (workDir != null && !"".equals(workDir)) {
-          finalRemote = Paths.get(workDir).resolve(remote).normalize().toString();
+          resolvedRemote = Paths.get(workDir).resolve(remote).normalize().toString();
         }
+        resolvedRemote = resolvedRemote.replaceFirst("^~", getHomePath());
         if (local.isDirectory()) {
-          mkdir(Paths.get(finalRemote));
+          mkdir(resolvedRemote);
           for(File file: local.listFiles()){
-            transferFiles(file, finalRemote, channelSftp);
+            transferFiles(file, resolvedRemote, channelSftp);
           }
         } else {
-          transferFile(local, finalRemote, channelSftp);
+          transferFile(local, resolvedRemote, channelSftp);
         }
       } catch (Exception e) {
         WarnLogMessage.issue(loggingTarget, e);
@@ -434,6 +447,7 @@ public class SshSession implements AutoCloseable {
   }
 
   private static void transferFiles(String remotePath, Path localPath, SftpClient sftpClient) throws IOException {
+    //System.out.println(localPath + "   <<<---  " + remotePath);
     String name = Paths.get(remotePath).getFileName().toString();
     if(sftpClient.stat(remotePath).isDirectory()){
       Files.createDirectories(localPath.resolve(name));
@@ -449,13 +463,13 @@ public class SshSession implements AutoCloseable {
   private static void transferFile(String remotePath, Path localPath, SftpClient sftpClient) {
     try {
       Files.copy(sftpClient.read(remotePath), localPath, StandardCopyOption.REPLACE_EXISTING);
-    } catch (IOException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
   private static void transferFiles(File localFile, String destPath, SftpClient sftpClient) throws IOException {
-    System.out.println(localFile + "   --->>>  " + destPath);
+    //System.out.println(localFile + "   --->>>  " + destPath);
     if(localFile.isDirectory()){
       try {
         sftpClient.mkdir(localFile.getName());
@@ -467,12 +481,12 @@ public class SshSession implements AutoCloseable {
         transferFiles(file, destPath, sftpClient);
       }
     } else {
-      transferFile(localFile, localFile.getName(), sftpClient);
+      transferFile(localFile, destPath + "/" + localFile.getName(), sftpClient);
     }
   }
 
   private static void transferFile(File localFile, String destPath, SftpClient sftpClient) throws IOException {
-    OutputStream outputStream = sftpClient.write(destPath, SftpClient.OpenMode.Write);
+    OutputStream outputStream = sftpClient.write(destPath, SftpClient.OpenMode.Create, SftpClient.OpenMode.Write);
     outputStream.write(Files.readAllBytes(localFile.toPath()));
     outputStream.close();
     String perm = localExec("stat '" + localFile.getAbsolutePath() + "' -c '%a'").replaceAll("\\r|\\n", "");
@@ -540,33 +554,16 @@ public class SshSession implements AutoCloseable {
     disconnect();
   }
 
-  public class SshChannel implements AutoCloseable {
+  public class SshChannel {
     private String submittedCommand;
     private String stdout;
     private String stderr;
     private int exitStatus;
-    private boolean isAutoClose;
-    ClientChannel channel = null;
-    PipedOutputStream commandOutputStream = null;
 
-    public SshChannel(boolean isAutoClose) throws Exception {
-      this.isAutoClose = isAutoClose;
+    public SshChannel() throws Exception {
       stdout = "";
       stderr = "";
       exitStatus = -1;
-
-      if (!isAutoClose) {
-        channel = createChannel("sh");
-        commandOutputStream = new PipedOutputStream();
-        InputStream inputStream = new PipedInputStream(commandOutputStream);
-        channel.setIn(inputStream);
-        channel.open().verify(TIMEOUT, TimeUnit.SECONDS);
-        channel.waitFor(EnumSet.of(ClientChannelEvent.OPENED), Duration.of(TIMEOUT, ChronoUnit.MINUTES));
-      }
-    }
-
-    public SshChannel() throws Exception {
-      this(true);
     }
 
     public String getStdout() {
@@ -585,55 +582,27 @@ public class SshSession implements AutoCloseable {
       return submittedCommand;
     }
 
-    private ClientChannel createChannel(String fullCommand) throws Exception {
-      channelSemaphore.acquire();
-      return sessionWrapper.get().createExecChannel(fullCommand);
-    }
-
     public SshChannel exec(String command, String workDir) throws Exception {
       submittedCommand = "cd " + workDir + " && " + command;
       String fullCommand = "sh -c '" + submittedCommand.replaceAll("'", "'\\\\''") + "'";
 
-      try (ByteArrayOutputStream stdoutOutputStream = new ByteArrayOutputStream();
+      channelSemaphore.acquire();
+      try (ClientChannel channel = sessionWrapper.get().createExecChannel(fullCommand);
+           ByteArrayOutputStream stdoutOutputStream = new ByteArrayOutputStream();
            ByteArrayOutputStream stderrOutputStream = new ByteArrayOutputStream();) {
-        if (isAutoClose) {
-          channel = createChannel(fullCommand);
-          channel.setOut(stdoutOutputStream);
-          channel.setErr(stderrOutputStream);
-          channel.open().verify(TIMEOUT, TimeUnit.SECONDS);
-        } else {
-          channel.setOut(stdoutOutputStream);
-          channel.setErr(stderrOutputStream);
-          commandOutputStream.write((fullCommand + "\necho -e @\n").getBytes());
-        }
+        channel.setOut(stdoutOutputStream);
+        channel.setErr(stderrOutputStream);
+        channel.open().verify(TIMEOUT, TimeUnit.MINUTES);
 
-        if (isAutoClose) {
-          channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.of(TIMEOUT, ChronoUnit.MINUTES));
-          stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
-          stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
-          exitStatus = channel.getExitStatus();
-        } else {
-          while (!stdoutOutputStream.toString().endsWith("@\n")) {
-            Simple.sleep(TimeUnit.MILLISECONDS, 100);
-            System.out.print(".");
-          }
-          stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
-          stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
-          System.out.println();
-        }
+        channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.of(TIMEOUT, ChronoUnit.MINUTES));
+        stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
+        stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
+        exitStatus = channel.getExitStatus();
       } finally {
-        if (isAutoClose) {
-          close();
-        }
+        channelSemaphore.release();
       }
 
       return this;
-    }
-
-    @Override
-    public void close() throws Exception {
-      channelSemaphore.release();
-      channel.close();
     }
   }
 }
