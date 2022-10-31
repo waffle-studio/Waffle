@@ -20,7 +20,7 @@ abstract public class AbstractAccessControlledComponent extends AbstractComponen
       if (UserSession.isContains(sessionId)) {
         controller();
       } else {
-        response.redirect(SigninComponent.getUrl());
+        response.redirect(SigninComponent.getUrl(request.url()));
       }
     } catch (ProjectNotFoundException e) {
 

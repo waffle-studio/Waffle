@@ -19,6 +19,7 @@ import java.util.Map;
 
 public class SigninComponent extends AbstractComponent {
   private static final String KEY_PASSWORD = "password";
+  private static final String KEY_REDIRECT = "redirect";
   private Mode mode;
 
   private static RSA rsaKeyPair = null;
@@ -37,8 +38,12 @@ public class SigninComponent extends AbstractComponent {
     Spark.post(getUrl(), new ResponseBuilder(() -> new SigninComponent()));
   }
 
-  public static String getUrl() {
+  private static String getUrl() {
     return "/signin";
+  }
+
+  public static String getUrl(String redirect) {
+    return getUrl() + "?redirect=" + redirect;
   }
 
   @Override
@@ -160,6 +165,7 @@ public class SigninComponent extends AbstractComponent {
             ),
             Lte.card(null, null,
               Html.div(null,
+                Lte.formInputGroup("hidden", KEY_REDIRECT, null, "", request.queryParams(KEY_REDIRECT), errors),
                 Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
@@ -183,7 +189,11 @@ public class SigninComponent extends AbstractComponent {
       UserSession session = UserSession.create();
       response.cookie("/", UserSession.getWaffleId(), session.getSessionId(), -1, false);
     }
-    response.redirect(ProjectsComponent.getUrl());
+    if (request.queryParams(KEY_REDIRECT) != null) {
+      response.redirect(request.queryParams(KEY_REDIRECT));
+    } else {
+      response.redirect(ProjectsComponent.getUrl());
+    }
   }
 
 
