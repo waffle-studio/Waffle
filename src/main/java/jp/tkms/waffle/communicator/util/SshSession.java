@@ -212,7 +212,9 @@ public class SshSession implements AutoCloseable {
 
       synchronized (sessionCache) {
         if (sessionCache.isEmpty()) {
-          client.stop();
+          if (client != null) {
+            client.stop();
+          }
           client = null;
         }
       }

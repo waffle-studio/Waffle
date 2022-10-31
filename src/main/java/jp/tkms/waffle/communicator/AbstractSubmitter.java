@@ -142,7 +142,7 @@ abstract public class AbstractSubmitter {
       Files.delete(tmpFile);
 
       String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
-      if (!jvmActivationCommand.trim().equals("")) {
+      if (!jvmActivationCommand.trim().equals("") && !jvmActivationCommand.trim().endsWith(";")) {
         jvmActivationCommand += ";";
       }
 

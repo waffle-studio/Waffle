@@ -188,6 +188,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
         setMessage("");
       }
     } catch (RuntimeException | WaffleException e) {
+      e.printStackTrace();
       String message = e.getMessage();
       if (message != null) {
         if (message.startsWith("java.io.FileNotFoundException: ")) {
