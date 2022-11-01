@@ -28,7 +28,7 @@ fi
 
 JRE_FILE="${WAFFLE_INTERNAL}/waffle-jre.tar.gz"
 JRE_DIR="${WAFFLE_INTERNAL}/waffle-jre"
-if [ ! -e "$JRE_DIR" ];then
+if [ ! -e "$JRE_DIR/bin/java" ];then
   if [ -e "$JRE_FILE" ];then
     sh -c "cd ${WAFFLE_INTERNAL} && tar xf waffle-jre.tar.gz"
   else

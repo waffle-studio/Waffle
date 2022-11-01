@@ -40,6 +40,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class Main {
   public static final int PID = Integer.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
@@ -349,12 +350,12 @@ public class Main {
         Log.close();
         System.out.println("(7/7) Logger threads stopped");
 
-        if (restartFlag) {
-          restartProcess();
-        }
-
         if (resetFlag) {
           resetProcess();
+        }
+
+        if (restartFlag) {
+          restartProcess();
         }
 
         System.out.println("System hibernated");
@@ -416,8 +417,17 @@ public class Main {
     }
   }
   public static void resetProcess() {
+      System.out.println("REMOVING RUNNING STATUS...");
     try {
-      JobNumberLimitedLocalSubmitter.deleteDirectory(InternalFiles.getPath().toString());
+      try (Stream<Path> stream = Files.list(InternalFiles.getPath())) {
+        stream.filter(path -> Files.isDirectory(path)).filter(path -> !path.endsWith("waffle-jre")).forEach(path -> {
+          try {
+          JobNumberLimitedLocalSubmitter.deleteDirectory(path.toString());
+          } catch (Exception e) {
+            //nop
+          }
+        });
+      }
     } catch (Exception e) {
       //nop
     }
