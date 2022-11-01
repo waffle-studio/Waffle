@@ -2,7 +2,9 @@ package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.data.internal.InternalFiles;
 import jp.tkms.waffle.data.util.*;
+import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
@@ -97,7 +99,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   @Override
   public void update(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     String executorId = job.getJobId().replaceFirst("\\..*$", "");
-    Path podDirectory = computer.getLocalPath().resolve(JOB_MANAGER).resolve(executorId);
+    Path podDirectory = InternalFiles.getLocalPath(computer.getLocalPath().resolve(JOB_MANAGER).resolve(executorId));
     envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), !jobManager.runningExecutorList.containsKey(executorId), podDirectory, getRunDirectory(job.getRun())));
   }
 
@@ -483,7 +485,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     @Override
     public Path getPath() {
-      return submitter.computer.getPath().resolve(JOB_MANAGER);
+      return InternalFiles.getPath(getComputer().getLocalPath().resolve(JOB_MANAGER));
     }
 
     @Override
@@ -555,7 +557,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       try {
         String jobId = id.getReversedBase36Code() + '.' + getNextJobCount();
-        Path podDirectory = getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
+        Path podDirectory = InternalFiles.getLocalPath(getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code()));
         envelope.add(new SubmitPodTaskMessage(job.getTypeCode(), job.getHexCode(), jobId, podDirectory, job.getRun().getLocalPath(), job.getRun().getRemoteBinPath()));
         /*
         Path runDirectoryPath = submitter.getRunDirectory(job.getRun());
@@ -577,7 +579,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException {
-      Path podDirectory = getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code());
+      Path podDirectory = InternalFiles.getLocalPath(getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code()));
       envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalPath()));
     }
 

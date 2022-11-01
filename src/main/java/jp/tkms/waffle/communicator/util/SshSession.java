@@ -94,9 +94,9 @@ public class SshSession implements AutoCloseable {
         try {
           watchdogClient = SftpClientFactory.instance().createSftpClient(sessionWrapper.get());
         } catch (IOException e) {
-          interrupt();
+          watchdogClient = null;
         }
-        while (!isInterrupted()) {
+        while (watchdogClient != null) {
           long submitTime = System.currentTimeMillis();
           SftpClient finalWatchdogClient = watchdogClient;
           executorService.submit(()->{
@@ -108,13 +108,15 @@ public class SshSession implements AutoCloseable {
           try {
             sleep(TIMEOUT * 1000);
             if (previousAliveTime < submitTime) {
-              WarnLogMessage.issue(loggingTarget, "Connection was lost");
-              try {
-                watchdogClient.close();
-              } catch (IOException e) {
-                //nop
-              }
               if (isConnected()) {
+                WarnLogMessage.issue(loggingTarget, "Connection was lost");
+                try {
+                  watchdogClient.close();
+                } catch (IOException e) {
+                  //nop
+                } finally {
+                  watchdogClient = null;
+                }
                 disconnect();
               }
             }

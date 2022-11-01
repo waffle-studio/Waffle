@@ -12,7 +12,7 @@ import java.security.NoSuchAlgorithmException;
 public class ServantJarFile {
   public static final String JAR_FILE = "waffle-servant-all.jar";
   private static final String JAR_RESOURCE = "/" + JAR_FILE + ".bin";
-  private static final Path JAR_PATH = Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(JAR_FILE);
+  private static final Path JAR_PATH = InternalFiles.getPath(JAR_FILE);
   private static Object objectLocker = new Object();
 
   public static Path getPath() {

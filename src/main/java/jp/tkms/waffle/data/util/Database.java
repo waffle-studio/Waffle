@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.internal.InternalFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ public class Database implements AutoCloseable {
 
   public static synchronized Database getDatabase(Path path) {
     if (path == null) {
-      path = Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(Constants.MAIN_DB_NAME);
+      path = InternalFiles.getPath(Constants.MAIN_DB_NAME);
     }
 
     Path dirPath = path.getParent();

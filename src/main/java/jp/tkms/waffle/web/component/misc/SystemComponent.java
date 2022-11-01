@@ -32,7 +32,7 @@ import static jp.tkms.waffle.web.template.Html.*;
 public class SystemComponent extends AbstractAccessControlledComponent {
   private Mode mode;
 
-  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill, Gc, Open}
+  public enum Mode {Default, Hibernate, Restart, Update, DebugReport, ReduceRubyContainerCache, Kill, Gc, Open, Reset}
 
   public SystemComponent(Mode mode) {
     this.mode = mode;
@@ -49,6 +49,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(Mode.Gc), new ResponseBuilder(() -> new SystemComponent(Mode.Gc)));
     Spark.post(getUrl(Mode.Open), new ResponseBuilder(() -> new SystemComponent(Mode.Open)));
     Spark.get(getUrl(Mode.Open), new ResponseBuilder(() -> new SystemComponent(Mode.Open)));
+    Spark.get(getUrl(Mode.Reset), new ResponseBuilder(() -> new SystemComponent(Mode.Reset)));
   }
 
   public static String getUrl() {
@@ -71,6 +72,10 @@ public class SystemComponent extends AbstractAccessControlledComponent {
       case Restart:
         redirectToReferer();
         Main.restart();
+        break;
+      case Reset:
+        redirectToReferer();
+        Main.reset();
         break;
       case Update:
         redirectToReferer();
@@ -144,34 +149,45 @@ public class SystemComponent extends AbstractAccessControlledComponent {
                 GeneralUpdater.generateHtml("system.storage", (n,v)->Lte.disabledKnob(n, "#87ceeb",0,SystemDataAgent.getTotalStorage(), 1, false, Double.parseDouble(v), Html.span("font-weight-bold", null, "Available Storage (GB)"))),
                 GeneralUpdater.generateHtml("system.cpu", (n,v)->Lte.disabledKnob(n, "#f08080",0,100, 1, true, Double.parseDouble(v), Html.span("font-weight-bold", null, "CPU Usage (%)"))),
                 GeneralUpdater.generateHtml("system.memory", (n,v)->Lte.disabledKnob(n, "#deb887",0, SystemDataAgent.getTotalMemory(), 0.01, true, Double.parseDouble(v), Html.span("font-weight-bold", null,"Memory Usage (GB)")))
-                ),
+              ),
               p(),
               Lte.readonlyTextAreaGroup("SSH Session", "SSH Session", SshSession.getSessionReport())
             )
             ,null, "card-success", null
           ) +
           Lte.card(fasIcon("wrench") + "Control", null,
-          div(null,
-            a(SystemComponent.getUrl(SystemComponent.Mode.Hibernate),
-              Lte.button("warning",
-                fasIcon("power-off", "nav-icon") + "Hibernate")
-            ),
-            hr(),
-            div("text-right",
-              a(SystemComponent.getUrl(Mode.Update),
-                Lte.button("secondary",
-                  fasIcon("cloud-download-alt", "nav-icon") + "System Update")
+            div(null,
+              a(SystemComponent.getUrl(SystemComponent.Mode.Hibernate),
+                Lte.button("warning",
+                  fasIcon("power-off", "nav-icon") + "Hibernate")
+              ),
+              hr(),
+              div("text-right",
+                a(SystemComponent.getUrl(Mode.Update),
+                  Lte.button("secondary",
+                    fasIcon("cloud-download-alt", "nav-icon") + "System Update")
+                )
               )
             )
-          )
-          ,null, "card-primary", null
-        ) +
-        Lte.card(
-          "LICENSE : " + element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
-           null,
-          element("pre", null, ResourceFile.getContents("/LICENSE.md"))
-          ,null, "card-secondary", null
-        );
+            ,null, "card-primary", null
+          ) +
+          Lte.card(
+            "LICENSE : " + element("strong", null, "Copyright &copy; 2019 Waffle Developer Team"),
+            null,
+            element("pre", null, ResourceFile.getContents("/LICENSE.md"))
+            ,null, "card-secondary", null
+          ) +
+          Lte.card(
+            fasIcon("industry") + "Reset",
+            Lte.cardToggleButton(true),
+            div("text-right",
+              a(SystemComponent.getUrl(Mode.Reset),
+                Lte.button("danger",
+                  fasIcon("skull-crossbones", "nav-icon") + "Reset")
+              )
+            )
+            ,null, "card-danger collapsed-card", null
+          );
       }
     }.render(this);
   }

@@ -1,6 +1,7 @@
 package jp.tkms.waffle.data.internal.guard;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.internal.InternalFiles;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
@@ -206,6 +207,6 @@ public class ProcedureRunGuardStore {
   }
 
   public static Path getDirectoryPath() {
-    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(GUARD);
+    return InternalFiles.getPath(GUARD);
   }
 }

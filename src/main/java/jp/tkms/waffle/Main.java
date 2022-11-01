@@ -3,10 +3,12 @@ package jp.tkms.waffle;
 import jp.tkms.utils.abbreviation.Simple;
 import jp.tkms.utils.debug.DebugElapsedTime;
 import jp.tkms.utils.value.Init;
+import jp.tkms.waffle.communicator.JobNumberLimitedLocalSubmitter;
 import jp.tkms.waffle.communicator.JobNumberLimitedSshSubmitter;
 import jp.tkms.waffle.communicator.util.SshSession;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.computer.MasterPassword;
+import jp.tkms.waffle.data.internal.InternalFiles;
 import jp.tkms.waffle.data.log.Log;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
@@ -53,6 +55,7 @@ public class Main {
   public static boolean aliveFlag = true;
   public static boolean hibernatingFlag = false;
   public static boolean restartFlag = false;
+  public static boolean resetFlag = false;
   public static boolean updateFlag = false;
   public static ExecutorService interfaceThreadPool = Executors.newWorkStealingPool();//new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static ExecutorService systemThreadPool = Executors.newWorkStealingPool();//new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
@@ -93,10 +96,10 @@ public class Main {
 
     fileWatcherThread.start();
 
+    initSpark(port);
+
     ManagerMaster.startup();
     InspectorMaster.startup();
-
-    initSpark(port);
 
     gcInvokerThread.start();
     commandLineThread.start();
@@ -350,6 +353,10 @@ public class Main {
           restartProcess();
         }
 
+        if (resetFlag) {
+          resetProcess();
+        }
+
         System.out.println("System hibernated");
 
         aliveFlag = false;
@@ -370,6 +377,11 @@ public class Main {
   public static void restart() {
     restartFlag = true;
     hibernate();
+  }
+
+  public static void reset() {
+    resetFlag = true;
+    restart();
   }
 
   public static void update() {
@@ -401,6 +413,13 @@ public class Main {
       createAutomaticRestartingFlag();
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+  public static void resetProcess() {
+    try {
+      JobNumberLimitedLocalSubmitter.deleteDirectory(InternalFiles.getPath().toString());
+    } catch (Exception e) {
+      //nop
     }
   }
 

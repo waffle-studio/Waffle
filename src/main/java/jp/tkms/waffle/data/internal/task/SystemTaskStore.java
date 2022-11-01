@@ -1,6 +1,8 @@
 package jp.tkms.waffle.data.internal.task;
 
 import jp.tkms.waffle.Constants;
+import jp.tkms.waffle.data.internal.InternalFiles;
+
 import java.nio.file.Path;
 
 public class SystemTaskStore extends AbstractTaskStore<SystemTask> {
@@ -23,6 +25,6 @@ public class SystemTaskStore extends AbstractTaskStore<SystemTask> {
   }
 
   public static Path getDirectoryPath() {
-    return Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve(SYSTEM_TASK);
+    return InternalFiles.getPath(SYSTEM_TASK);
   }
 }
