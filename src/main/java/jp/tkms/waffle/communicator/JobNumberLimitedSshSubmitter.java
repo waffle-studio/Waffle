@@ -11,9 +11,13 @@ import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.communicator.util.SshSession;
+import org.checkerframework.checker.units.qual.A;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Map;
 
 @CommunicatorDescription("SSH (limited by job number)")
@@ -37,7 +41,6 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
       String identityFile = "";
       String identityPass = "";
       int port = 22;
-      boolean useTunnel = false;
 
       WrappedJson parameters = computer.getParametersWithDefaultParameters();
       for (Map.Entry<Object, Object> entry : parameters.entrySet()) {
@@ -65,20 +68,26 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
           case "port" :
             port = Integer.parseInt(entry.getValue().toString());
             break;
-          case "tunnel" :
-            useTunnel = true;
-            break;
         }
       }
 
+      ArrayList<WrappedJson> tunnelList = new ArrayList<>();
+      WrappedJson tunnelRootObject = parameters.getObject("tunnel", null);
+      {
+        WrappedJson tunnelObject = tunnelRootObject;
+        while (tunnelObject != null) {
+          tunnelList.add(tunnelObject);
+          tunnelObject = tunnelObject.getObject("tunnel", null);
+        }
+      }
+      Collections.reverse(tunnelList);
       SshSession tunnelSession = null;
-      if (useTunnel) {
-        WrappedJson object = computer.getParametersWithDefaultParameters().getObject("tunnel", null);
-        tunnelSession = new SshSession(computer, null);
-        tunnelSession.setSession(object.getString("user", ""),
-          object.getString("host", ""),
-          object.getInt("port", 22));
-        String tunnelIdentityPass = object.getString("identity_pass", "");
+      for (WrappedJson tunnelObject : tunnelList) {
+        tunnelSession = new SshSession(computer, tunnelSession);
+        tunnelSession.setSession(tunnelObject.getString("user", ""),
+          tunnelObject.getString("host", ""),
+          tunnelObject.getInt("port", 22));
+        String tunnelIdentityPass = tunnelObject.getString("identity_pass", "");
         if (tunnelIdentityPass == null) {
           tunnelIdentityPass = "";
         } else {
@@ -87,19 +96,19 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
           } else {
             if (! tunnelIdentityPass.equals("")) {
               computer.setParameter(KEY_ENCRYPTED_IDENTITY_PASS + "_1", MasterPassword.getEncrypted(tunnelIdentityPass));
-              object.put("identity_pass", ENCRYPTED_MARK);
+              tunnelObject.put("identity_pass", ENCRYPTED_MARK);
             }
           }
         }
         if (tunnelIdentityPass.equals("")) {
-          tunnelSession.addIdentity(object.getString("identity_file", ""));
+          tunnelSession.addIdentity(tunnelObject.getString("identity_file", ""));
         } else {
-          tunnelSession.addIdentity(object.getString("identity_file", ""), tunnelIdentityPass);
+          tunnelSession.addIdentity(tunnelObject.getString("identity_file", ""), tunnelIdentityPass);
         }
-        tunnelSession.connect(retry);
-        port = tunnelSession.setPortForwardingL(hostName, port);
-        hostName = "127.0.0.1";
-        computer.setParameter("tunnel", object);
+      }
+
+      if (tunnelRootObject != null) {
+        computer.setParameter("tunnel", tunnelRootObject);
       }
 
       session = new SshSession(computer, tunnelSession);
@@ -110,6 +119,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         session.addIdentity(identityFile, identityPass);
       }
       session.connect(retry);
+      session.startWatchdog();
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage());
     }
