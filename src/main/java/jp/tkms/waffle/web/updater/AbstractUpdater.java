@@ -35,8 +35,19 @@ public abstract class AbstractUpdater {
   }
 
   public AbstractUpdater(String... values) {
-    PushNotifier.broadcastMessage(createUpdateScript(this.getClass(), values));
-    BrowserMessage.addMessage(createUpdateScript(this.getClass(), values));
+    notify(values);
+  }
+
+  protected void notify(String... values) {
+    if (this instanceof GeneralUpdater) {
+      BrowserMessage.addMessage(createUpdateScript(this.getClass(), values));
+    } else {
+      PushNotifier.broadcastMessage(createUpdateScript(this.getClass(), values));
+    }
+  }
+
+  protected String string(String s) {
+    return "'" + s + "'";
   }
 
   static String listByComma(String... values) {

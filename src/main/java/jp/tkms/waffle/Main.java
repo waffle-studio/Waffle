@@ -2,6 +2,7 @@ package jp.tkms.waffle;
 
 import jp.tkms.utils.abbreviation.Simple;
 import jp.tkms.utils.debug.DebugElapsedTime;
+import jp.tkms.utils.debug.DebugString;
 import jp.tkms.utils.value.Init;
 import jp.tkms.waffle.communicator.JobNumberLimitedLocalSubmitter;
 import jp.tkms.waffle.communicator.JobNumberLimitedSshSubmitter;
@@ -15,6 +16,7 @@ import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
@@ -56,7 +58,6 @@ public class Main {
   public static boolean aliveFlag = true;
   public static boolean hibernatingFlag = false;
   public static boolean restartFlag = false;
-  public static boolean resetFlag = false;
   public static boolean updateFlag = false;
   public static ExecutorService interfaceThreadPool = Executors.newWorkStealingPool();//new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
   public static ExecutorService systemThreadPool = Executors.newWorkStealingPool();//new ThreadPoolExecutor(0, Runtime.getRuntime().availableProcessors(), 60L, TimeUnit.SECONDS, new LinkedBlockingQueue());
@@ -98,13 +99,12 @@ public class Main {
     fileWatcherThread.start();
 
     initSpark(port);
-
-    ManagerMaster.startup();
-    InspectorMaster.startup();
-
     gcInvokerThread.start();
     commandLineThread.start();
     bootRubyScript();
+
+    ManagerMaster.startup();
+    InspectorMaster.startup();
 
     tryToOpenWebBrowser();
 
@@ -285,17 +285,25 @@ public class Main {
       try {
         Scanner in = new Scanner(System.in);
         while (true) {
-          String command = in.nextLine();
-          System.out.println("-> " + command);
-          switch (command) {
+          String[] commands = in.nextLine().split(" ");
+          System.out.println("-> " + DebugString.toString(commands));
+          switch (commands[0]) {
             case "exit":
             case "quit":
             case "hibernate":
               hibernate();
               break;
-            case "kill":
+            case "RESET":
+              reset();
+              break;
+            case "KILL":
               aliveFlag = false;
               System.exit(1);
+              break;
+            case "pass":
+              if (Password.authenticate(commands[1])) {
+                MasterPassword.register(commands[1]);
+              }
               break;
           }
         }
@@ -350,10 +358,6 @@ public class Main {
         Log.close();
         System.out.println("(7/7) Logger threads stopped");
 
-        if (resetFlag) {
-          resetProcess();
-        }
-
         if (restartFlag) {
           restartProcess();
         }
@@ -381,8 +385,10 @@ public class Main {
   }
 
   public static void reset() {
-    resetFlag = true;
-    restart();
+    aliveFlag = false;
+    resetProcess();
+    restartProcess();
+    System.exit(1);
   }
 
   public static void update() {

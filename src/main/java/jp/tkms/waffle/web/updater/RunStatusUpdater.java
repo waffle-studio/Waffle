@@ -1,5 +1,7 @@
 package jp.tkms.waffle.web.updater;
 
+import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
+import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.template.Html;
 import jp.tkms.waffle.data.util.State;
@@ -50,14 +52,25 @@ public class RunStatusUpdater extends AbstractUpdater {
 
   @Override
   public String scriptArguments() {
-    return "id,status";
+    return listByComma("id", "status", "jobid", "computer", "wid", "project", "workspace", "executable");
   }
 
   @Override
   public String scriptBody() {
-    return "try{document.getElementById(id + '-badge').innerHTML = document.getElementById('template-' + status + '-badge').innerHTML;}catch(e){}" +
-      "if (status == 'Created') { isUpdateNeeded = true; }" +
-      "else if (status == 'Failed' || status == 'Finished' || status == 'Excepted' || status == 'Canceled' ) { try{document.getElementById(id + '-jobrow').style.display = 'none';}catch(e){} }" +
+    return "try{if (status == 'Created') { isUpdateNeeded = true;" +
+      "var tr = document.createElement('tr'); tr.id = id + '-jobrow'; var td = [];" +
+      "for(let i=0;i<7;i+=1){td[i] = document.createElement('td'); tr.appendChild(td[i]);}" +
+      "td[0].innerHTML = '<a href=\"'+id+'\">'+wid+'</a>';" +
+      "td[1].innerHTML = '<a href=\"'+project+'\">'+project.replace(/.*\\//,'')+'</a>';" +
+      "td[2].innerHTML = '<a href=\"'+workspace+'\">'+workspace.replace(/.*\\//,'')+'</a>';" +
+      "td[3].innerHTML = '<a href=\"'+executable+'\">'+executable.replace(/.*\\//,'')+'</a>';" +
+      "td[4].innerHTML = '<a href=\"'+computer+'\">'+computer.replace(/.*\\//,'')+'</a>';" +
+      "td[5].id = id + '-jobid';" +
+      "td[6].id = id + '-badge';" +
+      "document.getElementById('jobs_table').appendChild(tr); }" +
+      "else if (status == 'Submitted') { document.getElementById(id + '-jobid').innerHTML=jobid; }" +
+      "else if (status == 'Failed' || status == 'Finished' || status == 'Excepted' || status == 'Canceled' ) { document.getElementById(id + '-jobrow').remove(); } }catch(e){}" +
+      "try{document.getElementById(id + '-badge').innerHTML = document.getElementById('template-' + status + '-badge').innerHTML;}catch(e){}" +
       "try{if (id==run_id) {setTimeout(function(){location.reload();}, 1000);}}catch(e){}";
   }
 
@@ -65,6 +78,14 @@ public class RunStatusUpdater extends AbstractUpdater {
   }
 
   public RunStatusUpdater(ExecutableRun run) {
-    super("'" + run.getLocalPath().toString() + "'", "'" + run.getState().toString() + "'");
+    if (run.getState().equals(State.Created)) {
+      Executable executable = Executable.getInstance(run.getProject(), run.getExecutable().getName());
+      notify(string(run.getLocalPath().toString()), string(run.getState().toString()), string(""), string(run.getComputer().getLocalPath().toString()),
+        string(run.getTaskId()), string(run.getProject().getLocalPath().toString()), string(run.getWorkspace().getLocalPath().toString()), string(executable.getLocalPath().toString()));
+    } else if (run.getState().equals(State.Submitted)) {
+      notify(string(run.getLocalPath().toString()), string(run.getState().toString()), string(run.getJobId()));
+    } else {
+      notify(string(run.getLocalPath().toString()), string(run.getState().toString()));
+    }
   }
 }

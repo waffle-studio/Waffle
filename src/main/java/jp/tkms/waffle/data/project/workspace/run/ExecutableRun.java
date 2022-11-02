@@ -8,6 +8,7 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
@@ -372,7 +373,9 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
         //finish();
     }
 
-    new RunStatusUpdater(this);
+    if (!State.Created.equals(state)) {
+      new RunStatusUpdater(this);
+    }
   }
 
   public DateTime getCreatedDateTime() {

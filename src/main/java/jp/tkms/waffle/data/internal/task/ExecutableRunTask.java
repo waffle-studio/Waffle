@@ -12,6 +12,7 @@ import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.data.util.State;
 import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.web.component.websocket.PushNotifier;
+import jp.tkms.waffle.web.updater.RunStatusUpdater;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,6 +60,7 @@ public class ExecutableRunTask extends AbstractTask {
     InspectorMaster.registerExecutableRunTask(job);
     InfoLogMessage.issue(run, "was added to the queue");
     //BrowserMessage.addMessage("updateJobNum(" + getNum() + ");"); //TODO: make updater
+    new RunStatusUpdater(run);
     PushNotifier.sendJobNumMessage(getNum());
   }
 

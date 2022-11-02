@@ -2,6 +2,7 @@ package jp.tkms.waffle.communicator.util;
 
 import jp.tkms.utils.abbreviation.Simple;
 import jp.tkms.utils.io.IOStreamUtil;
+import jp.tkms.utils.value.ObjectWrapper;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
@@ -259,7 +260,13 @@ public class SshSession implements AutoCloseable {
         }
       } while (!connected);
 
-      if (!connected) {
+      if (connected) {
+        try {
+          getHomePath();
+        } catch (Exception e) {
+          disconnect();
+        }
+      } else {
         disconnect();
       }
     }
@@ -268,7 +275,6 @@ public class SshSession implements AutoCloseable {
   public void disconnect() {
     synchronized (sessionWrapper) {
       stopWatchdog();
-
       if (sftpClient != null) {
         try {
           if (sftpClient.isOpen()) {
@@ -325,6 +331,11 @@ public class SshSession implements AutoCloseable {
             failed = true;
 
             WarnLogMessage.issue(loggingTarget, "Retry to open channel after " + count + " sec.");
+
+            if (count > 15) {
+              disconnect(); // TODO: check
+            }
+
             Simple.sleep(TimeUnit.SECONDS, count);
 
             try {
@@ -450,7 +461,7 @@ public class SshSession implements AutoCloseable {
           resolvedPath = Paths.get(workDir).resolve(path).normalize().toString();
         }
         resolvedPath = resolvedPath.replaceFirst("^~", getHomePath());
-        OutputStream outputStream = this.sftpClient.write(resolvedPath);
+        OutputStream outputStream = sftpClient.write(resolvedPath);
         outputStream.write(text.getBytes());
         outputStream.close();
       } catch (Exception e) {
@@ -474,7 +485,7 @@ public class SshSession implements AutoCloseable {
     });
   }
 
-  public synchronized String getHomePath() throws Exception {
+  public String getHomePath() throws Exception {
     if (homePath == null) {
       homePath = exec("cd;pwd", "/").getStdout().trim();
     }
@@ -707,6 +718,8 @@ public class SshSession implements AutoCloseable {
         stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
         stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
         exitStatus = channel.getExitStatus();
+
+        channel.close();
       } finally {
         channelSemaphore.release();
       }

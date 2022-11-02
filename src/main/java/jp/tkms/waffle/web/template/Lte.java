@@ -498,10 +498,16 @@ public class Lte {
     }
   }
 
-  public abstract static class Table {
-    public UUID id = UUID.randomUUID();
-    public abstract ArrayList<TableValue> tableHeaders();
-    public abstract ArrayList<Future<TableRow>> tableRows();
+  public static class Table {
+    public String id;
+    public Table() {
+      this(UUID.randomUUID().toString());
+    }
+    public Table(String id) {
+      this.id = id;
+    }
+    public ArrayList<TableValue> tableHeaders() { return null; };
+    public ArrayList<Future<TableRow>> tableRows() { return null; };
   }
 
   public static String errorNoticeTextAreaGroup(String contents) {

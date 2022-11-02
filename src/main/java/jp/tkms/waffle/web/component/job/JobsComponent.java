@@ -93,7 +93,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
       protected String pageContent() {
         return
           Lte.card(null, null,
-          Lte.table("table-condensed table-sm", new Lte.Table() {
+          Lte.table("table-condensed table-sm", new Lte.Table("jobs_table") {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
@@ -133,7 +133,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                         ComputersComponent.getUrl(job.getComputer()),
                         job.getComputer().getName()
                       ),
-                      job.getJobId(),
+                      Html.spanWithId(job.getPath().toString() + "-jobid", job.getJobId()),
                       Html.spanWithId(job.getPath().toString() + "-badge", job.getState().getStatusBadge()),
                       Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
                     ).setAttributes(new Html.Attributes(Html.value("id", job.getPath().toString() + "-jobrow")));

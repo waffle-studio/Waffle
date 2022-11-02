@@ -6,6 +6,7 @@ import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.computer.MasterPassword;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;

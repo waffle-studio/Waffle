@@ -43,12 +43,14 @@ abstract public class AbstractSubmitter {
   protected static final String TASK_JSON = "task.json";
   protected static final String RUN_DIR = "run";
   protected static final String BATCH_FILE = "batch.sh";
+  static final int INITIAL_PREPARING = 500;
 
   boolean isRunning = false;
   Computer computer;
   private int pollingInterval = 5;
-  //private int preparingNumber = 1;
+  private int preparingSize = INITIAL_PREPARING;
   private Inspector.Mode mode;
+
 
   //ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
   ProcessorManager<PreparingProcessor> preparingProcessorManager = new ProcessorManager<>(() -> new PreparingProcessor());
@@ -764,6 +766,8 @@ abstract public class AbstractSubmitter {
   }
 
   public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+    reducePreperingTask(createdJobList, submittedJobList);
+
     ArrayList<AbstractTask> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
@@ -830,6 +834,16 @@ abstract public class AbstractSubmitter {
       preparedCount += 1;
     }
      */
+  }
+
+  private void reducePreperingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList) {
+    if (preparingSize < submittedJobList.size() * 2) {
+      preparingSize = submittedJobList.size() * 2;
+    }
+    int currentSize = createdJobList.size();
+    for (int i = preparingSize; currentSize > preparingSize; i += 1) {
+      createdJobList.remove(--currentSize);
+    }
   }
 
   class FinishedProcessor extends Thread {

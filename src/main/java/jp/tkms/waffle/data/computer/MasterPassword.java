@@ -5,6 +5,7 @@ import jp.tkms.utils.string.HashString;
 import jp.tkms.utils.crypt.AES;
 import jp.tkms.utils.crypt.DecryptingException;
 import jp.tkms.utils.crypt.EncryptingException;
+import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.web.UserSession;
 
@@ -39,7 +40,8 @@ public class MasterPassword {
   private static void waitForPreparing() throws InterruptedException {
     try {
       if (masterPassword == null) { InfoLogMessage.issue("Wait to input your master password"); }
-      Simple.waitUntil(()-> masterPassword == null, TimeUnit.SECONDS, 1);
+      Simple.waitUntil(()-> masterPassword == null && !Main.hibernatingFlag, TimeUnit.SECONDS, 1);
+      if (masterPassword == null) { throw new InterruptedException(); }
     } catch (InterruptedException e) {
       InfoLogMessage.issue("Abort a crypting process by a master password");
       throw e;
