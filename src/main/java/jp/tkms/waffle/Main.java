@@ -103,6 +103,8 @@ public class Main {
     commandLineThread.start();
     bootRubyScript();
 
+    MasterPassword.registerWithAuthenticate(System.getenv("MASTER_PASS"));
+
     ManagerMaster.startup();
     InspectorMaster.startup();
 

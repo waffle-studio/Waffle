@@ -114,7 +114,7 @@ public class SigninComponent extends AbstractComponent {
             ),
             Lte.card("Register a password to access the web interface.", null,
               Html.div(null,
-                Lte.formInputGroup("text", KEY_PASSWORD, null, "Password", null, errors),
+                Lte.formInputGroup("text", KEY_PASSWORD, null, "Password", null, errors).replaceFirst("value=\"\"", "autofocus"),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
                   "You can reset your password by deleting a file \"WAFFLE/.PASSWORD\".")
@@ -166,7 +166,7 @@ public class SigninComponent extends AbstractComponent {
             Lte.card(null, null,
               Html.div(null,
                 Lte.formInputGroup("hidden", KEY_REDIRECT, null, "", request.queryParams(KEY_REDIRECT), errors),
-                Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors),
+                Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors).replaceFirst("value=\"\"", "autofocus"),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
                   "You can reset your password by deleting a file \"WAFFLE/.PASSWORD\".")

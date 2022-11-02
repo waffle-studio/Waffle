@@ -766,7 +766,7 @@ abstract public class AbstractSubmitter {
   }
 
   public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
-    reducePreperingTask(createdJobList, submittedJobList);
+    reducePreperingTask(createdJobList, submittedJobList, preparedJobList);
 
     ArrayList<AbstractTask> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
@@ -836,13 +836,16 @@ abstract public class AbstractSubmitter {
      */
   }
 
-  private void reducePreperingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList) {
+  private void reducePreperingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> preparedJobList) {
     if (preparingSize < submittedJobList.size() * 2) {
       preparingSize = submittedJobList.size() * 2;
     }
+    int space = preparingSize - preparedJobList.size();
+    space = Math.max(space, 0);
+
     int currentSize = createdJobList.size();
-    for (int i = preparingSize; currentSize > preparingSize; i += 1) {
-      createdJobList.remove(--currentSize);
+    for (int i = createdJobList.size() -1; i >= space; i -= 1) {
+      createdJobList.remove(i);
     }
   }
 

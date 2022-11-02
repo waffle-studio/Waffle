@@ -61,7 +61,6 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     switch (mode) {
       case Add:
         if (isPost()) {
-          System.out.println("OK");
           addParameterExtractor();
         } else {
           renderAddParameterExtractorForm();

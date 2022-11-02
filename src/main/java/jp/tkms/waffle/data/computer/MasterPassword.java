@@ -7,6 +7,7 @@ import jp.tkms.utils.crypt.DecryptingException;
 import jp.tkms.utils.crypt.EncryptingException;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
+import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.data.web.UserSession;
 
 import java.util.Base64;
@@ -17,6 +18,14 @@ public class MasterPassword {
 
   public static void register(String password) {
     masterPassword = HashString.toSHA256Base64(UserSession.getWaffleId() + password);
+  }
+
+  public static boolean registerWithAuthenticate(String password) {
+    if (password != null && Password.authenticate(password)) {
+      register(password);
+      return true;
+    }
+    return false;
   }
 
   public static String getEncrypted(String value) throws InterruptedException {
