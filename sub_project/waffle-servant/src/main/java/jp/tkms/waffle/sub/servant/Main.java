@@ -25,12 +25,16 @@ public class Main {
           exitWithInvalidArgumentsMessage("main", "[MESSAGE PATH]");
         }
         Path envelopePath = Paths.get(args[2]);
+        if (Files.exists(Envelope.getResponsePath(envelopePath))) {
+          System.err.println("Already exists a response for " + envelopePath.getFileName());
+          break;
+        }
         Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
         //request.getMessageBundle().print("SERVANT");
-        Files.delete(envelopePath);
         Envelope response = new Envelope(baseDirectory);
         RequestProcessor.processMessages(baseDirectory, request, response);
         response.save(Envelope.getResponsePath(envelopePath));
+        Files.delete(envelopePath);
         break;
       case "exec":
         if (args.length < 3) {

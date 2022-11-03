@@ -319,7 +319,7 @@ public class SshSession implements AutoCloseable {
               WarnLogMessage.issue(loggingTarget, "Retry to open channel after " + count + " sec.");
             }
 
-            if (count > 15) {
+            if (count >= 1) {
               InfoLogMessage.issue(loggingTarget, "Reset the connection of " + getConnectionName());
               disconnect(); // TODO: check
             }
@@ -727,12 +727,12 @@ public class SshSession implements AutoCloseable {
         int timeoutCount = 0;
         while (LONG_TIMEOUT > TIMEOUT * timeoutCount && timeoutCount >= 0) {
           try {
-            channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.of(TIMEOUT, ChronoUnit.SECONDS));
+            channel.waitFor(EnumSet.of(ClientChannelEvent.EXIT_STATUS), Duration.of(TIMEOUT, ChronoUnit.SECONDS));
             timeoutCount = -1;
           } catch (RuntimeException e) {
             InfoLogMessage.issue(loggingTarget, "waiting a response");
             timeoutCount += 1;
-            if (LONG_TIMEOUT > TIMEOUT * timeoutCount) {
+            if (LONG_TIMEOUT <= TIMEOUT * timeoutCount) {
               throw e;
             }
           }
@@ -742,7 +742,6 @@ public class SshSession implements AutoCloseable {
         stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
         exitStatus = channel.getExitStatus();
       } catch (Exception e) {
-        e.printStackTrace();
         throw e;
       } finally {
         channelSemaphore.release();

@@ -43,7 +43,7 @@ abstract public class AbstractSubmitter {
   protected static final String TASK_JSON = "task.json";
   protected static final String RUN_DIR = "run";
   protected static final String BATCH_FILE = "batch.sh";
-  static final int INITIAL_PREPARING = 500;
+  static final int INITIAL_PREPARING = 100;
 
   boolean isRunning = false;
   Computer computer;
@@ -135,13 +135,15 @@ abstract public class AbstractSubmitter {
     //envelope.getMessageBundle().print("HOST");
     if (!envelope.isEmpty()) {
       Path tmpFile = getTempDirectoryPath().resolve(UUID.randomUUID().toString());
-      Files.createDirectories(tmpFile.getParent());
-      envelope.save(tmpFile);
       Path remoteWorkBasePath = submitter.parseHomePath(submitter.computer.getWorkBaseDirectory());
       Path remoteEnvelopePath = remoteWorkBasePath.resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
-      submitter.createDirectories(remoteEnvelopePath.getParent());
-      submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
-      Files.delete(tmpFile);
+      Files.createDirectories(tmpFile.getParent());
+      do {
+        envelope.save(tmpFile);
+        submitter.createDirectories(remoteEnvelopePath.getParent());
+        submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
+        Files.delete(tmpFile);
+      } while (!submitter.exists(remoteEnvelopePath));
 
       String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
       if (!jvmActivationCommand.trim().equals("") && !jvmActivationCommand.trim().endsWith(";")) {
