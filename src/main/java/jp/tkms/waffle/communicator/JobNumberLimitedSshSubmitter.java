@@ -1,24 +1,20 @@
 package jp.tkms.waffle.communicator;
 
-import com.jcraft.jsch.JSchException;
 import jp.tkms.utils.value.ObjectWrapper;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.computer.MasterPassword;
-import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
 import jp.tkms.waffle.communicator.util.SshSession;
-import org.checkerframework.checker.units.qual.A;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.Map;
 
 @CommunicatorDescription("SSH (limited by job number)")
@@ -182,7 +178,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     String result = "";
 
     try {
-      SshSession.SshChannel channel = session.exec(command, "");
+      SshSession.ExecChannel channel = session.exec(command, "");
       result += channel.getStdout();
       result += channel.getStderr();
     } catch (Exception e) {
