@@ -554,60 +554,66 @@ abstract public class AbstractSubmitter {
   }
 
   public void checkSubmitted() throws FailedToControlRemoteException {
-    Envelope envelope = new Envelope(Constants.WORK_DIR);
+    try {
+      isRunning = true;
+      Envelope envelope = new Envelope(Constants.WORK_DIR);
+      pollingInterval = computer.getPollingInterval();
 
-    isRunning = true;
-    pollingInterval = computer.getPollingInterval();
-
-    //createdProcessorManager.startup();
-    preparingProcessorManager.startup();
-    finishedProcessorManager.startup();
-
-    ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
-    ArrayList<AbstractTask> runningJobList = new ArrayList<>();
-    ArrayList<AbstractTask> cancelJobList = new ArrayList<>();
-
-    for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-      if (Main.hibernatingFlag) { return; }
-
-      try {
-        if (!job.exists() && job.getRun().isRunning()) {
-          job.cancel();
-          WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
-          continue;
-        }
-        switch (job.getState(true)) {
-          case Submitted:
-            submittedJobList.add(job);
-            break;
-          case Running:
-            runningJobList.add(job);
-            break;
-          case Cancel:
-            cancelJobList.add(job);
-        }
-      } catch (RunNotFoundException e) {
-        try {
-          cancel(envelope, job);
-        } catch (RunNotFoundException ex) { }
-        job.remove();
-        WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
-      }
-    }
-
-    if (!Main.hibernatingFlag) {
-      processSubmitted(envelope, submittedJobList, runningJobList, cancelJobList);
-    }
-
-    if (!Main.hibernatingFlag) {
+      //createdProcessorManager.startup();
       preparingProcessorManager.startup();
+      finishedProcessorManager.startup();
+
+      ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
+      ArrayList<AbstractTask> runningJobList = new ArrayList<>();
+      ArrayList<AbstractTask> cancelJobList = new ArrayList<>();
+
+      for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
+        if (Main.hibernatingFlag) {
+          return;
+        }
+
+        try {
+          if (!job.exists() && job.getRun().isRunning()) {
+            job.cancel();
+            WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+            continue;
+          }
+          switch (job.getState(true)) {
+            case Submitted:
+              submittedJobList.add(job);
+              break;
+            case Running:
+              runningJobList.add(job);
+              break;
+            case Cancel:
+              cancelJobList.add(job);
+          }
+        } catch (RunNotFoundException e) {
+          try {
+            cancel(envelope, job);
+          } catch (RunNotFoundException ex) {
+          }
+          job.remove();
+          WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed.");
+        }
+      }
+
+      if (!Main.hibernatingFlag) {
+        processSubmitted(envelope, submittedJobList, runningJobList, cancelJobList);
+      }
+
+      if (!Main.hibernatingFlag) {
+        preparingProcessorManager.startup();
+      }
+
+      isRunning = false;
+
+      processRequestAndResponse(envelope);
+      return;
+    } catch (FailedToControlRemoteException e) {
+      isRunning = false;
+      throw e;
     }
-
-    isRunning = false;
-
-    processRequestAndResponse(envelope);
-
-    return;
   }
 
   public void processSubmitted(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> runningJobList, ArrayList<AbstractTask> cancelJobList) throws FailedToControlRemoteException {

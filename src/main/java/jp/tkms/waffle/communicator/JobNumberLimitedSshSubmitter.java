@@ -116,7 +116,6 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         session.addIdentity(identityFile, identityPass);
       }
       session.connect(retry);
-      session.startWatchdog();
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage());
     }
@@ -137,7 +136,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     super.close();
 
     if (session != null) {
-      session.disconnect();
+      session.disconnect(true);
     }
   }
 
@@ -160,7 +159,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     try {
       session.mkdir(path.toString());
     } catch (Exception e) {
-      throw new FailedToControlRemoteException(e);
+      throw new FailedToControlRemoteException(new Exception(e.toString()));
     }
   }
 
@@ -194,6 +193,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     try {
       return session.exists(path.toString());
     } catch (Exception e) {
+      e.printStackTrace();
       throw new FailedToControlRemoteException(e);
     }
   }
