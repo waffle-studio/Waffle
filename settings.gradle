@@ -15,5 +15,12 @@ include 'api'
 include 'services:webservice'
 */
 
+pluginManagement {
+    plugins {
+        id "com.github.johnrengelman.shadow" version "7.1.0"
+    }
+}
+
 rootProject.name = 'waffle'
 include(":sub_project:tkms-java-utils:tkms-java-utils")
+include(":sub_project:waffle-servant")

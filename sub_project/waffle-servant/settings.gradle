@@ -7,4 +7,10 @@
  * in the user manual at https://docs.gradle.org/6.3/userguide/multi_project_builds.html
  */
 
+pluginManagement {
+    plugins {
+        id "com.github.johnrengelman.shadow" version "7.1.0"
+    }
+}
+
 rootProject.name = 'waffle-servant'
