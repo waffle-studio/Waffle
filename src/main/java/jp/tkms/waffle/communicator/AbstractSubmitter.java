@@ -268,8 +268,9 @@ abstract public class AbstractSubmitter {
           }
         }
 
-        job.setState(State.Prepared);
-        InfoLogMessage.issue(job.getRun(), "was prepared");
+        //job.setState(State.Prepared);
+        //InfoLogMessage.issue(job.getRun(), "was prepared");
+        envelope.add(new ConfirmPreparingMessage(job.getTypeCode(), job.getHexCode()));
       }
     }
   }
@@ -477,6 +478,14 @@ abstract public class AbstractSubmitter {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setState(State.Excepted);
+        }
+      }
+
+      for (UpdatePreparedMessage message : response.getMessageBundle().getCastedMessageList(UpdatePreparedMessage.class)) {
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          job.setState(State.Prepared);
+          InfoLogMessage.issue(job.getRun(), "was prepared");
         }
       }
 

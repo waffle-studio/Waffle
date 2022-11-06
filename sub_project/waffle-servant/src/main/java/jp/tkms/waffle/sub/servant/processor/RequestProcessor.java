@@ -11,6 +11,7 @@ import java.util.ArrayList;
 public abstract class RequestProcessor<T extends AbstractRequestMessage> {
   public static void processMessages(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {
     for (RequestProcessor processor : new RequestProcessor[]{
+      new ConfirmPreparingRequestProcessor(),
       new ChangePermssionRequestProcessor(),
       new PutTextFileRequestProcessor(),
       new PutValueRequestProcessor(),
