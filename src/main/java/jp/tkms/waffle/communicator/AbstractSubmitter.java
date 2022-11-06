@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -185,7 +186,7 @@ abstract public class AbstractSubmitter {
 
   public void forcePrepare(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     if (job.getState().equals(State.Created)) {
-      prepareJob(envelope, job);
+      prepareJob(envelope, job, new HashSet<>());
     }
   }
 
@@ -214,7 +215,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractTask job, HashSet<Path> syncedBinPathSet) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
       if (job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
@@ -252,13 +253,20 @@ abstract public class AbstractSubmitter {
           + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'\""));
         //+ "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
 
-        Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
-        if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
-          envelope.add(run.getBinPath());
-          envelope.add(new ChangePermissionMessage(remoteExecutableBaseDirectory.resolve(Executable.BASE), "a-w"));
-        }
-
         envelope.add(run.getBasePath());
+
+        Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
+        synchronized (syncedBinPathSet) {
+          Path binPath = run.getBinPath();
+          if (!syncedBinPathSet.contains(binPath)) {
+            if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
+              envelope.add(binPath);
+              envelope.add(new ChangePermissionMessage(remoteExecutableBaseDirectory.resolve(Executable.BASE), "a-w"));
+              syncedBinPathSet.add(binPath);
+              System.out.println("Synced " + binPath);
+            }
+          }
+        }
 
         job.setState(State.Prepared);
         InfoLogMessage.issue(job.getRun(), "was prepared");
@@ -282,7 +290,7 @@ abstract public class AbstractSubmitter {
     //Computer computer = run.getActualComputer();
     //Path path = parseHomePath(computer.getWorkBaseDirectory()).resolve(run.getLocalDirectoryPath());
     Path path = parseHomePath(getWorkBaseDirectory().toString()).resolve(run.getLocalPath());
-    createDirectories(path);
+    //createDirectories(path);
     return path;
   }
 
@@ -780,9 +788,10 @@ abstract public class AbstractSubmitter {
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
 
+    HashSet<Path> syncedBinPathSet = new HashSet<>();
     createdJobList.stream().parallel().forEach((job)->{
       try {
-        prepareJob(envelope, job);
+        prepareJob(envelope, job, syncedBinPathSet);
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }

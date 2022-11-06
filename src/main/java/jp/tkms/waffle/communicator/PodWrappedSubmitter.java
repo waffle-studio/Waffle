@@ -170,8 +170,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    super.prepareJob(envelope, job);
+  protected void prepareJob(Envelope envelope, AbstractTask job, HashSet<Path> syncedBinPathSet) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+    super.prepareJob(envelope, job, syncedBinPathSet);
 
     try {
       ComputerTask run = job.getRun();
@@ -555,10 +555,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
-      try {
-        String jobId = id.getReversedBase36Code() + '.' + getNextJobCount();
-        Path podDirectory = InternalFiles.getLocalPath(getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code()));
-        envelope.add(new SubmitPodTaskMessage(job.getTypeCode(), job.getHexCode(), jobId, podDirectory, job.getRun().getLocalPath(), job.getRun().getRemoteBinPath()));
+      synchronized (jobCache) {
+        try {
+          String jobId = id.getReversedBase36Code() + '.' + getNextJobCount();
+          Path podDirectory = InternalFiles.getLocalPath(getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code()));
+          envelope.add(new SubmitPodTaskMessage(job.getTypeCode(), job.getHexCode(), jobId, podDirectory, job.getRun().getLocalPath(), job.getRun().getRemoteBinPath()));
         /*
         Path runDirectoryPath = submitter.getRunDirectory(job.getRun());
         submitter.createDirectories(getRemoteEntitiesDirectory());
@@ -571,10 +572,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         submitter.chmod(666, getRemoteJobsDirectory().resolve(job.getId().toString()));
         job.setJobId(jobId);
          */
-        putToArrayOfProperty(RUNNING, jobId);
-        jobCache.put(jobId, job);
-      } catch (Exception e) {
-        job.setState(State.Excepted);
+          putToArrayOfProperty(RUNNING, jobId);
+          jobCache.put(jobId, job);
+        } catch (Exception e) {
+          job.setState(State.Excepted);
+        }
       }
     }
 
@@ -660,8 +662,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public void removeRunning(String jobId) {
-      removeFromArrayOfProperty(RUNNING, jobId);
-      jobCache.remove(jobId);
+      synchronized (jobCache) {
+        removeFromArrayOfProperty(RUNNING, jobId);
+        jobCache.remove(jobId);
+      }
     }
 
     public boolean isAcceptable() {
@@ -676,23 +680,25 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     public ArrayList<AbstractTask> getRunningList() {
-      ArrayList<AbstractTask> runningList = new ArrayList<>();
-      WrappedJsonArray runningArray = getArrayFromProperty(RUNNING);
-      for (Object o : runningArray) {
-        if (jobCache.containsKey(o.toString())) {
-          runningList.add(jobCache.get(o.toString()));
+      synchronized (jobCache) {
+        ArrayList<AbstractTask> runningList = new ArrayList<>();
+        WrappedJsonArray runningArray = getArrayFromProperty(RUNNING);
+        for (Object o : runningArray) {
+          if (jobCache.containsKey(o.toString())) {
+            runningList.add(jobCache.get(o.toString()));
+          }
         }
+        for (ExecutableRunTask job : InspectorMaster.getExecutableRunTaskList()) {
+          if (runningList.size() >= runningArray.size()) {
+            break;
+          }
+          if (runningArray.contains(job.getJobId())) {
+            runningList.add(job);
+            jobCache.put(job.getJobId(), job);
+          }
+        }
+        return runningList;
       }
-      for (ExecutableRunTask job : InspectorMaster.getExecutableRunTaskList()) {
-        if (runningList.size() >= runningArray.size()) {
-          break;
-        }
-        if (runningArray.contains(job.getJobId())) {
-          runningList.add(job);
-          jobCache.put(job.getJobId(), job);
-        }
-      }
-      return runningList;
     }
 
     public Path getRemoteBaseDirectory() {
@@ -803,8 +809,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public Path getWorkBaseDirectory() {
-    return Paths.get(targetSubmitter.computer.getWorkBaseDirectory());
+  public Path getWorkBaseDirectory() throws FailedToControlRemoteException {
+    return targetSubmitter.getWorkBaseDirectory();
   }
 
   @Override

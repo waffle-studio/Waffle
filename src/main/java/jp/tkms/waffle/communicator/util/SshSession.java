@@ -34,10 +34,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -175,6 +172,10 @@ public class SshSession implements AutoCloseable {
   }
 
   public boolean isConnected() {
+    if (sessionWrapper == null) {
+      return false;
+    }
+
     synchronized (sessionWrapper) {
       ClientSession session = sessionWrapper.get();
       if (session != null) {
@@ -439,12 +440,38 @@ public class SshSession implements AutoCloseable {
   }
 
   public String getHomePath() throws Exception {
-    synchronized (sessionWrapper) {
-      if (homePath == null) {
-        homePath = exec("cd;pwd", "/").getStdout().trim();
+    if (homePath == null || homePath.equals("")) {
+      synchronized (sessionWrapper) {
+        if (homePath == null || homePath.equals("")) {
+          ExecChannel channel = new ExecChannel();
+          boolean isFailed = false;
+          do {
+            isFailed = false;
+            try (ChannelProvider provider = new ChannelProvider()) {
+              try {
+                channel.exec("cd;pwd", "/", provider);
+                if (channel.getExitStatus() != 0 || channel.getStdout().isEmpty()) {
+                  throw new NullPointerException("Failed to get home path");
+                }
+                homePath = channel.getStdout().trim();
+              } catch (Exception e) {
+                if (Main.hibernatingFlag) {
+                  throw e;
+                }
+                if (e instanceof NullPointerException || e instanceof SshException
+                  || e instanceof IllegalStateException || e.getMessage().equals("channel is not opened.")) {
+                  isFailed = true;
+                  provider.failed();
+                } else {
+                  throw new RuntimeException(e);
+                }
+              }
+            }
+          } while (isFailed);
+        }
       }
-      return homePath;
     }
+    return homePath;
   }
 
   public boolean scp(String remote, File local, String workDir) throws Exception {
@@ -607,6 +634,7 @@ public class SshSession implements AutoCloseable {
   private static void transferFile(File localFile, String destPath, SftpClient sftpClient) throws IOException {
     OutputStream outputStream = sftpClient.write(destPath, SftpClient.OpenMode.Create, SftpClient.OpenMode.Write);
     outputStream.write(Files.readAllBytes(localFile.toPath()));
+    outputStream.flush();
     outputStream.close();
     SftpClient.Attributes attributes = sftpClient.stat(destPath);
     attributes.setPermissions(getPermissionOct(localFile.toPath()));
@@ -783,7 +811,7 @@ public class SshSession implements AutoCloseable {
                 //NOP
               }
             }
-            sessionWrapper.sftpClient = SftpClientFactory.instance().createSftpClient(sessionWrapper.get());
+            sessionWrapper.sftpClient = SftpClientFactory.instance().createSftpClient(sessionWrapper.get()).singleSessionInstance();
           }
         } catch (IOException e) {
           isFailed = true;
@@ -854,6 +882,7 @@ public class SshSession implements AutoCloseable {
         disconnect(true);
       }
       debugElapsedTime.print();
+      //Arrays.stream(Thread.currentThread().getStackTrace()).forEach(System.out::println);
     }
   }
 }

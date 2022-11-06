@@ -24,7 +24,6 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
   SshSession session;
-  ObjectWrapper<String> home = new ObjectWrapper<>();
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
     super(computer);
@@ -144,9 +143,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
     if (pathString.indexOf('~') == 0) {
       try {
-        pathString = pathString.replaceAll("^~", home.get(() -> {
-          return session.exec("echo -n $HOME", "~/").getStdout().replaceAll("\\r|\\n", "");
-        }));
+        pathString = pathString.replaceAll("^~", session.getHomePath());
       } catch (Exception e) {
         throw new FailedToControlRemoteException(e);
       }
@@ -193,7 +190,6 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     try {
       return session.exists(path.toString());
     } catch (Exception e) {
-      e.printStackTrace();
       throw new FailedToControlRemoteException(e);
     }
   }
