@@ -881,8 +881,15 @@ public class SshSession implements AutoCloseable {
       if (isSessionClosed) {
         disconnect(true);
       }
-      debugElapsedTime.print();
-      //Arrays.stream(Thread.currentThread().getStackTrace()).forEach(System.out::println);
+
+      if (System.getenv("DEBUG") != null) {
+        if (System.getenv("DEBUG").equals("1")) {
+          debugElapsedTime.print();
+        } else if (System.getenv("DEBUG").equals("2")) {
+          debugElapsedTime.print();
+          Arrays.stream(Thread.currentThread().getStackTrace()).forEach(System.out::println);
+        }
+      }
     }
   }
 }
