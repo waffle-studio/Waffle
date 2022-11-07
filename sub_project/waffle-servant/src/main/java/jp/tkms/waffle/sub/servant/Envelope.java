@@ -55,7 +55,7 @@ public class Envelope {
   }
 
   public void save(Path dataPath) throws Exception {
-    try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(dataPath.toFile()), StandardCharsets.UTF_8)) {
+    try (ZipOutputStream zipOutputStream = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(dataPath.toFile())), StandardCharsets.UTF_8)) {
       Set<Path> sourceSet = new LinkedHashSet<>();
       for (Path filePath : filePathList) {
         if (Files.exists(baseDirectory.resolve(filePath))) {
@@ -98,7 +98,7 @@ public class Envelope {
       dataPath = baseDirectory.resolve(dataPath);
     }
 
-    try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(dataPath.toFile()), StandardCharsets.UTF_8)) {
+    try (ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(new FileInputStream(dataPath.toFile())), StandardCharsets.UTF_8)) {
       ZipEntry entry = null;
       while ((entry = zipInputStream.getNextEntry()) != null) {
         if (entry.getName().equals(MESSAGE_BUNDLE)) {

@@ -11,6 +11,7 @@ import jp.tkms.waffle.sub.servant.message.response.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class MessageBundle {
   private HashMap<Class<? extends AbstractMessage>, ArrayList<AbstractMessage>> messageListSet;
@@ -37,7 +38,6 @@ public class MessageBundle {
     return castedMessageList;
   }
 
-  /*
   public void print(String tag) {
     System.out.println(tag + "{");
     for (Map.Entry<Class<? extends AbstractMessage>, ArrayList<AbstractMessage>> entry : messageListSet.entrySet()) {
@@ -45,7 +45,6 @@ public class MessageBundle {
     }
     System.out.println("}");
   }
-   */
 
   public boolean isEmpty() {
     for (ArrayList<AbstractMessage> messageList : messageListSet.values()) {

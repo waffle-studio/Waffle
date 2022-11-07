@@ -42,8 +42,8 @@ import java.util.function.Function;
 
 public class SshSession implements AutoCloseable {
   private static final int LINE_FEED = '\n';
-  static final int TIMEOUT = 30;
-  static final int LONG_TIMEOUT = 180; //3min
+  static final int TIMEOUT = 60;
+  static final int LONG_TIMEOUT = 300; //5min
   private static final Map<String, SessionWrapper> sessionCache = new HashMap<>();
 
   private static SshClient client = null;
@@ -741,6 +741,7 @@ public class SshSession implements AutoCloseable {
         while (LONG_TIMEOUT > TIMEOUT * timeoutCount) {
           try {
             channel.waitFor(EnumSet.of(ClientChannelEvent.EXIT_STATUS), Duration.of(TIMEOUT, ChronoUnit.SECONDS));
+            exitStatus = channel.getExitStatus();
             break;
           } catch (RuntimeException e) {
             InfoLogMessage.issue(loggingTarget, "waiting a response");
@@ -753,7 +754,6 @@ public class SshSession implements AutoCloseable {
 
         stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
         stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
-        exitStatus = channel.getExitStatus();
       }
       return this;
     }

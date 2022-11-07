@@ -25,7 +25,7 @@ public class PutTextFileRequestProcessor extends RequestProcessor<PutTextFileMes
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<PutTextFileMessage> messageList) throws ClassNotFoundException, IOException {
-    for (PutTextFileMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       try {
         Path path = baseDirectory.resolve(message.getPath());
         Files.createDirectories(path.getParent());
@@ -33,6 +33,6 @@ public class PutTextFileRequestProcessor extends RequestProcessor<PutTextFileMes
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }
+    });
   }
 }
