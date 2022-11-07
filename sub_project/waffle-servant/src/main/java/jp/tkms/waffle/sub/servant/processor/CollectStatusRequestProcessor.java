@@ -51,7 +51,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
 
     try {
       JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
-      for (CollectStatusMessage message : messageList) {
+      messageList.stream().parallel().forEach(message-> {
         try {
           new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
             response.add(new UpdateResultMessage(message, name, value));
@@ -82,7 +82,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
         } catch (Exception e) {
           response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));
         }
-      }
+      });
     } catch (Exception e) {
       e.printStackTrace();
     }

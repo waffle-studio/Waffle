@@ -50,6 +50,18 @@ public class Envelope {
     }
   }
 
+  public boolean exists(Path path) {
+    if (path == null) {
+      return false;
+    }
+    if (path.isAbsolute()) {
+      path = baseDirectory.relativize(path).normalize();
+    }
+    synchronized (filePathList) {
+      return filePathList.contains(path);
+    }
+  }
+
   public MessageBundle getMessageBundle() {
     return messageBundle;
   }
@@ -72,7 +84,7 @@ public class Envelope {
         if (Files.isDirectory(baseDirectory.resolve(source))) {
           zipOutputStream.putNextEntry(createDirectoryZipEntry(destination));
         } else {
-          try (InputStream in = new FileInputStream(baseDirectory.resolve(source).toFile())){
+          try (InputStream in = new BufferedInputStream(new FileInputStream(baseDirectory.resolve(source).toFile()))){
             zipOutputStream.putNextEntry(new ZipEntry(pathToString(destination)));
             IOUtils.copy(in, zipOutputStream);
           }
@@ -100,6 +112,7 @@ public class Envelope {
 
     try (ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(new FileInputStream(dataPath.toFile())), StandardCharsets.UTF_8)) {
       ZipEntry entry = null;
+      ArrayList<BufferedOutputStream> streamList = new ArrayList<>();
       while ((entry = zipInputStream.getNextEntry()) != null) {
         if (entry.getName().equals(MESSAGE_BUNDLE)) {
           envelope.messageBundle = MessageBundle.load(zipInputStream);
@@ -113,11 +126,14 @@ public class Envelope {
             Files.createDirectories(entryPath);
           } else {
             Files.createDirectories(entryPath.getParent());
-            try (OutputStream out = new FileOutputStream(entryPath.toFile())){
-              IOUtils.copy(zipInputStream, out);
-            }
+            BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(entryPath.toFile()));
+            streamList.add(out);
+            IOUtils.copy(zipInputStream, out);
           }
         }
+      }
+      for (BufferedOutputStream stream : streamList) {
+        stream.close();
       }
     }
 

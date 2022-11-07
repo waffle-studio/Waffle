@@ -20,12 +20,12 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<SubmitPodTaskMessage> messageList) throws ClassNotFoundException, IOException {
-    for (SubmitPodTaskMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       Path podPath = baseDirectory.resolve(message.getPodDirectory());
 
       if (!Files.exists(podPath.resolve(AbstractExecutor.UPDATE_FILE_PATH)) || Files.exists(podPath.resolve(AbstractExecutor.LOCKOUT_FILE_PATH))) {
         response.add(new PodTaskRefusedMessage(message.getJobId()));
-        continue;
+        return;
       }
 
       if (message.getExecutableDirectory() != null) {
@@ -81,6 +81,6 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
         e.printStackTrace();
         response.add(new JobExceptionMessage(message, e.getMessage()));
       }
-    }
+    });
   }
 }

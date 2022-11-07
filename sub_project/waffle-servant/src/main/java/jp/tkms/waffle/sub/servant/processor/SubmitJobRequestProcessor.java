@@ -34,15 +34,17 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       environments.put(XSUB_TYPE, NONE);
     }
 
-    for (SubmitJobMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       if (message.getExecutableDirectory() != null) {
         DirectoryHash executableDirectoryHash = new DirectoryHash(baseDirectory, message.getExecutableDirectory(), false);
-        if (!executableDirectoryHash.hasHashFile()) {
-          executableDirectoryHash.save();
-        } else {
-          if (executableDirectoryHash.update()) {
-            System.out.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
-            //TODO: notify if hash changed
+        synchronized (this) {
+          if (!executableDirectoryHash.hasHashFile()) {
+            executableDirectoryHash.save();
+          } else {
+            if (executableDirectoryHash.update()) {
+              System.out.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
+              //TODO: notify if hash changed
+            }
           }
         }
       }
@@ -55,17 +57,19 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         DirectoryHash directoryHash = new DirectoryHash(baseDirectory, message.getWorkingDirectory());
         directoryHash.createEmptyHashFile();
 
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-        container.setEnvironment(environments);
-        container.setCurrentDirectory(workingDirectory.toString());
-        container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
-        container.setOutput(outputWriter);
-        container.setError(errorWriter);
-        container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
-        container.clear();
-        container.terminate();
-        directoryHash.save();
-        outputWriter.flush();
+        synchronized (this) {
+          ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+          container.setEnvironment(environments);
+          container.setCurrentDirectory(workingDirectory.toString());
+          container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
+          container.setOutput(outputWriter);
+          container.setError(errorWriter);
+          container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
+          container.clear();
+          container.terminate();
+          directoryHash.save();
+          outputWriter.flush();
+        }
 
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
         //System.out.println(jsonObject.toString());
@@ -83,7 +87,11 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           response.add(new JobExceptionMessage(message, errorWriter.toString()));
         }
       }
-      outputWriter.close();
-    }
+      try {
+        outputWriter.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 }

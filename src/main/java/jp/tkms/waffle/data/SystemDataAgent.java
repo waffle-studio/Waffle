@@ -18,15 +18,27 @@ public class SystemDataAgent {
     JsonObject jsonObject = new JsonObject();
     switch (name.substring(PREFIX.length())) {
       case "storage":
-        jsonObject.add(name, (int)(Constants.WORK_DIR.toFile().getUsableSpace() / GB));
+        try {
+          jsonObject.add(name, (int)(Constants.WORK_DIR.toFile().getUsableSpace() / GB));
+        } catch (NullPointerException e) {
+          jsonObject.add(name, -1);
+        }
         break;
       case "cpu":
         //jsonObject.add(name, (int)(100.0 * ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getSystemCpuLoad()));
-        jsonObject.add(name, (int)(100.0 * getCpuLoad()));
+        try {
+          jsonObject.add(name, (int)(100.0 * getCpuLoad()));
+        } catch (NullPointerException e) {
+          jsonObject.add(name, -1);
+        }
         break;
       case "memory":
         //jsonObject.add(name, getTotalMemory() - round2((double)((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean()).getFreePhysicalMemorySize() / GB));
-        jsonObject.add(name, round2(getTotalMemory() - (double)getHardware().getMemory().getAvailable() / GB));
+        try {
+          jsonObject.add(name, round2(getTotalMemory() - (double)getHardware().getMemory().getAvailable() / GB));
+        } catch (NullPointerException e) {
+          jsonObject.add(name, -1);
+        }
         break;
     }
     return jsonObject;

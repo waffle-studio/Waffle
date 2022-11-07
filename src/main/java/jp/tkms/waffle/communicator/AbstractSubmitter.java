@@ -161,7 +161,12 @@ abstract public class AbstractSubmitter {
         InfoLogMessage.issue(message);
       }
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
-      submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
+      try {
+        submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
+      } catch (FailedToTransferFileException e) {
+        WarnLogMessage.issue(submitter.computer, "Servant does not respond : " + remoteResponsePath.getFileName());
+        return null;
+      }
       submitter.deleteFile(remoteResponsePath);
       Envelope response = Envelope.loadAndExtract(Constants.WORK_DIR, tmpFile);
       Files.delete(tmpFile);
@@ -186,7 +191,7 @@ abstract public class AbstractSubmitter {
 
   public void forcePrepare(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     if (job.getState().equals(State.Created)) {
-      prepareJob(envelope, job, new HashSet<>());
+      prepareJob(envelope, job);
     }
   }
 
@@ -215,7 +220,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void prepareJob(Envelope envelope, AbstractTask job, HashSet<Path> syncedBinPathSet) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
       if (job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
@@ -256,14 +261,12 @@ abstract public class AbstractSubmitter {
         envelope.add(run.getBasePath());
 
         Path remoteExecutableBaseDirectory = getExecutableBaseDirectory(job);
-        synchronized (syncedBinPathSet) {
+        synchronized (envelope) {
           Path binPath = run.getBinPath();
-          if (!syncedBinPathSet.contains(binPath)) {
+          if (binPath != null && !envelope.exists(binPath)) {
             if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
               envelope.add(binPath);
               envelope.add(new ChangePermissionMessage(remoteExecutableBaseDirectory.resolve(Executable.BASE), "a-w"));
-              syncedBinPathSet.add(binPath);
-              System.out.println("Synced " + binPath);
             }
           }
         }
@@ -797,10 +800,9 @@ abstract public class AbstractSubmitter {
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
 
-    HashSet<Path> syncedBinPathSet = new HashSet<>();
     createdJobList.stream().parallel().forEach((job)->{
       try {
-        prepareJob(envelope, job, syncedBinPathSet);
+        prepareJob(envelope, job);
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
       }

@@ -38,8 +38,10 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
       if ("1".equals(System.getenv("DEBUG"))) {
         System.out.println("PROCESS: " + this.getClass().getName());
       }
-       */
+      long start = System.currentTimeMillis();
       processIfMessagesExist(baseDirectory, request, response, messageList);
+      System.out.println(this.getClass().getSimpleName() + ": " + (System.currentTimeMillis() - start));
+       */
     }
   }
 

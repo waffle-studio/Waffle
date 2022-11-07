@@ -24,7 +24,7 @@ public class CancelPodTaskRequestProcessor extends RequestProcessor<CancelPodTas
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<CancelPodTaskMessage> messageList) throws ClassNotFoundException, IOException {
-    for (CancelPodTaskMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       try {
         Path jobFlag = baseDirectory.resolve(message.getPodDirectory()).resolve(AbstractExecutor.JOBS_PATH).resolve(message.getId());
         Files.deleteIfExists(jobFlag);
@@ -32,6 +32,6 @@ public class CancelPodTaskRequestProcessor extends RequestProcessor<CancelPodTas
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }
+    });
   }
 }

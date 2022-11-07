@@ -170,8 +170,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected void prepareJob(Envelope envelope, AbstractTask job, HashSet<Path> syncedBinPathSet) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    super.prepareJob(envelope, job, syncedBinPathSet);
+  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+    super.prepareJob(envelope, job);
 
     try {
       ComputerTask run = job.getRun();

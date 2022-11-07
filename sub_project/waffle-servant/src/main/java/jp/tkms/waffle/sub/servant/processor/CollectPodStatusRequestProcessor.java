@@ -23,7 +23,7 @@ public class CollectPodStatusRequestProcessor extends RequestProcessor<CollectPo
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<CollectPodStatusMessage> messageList) throws ClassNotFoundException, IOException {
-    for (CollectPodStatusMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       if (Files.exists(baseDirectory.resolve(message.getDirectory()).resolve(AbstractExecutor.LOCKOUT_FILE_PATH))) {
         if (AbstractExecutor.isAlive(baseDirectory.resolve(message.getDirectory()))) {
           response.add(new UpdatePodStatusMessage(message.getId(), UpdatePodStatusMessage.LOCKED));
@@ -36,6 +36,6 @@ public class CollectPodStatusRequestProcessor extends RequestProcessor<CollectPo
           response.add(new UpdatePodStatusMessage(message.getId(), UpdatePodStatusMessage.RUNNING));
         }
       }
-    }
+    });
   }
 }

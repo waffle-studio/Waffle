@@ -30,7 +30,7 @@ public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<Colle
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<CollectPodTaskStatusMessage> messageList) throws ClassNotFoundException, IOException {
-    for (CollectPodTaskStatusMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       try {
         new EventReader(baseDirectory, message.getWorkingDirectory().resolve(Constants.EVENT_FILE)).process((name, value) -> {
           response.add(new UpdateResultMessage(message, name, value));
@@ -63,6 +63,6 @@ public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<Colle
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }
+    });
   }
 }

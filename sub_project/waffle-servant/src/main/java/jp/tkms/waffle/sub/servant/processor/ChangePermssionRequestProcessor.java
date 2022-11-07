@@ -18,14 +18,14 @@ public class ChangePermssionRequestProcessor extends RequestProcessor<ChangePerm
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<ChangePermissionMessage> messageList) throws ClassNotFoundException, IOException {
-    for (ChangePermissionMessage message : messageList) {
+    messageList.stream().parallel().forEach(message -> {
       try {
         Path path = baseDirectory.resolve(message.getPath());
         changePermission(path, message.getPermission());
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }
+    });
   }
 
   protected static void changePermission(Path path, String permission) {

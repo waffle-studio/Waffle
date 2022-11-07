@@ -218,6 +218,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     try {
       session.scp(localPath.toFile(), remotePath.toString(), "/tmp");
     } catch (Exception e) {
+      e.printStackTrace();
       throw new FailedToTransferFileException(e);
     }
   }
