@@ -34,9 +34,11 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {
     ArrayList<T> messageList = getMessageList(request);
     if (!messageList.isEmpty()) {
-      if (System.getenv("DEBUG").equals("1")) {
+      /*
+      if ("1".equals(System.getenv("DEBUG"))) {
         System.out.println("PROCESS: " + this.getClass().getName());
       }
+       */
       processIfMessagesExist(baseDirectory, request, response, messageList);
     }
   }

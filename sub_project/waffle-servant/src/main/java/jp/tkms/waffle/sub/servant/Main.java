@@ -30,9 +30,11 @@ public class Main {
           break;
         }
         Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
-        if (System.getenv("DEBUG").equals("1")) {
+        /*
+        if ("1".equals(System.getenv("DEBUG"))) {
           request.getMessageBundle().print("SERVANT");
         }
+         */
         Envelope response = new Envelope(baseDirectory);
         RequestProcessor.processMessages(baseDirectory, request, response);
         response.save(Envelope.getResponsePath(envelopePath));
