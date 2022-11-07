@@ -54,6 +54,7 @@ public class Inspector extends Thread {
       }
       waitCount = 0;
       if (!Main.hibernatingFlag) {
+        /*
         if (submitter == null || !submitter.isConnected()) {
           InfoLogMessage.issue(computer, "will be reconnected");
           if (submitter != null) {
@@ -73,6 +74,7 @@ public class Inspector extends Thread {
             continue;
           }
         }
+         */
         try {
           submitter.checkSubmitted();
         } catch (FailedToControlRemoteException e) {
