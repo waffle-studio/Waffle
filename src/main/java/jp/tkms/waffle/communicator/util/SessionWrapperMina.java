@@ -1,20 +1,22 @@
 package jp.tkms.waffle.communicator.util;
 
-import com.jcraft.jsch.Session;
 import jp.tkms.utils.value.ObjectWrapper;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.sftp.client.SftpClient;
 
 import java.util.HashSet;
 
-public class SessionWrapper3 extends ObjectWrapper<Session> {
-  private HashSet<SshSession3> sessionSet = new HashSet<>();
+public class SessionWrapperMina extends SessionWrapper<SshSessionMina, ClientSession> {
+  private HashSet<SshSessionMina> sessionSet = new HashSet<>();
+  SftpClient sftpClient;
 
-  public void link(SshSession3 sshSession) {
+  public void link(SshSessionMina sshSession) {
     synchronized (sessionSet) {
       sessionSet.add(sshSession);
     }
   }
 
-  public boolean unlink(SshSession3 sshSession) {
+  public boolean unlink(SshSessionMina sshSession) {
     synchronized (sessionSet) {
       sessionSet.remove(sshSession);
       if (sessionSet.isEmpty()) {

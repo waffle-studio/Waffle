@@ -1,6 +1,5 @@
 package jp.tkms.waffle.communicator;
 
-import jp.tkms.utils.value.ObjectWrapper;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
@@ -9,7 +8,7 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.communicator.util.SshSession;
+import jp.tkms.waffle.communicator.util.SshSessionMina;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,7 +22,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
-  SshSession session;
+  SshSessionMina session;
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
     super(computer);
@@ -77,9 +76,9 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         }
       }
       Collections.reverse(tunnelList);
-      SshSession tunnelSession = null;
+      SshSessionMina tunnelSession = null;
       for (WrappedJson tunnelObject : tunnelList) {
-        tunnelSession = new SshSession(computer, tunnelSession);
+        tunnelSession = new SshSessionMina(computer, tunnelSession);
         tunnelSession.setSession(tunnelObject.getString("user", ""),
           tunnelObject.getString("host", ""),
           tunnelObject.getInt("port", 22));
@@ -107,7 +106,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         computer.setParameter("tunnel", tunnelRootObject);
       }
 
-      session = new SshSession(computer, tunnelSession);
+      session = new SshSessionMina(computer, tunnelSession);
       session.setSession(user, hostName, port);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
@@ -174,7 +173,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     String result = "";
 
     try {
-      SshSession.ExecChannel channel = session.exec(command, "");
+      SshSessionMina.ExecChannel channel = session.exec(command, "");
       result += channel.getStdout();
       result += channel.getStderr();
     } catch (Exception e) {

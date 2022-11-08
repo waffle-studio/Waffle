@@ -7,6 +7,7 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,25 +19,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class SshSession3 {
-  private static final Map<String, SessionWrapper3> sessionCache = new HashMap<>();
+public class SshSessionJsch {
+  private static final Map<String, SessionWrapperJsch> sessionCache = new HashMap<>();
 
   private final String DEFAULT_CONFIG_FILE = System.getProperty("user.home") + "/.ssh/config";
   private final String DEFAULT_PRIVKEY_FILE = System.getProperty("user.home") + "/.ssh/id_rsa";
   protected static JSch jsch = new JSch();
   //protected Session session;
-  private SessionWrapper3 sessionWrapper = null;
+  private SessionWrapperJsch sessionWrapper = null;
   Semaphore channelSemaphore = new Semaphore(4);
   String username;
   String host;
   int port;
   Computer loggingTarget;
-  SshSession3 tunnelSession;
+  SshSessionJsch tunnelSession;
 
   private String tunnelTargetHost;
   private int tunnelTargetPort;
 
-  public SshSession3(Computer loggingTarget, SshSession3 tunnelSession) throws JSchException {
+  public SshSessionJsch(Computer loggingTarget, SshSessionJsch tunnelSession) throws JSchException {
     this.loggingTarget = loggingTarget;
     this.tunnelSession = tunnelSession;
     //this.jsch = new JSch();
@@ -54,7 +55,7 @@ public class SshSession3 {
 
   public static String getSessionReport() {
     String report = "";
-    for (Map.Entry<String, SessionWrapper3> entry : sessionCache.entrySet()) {
+    for (Map.Entry<String, SessionWrapperJsch> entry : sessionCache.entrySet()) {
       report += entry.getKey() + "[" + (entry.getValue() == null || entry.getValue().get() == null ? "null" : entry.getValue().size()) + "]\n";
     }
     return report;
@@ -101,7 +102,7 @@ public class SshSession3 {
     synchronized (sessionCache) {
       sessionWrapper = sessionCache.get(getConnectionName());
       if (sessionWrapper == null) {
-        sessionWrapper = new SessionWrapper3();
+        sessionWrapper = new SessionWrapperJsch();
         sessionCache.put(getConnectionName(), sessionWrapper);
       }
     }
@@ -196,9 +197,9 @@ public class SshSession3 {
     return sessionWrapper.get().setPortForwardingL(0, hostName, rport);
   }
 
-  public SshChannel3 exec(String command, String workDir) throws JSchException, InterruptedException {
+  public SshChannelJsch exec(String command, String workDir) throws JSchException, InterruptedException {
     synchronized (sessionWrapper) {
-      SshChannel3 channel = new SshChannel3((ChannelExec) openChannel("exec"));
+      SshChannelJsch channel = new SshChannelJsch((ChannelExec) openChannel("exec"));
       int count = 0;
       boolean failed = false;
       do {
@@ -217,7 +218,7 @@ public class SshSession3 {
             } catch (InterruptedException ex) {
               ex.printStackTrace();
             }
-            channel = new SshChannel3((ChannelExec) openChannel("exec"));
+            channel = new SshChannelJsch((ChannelExec) openChannel("exec"));
           } else {
             throw e;
           }
@@ -285,7 +286,7 @@ public class SshSession3 {
   }
 
   public boolean rmdir(String path, String workDir) throws JSchException, InterruptedException {
-    SshChannel3 channel = exec("rm -rf " + path, workDir);
+    SshChannelJsch channel = exec("rm -rf " + path, workDir);
 
     return (channel.getExitStatus() == 0);
   }
@@ -489,5 +490,87 @@ public class SshSession3 {
     }
 
     return result;
+  }
+
+  public static class SshChannelJsch {
+    private final int waitTime = 25;
+    private final int maxOfWait = 400;
+
+    private ChannelExec channel;
+
+    private String submittedCommand;
+    private String stdout;
+    private String stderr;
+    private int exitStatus;
+
+    public SshChannelJsch(ChannelExec channel) throws JSchException {
+      this.channel = channel;
+      stdout = "";
+      stderr = "";
+      exitStatus = -1;
+    }
+
+    public String getStdout() {
+      return stdout;
+    }
+
+    public String getStderr() {
+      return stderr;
+    }
+
+    public int getExitStatus() {
+      return exitStatus;
+    }
+
+    public String getSubmittedCommand() {
+      return submittedCommand;
+    }
+
+    public SshChannelJsch exec(String command, String workDir) throws JSchException {
+      submittedCommand = "cd " + workDir + " && " + command;
+      channel.setCommand("sh -c '" +  submittedCommand.replaceAll("'", "'\\\\''") + "'");
+      channel.connect();
+
+      try {
+        BufferedInputStream outStream = new BufferedInputStream(channel.getInputStream());
+        BufferedInputStream errStream = new BufferedInputStream(channel.getErrStream());
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        while (true) {
+          int len = outStream.read(buf);
+          if (len <= 0) {
+            break;
+          }
+          outputStream.write(buf, 0, len);
+        }
+        stdout = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+
+        outputStream = new ByteArrayOutputStream();
+        buf = new byte[1024];
+        while (true) {
+          int len = errStream.read(buf);
+          if (len <= 0) {
+            break;
+          }
+          outputStream.write(buf, 0, len);
+        }
+        stderr = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+      channel.disconnect();
+      int sleepCount = 0;
+      do {
+        try {
+          Thread.sleep(waitTime);
+        } catch (InterruptedException e) { }
+      } while (!channel.isClosed() && sleepCount++ < maxOfWait);
+
+      exitStatus = channel.getExitStatus();
+
+      return this;
+    }
   }
 }

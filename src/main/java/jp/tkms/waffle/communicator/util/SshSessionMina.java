@@ -10,13 +10,14 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.exception.FailedToAcquireConnectionException;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.channel.ChannelExec;
 import org.apache.sshd.client.channel.ChannelShell;
-import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
-import org.apache.sshd.common.session.SessionHeartbeatController;
+import org.apache.sshd.common.session.ConnectionService;
+import org.apache.sshd.common.session.helpers.AbstractConnectionService;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
 import org.apache.sshd.common.util.security.SecurityUtils;
 import org.apache.sshd.scp.client.ScpClient;
@@ -28,7 +29,6 @@ import org.apache.sshd.sftp.common.SftpException;
 
 import java.io.*;
 import java.nio.channels.UnresolvedAddressException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,34 +37,33 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 
-public class SshSession implements AutoCloseable {
+public class SshSessionMina implements AutoCloseable {
 
   private static final boolean MODE_SFTP = false;
   private static final int LINE_FEED = '\n';
   static final int TIMEOUT = 60;
   static final int LONG_TIMEOUT = 300; //5min
-  private static final Map<String, SessionWrapper> sessionCache = new HashMap<>();
+  private static final Map<String, SessionWrapperMina> sessionCache = new HashMap<>();
 
   private static SshClient client = null;
-  private SessionWrapper sessionWrapper = null;
+  private SessionWrapperMina sessionWrapper = null;
   String username;
   String host;
   int port;
   Computer loggingTarget;
-  SshSession tunnelSession;
+  SshSessionMina tunnelSession;
   private String tunnelTargetHost;
   private int tunnelTargetPort;
   String homePath;
   long previousAliveTime = -1;
   Thread watchdogThread = null;
 
-  public SshSession(Computer loggingTarget, SshSession tunnelSession) {
+  public SshSessionMina(Computer loggingTarget, SshSessionMina tunnelSession) {
     this.loggingTarget = loggingTarget;
     this.tunnelSession = tunnelSession;
 
@@ -136,7 +135,7 @@ public class SshSession implements AutoCloseable {
 
   public static String getSessionReport() {
     String report = "";
-    for (Map.Entry<String, SessionWrapper> entry : sessionCache.entrySet()) {
+    for (Map.Entry<String, SessionWrapperMina> entry : sessionCache.entrySet()) {
       report += entry.getKey() + "[" + (entry.getValue() == null || entry.getValue().get() == null ? "null" : entry.getValue().size()) + "]\n";
     }
     return report;
@@ -194,7 +193,7 @@ public class SshSession implements AutoCloseable {
     synchronized (sessionCache) {
       sessionWrapper = sessionCache.get(getConnectionName());
       if (sessionWrapper == null) {
-        sessionWrapper = new SessionWrapper();
+        sessionWrapper = new SessionWrapperMina();
         sessionCache.put(getConnectionName(), sessionWrapper);
       }
     }
@@ -263,7 +262,7 @@ public class SshSession implements AutoCloseable {
             if (sessionWrapper.sftpClient != null) {
               try {
                 sessionWrapper.sftpClient.close();
-                sessionWrapper.sftpClient.getChannel().close(false);
+                sessionWrapper.sftpClient.getChannel().close(false).awaitUninterruptibly();
                 while (!sessionWrapper.sftpClient.getChannel().isClosed()) {
                   Simple.sleep(TimeUnit.MILLISECONDS, 10);
                 }
@@ -273,9 +272,14 @@ public class SshSession implements AutoCloseable {
               sessionWrapper.sftpClient = null;
             }
             synchronized (sessionCache) {
-              session.close(false);
+              session.close(false).awaitUninterruptibly();
               while (!session.isClosed()) {
                 Simple.sleep(TimeUnit.MILLISECONDS, 10);
+              }
+              try {
+                session.disconnect(75, "");
+              } catch (IOException e) {
+                //NOP
               }
               synchronized (sessionCache) {
                 sessionCache.remove(getConnectionName());
@@ -875,7 +879,7 @@ public class SshSession implements AutoCloseable {
 
       try (ByteArrayOutputStream stdoutOutputStream = new ByteArrayOutputStream();
            ByteArrayOutputStream stderrOutputStream = new ByteArrayOutputStream();
-           ClientChannel channel = provider.createExecChannel(fullCommand, stdoutOutputStream, stderrOutputStream)) {
+           ChannelExec channel = provider.createExecChannel(fullCommand, stdoutOutputStream, stderrOutputStream)) {
 
         int timeoutCount = 0;
         while (LONG_TIMEOUT > TIMEOUT * timeoutCount) {
@@ -892,17 +896,20 @@ public class SshSession implements AutoCloseable {
           }
         }
 
-        stdout = stdoutOutputStream.toString(StandardCharsets.UTF_8);
-        stderr = stderrOutputStream.toString(StandardCharsets.UTF_8);
+        stdout = stdoutOutputStream.toString();
+        stderr = stderrOutputStream.toString();
       }
       return this;
     }
   }
 
+  static int count1 = 0;
+  static int count2 = 0;
+  static int count3 = 0;
   class ChannelProvider implements AutoCloseable {
     int failedCount;
     boolean isSessionClosed;
-    ClientChannel clientChannel;
+    ChannelExec channelExec;
     //SftpClient sftpClient;
     boolean isSftp;
     DebugElapsedTime debugElapsedTime;
@@ -912,28 +919,28 @@ public class SshSession implements AutoCloseable {
       debugElapsedTime = new DebugElapsedTime("NULL: ");
       failedCount = 0;
       isSessionClosed = false;
-      clientChannel = null;
+      channelExec = null;
       //sftpClient = null;
       isSftp = false;
     }
 
-    public ClientChannel createExecChannel(String command, OutputStream stdoutOutputStream, OutputStream stderrOutputStream) {
-      debugElapsedTime = new DebugElapsedTime("EXEC: ");
+    public ChannelExec createExecChannel(String command, OutputStream stdoutOutputStream, OutputStream stderrOutputStream) {
+      debugElapsedTime = new DebugElapsedTime("EXEC " + (++count1) + ": ");
       boolean isFailed = false;
       do {
         isFailed = false;
         checkSession();
         try {
-          clientChannel = sessionWrapper.get().createExecChannel(command);
-          clientChannel.setOut(stdoutOutputStream);
-          clientChannel.setErr(stderrOutputStream);
-          clientChannel.open().verify(TIMEOUT, TimeUnit.SECONDS);
+          channelExec = sessionWrapper.get().createExecChannel(command);
+          channelExec.setOut(stdoutOutputStream);
+          channelExec.setErr(stderrOutputStream);
+          channelExec.open().verify(TIMEOUT, TimeUnit.SECONDS);
         } catch (IOException e) {
           isFailed = true;
           failed();
         }
       } while (isFailed);
-      return clientChannel;
+      return channelExec;
     }
 
     public ScpClient createScpChannel() {
@@ -954,7 +961,7 @@ public class SshSession implements AutoCloseable {
     }
 
     public SftpClient createSftpChannel() {
-      debugElapsedTime = new DebugElapsedTime("SFTP: ");
+      debugElapsedTime = new DebugElapsedTime("EXEC " + (++count3) + ": ");
       isSftp = true;
       boolean isFailed = false;
       do {
@@ -997,6 +1004,8 @@ public class SshSession implements AutoCloseable {
         //InfoLogMessage.issue(loggingTarget, "Retry to open channel after 1 sec.");
         Simple.sleep(TimeUnit.SECONDS, 1);
       } else {
+        System.out.println("Failed to open channel: " + count1 + " + " + count2 + " + " + count3 + " = " + (count1 + count2 + count3));
+        count1 = count2 = count3 = 0;
         resetSession();
         int sleepTime = Math.min(60, failedCount);
         InfoLogMessage.issue(loggingTarget, "Reset the session and retry to open channel after " + sleepTime + " sec.");
@@ -1008,7 +1017,7 @@ public class SshSession implements AutoCloseable {
       if (sessionWrapper.sftpClient != null && resetSftp) {
         try {
           sessionWrapper.sftpClient.close();
-          sessionWrapper.sftpClient.getChannel().close(false);
+          sessionWrapper.sftpClient.getChannel().close(false).awaitUninterruptibly();
           while (!sessionWrapper.sftpClient.getChannel().isClosed()) {
             Simple.sleep(TimeUnit.MILLISECONDS, 10);
           }
@@ -1018,14 +1027,16 @@ public class SshSession implements AutoCloseable {
         sessionWrapper.sftpClient = null;
       }
 
-      if (clientChannel != null) {
-        clientChannel.close(false);
-        clientChannel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.ofSeconds(TIMEOUT));
-        while (!clientChannel.isClosed()) {
+      if (channelExec != null) {
+        channelExec.close(false).awaitUninterruptibly();
+        channelExec.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.ofSeconds(TIMEOUT));
+        while (!channelExec.isClosed()) {
           Simple.sleep(TimeUnit.MILLISECONDS, 10);
         }
-        clientChannel = null;
+        channelExec = null;
       }
+
+      System.out.println("CH: " + ((AbstractConnectionService)sessionWrapper.get().getService(ConnectionService.class)).getChannels().size());
     }
 
     private void resetSession() {

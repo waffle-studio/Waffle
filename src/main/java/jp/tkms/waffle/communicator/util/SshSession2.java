@@ -137,6 +137,7 @@ public class SshSession2 {
     String submittingCommand = "cd " + workDir + " && " + command;
     Session.Command channel = session.exec("sh -c '" +  submittingCommand.replaceAll("'", "'\\\\''") + "'\n");
     channel.join();
+    channel.close();
     session.close();
     return new SshChannel2(channel);
   }
