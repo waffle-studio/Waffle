@@ -39,9 +39,9 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
         System.out.println("PROCESS: " + this.getClass().getName());
       }
       long start = System.currentTimeMillis();
-      processIfMessagesExist(baseDirectory, request, response, messageList);
-      System.out.println(this.getClass().getSimpleName() + ": " + (System.currentTimeMillis() - start));
        */
+      processIfMessagesExist(baseDirectory, request, response, messageList);
+      //System.out.println(this.getClass().getSimpleName() + ": " + (System.currentTimeMillis() - start));
     }
   }
 

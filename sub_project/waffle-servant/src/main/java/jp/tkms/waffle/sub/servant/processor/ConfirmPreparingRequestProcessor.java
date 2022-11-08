@@ -18,9 +18,7 @@ import org.jruby.embed.ScriptingContainer;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ConfirmPreparingRequestProcessor extends RequestProcessor<ConfirmPreparingMessage> {
 
@@ -29,8 +27,11 @@ public class ConfirmPreparingRequestProcessor extends RequestProcessor<ConfirmPr
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<ConfirmPreparingMessage> messageList) throws ClassNotFoundException, IOException {
+    Set<String> addedSet = new HashSet<>();
     for (ConfirmPreparingMessage message : messageList) {
-      response.add(new UpdatePreparedMessage(message));
+      if (addedSet.add(message.getId())) {
+        response.add(new UpdatePreparedMessage(message));
+      }
     }
   }
 }

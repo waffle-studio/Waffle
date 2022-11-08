@@ -145,6 +145,7 @@ abstract public class AbstractSubmitter {
         submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
         Files.delete(tmpFile);
       } while (!submitter.exists(remoteEnvelopePath));
+      //envelope.getMessageBundle().print("REQ:");
 
       String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
       if (!jvmActivationCommand.trim().equals("") && !jvmActivationCommand.trim().endsWith(";")) {
@@ -158,17 +159,26 @@ abstract public class AbstractSubmitter {
         + getWaffleServantPath(submitter, submitter.computer)
         + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'\"")).trim();
       if (!"".equals(message)) {
-        InfoLogMessage.issue(message);
+        InfoLogMessage.issue("REMOTE(SERVANT)> " + message);
       }
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
       try {
         submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
       } catch (FailedToTransferFileException e) {
-        WarnLogMessage.issue(submitter.computer, "Servant does not respond : " + remoteResponsePath.getFileName());
-        return null;
+        if (submitter.exists(remoteResponsePath)) {
+          try {
+            submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
+          } catch (FailedToTransferFileException ex) {
+            InfoLogMessage.issue(submitter.computer, "Servant does not respond (comm) : " + remoteResponsePath.getFileName());
+          }
+        } else {
+          InfoLogMessage.issue(submitter.computer, "Servant does not respond (exec) : " + remoteResponsePath.getFileName());
+          return null;
+        }
       }
       submitter.deleteFile(remoteResponsePath);
       Envelope response = Envelope.loadAndExtract(Constants.WORK_DIR, tmpFile);
+      //response.getMessageBundle().print("RES:");
       Files.delete(tmpFile);
       return response;
     }
@@ -567,7 +577,7 @@ abstract public class AbstractSubmitter {
       }
 
     } catch (Exception e) {
-      ErrorLogMessage.issue(e);
+      InfoLogMessage.issue(computer, "Communication was failed: " + e.getMessage());
     }
 
     return response;

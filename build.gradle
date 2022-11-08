@@ -50,6 +50,7 @@ dependencies {
     implementation 'com.jcraft:jsch:0.1.55'
 	implementation 'com.hierynomus:sshj:0.29.0'
 	implementation group: 'org.apache.sshd', name: 'sshd-core', version: '2.9.1'
+	implementation group: 'org.apache.sshd', name: 'sshd-scp', version: '2.9.1'
 	implementation group: 'org.apache.sshd', name: 'sshd-sftp', version: '2.9.1'
 	//implementation 'org.json:json:20190722'
 	implementation 'org.jruby:jruby-complete:9.2.12.0'

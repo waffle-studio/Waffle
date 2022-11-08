@@ -32,12 +32,14 @@ public class Main {
         Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
         /*
         if ("1".equals(System.getenv("DEBUG"))) {
-          request.getMessageBundle().print("SERVANT");
+          request.getMessageBundle().print("SERVANT:");
         }
          */
+        //request.getMessageBundle().print("SERVANT-IN:");
         Envelope response = new Envelope(baseDirectory);
         RequestProcessor.processMessages(baseDirectory, request, response);
         response.save(Envelope.getResponsePath(envelopePath));
+        //response.getMessageBundle().print("SERVANT-OUT:");
         Files.delete(envelopePath);
         break;
       case "exec":
