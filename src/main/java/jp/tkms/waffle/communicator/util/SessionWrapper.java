@@ -6,7 +6,7 @@ import org.apache.sshd.sftp.client.SftpClient;
 
 import java.util.HashSet;
 
-public class SessionWrapper<T,S> extends ObjectWrapper<S> {
+public abstract class SessionWrapper<T,S> extends ObjectWrapper<S> {
   private HashSet<T> sessionSet = new HashSet<>();
 
   public void link(T sshSession) {

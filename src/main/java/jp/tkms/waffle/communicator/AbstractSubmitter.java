@@ -81,7 +81,7 @@ abstract public class AbstractSubmitter {
   //abstract public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
-  abstract public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException;
+  abstract public void transferFilesFromRemote(Path remotePath, Path localPath, Boolean isDir) throws FailedToTransferFileException;
 
   public AbstractSubmitter(Computer computer) {
     this.computer = computer;
@@ -120,6 +120,10 @@ abstract public class AbstractSubmitter {
     exec("chmod " + mod +" '" + path.toString() + "'");
   }
 
+  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+    transferFilesFromRemote(remotePath, localPath, null);
+  }
+
   private static Path getTempDirectoryPath() throws IOException {
     if (tempDirectoryPath == null) {
       synchronized (AbstractSubmitter.class) {
@@ -139,12 +143,13 @@ abstract public class AbstractSubmitter {
       Path remoteWorkBasePath = submitter.parseHomePath(submitter.computer.getWorkBaseDirectory());
       Path remoteEnvelopePath = remoteWorkBasePath.resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
       Files.createDirectories(tmpFile.getParent());
-      do {
-        envelope.save(tmpFile);
-        submitter.createDirectories(remoteEnvelopePath.getParent());
-        submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
-        Files.delete(tmpFile);
-      } while (!submitter.exists(remoteEnvelopePath));
+
+      //do {
+      envelope.save(tmpFile);
+      submitter.createDirectories(remoteEnvelopePath.getParent());
+      submitter.transferFilesToRemote(tmpFile, remoteEnvelopePath);
+      Files.delete(tmpFile);
+      //} while (!submitter.exists(remoteEnvelopePath));
       //envelope.getMessageBundle().print("REQ:");
 
       String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
@@ -163,11 +168,11 @@ abstract public class AbstractSubmitter {
       }
       Path remoteResponsePath = Envelope.getResponsePath(remoteEnvelopePath);
       try {
-        submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
+        submitter.transferFilesFromRemote(remoteResponsePath, tmpFile, false);
       } catch (FailedToTransferFileException e) {
         if (submitter.exists(remoteResponsePath)) {
           try {
-            submitter.transferFilesFromRemote(remoteResponsePath, tmpFile);
+            submitter.transferFilesFromRemote(remoteResponsePath, tmpFile, false);
           } catch (FailedToTransferFileException ex) {
             InfoLogMessage.issue(submitter.computer, "Servant does not respond (comm) : " + remoteResponsePath.getFileName());
           }

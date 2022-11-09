@@ -12,9 +12,9 @@ JAR_FILE="${WAFFLE_INTERNAL}/waffle-all.jar"
 JRE_FILE="${WAFFLE_INTERNAL}/waffle-jre.tar.gz"
 JRE_DIR="${WAFFLE_INTERNAL}/waffle-jre"
 
-if [ "$1" = "u" ];then
+if [ "$1" = "-u" ];then
   rm $JAR_FILE >/dev/null 2>&1
-elif [ "$1" = "U" ];then
+elif [ "$1" = "-U" ];then
   rm $JAR_FILE >/dev/null 2>&1
   rm $JRE_FILE >/dev/null 2>&1
   rm -rf $JRE_DIR >/dev/null 2>&1

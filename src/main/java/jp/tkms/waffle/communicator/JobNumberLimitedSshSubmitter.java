@@ -227,9 +227,9 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+  public void transferFilesFromRemote(Path remotePath, Path localPath, Boolean isDir) throws FailedToTransferFileException {
     try {
-      session.scp(remotePath.toString(), localPath.toFile(), "/tmp");
+      session.scp(remotePath.toString(), localPath.toFile(), "/tmp", isDir);
     } catch (Exception e) {
       throw new FailedToTransferFileException(e);
     }

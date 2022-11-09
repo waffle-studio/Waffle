@@ -44,7 +44,7 @@ public class Remote {
     try {
       Path local = run.getBasePath().resolve(path);
       Files.createDirectories(local.getParent());
-      submitter.transferFilesFromRemote(submitter.getBaseDirectory(run).resolve(path), local);
+      submitter.transferFilesFromRemote(submitter.getBaseDirectory(run).resolve(path), local, null);
     } catch (FailedToTransferFileException | FailedToControlRemoteException | IOException e) {
       WarnLogMessage.issue(run, e);
     }

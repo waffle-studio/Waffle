@@ -76,7 +76,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+  public void transferFilesFromRemote(Path remotePath, Path localPath, Boolean isDir) throws FailedToTransferFileException {
 
   }
 

@@ -116,7 +116,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
+  public void transferFilesFromRemote(Path remotePath, Path localPath, Boolean isDir) throws FailedToTransferFileException {
     try {
       Files.createDirectories(localPath.getParent());
       if (Files.isDirectory(remotePath)) {

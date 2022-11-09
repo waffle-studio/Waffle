@@ -293,7 +293,6 @@ public class SshSessionSshj implements AutoCloseable {
             stopWatchdog();
             synchronized (sessionCache) {
               try {
-                session.disconnect();
                 session.close();
               } catch (IOException e) {
                 //NOP
@@ -303,10 +302,10 @@ public class SshSessionSshj implements AutoCloseable {
               }
             }
           }
-        }
 
-        if (tunnelSession != null) {
-          tunnelSession.disconnect(isNormal);
+          if (tunnelSession != null) {
+            tunnelSession.disconnect(isNormal);
+          }
         }
       }
     }
@@ -462,11 +461,11 @@ public class SshSessionSshj implements AutoCloseable {
     return exec(commandString("test", "-d", remote), "/tmp").getExitStatus() == 0;
   }
 
-  public boolean scp(String remote, File local, String workDir) throws Exception {
+  public boolean scp(String remote, File local, String workDir, Boolean isDir) throws Exception {
     synchronized (sessionWrapper) {
       try {
         final String resolvedRemote = resolvePath(remote, workDir);
-        boolean isDirectory = isDirectory(resolvedRemote);
+        boolean isDirectory = (isDir == null ? isDirectory(resolvedRemote) : isDir);
 
         if (isDirectory) {
           Files.createDirectories(local.toPath().getParent());
@@ -812,7 +811,7 @@ public class SshSessionSshj implements AutoCloseable {
             try {
               throw new Exception("DEBUG MESSAGE");
             } catch (Exception e) {
-              e.printStackTrace();
+              Simple.printSimpleStackTrace(e);
             }
           }
         }

@@ -799,8 +799,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {
-    targetSubmitter.transferFilesFromRemote(remotePath, localPath);
+  public void transferFilesFromRemote(Path remotePath, Path localPath, Boolean isDir) throws FailedToTransferFileException {
+    targetSubmitter.transferFilesFromRemote(remotePath, localPath, isDir);
   }
 
   @Override
