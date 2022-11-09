@@ -230,9 +230,24 @@ abstract public class AbstractSubmitter {
     }
   }
 
+  private boolean containsConfirmPreparingMessage(Envelope envelope, AbstractTask job) {
+    ArrayList<ConfirmPreparingMessage> list = null;
+    synchronized (envelope) {
+      list = envelope.getMessageBundle().getCastedMessageList(ConfirmPreparingMessage.class);
+    }
+    if (list != null) {
+      for (ConfirmPreparingMessage message : list) {
+        if (message.getType() == job.getTypeCode() && message.getId().equals(job.getHexCode())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
-      if (job.getState().equals(State.Created)) {
+      if (!containsConfirmPreparingMessage(envelope, job) && job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
         run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 

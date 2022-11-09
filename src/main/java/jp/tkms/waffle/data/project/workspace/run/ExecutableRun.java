@@ -38,6 +38,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   private static final String KEY_EXPECTED_NAME = "expected_name";
   private static final String KEY_LOCAL_SHARED = "local_shared";
   private static final String KEY_TASK_ID = "task_id";
+  private static final String KEY_PREPROCESSED = "preprocessed";
   protected static final String KEY_UPDATE_HANDLER = "update_handler";
   protected static final String RESULT_PATH_SEPARATOR = ":";
 
@@ -405,9 +406,12 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   @Override
-  public void specializedPreProcess(AbstractSubmitter submitter) {
-    for (String extractorName : getExecutable().getExtractorNameList()) {
-      ScriptProcessor.getProcessor(getExecutable().getScriptProcessorName()).processExtractor(submitter, this, extractorName);
+  public synchronized void specializedPreProcess(AbstractSubmitter submitter) {
+    if (!getBooleanFromProperty(KEY_PREPROCESSED, false)) {
+      for (String extractorName : getExecutable().getExtractorNameList()) {
+        ScriptProcessor.getProcessor(getExecutable().getScriptProcessorName()).processExtractor(submitter, this, extractorName);
+      }
+      setToProperty(KEY_PREPROCESSED, true);
     }
   }
 
