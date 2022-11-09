@@ -1,9 +1,11 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.communicator.util.SshSessionSshj;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.computer.MasterPassword;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
@@ -22,7 +24,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   private static final String ENCRYPTED_MARK = "#*# = ENCRYPTED = #*#";
   private static final String KEY_ENCRYPTED_IDENTITY_PASS = ".encrypted_identity_pass";
 
-  SshSessionMina session;
+  SshSessionSshj session;
 
   public JobNumberLimitedSshSubmitter(Computer computer) {
     super(computer);
@@ -76,9 +78,9 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         }
       }
       Collections.reverse(tunnelList);
-      SshSessionMina tunnelSession = null;
+      SshSessionSshj tunnelSession = null;
       for (WrappedJson tunnelObject : tunnelList) {
-        tunnelSession = new SshSessionMina(computer, tunnelSession);
+        tunnelSession = new SshSessionSshj(computer, tunnelSession);
         tunnelSession.setSession(tunnelObject.getString("user", ""),
           tunnelObject.getString("host", ""),
           tunnelObject.getInt("port", 22));
@@ -106,7 +108,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
         computer.setParameter("tunnel", tunnelRootObject);
       }
 
-      session = new SshSessionMina(computer, tunnelSession);
+      session = new SshSessionSshj(computer, tunnelSession);
       session.setSession(user, hostName, port);
       if (identityPass.equals("")) {
         session.addIdentity(identityFile);
@@ -117,6 +119,8 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage());
     }
+
+    InfoLogMessage.issue(computer, "acquired the connection");
 
     return this;
   }
@@ -144,6 +148,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
       try {
         pathString = pathString.replaceAll("^~", session.getHomePath());
       } catch (Exception e) {
+        e.printStackTrace();
         throw new FailedToControlRemoteException(e);
       }
     }
@@ -173,7 +178,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     String result = "";
 
     try {
-      SshSessionMina.ExecChannel channel = session.exec(command, "");
+      SshSessionSshj.ExecChannel channel = session.exec(command, "");
       result += channel.getStdout();
       result += channel.getStderr();
     } catch (Exception e) {
