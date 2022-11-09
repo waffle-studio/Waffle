@@ -33,4 +33,5 @@ public class Constants {
   public static final long HUGE_FILE_SIZE = 1048576;
   public static final String WAFFLE_OPEN_COMMAND = "WAFFLE_OPEN_COMMAND";
   public static final Path AUTO_START_FILE = Constants.WORK_DIR.resolve(Constants.DOT_INTERNAL).resolve("AUTO_START");
+  public static final Path SESSION_CACHE_FILE = WORK_DIR.resolve(DOT_INTERNAL).resolve("SESSION_CACHE");
 }

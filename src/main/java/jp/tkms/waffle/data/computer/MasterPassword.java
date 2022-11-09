@@ -16,6 +16,10 @@ import java.util.concurrent.TimeUnit;
 public class MasterPassword {
   private static String masterPassword = null;
 
+  public static boolean isRegistered() {
+    return masterPassword != null;
+  }
+
   public static void register(String password) {
     masterPassword = HashString.toSHA256Base64(UserSession.getWaffleId() + password);
   }
@@ -48,11 +52,11 @@ public class MasterPassword {
 
   private static void waitForPreparing() throws InterruptedException {
     try {
-      if (masterPassword == null) { InfoLogMessage.issue("Wait to input your master password"); }
+      if (masterPassword == null) { InfoLogMessage.issue("WAIT TO INPUT YOUR MASTER PASSWORD. You should login from a web browser, the command 'pass <password>', or the environment value 'MASTER_PASS'."); }
       Simple.waitUntil(()-> masterPassword == null && !Main.hibernatingFlag, TimeUnit.SECONDS, 1);
       if (masterPassword == null) { throw new InterruptedException(); }
     } catch (InterruptedException e) {
-      InfoLogMessage.issue("Abort a crypting process by a master password");
+      InfoLogMessage.issue("Abort a decrypting/encrypting process by a master password.");
       throw e;
     }
   }

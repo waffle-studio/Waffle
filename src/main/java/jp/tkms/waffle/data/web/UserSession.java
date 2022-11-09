@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.util.Sql;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import org.checkerframework.checker.units.qual.A;
 
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
@@ -63,5 +64,32 @@ public class UserSession {
       list.add(session);
     }
     return list;
+  }
+
+  public static void saveCache() {
+    try (FileOutputStream outputStream = new FileOutputStream(Constants.SESSION_CACHE_FILE.toFile())) {
+      for (UserSession session : idMap.values()) {
+        outputStream.write(session.id.getBytes());
+        outputStream.write("\n".getBytes());
+      }
+    } catch (Exception | Error e) {
+      e.printStackTrace();
+    }
+  }
+
+  public static void loadCache() {
+    if (Files.exists(Constants.SESSION_CACHE_FILE)) {
+      try {
+        List<String> lines = Files.readAllLines(Constants.SESSION_CACHE_FILE);
+        for (String line : lines) {
+          String id = line.trim();
+          if (id.length() > 0) {
+            idMap.put(id.trim(), new UserSession(id.trim()));
+          }
+        }
+      } catch (Exception | Error e) {
+        e.printStackTrace();
+      }
+    }
   }
 }

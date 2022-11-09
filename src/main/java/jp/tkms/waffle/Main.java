@@ -12,6 +12,7 @@ import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
 import jp.tkms.waffle.data.web.Password;
+import jp.tkms.waffle.data.web.UserSession;
 import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
@@ -90,14 +91,17 @@ public class Main {
     InfoLogMessage.issue("PID is " + PID);
     InfoLogMessage.issue("Web port is " + port);
 
+    MasterPassword.registerWithAuthenticate(System.getenv("MASTER_PASS"));
+    if (MasterPassword.isRegistered()) {
+      UserSession.loadCache();
+    }
+
     fileWatcherThread.start();
 
     initSpark(port);
     gcInvokerThread.start();
     commandLineThread.start();
     bootRubyScript();
-
-    MasterPassword.registerWithAuthenticate(System.getenv("MASTER_PASS"));
 
     ManagerMaster.startup();
     InspectorMaster.startup();
@@ -324,6 +328,7 @@ public class Main {
         hibernatingFlag = true;
 
         try {
+          UserSession.saveCache();
           commandLineThread.interrupt();
           fileWatcherThread.interrupt();
           gcInvokerThread.interrupt();
