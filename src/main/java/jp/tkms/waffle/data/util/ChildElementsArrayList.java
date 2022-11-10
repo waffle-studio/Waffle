@@ -2,9 +2,7 @@ package jp.tkms.waffle.data.util;
 
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import org.checkerframework.checker.units.qual.A;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +16,7 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
   public static final String DOT_SORT = ".SORT";
 
   public enum Mode {
-    All, OnlyNormal, OnlyHidden, OnlyFavorite, FavoriteFirst
+    All, OnlyNormal, OnlyHidden, OnlyFavorite, OnlyNormalFavoriteFirst, AllFavoriteFirst
   }
 
   private static final Comparator<Path> comparator = Comparator.comparingLong(path -> {
@@ -49,7 +47,8 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
           }
         }
          */
-        } else if (Mode.FavoriteFirst.equals(mode)) {
+        } else if (Mode.OnlyNormalFavoriteFirst.equals(mode) || Mode.AllFavoriteFirst.equals(mode)) {
+          boolean isNotAllMode = !Mode.AllFavoriteFirst.equals(mode);
           ArrayList<T> followings = new ArrayList<>();
           try (Stream<Path> paths = Files.list(baseDirectory)) {
             paths.filter(path -> Files.isDirectory(path)).sorted(comparator).forEach(path -> {
@@ -57,7 +56,11 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
               if (Files.exists(path.resolve(Constants.DOT_FAVORITE))) {
                 add(getInstance.apply(name));
               } else {
-                followings.add(getInstance.apply(name));
+                if (isNotAllMode && !name.startsWith(".")) {
+                  followings.add(getInstance.apply(name));
+                } else {
+                  followings.add(getInstance.apply(name));
+                }
               }
             });
           }

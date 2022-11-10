@@ -5,13 +5,11 @@ import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
-import jp.tkms.waffle.data.internal.task.ExecutableRunTaskStore;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
-import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -77,7 +75,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public static ArrayList<Workspace> getList(Project project) {
-    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), ChildElementsArrayList.Mode.OnlyNormal, name -> {
+    return new ChildElementsArrayList().getList(getBaseDirectoryPath(project), ChildElementsArrayList.Mode.OnlyNormalFavoriteFirst, name -> {
       return getInstance(project, name.toString());
     });
   }

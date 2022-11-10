@@ -162,6 +162,7 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
               ArrayList<Lte.TableValue> headers = new ArrayList<>();
               headers.add(new Lte.TableValue("", "Name"));
               headers.add(new Lte.TableValue("", "Note"));
+              headers.add(new Lte.TableValue("", ""));
               return headers;
             }
 
@@ -170,10 +171,16 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
               ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
               for (Executable executable : executableList) {
                 list.add(Main.interfaceThreadPool.submit(() -> {
-                    return new Lte.TableRow(
+                    Lte.TableRow row =  new Lte.TableRow(
                       Html.a(ExecutableComponent.getUrl(executable), null, null, executable.getName()),
                       Html.sanitaize(executable.getNote())
                     );
+                    row.add(new Lte.TableValue("text-align:right;",
+                      Html.a(ExecutableComponent.getUrl(executable, ExecutableComponent.Mode.TestRun),
+                        Html.span("right badge badge-secondary", null, "TEST RUN")
+                      )
+                    ));
+                    return row;
                   }
                 ));
               }

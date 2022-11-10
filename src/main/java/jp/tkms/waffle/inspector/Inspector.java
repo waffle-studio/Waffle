@@ -32,7 +32,7 @@ public class Inspector extends Thread {
 
   @Override
   public void run() {
-    InfoLogMessage.issue(computer, "submitter started");
+    InfoLogMessage.issue(computer, "started a " + mode.name() + " submitter");
 
     AbstractSubmitter submitter = AbstractSubmitter.getInstance(mode, computer).connect();
 
@@ -79,10 +79,10 @@ public class Inspector extends Thread {
           submitter.checkSubmitted();
         } catch (FailedToControlRemoteException e) {
           submitter.close();
-          WarnLogMessage.issue(computer, "was scanned with error");
+          WarnLogMessage.issue(computer, "scanned jobs with error");
           continue;
         }
-        InfoLogMessage.issue(computer, "was scanned");
+        InfoLogMessage.issue(computer, "scanned jobs");
       }
     } while ((mode.equals(Mode.Normal) ? ExecutableRunTask.getList(computer).size() : SystemTask.getList(computer).size()) > 0);
 
@@ -91,7 +91,7 @@ public class Inspector extends Thread {
     }
     InspectorMaster.removeInspector(getThreadName(mode, computer));
 
-    InfoLogMessage.issue(computer, mode.name() + " submitter closed");
+    InfoLogMessage.issue(computer, "closed a " + mode.name() + " submitter");
     return;
   }
 
