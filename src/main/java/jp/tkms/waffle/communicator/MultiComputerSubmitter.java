@@ -63,6 +63,11 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
+  public void chmod(int mod, Path path) throws FailedToControlRemoteException {
+
+  }
+
+  @Override
   public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     return null;
   }

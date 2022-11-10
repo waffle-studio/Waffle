@@ -78,6 +78,7 @@ abstract public class AbstractSubmitter {
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
   abstract boolean deleteFile(Path path) throws FailedToControlRemoteException;
   abstract public String exec(String command) throws FailedToControlRemoteException;
+  abstract public void chmod(int mod, Path path) throws FailedToControlRemoteException;
   //abstract public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException;
   abstract public void transferFilesToRemote(Path localPath, Path remotePath) throws FailedToTransferFileException;
@@ -114,10 +115,6 @@ abstract public class AbstractSubmitter {
     submitter.mode = mode;
 
     return submitter;
-  }
-
-  public void chmod(int mod, Path path) throws FailedToControlRemoteException {
-    exec("chmod " + mod +" '" + path.toString() + "'");
   }
 
   public void transferFilesFromRemote(Path remotePath, Path localPath) throws FailedToTransferFileException {

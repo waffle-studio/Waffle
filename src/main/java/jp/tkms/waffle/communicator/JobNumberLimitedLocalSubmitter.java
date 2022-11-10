@@ -76,6 +76,11 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  public void chmod(int mod, Path path) throws FailedToControlRemoteException {
+    exec("chmod " + mod + " '" + path.toString() + "'");
+  }
+
+  @Override
   boolean exists(Path path) {
     return Files.exists(path);
   }

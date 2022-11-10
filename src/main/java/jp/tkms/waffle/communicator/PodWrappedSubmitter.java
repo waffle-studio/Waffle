@@ -789,6 +789,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
+  public void chmod(int mod, Path path) throws FailedToControlRemoteException {
+    targetSubmitter.chmod(mod, path);
+  }
+
+  @Override
   public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException {
     return targetSubmitter.getFileContents(run, path);
   }
