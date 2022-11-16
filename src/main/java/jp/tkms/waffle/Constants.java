@@ -22,6 +22,7 @@ public class Constants {
   static final public String LISTENER_TEMPLATE = "listener-template";
   public static final String EXT_JSON = ".json";
   public static final String EXT_RUBY = ".rb";
+  public static final String EXT_WNJ = ".wnj";
   public static final String STDOUT_FILE = "STDOUT.txt";
   public static final String STDERR_FILE = "STDERR.txt";
   public static final String DOT_INTERNAL = ".INTERNAL";

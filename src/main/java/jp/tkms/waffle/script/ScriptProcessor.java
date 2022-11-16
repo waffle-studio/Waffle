@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.StringKeyHashMap;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
+import jp.tkms.waffle.script.wnj.WaffleNodeJsonScriptProcessor;
 
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ public abstract class ScriptProcessor {
   public static final HashMap<String, String> CLASS_NAME_MAP = new HashMap<>() {
     {
       put(RubyScriptProcessor.EXTENSION, RubyScriptProcessor.class.getCanonicalName());
+      put(WaffleNodeJsonScriptProcessor.EXTENSION, WaffleNodeJsonScriptProcessor.class.getCanonicalName());
     }
   };
 

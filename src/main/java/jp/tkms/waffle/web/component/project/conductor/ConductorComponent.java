@@ -12,6 +12,7 @@ import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.script.ScriptProcessor;
+import jp.tkms.waffle.script.wnj.WaffleNodeJsonScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -27,9 +28,11 @@ import spark.Spark;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Scanner;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import static jp.tkms.waffle.web.template.Html.link;
 import static jp.tkms.waffle.web.template.Html.value;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
@@ -40,6 +43,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
   private static final String KEY_LISTENER_NAME = "listener_name";
   public static final String KEY_CONDUCTOR = "conductor";
+  public static final String KEY_PROCEDURE = "procedure";
   public static final String KEY_NOTE = "note";
   private static final String NEW_WORKSPACE = "[Create new workspace]";
 
@@ -135,9 +139,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         response.redirect(getUrl(conductor));
         break;
       case NewChildProcedure:
-        if (request.queryMap().hasKey(KEY_CONDUCTOR)) {
+        if (request.queryMap().hasKey(KEY_PROCEDURE)) {
           try {
-            conductor.createNewChildProcedure(request.queryParams(KEY_CONDUCTOR));
+            conductor.createNewChildProcedure(request.queryParams(KEY_PROCEDURE));
           } catch (InvalidInputException e) {
             // NOP // response.redirect(getUrl(conductor)); break;
           }
@@ -211,8 +215,9 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
       @Override
       protected String pageContent() {
         String contents = "";
-
         ArrayList<Lte.FormError> errors = new ArrayList<>();
+
+        contents += Html.link("stylesheet", "/css/baklavajs.css");
 
         //Actor lastConductorRun = Actor.getLastInstance(project, actorGroup);
 
@@ -261,6 +266,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           snippetScript += "s('computer:" + computer.getName() + "','" + computer.getName() + "');";
         }
 
+        /*
         contents += Html.element("script", new Html.Attributes(value("type", "text/javascript")),
           "var updateConductorJobNum = function(c,n) {" +
             "if (n > 0) {" +
@@ -271,13 +277,14 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
             "}" +
             "};"
         );
+         */
 
         contents += Html.form(getUrl(conductor, Mode.UpdateNote), Html.Method.Post,
           Lte.card(Html.fasIcon("user-tie") + conductor.getName(),
             Html.span(null, null,
               //Html.span("right badge badge-warning", new Html.Attributes(value("id", "actorGroup-jobnum-" + conductor.getName()))),
-              renderTool(),
-              Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
+              renderTool()
+              //, Html.javascript("updateConductorJobNum('" + conductor.getName() + "'," + runningCount + ")")
             ),
             Html.div(null,
               Lte.readonlyTextInputWithCopyButton("Conductor Directory", conductor.getPath().toAbsolutePath().toString()),
@@ -298,6 +305,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop", null)
           );
 
+        contents += getProcedureContents(conductor.getMainProcedureScriptPath(), snippetScript, errors);
+        /*
         String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
         contents +=
           Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
@@ -313,22 +322,31 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               Lte.formSubmitButton("success", "Update"),
               "collapsed-card.stop", null)
           );
-
-        contents +=
-          Html.form(getUrl(conductor, Mode.NewChildProcedure), Html.Method.Post,
-            Lte.card(Html.fasIcon("terminal") + "New Procedure",
-              Lte.cardToggleButton(true),
-              Lte.divRow(
-                Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_CONDUCTOR, KEY_CONDUCTOR, "", "", errors)
-                )
-              )
-              , Lte.formSubmitButton("primary", "Create")
-              , "collapsed-card", null)
-          );
+         */
+        {
+          String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
+          contents +=
+            Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
+              Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)",
+                Lte.cardToggleButton(false),
+                Lte.divRow(
+                  Lte.divCol(Lte.DivSize.F12,
+                    ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
+                    //Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainProcedureScript(), snippetScript, errors)
+                    Html.element("div", new Html.Attributes(value("id", "nodeeditor"),
+                       value("class", "node-editor"))),
+                    Html.textareaHidden("waffle-node-json_0", (new WaffleNodeJsonScriptProcessor()).procedureTemplate())
+                  )
+                ),
+                Lte.formSubmitButton("success", "Update"),
+                "collapsed-card.stop", null)
+            );
+        }
 
         for (String listenerName : conductor.getChildProcedureNameList()) {
           Path path = conductor.getChildProcedureScriptPath(listenerName);
+          contents += getProcedureContents(path, snippetScript, errors);
+          /*
           String scriptSyntaxError = ScriptProcessor.getProcessor(path).checkSyntax(path);
           try {
             contents +=
@@ -348,20 +366,67 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           } catch (ChildProcedureNotFoundException e) {
             //NOOP
           }
+           */
         }
+
+        contents +=
+          Html.form(getUrl(conductor, Mode.NewChildProcedure), Html.Method.Post,
+            Lte.card(Html.fasIcon("plus-square") + "New Procedure",
+              Lte.cardToggleButton(true),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formInputGroup("text", KEY_PROCEDURE, "Name", "", "", errors)
+                )
+              )
+              , Lte.formSubmitButton("primary", "Create")
+              , "collapsed-card card-secondary card-outline", null)
+          );
 
         contents += Html.form(getUrl(conductor, Mode.RemoveConductor), Html.Method.Get,
           Lte.card(Html.fasIcon("trash-alt") + "Remove",
             Lte.cardToggleButton(true),
             Lte.formInputGroup("text", KEY_CONDUCTOR, "Type the name of Conductor.", conductor.getName(), null, null),
             Lte.formSubmitButton("danger", "Remove")
-            , "collapsed-card", null
+            , "collapsed-card card-danger card-outline", null
           )
         );
+
+        contents += Html.element("script", new Html.Attributes(value("src", "/js/baklavajs.js")));
+        contents += Html.element("script", new Html.Attributes(value("src", "/js/baklavajs-apply.js")));
 
         return contents;
       }
     }.render(this);
+  }
+
+  private String getProcedureContents(Path listenerPath, String snippetScript, ArrayList<Lte.FormError> errors) {
+    String contents = "";
+    String listenerName = listenerPath.getFileName().toString();
+    String scriptSyntaxError = ScriptProcessor.getProcessor(listenerPath).checkSyntax(listenerPath);
+    boolean isMain = conductor.getMainProcedureScriptPath().equals(listenerPath);
+    String scriptTitle = (isMain ? Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)" : listenerName + " (Child Procedure)");
+
+    try {
+      String scriptBody = (isMain ? conductor.getMainProcedureScript() : conductor.getChildProcedureScript(listenerName));
+
+      contents +=
+        Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
+          Lte.card(Html.fasIcon("terminal") + scriptTitle,
+            Lte.cardToggleButton(false),
+            Lte.divRow(
+              Lte.divCol(Lte.DivSize.F12,
+                Html.inputHidden(KEY_LISTENER_NAME, listenerName),
+                ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
+                Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", scriptBody, snippetScript, errors)
+              )
+            ),
+            Lte.formSubmitButton("success", "Update"),
+            "collapsed-card.stop", null)
+        );
+    } catch (ChildProcedureNotFoundException e) {
+      //NOOP
+    }
+    return contents;
   }
 
   private String getGuideHtml() {

@@ -162,6 +162,10 @@ public class Html {
     );
   }
 
+  public static String textareaHidden(String name, String value) {
+    return element("textarea", new Attributes(value("name", name), value("class", "d-none")), value);
+  }
+
   public static String javascript(String... values) {
     return element("script", new Attributes(value("type", "text/javascript")), values);
   }

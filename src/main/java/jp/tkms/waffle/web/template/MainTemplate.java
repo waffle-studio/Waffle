@@ -156,111 +156,11 @@ abstract public class MainTemplate extends AbstractTemplate {
               "} else {document.getElementById('recently-accessed-project').style.display='none';}"
           ),
            */
-          element("script", new Html.Attributes( Html.value("src", "/js/pushnotifier.js"), Html.value("type", "text/javascript")), ""),
-          element("script", new Html.Attributes( Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
-          element("script", new Html.Attributes( Html.value("src", "/ace/ext-language_tools.js"), Html.value("type", "text/javascript")), ""),
-          element("script",new Html.Attributes(Html.value("type", "text/javascript")),
-            "$(function() {\n" +
-              "  $('textarea[data-editor]').each(function() {\n" +
-              "    var textarea = $(this);\n" +
-              "    var mode = textarea.data('editor');\n" +
-              "    var snippetScript = textarea.data('snippet');\n" +
-              "    var editDiv = $('<div>', {\n" +
-              "      position: 'absolute',\n" +
-              "      width: '100%',\n" +
-              "      'class': textarea.attr('class')\n" +
-              "    }).insertBefore(textarea);\n" +
-              "    textarea.css('display', 'none');\n" +
-              "    ace.require(\"ace/ext/language_tools\");\n" +
-              "    var editor = ace.edit(editDiv[0]);\n" +
-              "    editor.renderer.setShowGutter(true);\n" +
-              "    editor.getSession().setValue(textarea.val());\n" +
-              "    editor.getSession().setMode(\"ace/mode/\" + mode);\n" +
-              "    editor.setTheme(\"ace/theme/textmate\");\n" +
-              "    editor.setOptions({enableBasicAutocompletion: true, enableSnippets: true, enableLiveAutocompletion: true, maxLines: Infinity});\n" +
-              "    ace.config.loadModule('ace/snippets/snippets', function () {\n" +
-              "        var snippetManager = ace.require('ace/snippets').snippetManager; \n" +
-              "        ace.config.loadModule('ace/snippets/' + mode, function(m) {\n" +
-              "            if (m) { \n" +
-              "                snippetManager.files.ruby = m;\n" +
-              "                m.snippets = snippetManager.parseSnippetFile(m.snippetText);\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'me.invokeListener(\"${1:listener name}\")', \n" +
-              "                    tabTrigger: 'me.invokeListener' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'me.loadConductorTemplate(\"${1:conductor template name}\")', \n" +
-              "                    tabTrigger: 'me.loadConductorTemplate' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'me.loadListenerTemplate(\"${1:listener template name}\")', \n" +
-              "                    tabTrigger: 'me.loadListenerTemplate' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'me.createExecutableRun(\"${1:executable name}\", \"${2:computer name}\")', \n" +
-              "                    tabTrigger: 'me.createExecutableRun' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'me.createConductorRun(\"${1:conductor name}\")', \n" +
-              "                    tabTrigger: 'me.createConductorRun' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'me.createProcedureRun(\"${1:procedure name}\")', \n" +
-              "                    tabTrigger: 'me.createProcedureRun' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'addFinalizer(\"${1:procedure name}\")', \n" +
-              "                    tabTrigger: 'addFinalizer' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'getResult(\"${1:key}\")', \n" +
-              "                    tabTrigger: 'getResult' \n" +
-              "                });\n" +
-              "                m.snippets.push({ \n" +
-              "                    content: 'makeLocalShared(\"${1:key}\", \"${2:file}\")', \n" +
-              "                    tabTrigger: 'makeLocalShared' \n" +
-              "                });\n" +
-              "                var s = function(trigger, content) {\n" +
-              "                    m.snippets.push({ \n" +
-              "                        content: content, \n" +
-              "                        tabTrigger: trigger \n" +
-              "                    });\n" +
-              "                };\n" +
-              "                if (snippetScript != \"\") { eval(snippetScript); }" +
-              "                snippetManager.register(m.snippets, m.scope); \n" +
-              "            }\n" +
-              "        });\n" +
-              "    });\n" +
-              "    editor.resize();\n" +
-              "    // copy back to textarea on form submit...\n" +
-              "    textarea.closest('form').submit(function() {\n" +
-              "      textarea.val(editor.getSession().getValue());\n" +
-              "    })\n" +
-              "  });\n" +
-              "});"),
-          element("script",new Html.Attributes(Html.value("type", "text/javascript")),
-            "$(function() {\n" +
-              "  $('textarea[data-jsoneditor]').each(function() {\n" +
-              "    var textarea = $(this);\n" +
-              "    var mode = textarea.data('jsoneditor');\n" +
-              "    var textmode = (mode=='view'?'preview':'code');\n" +
-              "    var editDiv = $('<div>', {\n" +
-              "      width: '100%',\n" +
-              "    }).insertBefore(textarea);\n" +
-              "    textarea.css('display', 'none');\n" +
-              "    var editor = new JSONEditor(editDiv[0], {\"onModeChange\":function(mode){if(mode=='code'){editor.aceEditor.setOptions({maxLines: Infinity})}},\"ace\":ace,\"language\":\"en\",\"statusBar\":false," +
-              "\"navigationBar\":false,\"enableTransform\":false,\"enableSort\":false,\"search\": false," +
-              "\"autocomplete\":{getOptions:function(){return [];}}," +
-              "\"modes\":[mode,textmode]}, JSON.parse(textarea.val()));\n" +
-              "    //editor.editor.setOptions({maxLines: Infinity});\n" +
-              "    // copy back to textarea on form submit...\n" +
-              "    textarea.closest('form').submit(function() {\n" +
-              "      textarea.val(editor.getText());\n" +
-              "    })\n" +
-              "  });\n" +
-              "});"),
-          Html.javascript( "$('body').on('collapsed.lte.pushmenu', function(){document.cookie='sidebar=0;Path=/;SameSite=Strict;';});",
-            "$('body').on('shown.lte.pushmenu', function(){document.cookie='sidebar=1;Path=/;SameSite=Strict;';});" ),
+          element("script", new Html.Attributes(Html.value("src", "/js/pushnotifier.js"), Html.value("type", "text/javascript")), ""),
+          element("script", new Html.Attributes(Html.value("src", "/ace/ace.js"), Html.value("type", "text/javascript")), ""),
+          element("script", new Html.Attributes(Html.value("src", "/ace/ext-language_tools.js"), Html.value("type", "text/javascript")), ""),
+          element("script",new Html.Attributes(Html.value("src", "/js/ace-apply.js"), Html.value("type", "text/javascript")), ""),
+          element("script",new Html.Attributes(Html.value("src", "/js/jsoneditor-apply.js"), Html.value("type", "text/javascript")), ""),
           AlertCookie.getAlertScript()
         )
       )

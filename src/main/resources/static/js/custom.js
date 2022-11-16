@@ -12,3 +12,7 @@ if (sessionStorage.getItem('latest-project-id') != null) {
 } else {
     document.getElementById('recently-accessed-project').style.display='none';
 }
+
+//KEEP STATUS OF A SIDEBAR
+$('body').on('collapsed.lte.pushmenu', function(){document.cookie='sidebar=0;Path=/;SameSite=Strict;';});
+$('body').on('shown.lte.pushmenu', function(){document.cookie='sidebar=1;Path=/;SameSite=Strict;';});
