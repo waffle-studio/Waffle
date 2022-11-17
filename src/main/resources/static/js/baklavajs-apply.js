@@ -30,18 +30,18 @@ var nodeEditorNodes = [
 ];
 
 
-//$(function() {
+$(function() {
   Array.from(document.getElementsByClassName("node-editor")).forEach(editorArea => {
     var viewModel = BaklavaJS.createBaklava(editorArea);
     nodeEditorNodes.forEach(node => viewModel.editor.registerNodeType(node));
-    var data = Object.setPrototypeOf(JSON.parse(editorArea.nextElementSibling.innerHTML), Object.getPrototypeOf(viewModel.editor.save()));
-    viewModel.editor.load(data);
+    var data = JSON.parse(editorArea.nextElementSibling.innerHTML);
     var adjustedHeight = 500;
     data.graph.nodes.forEach(node => {
       height = 150 + node.position.y;
       adjustedHeight = (height > adjustedHeight ? height : adjustedHeight);
     });
     editorArea.style.height = adjustedHeight + "px";
+    viewModel.editor.load(data);
     var update = function() {
       editorArea.nextElementSibling.innerHTML = JSON.stringify(viewModel.editor.save());
     };
@@ -51,5 +51,10 @@ var nodeEditorNodes = [
     viewModel.editor.graphEvents.removeConnection.subscribe(update, update);
     viewModel.editor.nodeEvents.update.subscribe(update, update);
     editorArea.addEventListener("mouseout", update);
+    /*
+    Array.from(editorArea.getElementsByClassName("node-container")).forEach(container => {
+      container.style.transform = "scale(0.7)";
+    });
+    */
   });
-//});
+});
