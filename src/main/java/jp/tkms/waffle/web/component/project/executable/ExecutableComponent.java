@@ -21,9 +21,7 @@ import spark.Spark;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -75,6 +73,10 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
       + (executable == null ? "/:" + KEY_EXECUTABLE : '/' + executable.getName());
   }
 
+  public static String getAnchorLink(Executable executable) {
+    return Html.a(getUrl(executable), executable.getName());
+  }
+
   public static String getUrl(Executable executable, Mode mode) {
     return getUrl(executable) + "/@" + mode.name();
   }
@@ -85,7 +87,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() throws ProjectNotFoundException {
-    project = Project.getInstance(request.params("project"));
+    project = Project.getInstance(request.params(ProjectComponent.KEY_PROJECT));
     executable = getExecutableEntity();
 
     switch (mode) {
@@ -131,9 +133,10 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
 
   protected ArrayList<String> renderPageBreadcrumb() {
     return new ArrayList<String>(Arrays.asList(
-      Html.a(ProjectsComponent.getUrl(), "Projects"),
-      Html.a(ProjectComponent.getUrl(project), project.getName()),
-      Html.a(ExecutablesComponent.getUrl(project), ExecutablesComponent.EXECUTABLES)
+      ProjectsComponent.getAnchorLink(),
+      ProjectComponent.getAnchorLink(project),
+      ExecutablesComponent.getAnchorLink(project),
+      getAnchorLink(executable)
     ));
   }
 
@@ -428,13 +431,19 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
             , null, null, "p-0");
         }
 
+        LinkedHashMap<String, String> computerMap = new LinkedHashMap<>();
+        Computer.getViableList().stream().forEach(computer -> {
+          String note = computer.getNote();
+          computerMap.put(computer.getName(), computer.getName() + (note == null || "".equals(note) ? "" : " : " + note ));
+        });
+
         content +=
           Html.form(getUrl(executable, Mode.TestRun), Html.Method.Post,
             Lte.card(Html.fasIcon("terminal") + executable.getName(),
               null,
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formSelectGroup(KEY_COMPUTER, ComputersComponent.COMPUTER, Computer.getViableList().stream().map(computer -> computer.getName()).collect(Collectors.toList()), null),
+                  Lte.formSelectGroup(KEY_COMPUTER, ComputersComponent.COMPUTER, computerMap, null),
                   Lte.formJsonEditorGroup(KEY_PARAMETERS, "Parameters", "tree", executable.getDefaultParameters().toPrettyString(), null)
                 )
               )

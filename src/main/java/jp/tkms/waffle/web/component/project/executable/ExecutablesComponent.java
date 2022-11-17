@@ -50,6 +50,10 @@ public class ExecutablesComponent extends AbstractAccessControlledComponent {
     return getUrl(project) + "/@" + mode.name();
   }
 
+  public static String getAnchorLink(Project project) {
+    return Html.a(getUrl(project), EXECUTABLES);
+  }
+
   @Override
   public void controller() throws ProjectNotFoundException {
     requestedId = request.params("project");

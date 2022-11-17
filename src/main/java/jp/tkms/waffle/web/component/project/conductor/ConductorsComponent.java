@@ -35,15 +35,8 @@ import static jp.tkms.waffle.web.template.Html.value;
 public class ConductorsComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Conductor";
   public static final String CONDUCTORS = "Conductors";
-  private static final String KEY_MAIN_SCRIPT = "main_script";
-  private static final String KEY_LISTENER_SCRIPT = "listener_script";
-  private static final String KEY_DEFAULT_VARIABLES = "default_variables";
-  private static final String KEY_LISTENER_NAME = "listener_name";
-  public static final String KEY_CONDUCTOR = "conductor";
-  public static final String KEY_NOTE = "note";
-  private static final String NEW_WORKSPACE = "[Create new workspace]";
 
-  public enum Mode {Default, List, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure, UpdateNote}
+  public enum Mode {Default, AddConductor}
 
   private Mode mode;
   protected Project project;
@@ -60,7 +53,9 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(() -> new ConductorsComponent(Mode.List)));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new ConductorsComponent()));
+    Spark.get(getUrl(null, Mode.AddConductor), new ResponseBuilder(() -> new ConductorsComponent(Mode.AddConductor)));
+    Spark.post(getUrl(null, Mode.AddConductor), new ResponseBuilder(() -> new ConductorsComponent(Mode.AddConductor)));
 
     ConductorComponent.register();
   }
@@ -82,6 +77,18 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
     project = Project.getInstance(request.params("project"));
 
     switch (mode){
+      case AddConductor:
+        if (request.requestMethod().toLowerCase().equals("post")) {
+          ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+          if (errors.isEmpty()) {
+            addConductor();
+          } else {
+            renderConductorAddForm(errors);
+          }
+        } else {
+          renderConductorAddForm(new ArrayList<>());
+        }
+        break;
       default:
         renderConductors();
     }
@@ -105,7 +112,7 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
 
       @Override
       protected String pageTool() {
-        return Html.a(ProjectComponent.getUrl(project, ProjectComponent.Mode.AddConductor),
+        return Html.a(getUrl(project, Mode.AddConductor),
           null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
         );
       }
@@ -152,5 +159,59 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
         return list;
       }
     });
+  }
+
+  private void addConductor() {
+    String name = request.queryParams("name");
+    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
+    Conductor conductor = null;
+    try {
+      conductor = Conductor.create(project, name);
+    } catch (InvalidInputException e) {
+      response.redirect(getUrl(project));
+      return;
+    }
+    response.redirect(ConductorComponent.getUrl(conductor));
+  }
+
+  private void renderConductorAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
+    new ProjectMainTemplate(project) {
+      @Override
+      protected String pageTitle() {
+        return "Conductor";
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return "(new)";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          ProjectsComponent.getAnchorLink(),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          ConductorComponent.CONDUCTORS));
+      }
+
+      @Override
+      protected String pageContent() {
+        return
+          Html.form(getUrl(project, Mode.AddConductor), Html.Method.Post,
+            Lte.card("New Conductor", null,
+              Html.div(null,
+                Html.inputHidden("cmd", "add"),
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
+              ),
+              Lte.formSubmitButton("success", "Add"),
+              "card-warning", null
+            )
+          );
+      }
+    }.render(this);
+  }
+
+  private ArrayList<Lte.FormError> checkCreateProjectFormError() {
+    return new ArrayList<>();
   }
 }

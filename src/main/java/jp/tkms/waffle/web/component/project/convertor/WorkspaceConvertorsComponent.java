@@ -4,6 +4,7 @@ import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.convertor.WorkspaceConvertor;
 import jp.tkms.waffle.data.project.workspace.Workspace;
+import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
@@ -26,7 +27,7 @@ public class WorkspaceConvertorsComponent extends AbstractAccessControlledCompon
   public static final String KEY_SCRIPT = "script";
   public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, List, Prepare, UpdateNote, Run, UpdateArguments, UpdateScript, UpdateListenerScript, NewChildProcedure, Remove, RemoveProcedure}
+  public enum Mode {Default, AddWorkspaceConvertor}
 
   private Mode mode;
   private Project project;
@@ -41,7 +42,9 @@ public class WorkspaceConvertorsComponent extends AbstractAccessControlledCompon
   }
 
   static public void register() {
-    Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceConvertorsComponent(Mode.List)));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceConvertorsComponent()));
+    Spark.get(getUrl(null, Mode.AddWorkspaceConvertor), new ResponseBuilder(() -> new WorkspaceConvertorsComponent(Mode.AddWorkspaceConvertor)));
+    Spark.post(getUrl(null, Mode.AddWorkspaceConvertor), new ResponseBuilder(() -> new WorkspaceConvertorsComponent(Mode.AddWorkspaceConvertor)));
 
     WorkspaceConvertorComponent.register();
   }
@@ -63,6 +66,18 @@ public class WorkspaceConvertorsComponent extends AbstractAccessControlledCompon
     project = Project.getInstance(request.params("project"));
 
     switch (mode) {
+      case AddWorkspaceConvertor:
+        if (request.requestMethod().toLowerCase().equals("post")) {
+          ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+          if (errors.isEmpty()) {
+            addWorkspaceConvertor();
+          } else {
+            renderWorkspaceConvertorAddForm(errors);
+          }
+        } else {
+          renderWorkspaceConvertorAddForm(new ArrayList<>());
+        }
+        break;
       default:
         renderConvertors();
     }
@@ -86,7 +101,7 @@ public class WorkspaceConvertorsComponent extends AbstractAccessControlledCompon
 
       @Override
       protected String pageTool() {
-        return Html.a(ProjectComponent.getUrl(project, ProjectComponent.Mode.AddWorkspaceConvertor),
+        return Html.a(getUrl(project, Mode.AddWorkspaceConvertor),
           null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
         );
       }
@@ -134,5 +149,59 @@ public class WorkspaceConvertorsComponent extends AbstractAccessControlledCompon
         return list;
       }
     });
+  }
+
+  private void renderWorkspaceConvertorAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
+    new ProjectMainTemplate(project) {
+      @Override
+      protected String pageTitle() {
+        return "WorkspaceConvertor";
+      }
+
+      @Override
+      protected String pageSubTitle() {
+        return "(new)";
+      }
+
+      @Override
+      protected ArrayList<String> pageBreadcrumb() {
+        return new ArrayList<String>(Arrays.asList(
+          ProjectsComponent.getAnchorLink(),
+          Html.a(ProjectComponent.getUrl(project), project.getName()),
+          WorkspaceConvertorComponent.WORKSPACE_CONVERTORS));
+      }
+
+      @Override
+      protected String pageContent() {
+        return
+          Html.form(WorkspaceConvertorsComponent.getUrl(project, WorkspaceConvertorsComponent.Mode.AddWorkspaceConvertor), Html.Method.Post,
+            Lte.card("New WorkspaceConvertor", null,
+              Html.div(null,
+                Html.inputHidden("cmd", "add"),
+                Lte.formInputGroup("text", "name", null, "Name", null, errors)
+              ),
+              Lte.formSubmitButton("success", "Add"),
+              "card-warning", null
+            )
+          );
+      }
+    }.render(this);
+  }
+
+  private void addWorkspaceConvertor() {
+    String name = request.queryParams("name");
+    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
+    WorkspaceConvertor convertor = null;
+    try {
+      convertor = WorkspaceConvertor.create(project, name);
+    } catch (InvalidInputException e) {
+      response.redirect(getUrl(project));
+      return;
+    }
+    response.redirect(WorkspaceConvertorComponent.getUrl(convertor));
+  }
+
+  private ArrayList<Lte.FormError> checkCreateProjectFormError() {
+    return new ArrayList<>();
   }
 }

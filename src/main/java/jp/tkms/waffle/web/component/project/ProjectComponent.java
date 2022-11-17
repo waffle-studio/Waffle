@@ -33,7 +33,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
   public static final String KEY_PROJECT = "project";
   public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, NotFound, EditConstModel, AddConductor, UpdateNote, AddWorkspaceConvertor}
+  public enum Mode {Default, NotFound, UpdateNote}
   Mode mode;
 
   private String requestedId;
@@ -49,12 +49,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(null), new ResponseBuilder(() -> new ProjectComponent()));
-    Spark.get(getUrl(null, Mode.EditConstModel), new ResponseBuilder(() -> new ProjectComponent()));
-    Spark.get(getUrl(null, Mode.AddConductor), new ResponseBuilder(() -> new ProjectComponent(Mode.AddConductor)));
-    Spark.post(getUrl(null, Mode.AddConductor), new ResponseBuilder(() -> new ProjectComponent(Mode.AddConductor)));
     Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new ProjectComponent(Mode.UpdateNote)));
-    Spark.get(getUrl(null, Mode.AddWorkspaceConvertor), new ResponseBuilder(() -> new ProjectComponent(Mode.AddWorkspaceConvertor)));
-    Spark.post(getUrl(null, Mode.AddWorkspaceConvertor), new ResponseBuilder(() -> new ProjectComponent(Mode.AddWorkspaceConvertor)));
 
     ExecutablesComponent.register();
     ConductorsComponent.register();
@@ -86,37 +81,12 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
     }
 
     switch (mode) {
-      case EditConstModel:
       case Default:
         renderProject();
-        break;
-      case AddConductor:
-        if (request.requestMethod().toLowerCase().equals("post")) {
-          ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
-          if (errors.isEmpty()) {
-            addConductor();
-          } else {
-            renderConductorAddForm(errors);
-          }
-        } else {
-          renderConductorAddForm(new ArrayList<>());
-        }
         break;
       case UpdateNote:
         project.setNote(request.queryParams(KEY_NOTE));
         response.redirect(getUrl(project));
-        break;
-      case AddWorkspaceConvertor:
-        if (request.requestMethod().toLowerCase().equals("post")) {
-          ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
-          if (errors.isEmpty()) {
-            addWorkspaceConvertor();
-          } else {
-            renderWorkspaceConvertorAddForm(errors);
-          }
-        } else {
-          renderWorkspaceConvertorAddForm(new ArrayList<>());
-        }
         break;
       case NotFound:
         renderProjectNotFound();
@@ -144,80 +114,6 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
           Html.h1("text-center", Html.fasIcon("question")),
           null
         );
-      }
-    }.render(this);
-  }
-
-  private void renderConductorAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
-    new ProjectMainTemplate(project) {
-      @Override
-      protected String pageTitle() {
-        return "Conductor";
-      }
-
-      @Override
-      protected String pageSubTitle() {
-        return "(new)";
-      }
-
-      @Override
-      protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          ProjectsComponent.getAnchorLink(),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          ConductorComponent.CONDUCTORS));
-      }
-
-      @Override
-      protected String pageContent() {
-        return
-          Html.form(getUrl(project, Mode.AddConductor), Html.Method.Post,
-            Lte.card("New Conductor", null,
-              Html.div(null,
-                Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors)
-              ),
-              Lte.formSubmitButton("success", "Add"),
-              "card-warning", null
-            )
-          );
-      }
-    }.render(this);
-  }
-
-  private void renderWorkspaceConvertorAddForm(ArrayList<Lte.FormError> errors) throws ProjectNotFoundException {
-    new ProjectMainTemplate(project) {
-      @Override
-      protected String pageTitle() {
-        return "WorkspaceConvertor";
-      }
-
-      @Override
-      protected String pageSubTitle() {
-        return "(new)";
-      }
-
-      @Override
-      protected ArrayList<String> pageBreadcrumb() {
-        return new ArrayList<String>(Arrays.asList(
-          ProjectsComponent.getAnchorLink(),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          WorkspaceConvertorComponent.WORKSPACE_CONVERTORS));
-      }
-
-      @Override
-      protected String pageContent() {
-        return
-          Html.form(getUrl(project, Mode.AddWorkspaceConvertor), Html.Method.Post,
-            Lte.card("New WorkspaceConvertor", null,
-              Html.div(null,
-                Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors)
-              ),
-              Lte.formSubmitButton("success", "Add"),
-              "card-warning", null
-            )
-          );
       }
     }.render(this);
   }
@@ -255,6 +151,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
               Lte.button(WorkspacesComponent.getUrl(project), Lte.Color.Outline_Danger, true,
                 Html.fasIcon("table") + WorkspaceComponent.WORKSPACES)
             ),
+            Html.div("d-inline d-md-none small", "&nbsp;"),
             Lte.divCol(Lte.DivSize.F12Md12Sm6,
               Lte.button(ExecutablesComponent.getUrl(project), Lte.Color.Outline_Info, true,
                 Html.fasIcon("layer-group") + ExecutablesComponent.EXECUTABLES)
@@ -267,7 +164,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         if (conductorList.size() <= 0) {
           contents += Lte.card(Html.fasIcon("user-tie") + "Conductors",
             null,
-            Html.a(getUrl(project, Mode.AddConductor), null, null,
+            Html.a(ConductorsComponent.getUrl(project, ConductorsComponent.Mode.AddConductor), null, null,
               Html.fasIcon("plus-square") + "Add Conductors"
             ),
             null, "card-warning card-outline", null
@@ -296,7 +193,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
            */
 
           contents += Lte.card(Html.fasIcon("user-tie") + ConductorComponent.CONDUCTORS,
-            Html.a(getUrl(project, Mode.AddConductor),
+            Html.a(ConductorsComponent.getUrl(project, ConductorsComponent.Mode.AddConductor),
               null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
             ),
             ConductorsComponent.getConductorsTable(project, null),
@@ -304,7 +201,7 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         }
 
         contents += Lte.card(Html.fasIcon("broom") + WorkspaceConvertorComponent.WORKSPACE_CONVERTORS,
-          Html.a(getUrl(project, Mode.AddWorkspaceConvertor),
+          Html.a(WorkspaceConvertorsComponent.getUrl(project, WorkspaceConvertorsComponent.Mode.AddWorkspaceConvertor),
             null, null, Lte.badge("primary", null, Html.fasIcon("plus-square") + "NEW")
           ),
           WorkspaceConvertorsComponent.getWorkspaceConvertorsTable(project, null),
@@ -325,35 +222,5 @@ public class ProjectComponent extends AbstractAccessControlledComponent {
         return contents;
       }
     }.render(this);
-  }
-
-  private ArrayList<Lte.FormError> checkCreateProjectFormError() {
-    return new ArrayList<>();
-  }
-
-  private void addConductor() {
-    String name = request.queryParams("name");
-    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    Conductor conductor = null;
-    try {
-      conductor = Conductor.create(project, name);
-    } catch (InvalidInputException e) {
-      response.redirect(getUrl(project));
-      return;
-    }
-    response.redirect(ConductorComponent.getUrl(conductor));
-  }
-
-  private void addWorkspaceConvertor() {
-    String name = request.queryParams("name");
-    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
-    WorkspaceConvertor convertor = null;
-    try {
-      convertor = WorkspaceConvertor.create(project, name);
-    } catch (InvalidInputException e) {
-      response.redirect(getUrl(project));
-      return;
-    }
-    response.redirect(WorkspaceConvertorComponent.getUrl(convertor));
   }
 }

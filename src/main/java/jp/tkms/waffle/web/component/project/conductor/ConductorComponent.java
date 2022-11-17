@@ -180,8 +180,8 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     return new ArrayList<String>(Arrays.asList(
       ProjectsComponent.getAnchorLink(),
       ProjectComponent.getAnchorLink(project),
-      CONDUCTORS,
-      Html.a(ConductorComponent.getUrl(conductor), conductor.getName())
+      ConductorsComponent.getAnchorLink(project),
+      getAnchorLink(conductor)
     ));
   }
 
