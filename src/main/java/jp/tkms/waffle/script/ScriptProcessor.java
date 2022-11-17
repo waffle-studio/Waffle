@@ -3,7 +3,6 @@ package jp.tkms.waffle.script;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.workspace.HasLocalPath;
 import jp.tkms.waffle.data.project.workspace.convertor.WorkspaceConvertorRun;
-import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.StringKeyHashMap;
@@ -36,6 +35,10 @@ public abstract class ScriptProcessor {
       put(WaffleNodeJsonScriptProcessor.EXTENSION, WaffleNodeJsonScriptProcessor.class.getCanonicalName());
     }
   };
+
+  public static String getDescription(String className) {
+    return ((ProcessorDescription)getProcessor(className).getClass().getAnnotation(ProcessorDescription.class)).value();
+  }
 
   public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script) {
     processProcedure(run, referable, script, null);
@@ -76,6 +79,10 @@ public abstract class ScriptProcessor {
   }
 
   public static ScriptProcessor getProcessor(Path scriptPath) {
-    return getProcessor(CLASS_NAME_MAP.get(scriptPath.toString().replaceFirst("^.*\\.", ".")));
+    return getProcessor(CLASS_NAME_MAP.get(getExtension(scriptPath)));
+  }
+
+  public static String getExtension(Path scriptPath) {
+    return scriptPath.toString().replaceFirst("^.*\\.", ".");
   }
 }

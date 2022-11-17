@@ -17,6 +17,7 @@ import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.RunNotFoundException;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
+import jp.tkms.waffle.web.Key;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -273,7 +274,7 @@ public class ProcedureRun extends AbstractRun {
     setState(State.Running);
 
     if (conductor != null) {
-      if (Conductor.MAIN_PROCEDURE_ALIAS.equals(procedureName)) {
+      if (Key.MAIN_PROCEDURE.equals(procedureName)) {
         ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).processProcedure(this, getReferables(), conductor.getMainProcedureScript());
       } else {
         try {
@@ -353,7 +354,7 @@ public class ProcedureRun extends AbstractRun {
 
   public static ProcedureRun create(ConductorRun parent, ArchivedConductor conductor, String procedureName) {
     if (Conductor.MAIN_PROCEDURE_SHORT_ALIAS.equals(procedureName)) {
-      procedureName = Conductor.MAIN_PROCEDURE_ALIAS;
+      procedureName = Key.MAIN_PROCEDURE;
     }
     ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent, getNewProcedureRunPath(parent, procedureName), parent.getPath(), conductor, procedureName);
     instance.setState(State.Created);
@@ -362,7 +363,7 @@ public class ProcedureRun extends AbstractRun {
 
   public static ProcedureRun create(ProcedureRun parent, ArchivedConductor conductor, String procedureName) {
     if (Conductor.MAIN_PROCEDURE_SHORT_ALIAS.equals(procedureName)) {
-      procedureName = Conductor.MAIN_PROCEDURE_ALIAS;
+      procedureName = Key.MAIN_PROCEDURE;
     }
     ProcedureRun instance = new ProcedureRun(parent.getWorkspace(), parent.getParentConductorRun(), getNewProcedureRunPath(parent.getParentConductorRun(), procedureName), parent.getWorkingDirectory(), conductor, procedureName);
     instance.setState(State.Created);

@@ -13,6 +13,7 @@ import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.wnj.WaffleNodeJsonScriptProcessor;
+import jp.tkms.waffle.web.Key;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -28,26 +29,24 @@ import spark.Spark;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Scanner;
-import java.util.concurrent.Future;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
-import static jp.tkms.waffle.web.template.Html.link;
 import static jp.tkms.waffle.web.template.Html.value;
 
 public class ConductorComponent extends AbstractAccessControlledComponent {
   public static final String TITLE = "Conductor";
   public static final String CONDUCTORS = "Conductors";
   private static final String KEY_MAIN_SCRIPT = "main_script";
-  private static final String KEY_LISTENER_SCRIPT = "listener_script";
+  private static final String KEY_CHILD_SCRIPT = "listener_script";
   private static final String KEY_DEFAULT_VARIABLES = "default_variables";
-  private static final String KEY_LISTENER_NAME = "listener_name";
+  private static final String KEY_PROCEDURE_NAME = "procedure_name";
   public static final String KEY_CONDUCTOR = "conductor";
   public static final String KEY_PROCEDURE = "procedure";
   public static final String KEY_NOTE = "note";
   private static final String NEW_WORKSPACE = "[Create new workspace]";
 
-  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateListenerScript, NewChildProcedure, RemoveConductor, RemoveProcedure, UpdateNote}
+  public enum Mode {Default, Prepare, Run, UpdateArguments, UpdateMainScript, UpdateChildScript, NewChildProcedure, RemoveConductor, RemoveProcedure, UpdateNote}
 
   private Mode mode;
   protected Project project;
@@ -69,7 +68,7 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     Spark.post(getUrl(null, Mode.Run), new ResponseBuilder(() -> new ConductorComponent(Mode.Run)));
     Spark.post(getUrl(null, Mode.UpdateArguments), new ResponseBuilder(() -> new ConductorComponent(Mode.UpdateArguments)));
     Spark.post(getUrl(null, Mode.UpdateMainScript), new ResponseBuilder(() -> new ConductorComponent(Mode.UpdateMainScript)));
-    Spark.post(getUrl(null, Mode.UpdateListenerScript), new ResponseBuilder(() -> new ConductorComponent(Mode.UpdateListenerScript)));
+    Spark.post(getUrl(null, Mode.UpdateChildScript), new ResponseBuilder(() -> new ConductorComponent(Mode.UpdateChildScript)));
     Spark.post(getUrl(null, Mode.NewChildProcedure), new ResponseBuilder(() -> new ConductorComponent(Mode.NewChildProcedure)));
     Spark.get(getUrl(null, Mode.RemoveConductor), new ResponseBuilder(() -> new ConductorComponent(Mode.RemoveConductor)));
     Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new ConductorComponent(Mode.UpdateNote)));
@@ -139,18 +138,18 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
         response.redirect(getUrl(conductor));
         break;
       case NewChildProcedure:
-        if (request.queryMap().hasKey(KEY_PROCEDURE)) {
+        if (request.queryMap().hasKey(KEY_PROCEDURE) && request.queryMap().hasKey(Key.PROCEDURE_TYPE)) {
           try {
-            conductor.createNewChildProcedure(request.queryParams(KEY_PROCEDURE));
+            conductor.createNewChildProcedure(request.queryParams(KEY_PROCEDURE), request.queryParams(Key.PROCEDURE_TYPE));
           } catch (InvalidInputException e) {
             // NOP // response.redirect(getUrl(conductor)); break;
           }
         }
         response.redirect(getUrl(conductor));
         break;
-      case UpdateListenerScript:
-        if (request.queryMap().hasKey(KEY_LISTENER_NAME) || request.queryMap().hasKey(KEY_LISTENER_SCRIPT)) {
-          conductor.updateChildProcedureScript(request.queryParams(KEY_LISTENER_NAME), request.queryParams(KEY_LISTENER_SCRIPT));
+      case UpdateChildScript:
+        if (request.queryMap().hasKey(KEY_PROCEDURE_NAME) && request.queryMap().hasKey(KEY_CHILD_SCRIPT)) {
+          conductor.updateChildProcedureScript(request.queryParams(KEY_PROCEDURE_NAME), request.queryParams(KEY_CHILD_SCRIPT));
         }
         response.redirect(getUrl(conductor));
         break;
@@ -323,25 +322,6 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
               "collapsed-card.stop", null)
           );
          */
-        {
-          String mainScriptSyntaxError = ScriptProcessor.getProcessor(conductor.getMainProcedureScriptPath()).checkSyntax(conductor.getMainProcedureScriptPath());
-          contents +=
-            Html.form(getUrl(conductor, Mode.UpdateMainScript), Html.Method.Post,
-              Lte.card(Html.fasIcon("terminal") + Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)",
-                Lte.cardToggleButton(false),
-                Lte.divRow(
-                  Lte.divCol(Lte.DivSize.F12,
-                    ("".equals(mainScriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(mainScriptSyntaxError)),
-                    //Lte.formDataEditorGroup(KEY_MAIN_SCRIPT, null, "ruby", conductor.getMainProcedureScript(), snippetScript, errors)
-                    Html.element("div", new Html.Attributes(value("id", "nodeeditor"),
-                       value("class", "node-editor"))),
-                    Html.textareaHidden("waffle-node-json_0", (new WaffleNodeJsonScriptProcessor()).procedureTemplate())
-                  )
-                ),
-                Lte.formSubmitButton("success", "Update"),
-                "collapsed-card.stop", null)
-            );
-        }
 
         for (String listenerName : conductor.getChildProcedureNameList()) {
           Path path = conductor.getChildProcedureScriptPath(listenerName);
@@ -369,13 +349,23 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
            */
         }
 
+        LinkedHashMap<String, String> procedureTypes = new LinkedHashMap<>();
+        String mainScriptExtension = ScriptProcessor.getExtension(conductor.getMainProcedureScriptPath());
+        procedureTypes.put(mainScriptExtension, ScriptProcessor.getDescription(ScriptProcessor.CLASS_NAME_MAP.get(mainScriptExtension)));
+        ScriptProcessor.CLASS_NAME_MAP.forEach((k, v) -> {
+          if (!mainScriptExtension.equals(k)) {
+            procedureTypes.put(k, ScriptProcessor.getDescription(v));
+          }
+        });
+
         contents +=
           Html.form(getUrl(conductor, Mode.NewChildProcedure), Html.Method.Post,
             Lte.card(Html.fasIcon("plus-square") + "New Procedure",
               Lte.cardToggleButton(true),
               Lte.divRow(
                 Lte.divCol(Lte.DivSize.F12,
-                  Lte.formInputGroup("text", KEY_PROCEDURE, "Name", "", "", errors)
+                  Lte.formInputGroup("text", KEY_PROCEDURE, "Name", "", "", errors),
+                  Lte.formSelectGroup(Key.PROCEDURE_TYPE, "Default Procedure Type", procedureTypes, errors)
                 )
               )
               , Lte.formSubmitButton("primary", "Create")
@@ -399,30 +389,51 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  private String getProcedureContents(Path listenerPath, String snippetScript, ArrayList<Lte.FormError> errors) {
+  private String getProcedureContents(Path procedurePath, String snippetScript, ArrayList<Lte.FormError> errors) {
     String contents = "";
-    String listenerName = listenerPath.getFileName().toString();
-    String scriptSyntaxError = ScriptProcessor.getProcessor(listenerPath).checkSyntax(listenerPath);
-    boolean isMain = conductor.getMainProcedureScriptPath().equals(listenerPath);
-    String scriptTitle = (isMain ? Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)" : listenerName + " (Child Procedure)");
+    String procedureName = procedurePath.getFileName().toString();
+    String scriptSyntaxError = ScriptProcessor.getProcessor(procedurePath).checkSyntax(procedurePath);
+    boolean isMain = conductor.getMainProcedureScriptPath().equals(procedurePath);
+    String scriptTitle = (isMain ? Conductor.MAIN_PROCEDURE_SHORT_ALIAS + " (Main Procedure)" : procedureName + " (Child Procedure)");
 
     try {
-      String scriptBody = (isMain ? conductor.getMainProcedureScript() : conductor.getChildProcedureScript(listenerName));
+      String scriptBody = (isMain ? conductor.getMainProcedureScript() : conductor.getChildProcedureScript(procedureName));
+      Mode mode = (isMain ? Mode.UpdateMainScript : Mode.UpdateChildScript);
+      String valueKey = (isMain ? KEY_MAIN_SCRIPT : KEY_CHILD_SCRIPT);
 
-      contents +=
-        Html.form(getUrl(conductor, Mode.UpdateListenerScript), Html.Method.Post,
-          Lte.card(Html.fasIcon("terminal") + scriptTitle,
-            Lte.cardToggleButton(false),
-            Lte.divRow(
-              Lte.divCol(Lte.DivSize.F12,
-                Html.inputHidden(KEY_LISTENER_NAME, listenerName),
-                ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
-                Lte.formDataEditorGroup(KEY_LISTENER_SCRIPT, null, "ruby", scriptBody, snippetScript, errors)
-              )
-            ),
-            Lte.formSubmitButton("success", "Update"),
-            "collapsed-card.stop", null)
-        );
+      if (procedureName.endsWith(WaffleNodeJsonScriptProcessor.EXTENSION)) {
+        contents +=
+          Html.form(getUrl(conductor, mode), Html.Method.Post,
+            Lte.card(Html.fasIcon("terminal") + scriptTitle,
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Html.inputHidden(KEY_PROCEDURE_NAME, procedureName),
+                  ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
+                  Html.element("div", new Html.Attributes(value("id", "nodeeditor"),
+                    value("class", "node-editor"))),
+                  Html.textareaHidden(valueKey, scriptBody)
+                )
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop", null)
+          );
+      } else {
+        contents +=
+          Html.form(getUrl(conductor, mode), Html.Method.Post,
+            Lte.card(Html.fasIcon("terminal") + scriptTitle,
+              Lte.cardToggleButton(false),
+              Lte.divRow(
+                Lte.divCol(Lte.DivSize.F12,
+                  Html.inputHidden(KEY_PROCEDURE_NAME, procedureName),
+                  ("".equals(scriptSyntaxError) ? null : Lte.errorNoticeTextAreaGroup(scriptSyntaxError)),
+                  Lte.formDataEditorGroup(valueKey, null, "ruby", scriptBody, snippetScript, errors)
+                )
+              ),
+              Lte.formSubmitButton("success", "Update"),
+              "collapsed-card.stop", null)
+          );
+      }
     } catch (ChildProcedureNotFoundException e) {
       //NOOP
     }

@@ -14,6 +14,7 @@ import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.conductor.StagedConductor;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.manager.ManagerMaster;
+import jp.tkms.waffle.web.Key;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -73,7 +74,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     started();
     setState(State.Running);
     if (conductor != null) {
-      ProcedureRun procedureRun = ProcedureRun.create(this, conductor, Conductor.MAIN_PROCEDURE_ALIAS);
+      ProcedureRun procedureRun = ProcedureRun.create(this, conductor, Key.MAIN_PROCEDURE);
       procedureRun.start();
 
       //ProcedureRun procedureRun = ProcedureRun.create(this, Conductor.MAIN_PROCEDURE_FILENAME.replaceFirst("\\..*?$", ""), conductor, Conductor.MAIN_PROCEDURE_ALIAS);

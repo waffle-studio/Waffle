@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.Remote;
 import jp.tkms.waffle.data.util.StringKeyHashMap;
+import jp.tkms.waffle.script.ProcessorDescription;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import org.jruby.Ruby;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.UUID;
 
+@ProcessorDescription("Visual Programming")
 public class WaffleNodeJsonScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_WNJ;
 

@@ -12,6 +12,7 @@ import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.exception.ProjectNotFoundException;
 import jp.tkms.waffle.script.ScriptProcessor;
+import jp.tkms.waffle.web.Key;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.component.log.LogsComponent;
@@ -26,6 +27,7 @@ import spark.Spark;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -33,10 +35,15 @@ import static jp.tkms.waffle.web.template.Html.p;
 import static jp.tkms.waffle.web.template.Html.value;
 
 public class ConductorsComponent extends AbstractAccessControlledComponent {
-  public static final String TITLE = "Conductor";
   public static final String CONDUCTORS = "Conductors";
 
   public enum Mode {Default, AddConductor}
+
+  public static LinkedHashMap<String, String> procedureTypes = new LinkedHashMap<>() {
+    {
+      ScriptProcessor.CLASS_NAME_MAP.forEach((k, v) -> put(k, ScriptProcessor.getDescription(v)));
+    }
+  };
 
   private Mode mode;
   protected Project project;
@@ -162,11 +169,11 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
   }
 
   private void addConductor() {
-    String name = request.queryParams("name");
-    //AbstractConductor abstractConductor = AbstractConductor.getInstance(type);
+    String name = request.queryParams(Key.NAME);
+    String defaultProcedureType = request.queryParams(Key.PROCEDURE_TYPE);
     Conductor conductor = null;
     try {
-      conductor = Conductor.create(project, name);
+      conductor = Conductor.create(project, name, defaultProcedureType);
     } catch (InvalidInputException e) {
       response.redirect(getUrl(project));
       return;
@@ -201,7 +208,8 @@ public class ConductorsComponent extends AbstractAccessControlledComponent {
             Lte.card("New Conductor", null,
               Html.div(null,
                 Html.inputHidden("cmd", "add"),
-                Lte.formInputGroup("text", "name", null, "Name", null, errors)
+                Lte.formInputGroup("text", Key.NAME, "Name", "Name", null, errors),
+                Lte.formSelectGroup(Key.PROCEDURE_TYPE, "Default Procedure Type", procedureTypes, errors)
               ),
               Lte.formSubmitButton("success", "Add"),
               "card-warning", null

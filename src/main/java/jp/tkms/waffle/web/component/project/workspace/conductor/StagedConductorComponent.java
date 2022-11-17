@@ -34,7 +34,7 @@ public class StagedConductorComponent extends ConductorComponent {
     Spark.post(getUrl(null, Mode.Run), new ResponseBuilder(() -> new StagedConductorComponent(Mode.Run)));
     Spark.post(getUrl(null, Mode.UpdateArguments), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateArguments)));
     Spark.post(getUrl(null, Mode.UpdateMainScript), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateMainScript)));
-    Spark.post(getUrl(null, Mode.UpdateListenerScript), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateListenerScript)));
+    Spark.post(getUrl(null, Mode.UpdateChildScript), new ResponseBuilder(() -> new StagedConductorComponent(Mode.UpdateChildScript)));
     Spark.post(getUrl(null, Mode.NewChildProcedure), new ResponseBuilder(() -> new StagedConductorComponent(Mode.NewChildProcedure)));
   }
 

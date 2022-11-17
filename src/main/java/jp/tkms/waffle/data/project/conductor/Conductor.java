@@ -19,6 +19,7 @@ import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.InvalidInputException;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.RubyScriptProcessor;
+import jp.tkms.waffle.web.Key;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,10 +30,7 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   public static final String CONDUCTOR = "CONDUCTOR";
   private static final String KEY_DEFAULT_VARIABLES = "DEFAULT_VARIABLES";
   private static final String KEY_CHILD = "CHILD";
-  public static final String MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE.rb";
-  public static final String KEY_MAIN_PROCEDURE_FILENAME = "MAIN_PROCEDURE";
   public static final String MAIN_PROCEDURE_SHORT_ALIAS = "#";
-  public static final String MAIN_PROCEDURE_ALIAS = "MAIN_PROCEDURE";
 
   private static final Map<String, Conductor> instanceMap = new WeakHashMap<>();
 
@@ -40,8 +38,16 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   private String defaultVariables = null;
 
   public Conductor(Project project, String name) {
+    this(project, name, null);
+  }
+
+  public Conductor(Project project, String name, String defaultProcedureType) {
     super(project);
     this.name = name;
+
+    if (defaultProcedureType != null) {
+      setMainProcedureScript(Key.MAIN_PROCEDURE + defaultProcedureType);
+    }
 
     if (this.getClass().getConstructors()[0].getDeclaringClass().equals(Conductor.class)) {
       initialise();
@@ -83,15 +89,19 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     });
   }
 
-  public static Conductor create(Project project, String name) throws InvalidInputException {
+  public static Conductor create(Project project, String name, String defaultProcedureType) throws InvalidInputException {
     name = FileName.removeRestrictedCharacters(name);
     if (name.length() <= 0) {
       throw new InvalidInputException(name);
     }
 
+    if (!ScriptProcessor.CLASS_NAME_MAP.containsKey(defaultProcedureType)) {
+      throw new InvalidInputException(name);
+    }
+
     Conductor conductor = getInstance(project, name);
     if (conductor == null) {
-      conductor = new Conductor(project, name);
+      conductor = new Conductor(project, name, defaultProcedureType);
     }
 
     return conductor;
@@ -129,7 +139,11 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
   }
 
   public Path getMainProcedureScriptPath() {
-    return getPath().resolve(getStringFromProperty(KEY_MAIN_PROCEDURE_FILENAME, MAIN_PROCEDURE_FILENAME));
+    return getPath().resolve(getStringFromProperty(Key.MAIN_PROCEDURE, Key.MAIN_PROCEDURE + Constants.EXT_RUBY));
+  }
+
+  private void setMainProcedureScript(String name) {
+    setToProperty(Key.MAIN_PROCEDURE, name);
   }
 
   public String getMainProcedureScript() {
@@ -190,14 +204,12 @@ public class Conductor extends ProjectData implements DataDirectory, PropertyFil
     }
   }
 
-  public String createNewChildProcedure(String name) throws InvalidInputException {
+  public String createNewChildProcedure(String name, String type) throws InvalidInputException {
     if (name.length() <= 0) {
       throw new InvalidInputException(name);
     }
 
-    if (!ScriptProcessor.CLASS_NAME_MAP.containsKey(name.replaceFirst("^.*\\.", "."))) {
-      name = name + RubyScriptProcessor.EXTENSION;
-    }
+    name = name + type;
 
     Path path = getChildProcedureScriptPath(name);
     createNewFile(path);

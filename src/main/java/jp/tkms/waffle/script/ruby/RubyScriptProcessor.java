@@ -9,6 +9,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.Remote;
 import jp.tkms.waffle.data.util.StringKeyHashMap;
+import jp.tkms.waffle.script.ProcessorDescription;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.script.ruby.util.RubyScript;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
@@ -23,6 +24,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+@ProcessorDescription("Ruby")
 public class RubyScriptProcessor extends ScriptProcessor {
   public static final String EXTENSION = Constants.EXT_RUBY;
 
