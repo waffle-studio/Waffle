@@ -1,4 +1,11 @@
 
+class FlowInterface extends BaklavaJS.Core.NodeInterface {
+  constructor() {
+    super("flow", 0);
+    this.use(BaklavaJS.InterfaceTypes.setType, "flow");
+  }
+};
+
 var nodeEditorNodes = [
   BaklavaJS.Core.defineNode({
     type: "TestNode",
@@ -23,7 +30,7 @@ var nodeEditorNodes = [
     type: "Begin",
     inputs: {},
     outputs: {
-      next: () => new BaklavaJS.RendererVue.IntegerInterface("next", 0),
+      next: () => new FlowInterface(),
       references: () => new BaklavaJS.RendererVue.IntegerInterface("references", 0),
     },
   })
@@ -42,7 +49,8 @@ $(function() {
     });
     editorArea.style.height = adjustedHeight + "px";
     viewModel.editor.load(data);
-    var update = function() {
+
+    let update = function() {
       editorArea.nextElementSibling.innerHTML = JSON.stringify(viewModel.editor.save());
     };
     viewModel.editor.graphEvents.addNode.subscribe(update, update);
@@ -51,6 +59,12 @@ $(function() {
     viewModel.editor.graphEvents.removeConnection.subscribe(update, update);
     viewModel.editor.nodeEvents.update.subscribe(update, update);
     editorArea.addEventListener("mouseout", update);
+
+    let check = function(connection, prevent, graph) {
+      prevent();
+    }
+    viewModel.editor.graphEvents.checkConnection.subscribe(check, check);
+
     /*
     Array.from(editorArea.getElementsByClassName("node-container")).forEach(container => {
       container.style.transform = "scale(0.7)";
