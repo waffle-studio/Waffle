@@ -18,8 +18,8 @@ public class FileName {
     String result;
     if (name.length() <= 0) {
       result = "_" + count;
-    } else if (name.endsWith("@")) {
-      String atRemoved = name.replaceFirst("@+$", "");
+    } else if (name.endsWith("@") || name.endsWith("#")) {
+      String atRemoved = name.replaceFirst((name.endsWith("@") ? "@+$" : "#+$"), "");
       padding = name.length() - atRemoved.length();
       name = FileName.removeRestrictedCharacters(atRemoved);
       result = String.format("%s%0" + padding + "d", name, count);
