@@ -12,13 +12,13 @@ import java.nio.file.Paths
 //String jruby_jar = "jruby-complete-9.2.14.0.jar"
 
 buildscript {
-	dependencies {
-		classpath 'org.ajoberstar:grgit:1.7.2'
-	}
+  dependencies {
+    classpath 'org.ajoberstar:grgit:1.7.2'
+  }
 }
 
 plugins {
-	id "com.github.johnrengelman.shadow"
+  id "com.github.johnrengelman.shadow"
 }
 
 //import org.apache.tools.ant.filters.ReplaceTokens
@@ -32,43 +32,47 @@ apply plugin: 'application'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
-    // Use jcenter for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-	mavenCentral()
+  // Use jcenter for resolving your dependencies.
+  // You can declare any Maven/Ivy/file repository here.
+  mavenCentral()
 }
 
 ext {
-	git = org.ajoberstar.grgit.Grgit.open(dir: file("."))
-	describedCommit = git.describe().toString().trim()
-	buildVersion = describedCommit + (describedCommit.matches(".*-[0-9]+-g[0-9a-f]{7}") ? "-SNAPSHOT" : "") + (git.status().isClean() ? "" : "+" + new Date().format("yyyyMMddHHmmss"))
+  git = org.ajoberstar.grgit.Grgit.open(dir: file("."))
+  describedCommit = git.describe().toString().trim()
+  buildVersion = describedCommit
+  if (describedCommit.matches('.*-[0-9]+-g[0-9a-f]{7}')) {
+    buildVersion = describedCommit.replaceAll('-g[0-9a-f]{7}$', '')
+  }
+  buildVersion = buildVersion + (git.status().isClean() ? "" : "+" + new Date().format("yyyyMMddHHmmss"))
 }
 
 dependencies {
-	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
 
-	implementation 'com.sparkjava:spark-core:2.9.4'
-    implementation 'com.jcraft:jsch:0.1.55'
-	implementation 'com.hierynomus:sshj:0.34.0'
-	implementation group: 'org.apache.sshd', name: 'sshd-core', version: '2.9.1'
-	implementation group: 'org.apache.sshd', name: 'sshd-scp', version: '2.9.1'
-	implementation group: 'org.apache.sshd', name: 'sshd-sftp', version: '2.9.1'
-	//implementation 'org.json:json:20190722'
-	implementation 'org.jruby:jruby-complete:9.2.12.0'
-	implementation 'org.xerial:sqlite-jdbc:3.30.1'
-	implementation 'org.slf4j:slf4j-simple:1.7.25'
-	implementation 'org.slf4j:slf4j-api:1.7.25'
-	implementation 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
-	implementation group: 'com.esotericsoftware', name: 'kryo', version: '5.1.1'
-	implementation 'com.carrotsearch:java-sizeof:0.0.5'
-	//implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.3'
-	//implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.3'
-	//implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.11.3'
-	implementation group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
-	implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.7.3'
-	implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
-	implementation 'com.vladsch.flexmark:flexmark-all:0.62.2'
-	implementation project(":sub_project:tkms-java-utils:tkms-java-utils")
-	implementation files("sub_project/waffle-servant/build/libs/waffle-servant-all.jar")
+  implementation 'com.sparkjava:spark-core:2.9.4'
+  implementation 'com.jcraft:jsch:0.1.55'
+  implementation 'com.hierynomus:sshj:0.34.0'
+  implementation group: 'org.apache.sshd', name: 'sshd-core', version: '2.9.1'
+  implementation group: 'org.apache.sshd', name: 'sshd-scp', version: '2.9.1'
+  implementation group: 'org.apache.sshd', name: 'sshd-sftp', version: '2.9.1'
+  //implementation 'org.json:json:20190722'
+  implementation 'org.jruby:jruby-complete:9.2.12.0'
+  implementation 'org.xerial:sqlite-jdbc:3.30.1'
+  implementation 'org.slf4j:slf4j-simple:1.7.25'
+  implementation 'org.slf4j:slf4j-api:1.7.25'
+  implementation 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
+  implementation group: 'com.esotericsoftware', name: 'kryo', version: '5.1.1'
+  implementation 'com.carrotsearch:java-sizeof:0.0.5'
+  //implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.3'
+  //implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.3'
+  //implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.11.3'
+  implementation group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
+  implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.7.3'
+  implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
+  implementation 'com.vladsch.flexmark:flexmark-all:0.62.2'
+  implementation project(":sub_project:tkms-java-utils:tkms-java-utils")
+  implementation files("sub_project/waffle-servant/build/libs/waffle-servant-all.jar")
 }
 
 // Define the main class for the application
@@ -80,81 +84,81 @@ applicationDefaultJvmArgs = ["--illegal-access=deny", "--add-opens=java.base/sun
 processResources.outputs.upToDateWhen { false }
 
 task buildServant(type: Exec) {
-	executable "sh"
-	args "-c", "cd sub_project/waffle-servant; ./gradlew build"
+  executable "sh"
+  args "-c", "cd sub_project/waffle-servant; ./gradlew build"
 }
 
 def copyJarFileAsResourceBin(path) {
-    String resourcesDir = 'build/resources/main'
-	String fileName = new String(path).replaceAll("^.*/", "")
-	copy {
-		from path
-		into resourcesDir
-	}
-	file(resourcesDir + '/' + fileName).renameTo(resourcesDir + '/' + fileName + '.bin')
+  String resourcesDir = 'build/resources/main'
+  String fileName = new String(path).replaceAll("^.*/", "")
+  copy {
+    from path
+    into resourcesDir
+  }
+  file(resourcesDir + '/' + fileName).renameTo(resourcesDir + '/' + fileName + '.bin')
 }
 
 task copyFilesToResource(dependsOn: buildServant) {
-	copyJarFileAsResourceBin('sub_project/waffle-servant/build/libs/waffle-servant-all.jar')
-	copyJarFileAsResourceBin('sub_project/waffle-virtual-job-executor/build/libs/waffle-virtual-job-executor-all.jar')
+  copyJarFileAsResourceBin('sub_project/waffle-servant/build/libs/waffle-servant-all.jar')
+  copyJarFileAsResourceBin('sub_project/waffle-virtual-job-executor/build/libs/waffle-virtual-job-executor-all.jar')
 
-	copy {
-		from ('./') {
-			include 'LICENSE.md'
-		}
-		into 'build/resources/main'
-	}
+  copy {
+    from ('./') {
+      include 'LICENSE.md'
+    }
+    into 'build/resources/main'
+  }
 
-	copy {
-		from 'docs'
-		into 'build/resources/main/static/docs'
-	}
+  copy {
+    from 'docs'
+    into 'build/resources/main/static/docs'
+  }
 }
 
 task updateVersionFile {
-	String versionFile = 'build/resources/main/version.txt'
+  String versionFile = 'build/resources/main/version.txt'
 
-	mkdir(file(versionFile).getParentFile().toString())
-	new File(versionFile).text = "${buildVersion}"
+  mkdir(file(versionFile).getParentFile().toString())
+  new File(versionFile).text = "${buildVersion}"
 
-	/*
-	filesMatching("version.txt") {
-		filter(ReplaceTokens, tokens: ['build_version': buildVersion])
-	}
-	 */
-	println "version -> ${buildVersion}"
+  /*
+     filesMatching("version.txt") {
+     filter(ReplaceTokens, tokens: ['build_version': buildVersion])
+     }
+   */
+  println "version -> ${buildVersion}"
 }
 
 /*
-task createXsub {
-	file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
+   task createXsub {
+   file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
 
-	copy {
-		from ('lib') {
-			include jruby_jar
-		}
-		into 'build/tmp/xsub_archive/xsub/bin'
-	}
+   copy {
+   from ('lib') {
+   include jruby_jar
+   }
+   into 'build/tmp/xsub_archive/xsub/bin'
+   }
 
-	copy {
-		from 'src/main/resources/xsub/bin'
-		into 'build/tmp/xsub_archive/xsub/bin'
-	}
+   copy {
+   from 'src/main/resources/xsub/bin'
+   into 'build/tmp/xsub_archive/xsub/bin'
+   }
 
-	file("build/tmp/xsub_archive/xsub/bin").renameTo(file("build/tmp/xsub_archive/xsub/org_bin"))
+   file("build/tmp/xsub_archive/xsub/bin").renameTo(file("build/tmp/xsub_archive/xsub/org_bin"))
 
-	copy {
-		from 'xsub'
-		into 'build/tmp/xsub_archive/xsub'
-	}
-}
+   copy {
+   from 'xsub'
+   into 'build/tmp/xsub_archive/xsub'
+   }
+   }
 
-task createXsubArchive(type: Zip, dependsOn: createXsub) {
-	destinationDirectory = file('build/resources/main')
-	archiveFileName = 'xsub.zip'
-	from 'build/tmp/xsub_archive/'
-	excludes = ['.git',]
-}
+   task createXsubArchive(type: Zip, dependsOn: createXsub) {
+   destinationDirectory = file('build/resources/main')
+   archiveFileName = 'xsub.zip'
+   from 'build/tmp/xsub_archive/'
+   excludes = ['.git',]
+   }
  */
 
 classes.dependsOn(updateVersionFile, copyFilesToResource)
@@ -162,17 +166,17 @@ updateVersionFile.mustRunAfter(processResources)
 copyFilesToResource.mustRunAfter(processResources)
 
 task runJar(type: Exec, dependsOn: build) {
-	executable "java"
-	args "-jar", "build/libs/waffle-all.jar"
+  executable "java"
+  args "-jar", "build/libs/waffle-all.jar"
 }
 
 task buildDocs(type: Exec, dependsOn: build) {
-	executable "java"
-	args "-cp", "build/libs/waffle-all.jar", "jp.tkms.waffle.DocumentBuilder"
+  executable "java"
+  args "-cp", "build/libs/waffle-all.jar", "jp.tkms.waffle.DocumentBuilder"
 }
 
 tasks.named('test') {
-	// Use JUnit Platform for unit tests.
-	useJUnitPlatform()
+  // Use JUnit Platform for unit tests.
+  useJUnitPlatform()
 }
 
