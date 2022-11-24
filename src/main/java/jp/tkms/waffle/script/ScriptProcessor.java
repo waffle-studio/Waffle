@@ -32,7 +32,7 @@ public abstract class ScriptProcessor {
   public static final HashMap<String, String> CLASS_NAME_MAP = new HashMap<>() {
     {
       put(RubyScriptProcessor.EXTENSION, RubyScriptProcessor.class.getCanonicalName());
-      put(WaffleNodeJsonScriptProcessor.EXTENSION, WaffleNodeJsonScriptProcessor.class.getCanonicalName());
+      //put(WaffleNodeJsonScriptProcessor.EXTENSION, WaffleNodeJsonScriptProcessor.class.getCanonicalName());
     }
   };
 
