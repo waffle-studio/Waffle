@@ -835,24 +835,41 @@ abstract public class AbstractSubmitter {
       }
     });
 
+    Executable skippedExecutable = null;
+
     for (AbstractTask job : queuedJobList) {
       if (Main.hibernatingFlag) { return; }
 
       try {
         ComputerTask run = job.getRun();;
-        if (isSubmittable(computer, run, submittedJobList)) {
 
+        if (skippedExecutable != null && run instanceof ExecutableRun) {
+          if (((ExecutableRun) run).getExecutable() == skippedExecutable) {
+            continue;
+          }
+        }
+
+        boolean isSubmittable = isSubmittable(computer, run, submittedJobList);
+
+        if (isSubmittable) {
           if (run instanceof ExecutableRun) {
             ExecutableRun executableRun = (ExecutableRun) run;
             if (executableRun.getExecutable().isParallelProhibited()
               && !executableRun.getWorkspace().acquireExecutableLock(executableRun)) {
-              continue;
+              isSubmittable = false;
             }
           }
+        }
 
+        if (isSubmittable) {
+          skippedExecutable = null;
           submit(envelope, job);
           submittedJobList.add(job);
           //createdProcessorManager.startup();
+        } else {
+          if (run instanceof ExecutableRun) {
+            skippedExecutable = ((ExecutableRun) run).getExecutable();
+          }
         }
       } catch (NullPointerException | WaffleException e) {
         WarnLogMessage.issue(e);
