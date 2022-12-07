@@ -24,7 +24,9 @@ import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
-import org.slf4j.impl.SimpleLoggerConfiguration;
+//import org.slf4j.impl.SimpleLoggerConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Spark;
 import spark.embeddedserver.EmbeddedServers;
 import spark.embeddedserver.jetty.EmbeddedJettyFactory;
@@ -72,8 +74,9 @@ public class Main {
     URLConnection.setDefaultUseCaches("jar", false);
 
     //NOTE: for including slf4j to jar file
-    SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
-    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
+    //SimpleLoggerConfiguration simpleLoggerConfiguration = new SimpleLoggerConfiguration();
+    Logger dummyLogger = LoggerFactory.getLogger(Main.class);
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "off");
 
     avoidMultipleLaunch();
 
