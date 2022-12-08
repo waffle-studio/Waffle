@@ -22,18 +22,22 @@ public class MessageBundle {
   }
 
   public ArrayList<AbstractMessage> getMessageList(Class<? extends AbstractMessage> messageClass) {
-    ArrayList<AbstractMessage> messageList = messageListSet.get(messageClass);
-    if (messageList == null) {
-      messageList = new ArrayList<>();
-      messageListSet.put(messageClass, messageList);
+    synchronized (messageListSet) {
+      ArrayList<AbstractMessage> messageList = messageListSet.get(messageClass);
+      if (messageList == null) {
+        messageList = new ArrayList<>();
+        messageListSet.put(messageClass, messageList);
+      }
+      return messageList;
     }
-    return messageList;
   }
 
   public <T extends AbstractMessage> ArrayList<T> getCastedMessageList(Class<T> messageClass) {
     ArrayList<T> castedMessageList = new ArrayList<>();
-    for (AbstractMessage message : getMessageList(messageClass)) {
-      castedMessageList.add((T)message);
+    synchronized (messageListSet) {
+      for (AbstractMessage message : getMessageList(messageClass)) {
+        castedMessageList.add((T) message);
+      }
     }
     return castedMessageList;
   }
@@ -47,16 +51,20 @@ public class MessageBundle {
   }
 
   public boolean isEmpty() {
-    for (ArrayList<AbstractMessage> messageList : messageListSet.values()) {
-      if (!messageList.isEmpty()) {
-        return false;
+    synchronized (messageListSet) {
+      for (ArrayList<AbstractMessage> messageList : messageListSet.values()) {
+        if (!messageList.isEmpty()) {
+          return false;
+        }
       }
+      return true;
     }
-    return true;
   }
 
   public void add(AbstractMessage message) {
-    getMessageList(message.getClass()).add(message);
+    synchronized (messageListSet) {
+      getMessageList(message.getClass()).add(message);
+    }
   }
 
   public void serialize(OutputStream stream) throws IOException {
