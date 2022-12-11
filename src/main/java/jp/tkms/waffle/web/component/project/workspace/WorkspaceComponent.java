@@ -189,7 +189,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         );
 
         contents += Lte.card(Html.fasIcon("project-diagram") + RunComponent.RUNS, null,
-          Lte.table("table-condensed", new Lte.Table() {
+          Lte.table("table-condensed table-sm", new Lte.Table() {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               return null;

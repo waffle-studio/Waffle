@@ -43,15 +43,17 @@ public class RubyScriptProcessor extends ScriptProcessor {
 
   @Override
   public void processProcedure(ProcedureRun run, StringKeyHashMap<HasLocalPath> referable, String script, ArrayList<Object> arguments) {
-    RubyScript.process((container) -> {
-      try {
-        container.runScriptlet(procedureTemplate());
-        container.runScriptlet(script);
-        container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure", run, referable);
-      } catch (EvalFailedException e) {
-        WarnLogMessage.issue(e);
-      }
-    });
+    run.isSuccess(
+      RubyScript.process((container) -> {
+        try {
+          container.runScriptlet(procedureTemplate());
+          container.runScriptlet(script);
+          container.callMethod(Ruby.newInstance().getCurrentContext(), "exec_procedure", run, referable);
+        } catch (EvalFailedException e) {
+          WarnLogMessage.issue(e);
+        }
+      })
+    );
   }
 
   @Override

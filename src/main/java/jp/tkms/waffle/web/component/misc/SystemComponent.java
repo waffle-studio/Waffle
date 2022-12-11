@@ -14,6 +14,7 @@ import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.InstanceCache;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.web.UserSession;
 import jp.tkms.waffle.web.component.AbstractAccessControlledComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
 import jp.tkms.waffle.web.template.Html;
@@ -145,6 +146,7 @@ public class SystemComponent extends AbstractAccessControlledComponent {
             div(null,
               Lte.readonlyTextInputWithCopyButton("PID", String.valueOf(Main.PID)),
               Lte.readonlyTextInputWithCopyButton("Version", Main.VERSION),
+              Lte.readonlyTextInputWithCopyButton("UUID", UserSession.getWaffleId()),
               Lte.readonlyTextInputWithCopyButton("Working directory", Constants.WORK_DIR.toString()),
               p(),
               Html.div("d-flex justify-content-around",

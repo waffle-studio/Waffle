@@ -56,8 +56,10 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
               if (Files.exists(path.resolve(Constants.DOT_FAVORITE))) {
                 add(getInstance.apply(name));
               } else {
-                if (isNotAllMode && !name.startsWith(".")) {
-                  followings.add(getInstance.apply(name));
+                if (isNotAllMode) {
+                  if (!name.startsWith(".")) {
+                    followings.add(getInstance.apply(name));
+                  }
                 } else {
                   followings.add(getInstance.apply(name));
                 }

@@ -33,6 +33,7 @@ public class ProcedureRun extends AbstractRun {
   public static final String KEY_PROCEDURE_NAME = "procedure_name";
   public static final String KEY_WORKING_DIRECTORY = "working_directory";
   public static final String KEY_GUARD = "guard";
+  public static final String KEY_SUCCESS = "success";
   public static final String KEY_ACTIVE_GUARD = "active_guard";
   public static final String KEY_REFERABLE = "referable";
 
@@ -256,6 +257,14 @@ public class ProcedureRun extends AbstractRun {
       putNewArrayToProperty(KEY_ACTIVE_GUARD);
     }
     removeFromArrayOfProperty(KEY_ACTIVE_GUARD, guard);
+  }
+
+  public void isSuccess(boolean isSuccess) {
+    setToProperty(KEY_SUCCESS, isSuccess);
+  }
+
+  public boolean isSuccess() {
+    return getBooleanFromProperty(KEY_SUCCESS, false);
   }
 
   @Override
@@ -568,9 +577,11 @@ public class ProcedureRun extends AbstractRun {
     }
      */
 
-    for (AbstractRun createdRun : transactionRunList) {
-      if (! createdRun.isStarted()) {
-        createdRun.start();
+    if (isSuccess()) {
+      for (AbstractRun createdRun : transactionRunList) {
+        if (!createdRun.isStarted()) {
+          createdRun.start();
+        }
       }
     }
 
