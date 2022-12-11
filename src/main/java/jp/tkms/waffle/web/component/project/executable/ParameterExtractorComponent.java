@@ -18,6 +18,8 @@ import java.util.Arrays;
 import static jp.tkms.waffle.data.project.executable.Executable.KEY_EXTRACTOR;
 
 public class ParameterExtractorComponent extends AbstractAccessControlledComponent {
+
+  public enum Mode {Default, Add, Update, Remove, GoToParent}
   private Mode mode;
 
   private Project project;
@@ -36,17 +38,22 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
   static public void register() {
     Spark.get(getStaticUrl(null, Mode.Add), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Add)));
     Spark.post(getStaticUrl(null, Mode.Add), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Add)));
+    Spark.get(getUrl(null), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.GoToParent)));
     Spark.get(getUrl(null, null), new ResponseBuilder(() -> new ParameterExtractorComponent()));
     Spark.post(getUrl(null, null, Mode.Update), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Update)));
     Spark.get(getUrl(null, null, Mode.Remove), new ResponseBuilder(() -> new ParameterExtractorComponent(Mode.Remove)));
   }
 
+  public static String getUrl(Executable executable) {
+    return ExecutableComponent.getUrl(executable) + "/" + KEY_EXTRACTOR;
+  }
+
   public static String getStaticUrl(Executable executable, Mode mode) {
-    return ExecutableComponent.getUrl(executable) + "/" + KEY_EXTRACTOR + "/@" + (mode == null ? ":mode" : mode.name());
+    return getUrl(executable) + "/@" + (mode == null ? ":mode" : mode.name());
   }
 
   public static String getUrl(Executable executable, String name) {
-    return ExecutableComponent.getUrl(executable) + "/" + KEY_EXTRACTOR + "/" + (name == null ? ":name" : name + ".rb");
+    return getUrl(executable) + "/" + (name == null ? ":name" : name + ".rb");
   }
 
   public static String getUrl(Executable executable, String name, Mode mode) {
@@ -59,6 +66,9 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     executable = Executable.getInstance(project, request.params(ExecutableComponent.KEY_EXECUTABLE));
 
     switch (mode) {
+      case GoToParent:
+        response.redirect(ExecutableComponent.getUrl(executable));
+        break;
       case Add:
         if (isPost()) {
           addParameterExtractor();
@@ -90,11 +100,11 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(ExecutablesComponent.getUrl(project), "Simulators"),
-          Html.a(ExecutableComponent.getUrl(executable), executable.getName()),
-          "Parameter Extractor",
+          ProjectsComponent.getAnchorLink(),
+          ProjectComponent.getAnchorLink(project),
+          ExecutablesComponent.getAnchorLink(project),
+          ExecutableComponent.getAnchorLink(executable),
+          "Extractor",
           extractorName
         ));
         return breadcrumb;
@@ -146,11 +156,11 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
       @Override
       protected ArrayList<String> pageBreadcrumb() {
         ArrayList<String> breadcrumb = new ArrayList<String>(Arrays.asList(
-          Html.a(ProjectsComponent.getUrl(), "Projects"),
-          Html.a(ProjectComponent.getUrl(project), project.getName()),
-          Html.a(ExecutablesComponent.getUrl(project), "Simulators"),
-          Html.a(ExecutableComponent.getUrl(executable), executable.getName()),
-          "Parameter Extractor",
+          ProjectsComponent.getAnchorLink(),
+          ProjectComponent.getAnchorLink(project),
+          ExecutablesComponent.getAnchorLink(project),
+          ExecutableComponent.getAnchorLink(executable),
+          "Extractor",
           "Add"
         ));
         return breadcrumb;
@@ -195,6 +205,4 @@ public class ParameterExtractorComponent extends AbstractAccessControlledCompone
     executable.removeExtractor(extractorName);
     response.redirect(ExecutableComponent.getUrl(executable));
   }
-
-  public enum Mode {Default, Add, Update, Remove}
 }
