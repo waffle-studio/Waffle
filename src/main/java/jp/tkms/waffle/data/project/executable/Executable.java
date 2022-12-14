@@ -28,6 +28,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public static final String TESTRUN = ".TESTRUN";
   private static final String KEY_REQUIRED_THREAD = "required_thread";
   private static final String KEY_REQUIRED_MEMORY = "required_memory";
+  private static final String KEY_RETRY = "retry";
   private static final String KEY_PARALLEL_PROHIBITED = "parallel_prohibited";
 
   public static final String BASE = "BASE";
@@ -281,6 +282,14 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   public void setRequiredMemory(double num) {
     requiredMemory = num;
     setToProperty(KEY_REQUIRED_MEMORY, requiredMemory);
+  }
+
+  public Integer getAutoMaticRetry() {
+    return getIntFromProperty(KEY_RETRY, 0);
+  }
+
+  public void setAutomaticRetry(int count) {
+    setToProperty(KEY_RETRY, count);
   }
 
   public Boolean isParallelProhibited() {

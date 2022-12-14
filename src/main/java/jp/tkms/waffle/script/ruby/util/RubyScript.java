@@ -11,7 +11,6 @@ import org.jruby.embed.ScriptingContainer;
 import org.jruby.exceptions.LoadError;
 import org.jruby.exceptions.SystemCallError;
 
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -22,7 +21,7 @@ public class RubyScript {
     return (runningCount.get() > 0);
   }
 
-  public static void process(Consumer<ScriptingContainer> process) {
+  public static boolean process(Consumer<ScriptingContainer> process) {
     ScriptingContainerWrapper wrapper = new ScriptingContainerWrapper(process);
     wrapper.start();
     try {
@@ -32,6 +31,7 @@ public class RubyScript {
     } catch (InterruptedException e) {
       ErrorLogMessage.issue(e);
     }
+    return wrapper.isSuccess();
 
     /*
     boolean failed;
@@ -77,10 +77,16 @@ public class RubyScript {
 
   static class ScriptingContainerWrapper extends Thread {
     Consumer<ScriptingContainer> process;
+    boolean isSuccess;
 
     public ScriptingContainerWrapper(Consumer<ScriptingContainer> process) {
       super(ScriptingContainerWrapper.class.getSimpleName());
       this.process = process;
+      this.isSuccess = false;
+    }
+
+    boolean isSuccess() {
+      return this.isSuccess;
     }
 
     @Override
@@ -95,6 +101,7 @@ public class RubyScript {
           try {
             container.runScriptlet(getInitScript());
             process.accept(container);
+            isSuccess = true;
           } catch (EvalFailedException e) {
             ErrorLogMessage.issue(e);
           }

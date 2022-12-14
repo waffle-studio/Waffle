@@ -18,8 +18,6 @@ public class Constants {
   static final public String PROJECT = "PROJECT";
   static final public String COMPUTER = "COMPUTER";
   static final public String LOG = "LOG";
-  static final public String CONDUCTOR_TEMPLATE = "conductor-template";
-  static final public String LISTENER_TEMPLATE = "listener-template";
   public static final String EXT_JSON = ".json";
   public static final String EXT_RUBY = ".rb";
   public static final String EXT_WNJ = ".wnj";
@@ -27,6 +25,7 @@ public class Constants {
   public static final String STDERR_FILE = "STDERR.txt";
   public static final String DOT_INTERNAL = ".INTERNAL";
   public static final String DOT_FAVORITE = ".FAVORITE";
+  public static final String DOT_TRASH = ".TRASH";
   static final public String DOT_LOCK = ".LOCK";
   public static final String PASSWORD = ".PASSWORD";
   public static final Path PID_FILE = WORK_DIR.resolve(DOT_INTERNAL).resolve("PID");

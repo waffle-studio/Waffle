@@ -269,7 +269,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
             @Override
             public ArrayList<Lte.TableValue> tableHeaders() {
               ArrayList<Lte.TableValue> list = new ArrayList<>();
-              list.add(new Lte.TableValue("width:0;", ""));
+              //list.add(new Lte.TableValue("width:0;", ""));
               list.add(new Lte.TableValue("", "Name"));
               list.add(new Lte.TableValue("width:50%;", "Note"));
               //list.add(new Lte.TableValue("width:0;", ""));
@@ -293,7 +293,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
                     return new Lte.TableRow(
                       //new Lte.TableValue(null, (child instanceof ParallelRunNode ? Html.fasIcon("plus-circle") : Html.farIcon("circle"))),
-                      new Lte.TableValue(null, icon),
+                      //new Lte.TableValue(null, icon),
                       new Lte.TableValue(null, Html.a(getUrlFromLocalPath(child), null, null, child.getPath().getFileName().toString())),
                       new Lte.TableValue("max-width:0;", Html.div("hide-overflow", /*run.getNote()*/ "note"))//,
                       //new Lte.TableValue(null, Html.spanWithId(/*run.getLocalDirectoryPath().toString() +*/ "-badge", run.getState().getStatusBadge()))
