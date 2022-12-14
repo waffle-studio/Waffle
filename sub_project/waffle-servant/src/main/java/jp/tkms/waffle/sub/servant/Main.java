@@ -1,5 +1,6 @@
 package jp.tkms.waffle.sub.servant;
 
+import jp.tkms.waffle.sub.servant.message.response.StorageWarningMessage;
 import jp.tkms.waffle.sub.servant.processor.RequestProcessor;
 
 import java.io.File;
@@ -37,6 +38,7 @@ public class Main {
          */
         //request.getMessageBundle().print("SERVANT-IN:");
         Envelope response = new Envelope(baseDirectory);
+        StorageWarningMessage.addMessageIfCritical(response);
         RequestProcessor.processMessages(baseDirectory, request, response);
         response.save(Envelope.getResponsePath(envelopePath));
         //response.getMessageBundle().print("SERVANT-OUT:");

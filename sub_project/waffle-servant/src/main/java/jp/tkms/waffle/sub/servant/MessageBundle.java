@@ -118,5 +118,6 @@ public class MessageBundle {
     kryo.register(ChangePermissionMessage.class);
     kryo.register(ConfirmPreparingMessage.class);
     kryo.register(UpdatePreparedMessage.class);
+    kryo.register(StorageWarningMessage.class);
   }
 }
