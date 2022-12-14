@@ -4,7 +4,6 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.internal.InternalFiles;
 import jp.tkms.waffle.data.util.*;
-import jp.tkms.waffle.data.web.Data;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.DataDirectory;
@@ -33,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
 
 @CommunicatorDescription("Pod Wrapper (pre-allocating workspace by a job)")
 public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
@@ -56,7 +56,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   //private static final InstanceCache<String, Boolean> existsCheckCache = new InstanceCache<>();
 
-  JobManager jobManager;
+  private JobManager jobManager;
   AbstractSubmitter targetSubmitter;
 
   public PodWrappedSubmitter(Computer computer) {
@@ -92,7 +92,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       JobManager.Submittable submittable = jobManager.getSubmittable(next);
       return (submittable.usableExecutor != null || submittable.isNewExecutorCreatable);
     } else {
-      return jobManager.isReceptable(next, list);
+      return jobManager.isReceptacle(next, list);
     }
   }
 
@@ -100,14 +100,14 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public void update(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     String executorId = job.getJobId().replaceFirst("\\..*$", "");
     Path podDirectory = InternalFiles.getLocalPath(computer.getLocalPath().resolve(JOB_MANAGER).resolve(executorId));
-    envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), !jobManager.runningExecutorList.containsKey(executorId), podDirectory, getRunDirectory(job.getRun())));
+    envelope.add(new CollectPodTaskStatusMessage(job.getTypeCode(), job.getHexCode(), !jobManager.isContainKeyOfRunningExecutor(executorId), podDirectory, getRunDirectory(job.getRun())));
   }
 
   @Override
   protected Envelope processRequestAndResponse(Envelope envelope) {
-    for (Map.Entry<String, VirtualJobExecutor> entry : jobManager.runningExecutorList.entrySet()) {
+    jobManager.processEachRunningExecutor(entry -> {
       envelope.add(new CollectPodStatusMessage(entry.getKey(), entry.getValue().getLocalPath()));
-    }
+    });
 
     Envelope response = super.processRequestAndResponse(envelope);
 
@@ -116,7 +116,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           String executorId = job.getJobId().replaceFirst("\\..*$", "");
-          VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
+          VirtualJobExecutor executor = jobManager.getRunningExecutor(executorId);
           if (executor == null) {
             executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
           }
@@ -128,7 +128,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
       for (PodTaskRefusedMessage message : response.getMessageBundle().getCastedMessageList(PodTaskRefusedMessage.class)) {
         String executorId = message.getJobId().replaceFirst("\\..*$", "");
-        VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
+        VirtualJobExecutor executor = jobManager.getRunningExecutor(executorId);
         if (executor == null) {
           executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
         }
@@ -147,7 +147,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
             WarnLogMessage.issue(e);
           }
           String executorId = job.getJobId().replaceFirst("\\..*$", "");
-          VirtualJobExecutor executor = jobManager.runningExecutorList.get(executorId);
+          VirtualJobExecutor executor = jobManager.getRunningExecutor(executorId);
           if (executor == null) {
             executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
           }
@@ -200,10 +200,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
 
   public static class JobManager implements DataDirectory, PropertyFile {
-    PodWrappedSubmitter submitter;
-    Map<String, VirtualJobExecutor> runningExecutorList;
-    Map<String, VirtualJobExecutor> activeExecutorList;
-    VirtualJobExecutor submittableCache = null;
+    private PodWrappedSubmitter submitter;
+    private Map<String, VirtualJobExecutor> runningExecutorList;
+    private Map<String, VirtualJobExecutor> activeExecutorList;
+    private VirtualJobExecutor submittableCache = null;
 
     public JobManager(PodWrappedSubmitter submitter) {
       this.submitter = submitter;
@@ -259,21 +259,43 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
     }
 
-    public VirtualJobExecutor getNextExecutor(AbstractTask next) throws RunNotFoundException {
-      Submittable submittable = getSubmittable(next.getRun());
-      VirtualJobExecutor result = submittable.usableExecutor;
-      if (result == null && submittable.isNewExecutorCreatable) {
-        SystemTask executorJob = SystemTask.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(),
-          true,
-          Integer.parseInt(submitter.computer.getParameter(KEY_EMPTY_TIMEOUT).toString()),
-          Integer.parseInt(submitter.computer.getParameter(KEY_FORCE_SHUTDOWN).toString()),
-          Integer.parseInt(submitter.computer.getParameter(KEY_SHUTDOWN_PREPARATION_MARGIN).toString())
-        ));
-        executorJob.replaceComputer(submitter.targetSubmitter.computer);
-        result = (VirtualJobExecutor) executorJob.getRun();
-        registerExecutor(result);
+    public VirtualJobExecutor getRunningExecutor(String id) {
+      synchronized (runningExecutorList) {
+        return runningExecutorList.get(id);
       }
-      return result;
+    }
+
+    public boolean isContainKeyOfRunningExecutor(String id) {
+      synchronized (runningExecutorList) {
+        return runningExecutorList.containsKey(id);
+      }
+    }
+
+    public void processEachRunningExecutor(Consumer<Map.Entry<String, VirtualJobExecutor>> consumer) {
+      synchronized (runningExecutorList) {
+        for (Map.Entry<String, VirtualJobExecutor> entry : runningExecutorList.entrySet()) {
+          consumer.accept(entry);
+        }
+      }
+    }
+
+    public VirtualJobExecutor getNextExecutor(AbstractTask next) throws RunNotFoundException {
+      synchronized (runningExecutorList) {
+        Submittable submittable = getSubmittable(next.getRun());
+        VirtualJobExecutor result = submittable.usableExecutor;
+        if (result == null && submittable.isNewExecutorCreatable) {
+          SystemTask executorJob = SystemTask.addRun(VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(),
+            true,
+            Integer.parseInt(submitter.computer.getParameter(KEY_EMPTY_TIMEOUT).toString()),
+            Integer.parseInt(submitter.computer.getParameter(KEY_FORCE_SHUTDOWN).toString()),
+            Integer.parseInt(submitter.computer.getParameter(KEY_SHUTDOWN_PREPARATION_MARGIN).toString())
+          ));
+          executorJob.replaceComputer(submitter.targetSubmitter.computer);
+          result = (VirtualJobExecutor) executorJob.getRun();
+          registerExecutor(result);
+        }
+        return result;
+      }
     }
 
     static class Submittable {
@@ -285,179 +307,187 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     protected Submittable getSubmittable(ComputerTask next) {
-      double threadSize = (next == null ? 0 : next.getRequiredThread());
-      double memorySize = (next == null ? 0 : next.getRequiredMemory());
+      synchronized (runningExecutorList) {
+        double threadSize = (next == null ? 0 : next.getRequiredThread());
+        double memorySize = (next == null ? 0 : next.getRequiredMemory());
 
-      Submittable result = new Submittable();
+        Submittable result = new Submittable();
 
-      for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
-        Path directoryPath = executor.getPath();
-        if (!directoryPath.toFile().exists() || !executor.isRunning()) {
-          removeExecutor(executor);
-          if (directoryPath.toFile().exists()) {
-            executor.deleteDirectory();
+        for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
+          Path directoryPath = executor.getPath();
+          if (!directoryPath.toFile().exists() || !executor.isRunning()) {
+            removeExecutor(executor);
+            if (directoryPath.toFile().exists()) {
+              executor.deleteDirectory();
+            }
           }
         }
-      }
 
-      ArrayList<VirtualJobExecutor> shuffledList = new ArrayList<>(activeExecutorList.values());
-      Collections.shuffle(shuffledList);
-      ArrayList<VirtualJobExecutor> cacheAppliedList = new ArrayList<>();
-      if (submittableCache != null && shuffledList.contains(submittableCache)) {
-        cacheAppliedList.add(submittableCache);
-        shuffledList.remove(submittableCache);
-        cacheAppliedList.addAll(shuffledList);
-      } else {
-        cacheAppliedList.addAll(shuffledList);
-      }
+        ArrayList<VirtualJobExecutor> shuffledList = new ArrayList<>(activeExecutorList.values());
+        Collections.shuffle(shuffledList);
+        ArrayList<VirtualJobExecutor> cacheAppliedList = new ArrayList<>();
+        if (submittableCache != null && shuffledList.contains(submittableCache)) {
+          cacheAppliedList.add(submittableCache);
+          shuffledList.remove(submittableCache);
+          cacheAppliedList.addAll(shuffledList);
+        } else {
+          cacheAppliedList.addAll(shuffledList);
+        }
 
-      for (VirtualJobExecutor executor : cacheAppliedList) {
-        Path directoryPath = executor.getPath();
-        if (!directoryPath.toFile().exists()) {
-          //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
-          removeExecutor(executor);
-          continue;
-        }
-        //System.out.println(executor.getId());
-        double usedThread = 0.0;
-        double usedMemory = 0.0;
-        for (AbstractTask abstractTask : executor.getRunningList()) {
-          usedThread += abstractTask.getRequiredThread();
-          usedMemory += abstractTask.getRequiredMemory();
-        }
-        if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
-          && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
-          if (executor.isAcceptable()) {
-            result.usableExecutor = executor;
-            submittableCache = executor;
-            break;
-          } else {
-            deactivateExecutor(executor);
+        for (VirtualJobExecutor executor : cacheAppliedList) {
+          Path directoryPath = executor.getPath();
+          if (!directoryPath.toFile().exists()) {
+            //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
+            removeExecutor(executor);
+            continue;
+          }
+          //System.out.println(executor.getId());
+          double usedThread = 0.0;
+          double usedMemory = 0.0;
+          for (AbstractTask abstractTask : executor.getRunningList()) {
+            usedThread += abstractTask.getRequiredThread();
+            usedMemory += abstractTask.getRequiredMemory();
+          }
+          if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
+            && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
+            if (executor.isAcceptable()) {
+              result.usableExecutor = executor;
+              submittableCache = executor;
+              break;
+            } else {
+              deactivateExecutor(executor);
+            }
           }
         }
-      }
 
-      result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER, ""));
-      if (result.targetComputer != null) {
-        VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(), true,  0, 0, 0);
-        AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, result.targetComputer);
-        result.isNewExecutorCreatable = targetSubmitter.isSubmittable(result.targetComputer, executor);
-        executor.deleteDirectory();
-        executor.finish();
-      }
+        result.targetComputer = Computer.getInstance(getComputer().getParameters().getString(KEY_TARGET_COMPUTER, ""));
+        if (result.targetComputer != null) {
+          VirtualJobExecutor executor = VirtualJobExecutor.create(this, getComputer().getMaximumNumberOfThreads(), getComputer().getAllocableMemorySize(), true, 0, 0, 0);
+          AbstractSubmitter targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, result.targetComputer);
+          result.isNewExecutorCreatable = targetSubmitter.isSubmittable(result.targetComputer, executor);
+          executor.deleteDirectory();
+          executor.finish();
+        }
       /*
       if (runningExecutorList.size() < getComputer().getMaximumNumberOfJobs()) {
         result.isNewExecutorCreatable = true;
       }
        */
 
-      return result;
+        return result;
+      }
     }
 
-    public boolean isReceptable(ComputerTask next, ArrayList<ComputerTask> list) {
-      for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
-        Path directoryPath = executor.getPath();
-        if (!directoryPath.toFile().exists() || !executor.isRunning()) {
-          removeExecutor(executor);
-          if (directoryPath.toFile().exists()) {
-            executor.deleteDirectory();
-          }
-        }
-      }
-
-      ArrayList<ComputerTask> queuedList = new ArrayList<>();
-      queuedList.add(next);
-      for (ComputerTask task : list) {
-        switch (task.getState()) {
-          case Created:
-          case Prepared:
-            queuedList.add(task);
-        }
-      }
-
-      ArrayList<VirtualJobExecutor> shuffledList = new ArrayList<>(activeExecutorList.values());
-      Collections.shuffle(shuffledList);
-      ArrayList<VirtualJobExecutor> cacheAppliedList = new ArrayList<>();
-      if (submittableCache != null && shuffledList.contains(submittableCache)) {
-        cacheAppliedList.add(submittableCache);
-        shuffledList.remove(submittableCache);
-        cacheAppliedList.addAll(shuffledList);
-      } else {
-        cacheAppliedList.addAll(shuffledList);
-      }
-      for (VirtualJobExecutor executor : cacheAppliedList) {
-        Path directoryPath = executor.getPath();
-        if (!directoryPath.toFile().exists()) {
-          //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
-          removeExecutor(executor);
-          continue;
-        }
-
-        double usedThread = 0.0;
-        double usedMemory = 0.0;
-        for (AbstractTask abstractTask : executor.getRunningList()) {
-          usedThread += abstractTask.getRequiredThread();
-          usedMemory += abstractTask.getRequiredMemory();
-        }
-        //System.out.println(executor.getId());
-        for (int i = queuedList.size() -1; i >= 0; i -= 1) {
-          double threadSize = (next == null ? 0 : next.getRequiredThread());
-          double memorySize = (next == null ? 0 : next.getRequiredMemory());
-
-          if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
-            && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
-            if (queuedList.size() <= 1) {
-              return true;
-            } else {
-              queuedList.remove(i);
-              usedThread += threadSize;
-              usedMemory += memorySize;
+    public boolean isReceptacle(ComputerTask next, ArrayList<ComputerTask> list) {
+      synchronized (runningExecutorList) {
+        for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
+          Path directoryPath = executor.getPath();
+          if (!directoryPath.toFile().exists() || !executor.isRunning()) {
+            removeExecutor(executor);
+            if (directoryPath.toFile().exists()) {
+              executor.deleteDirectory();
             }
           }
         }
-      }
 
-      for (int count = 0; count < getComputer().getMaximumNumberOfJobs() - runningExecutorList.size(); count += 1) {
-        double usedThread = 0.0;
-        double usedMemory = 0.0;
-
-        for (int i = queuedList.size() -1; i >= 0; i -= 1) {
-          double threadSize = (next == null ? 0 : next.getRequiredThread());
-          double memorySize = (next == null ? 0 : next.getRequiredMemory());
-
-          if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
-            && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
-            if (queuedList.size() <= 1) {
-              return true;
-            } else {
-              queuedList.remove(i);
-              usedThread += threadSize;
-              usedMemory += memorySize;
-            }
-          } else {
-            break;
+        ArrayList<ComputerTask> queuedList = new ArrayList<>();
+        queuedList.add(next);
+        for (ComputerTask task : list) {
+          switch (task.getState()) {
+            case Created:
+            case Prepared:
+              queuedList.add(task);
           }
         }
-      }
 
-      return false;
+        ArrayList<VirtualJobExecutor> shuffledList = new ArrayList<>(activeExecutorList.values());
+        Collections.shuffle(shuffledList);
+        ArrayList<VirtualJobExecutor> cacheAppliedList = new ArrayList<>();
+        if (submittableCache != null && shuffledList.contains(submittableCache)) {
+          cacheAppliedList.add(submittableCache);
+          shuffledList.remove(submittableCache);
+          cacheAppliedList.addAll(shuffledList);
+        } else {
+          cacheAppliedList.addAll(shuffledList);
+        }
+        for (VirtualJobExecutor executor : cacheAppliedList) {
+          Path directoryPath = executor.getPath();
+          if (!directoryPath.toFile().exists()) {
+            //if (!existsCheckCache.getOrCreate(directoryPath.toString(), k -> directoryPath.toFile().exists())) {
+            removeExecutor(executor);
+            continue;
+          }
+
+          double usedThread = 0.0;
+          double usedMemory = 0.0;
+          for (AbstractTask abstractTask : executor.getRunningList()) {
+            usedThread += abstractTask.getRequiredThread();
+            usedMemory += abstractTask.getRequiredMemory();
+          }
+          //System.out.println(executor.getId());
+          for (int i = queuedList.size() - 1; i >= 0; i -= 1) {
+            double threadSize = (next == null ? 0 : next.getRequiredThread());
+            double memorySize = (next == null ? 0 : next.getRequiredMemory());
+
+            if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
+              && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
+              if (queuedList.size() <= 1) {
+                return true;
+              } else {
+                queuedList.remove(i);
+                usedThread += threadSize;
+                usedMemory += memorySize;
+              }
+            }
+          }
+        }
+
+        for (int count = 0; count < getComputer().getMaximumNumberOfJobs() - runningExecutorList.size(); count += 1) {
+          double usedThread = 0.0;
+          double usedMemory = 0.0;
+
+          for (int i = queuedList.size() - 1; i >= 0; i -= 1) {
+            double threadSize = (next == null ? 0 : next.getRequiredThread());
+            double memorySize = (next == null ? 0 : next.getRequiredMemory());
+
+            if (threadSize <= (getComputer().getMaximumNumberOfThreads() - usedThread)
+              && memorySize <= (getComputer().getAllocableMemorySize() - usedMemory)) {
+              if (queuedList.size() <= 1) {
+                return true;
+              } else {
+                queuedList.remove(i);
+                usedThread += threadSize;
+                usedMemory += memorySize;
+              }
+            } else {
+              break;
+            }
+          }
+        }
+
+        return false;
+      }
     }
 
     boolean removeJob(Envelope envelope, AbstractTask job) throws RunNotFoundException {
-      for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
-        if (executor.getRunningList().contains(job)) {
-          executor.cancel(envelope, job);
-          return false;
+      synchronized (runningExecutorList) {
+        for (VirtualJobExecutor executor : new ArrayList<>(runningExecutorList.values())) {
+          if (executor.getRunningList().contains(job)) {
+            executor.cancel(envelope, job);
+            return false;
+          }
         }
+        return true;
       }
-      return true;
     }
 
     void registerExecutor(VirtualJobExecutor executor) {
-      putToArrayOfProperty(RUNNING, executor.getId());
-      runningExecutorList.put(executor.getId(), executor);
-      putToArrayOfProperty(ACTIVE, executor.getId());
-      activeExecutorList.put(executor.getId(), executor);
+      synchronized (runningExecutorList) {
+        putToArrayOfProperty(RUNNING, executor.getId());
+        runningExecutorList.put(executor.getId(), executor);
+        putToArrayOfProperty(ACTIVE, executor.getId());
+        activeExecutorList.put(executor.getId(), executor);
+      }
     }
 
     void deactivateExecutor(VirtualJobExecutor executor) {
@@ -474,9 +504,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     void removeExecutor(String id) {
-      deactivateExecutor(id);
-      removeFromArrayOfProperty(RUNNING, id);
-      runningExecutorList.remove(id);
+      synchronized (runningExecutorList) {
+        deactivateExecutor(id);
+        removeFromArrayOfProperty(RUNNING, id);
+        runningExecutorList.remove(id);
+      }
     }
 
     public Computer getComputer() {
