@@ -40,7 +40,7 @@ public class PutTextFileRequestProcessor extends RequestProcessor<PutTextFileMes
 
       if (streamList.size() > MAX_STREAM) {
         for (BufferedOutputStream s : streamList) {
-          stream.close();
+          s.close();
         }
         streamList.clear();
       }
