@@ -2,7 +2,7 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.utils.crypt.DecryptingException;
 import jp.tkms.utils.crypt.RSA;
-import jp.tkms.waffle.data.computer.MasterPassword;
+import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.web.component.AbstractComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
@@ -15,14 +15,16 @@ import spark.Spark;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SigninComponent extends AbstractComponent {
+  private static final String KEY_KEYID = "keyid";
   private static final String KEY_PASSWORD = "password";
   private static final String KEY_REDIRECT = "redirect";
   private Mode mode;
 
-  private static RSA rsaKeyPair = null;
+  private static LinkedHashMap<Long, RSA> rsaKeyPairMap = new LinkedHashMap<>();
 
   public SigninComponent(Mode mode) {
     super();
@@ -50,24 +52,24 @@ public class SigninComponent extends AbstractComponent {
   public void controller() {
     if (isPost()) {
       ArrayList<Lte.FormError> errors = checkCreateProjectFormError();
+      RSA rsaKeyPair = getRsaKey(request.queryParams(KEY_KEYID));
       if (errors.isEmpty() && rsaKeyPair != null) {
         try {
           String password = rsaKeyPair.decryptToString(request.queryParams(KEY_PASSWORD));
           if (Password.isNotEmpty()) {
             getAccess(password);
+            redirectToNext();
           } else {
             Password.setPassword(password);
             response.redirect(ProjectsComponent.getUrl());
           }
         } catch (DecryptingException e) {
-          // NOP
+          redirectToNext();
         }
       } else {
-        rsaKeyPair = new RSA();
         renderSigninForm(errors);
       }
     } else {
-      rsaKeyPair = new RSA();
       if (Password.isNotEmpty()) {
         renderSigninForm(new ArrayList<>());
       } else {
@@ -105,8 +107,9 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
+        Map.Entry<Long, RSA> rsaKeyEntry = getRsaKey();
         return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
-          Html.javascript("var pubkey='" + rsaKeyPair.getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
+          Html.javascript("var pubkey='" + rsaKeyEntry.getValue().getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
           Html.element("form",
             new Html.Attributes(Html.value("action", getUrl()),
               Html.value("onsubmit", "onsubmit()"),
@@ -114,6 +117,7 @@ public class SigninComponent extends AbstractComponent {
             ),
             Lte.card("Register a password to access the web interface.", null,
               Html.div(null,
+                Html.inputHidden(KEY_KEYID, rsaKeyEntry.getKey().toString()),
                 Lte.formInputGroup("text", KEY_PASSWORD, null, "Password", null, errors).replaceFirst("value=\"\"", "autofocus"),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
@@ -156,8 +160,9 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
+        Map.Entry<Long, RSA> rsaKeyEntry = getRsaKey();
         return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
-          Html.javascript("var pubkey='" + rsaKeyPair.getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
+          Html.javascript("var pubkey='" + rsaKeyEntry.getValue().getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
           Html.element("form",
             new Html.Attributes(Html.value("action", getUrl()),
               Html.value("onsubmit", "onsubmit()"),
@@ -165,7 +170,8 @@ public class SigninComponent extends AbstractComponent {
             ),
             Lte.card(null, null,
               Html.div(null,
-                Lte.formInputGroup("hidden", KEY_REDIRECT, null, "", request.queryParams(KEY_REDIRECT), errors),
+                Html.inputHidden(KEY_KEYID, rsaKeyEntry.getKey().toString()),
+                Html.inputHidden(KEY_REDIRECT, request.queryParams(KEY_REDIRECT)),
                 Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors).replaceFirst("value=\"\"", "autofocus"),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
@@ -189,6 +195,9 @@ public class SigninComponent extends AbstractComponent {
       UserSession session = UserSession.create();
       response.cookie("/", UserSession.getWaffleId(), session.getSessionId(), -1, false);
     }
+  }
+
+  private void redirectToNext() {
     if (request.queryParams(KEY_REDIRECT) != null) {
       response.redirect(request.queryParams(KEY_REDIRECT));
     } else {
@@ -196,6 +205,31 @@ public class SigninComponent extends AbstractComponent {
     }
   }
 
+  private static Map.Entry<Long, RSA> getRsaKey() {
+    Map.Entry<Long, RSA> keyEntry = Map.entry(System.currentTimeMillis(), new RSA());
+    synchronized (rsaKeyPairMap) {
+      ArrayList<Long> removingIdList = new ArrayList<>();
+      for (Long id : rsaKeyPairMap.keySet()) {
+        if (id + 60000 < System.currentTimeMillis()) {
+          removingIdList.add(id);
+        } else {
+          break;
+        }
+      }
+      for (Long id : removingIdList) {
+        rsaKeyPairMap.remove(id);
+      }
+      rsaKeyPairMap.put(keyEntry.getKey(), keyEntry.getValue());
+    }
+    return keyEntry;
+  }
+
+  private static RSA getRsaKey(String id) {
+    if (id == null) { return null; }
+    synchronized (rsaKeyPairMap) {
+      return rsaKeyPairMap.remove(Long.valueOf(id));
+    }
+  }
 
   public enum Mode {Default, Setup}
 }
