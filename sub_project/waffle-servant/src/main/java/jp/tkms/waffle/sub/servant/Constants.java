@@ -3,6 +3,9 @@ package jp.tkms.waffle.sub.servant;
 public class Constants {
   public static final String RESPONSE_SUFFIX = ".res";
   public static final String BASE = "BASE";
+  public static final String ALIVE = ".ALIVE" + DirectoryHash.IGNORE_FLAG;
+  public static final String XSUB_LOG_FILE = "xsub.log";
+  public static final String EXEC_KEY = ".EXEC_KEY" + DirectoryHash.IGNORE_FLAG;
   public static final String NOTIFIER = ".NOTIFIER";
   public static final String STDOUT_FILE = "STDOUT.txt";
   public static final String STDERR_FILE = "STDERR.txt";
@@ -18,4 +21,5 @@ public class Constants {
   public static final String WAFFLE_BASE = "WAFFLE_BASE";
   public static final String WAFFLE_TASK_JSONFILE = "WAFFLE_TASK_JASONFILE";
   public static final int SHUTDOWN_TIMEOUT = 3;
+  public static final int WATCHDOG_INTERVAL = 2;
 }

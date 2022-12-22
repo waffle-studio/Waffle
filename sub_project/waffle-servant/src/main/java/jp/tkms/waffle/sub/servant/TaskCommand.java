@@ -17,4 +17,8 @@ public abstract class TaskCommand {
     this.taskJsonPath = taskJsonPath.normalize();
     this.taskDirectory = taskJsonPath.getParent().normalize();
   }
+
+  public Path getTaskDirectory() {
+    return taskDirectory;
+  }
 }

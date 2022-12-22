@@ -27,6 +27,8 @@ public class TaskExecutor extends TaskCommand {
   JsonObject environmentMap;
   long timeout;
   private long pid;
+  ExecKey execKey;
+  FlagWatchdog flagWatchdog;
 
   public TaskExecutor(Path baseDirectory, Path taskJsonPath) throws Exception {
     super(baseDirectory, taskJsonPath);
@@ -46,6 +48,7 @@ public class TaskExecutor extends TaskCommand {
     argumentList = taskJson.getArguments();
     environmentMap = taskJson.getEnvironments();
     timeout = taskJson.getTimeout();
+    execKey = taskJson.getExecKey();
 
     pid = Long.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
   }
@@ -73,6 +76,10 @@ public class TaskExecutor extends TaskCommand {
   }
 
   private void close() {
+    if (flagWatchdog != null) {
+      flagWatchdog.close();
+    }
+
     try {
       Files.writeString(baseDirectory.resolve(Constants.NOTIFIER), UUID.randomUUID().toString());
     } catch (IOException e) {
@@ -97,6 +104,12 @@ public class TaskExecutor extends TaskCommand {
 
   public void execute() {
     try {
+      if (!execKey.authorize(getTaskDirectory())) {
+        return;
+      }
+
+      flagWatchdog = new FlagWatchdog();
+
       DirectoryHash directoryHash = new DirectoryHash(baseDirectory, taskDirectory);
       directoryHash.waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
       if (executableBaseDirectory != null) {
@@ -345,5 +358,45 @@ public class TaskExecutor extends TaskCommand {
 
   private String[] getEnvironments() {
     return environmentList.toArray(new String[environmentList.size()]);
+  }
+
+  private class FlagWatchdog extends Thread {
+    Path flagPath;
+    boolean interrupted;
+
+    public FlagWatchdog() {
+      this.interrupted = false;
+      this.flagPath = getTaskDirectory().resolve(Constants.ALIVE);
+
+      try {
+        Files.createFile(flagPath);
+      } catch (IOException e) {
+        e.printStackTrace();
+      } finally {
+        flagPath.toFile().deleteOnExit();
+      }
+    }
+
+    @Override
+    public void run() {
+      while (Files.exists(flagPath) && !interrupted) {
+        try {
+          TimeUnit.SECONDS.sleep(Constants.WATCHDOG_INTERVAL);
+        } catch (InterruptedException e) {
+          continue;
+        }
+      }
+
+      if (!interrupted) {
+        System.err.println("The task will be killed because missing " + flagPath);
+        recursiveKill(String.valueOf(getPid()));
+      }
+      return;
+    }
+
+    public void close() {
+      interrupted = true;
+      interrupt();
+    }
   }
 }

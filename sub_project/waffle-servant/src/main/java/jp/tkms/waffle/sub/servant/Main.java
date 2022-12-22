@@ -97,6 +97,10 @@ public class Main {
           System.exit(1);
         }
         break;
+      case "sync_hash":
+        DirectoryHash directoryHash = new DirectoryHash(baseDirectory, Paths.get("."));
+        directoryHash.save();
+        break;
       default:
         exitWithInvalidArgumentsMessage("", "");
     }

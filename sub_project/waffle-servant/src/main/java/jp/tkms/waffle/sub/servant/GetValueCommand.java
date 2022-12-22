@@ -58,7 +58,7 @@ public class GetValueCommand extends TaskCommand {
       for (int count = 0; count > 0 || timeout == -1; count += 1) {
         TimeUnit.SECONDS.sleep(1);
         if (Files.exists(responseFilePath)) {
-          String value = Files.readAllBytes(responseFilePath).toString();
+          String value = new String(Files.readAllBytes(responseFilePath));
           if (value.endsWith(String.valueOf(RECORD_SEPARATING_MARK))) {
             System.out.print(value);
             isSuccess = true;

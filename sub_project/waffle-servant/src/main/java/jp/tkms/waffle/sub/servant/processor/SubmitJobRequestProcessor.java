@@ -2,27 +2,33 @@ package jp.tkms.waffle.sub.servant.processor;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.DirectoryHash;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
+import jp.tkms.waffle.sub.servant.message.response.RequestRepreparingMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage> {
   public static final String XSUB_TYPE = "XSUB_TYPE";
   public static final String NONE = "None";
+  public static final int MAX_REMOVING_RETRYING = 100;
 
   protected SubmitJobRequestProcessor() {
   }
@@ -35,6 +41,21 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
     }
 
     messageList.stream().parallel().forEach(message -> {
+      Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
+
+      if (Files.exists(workingDirectory.resolve(Constants.XSUB_LOG_FILE))) { // If already executed, remove and request resubmit
+        for (int count = 0; count < MAX_REMOVING_RETRYING; count += 1) {
+          try {
+            Files.walk(workingDirectory).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+          } catch (IOException e) {
+            continue;
+          }
+          break;
+        }
+        response.add(new RequestRepreparingMessage(message));
+        return;
+      }
+
       if (message.getExecutableDirectory() != null) {
         DirectoryHash executableDirectoryHash = new DirectoryHash(baseDirectory, message.getExecutableDirectory(), false);
         synchronized (this) {
@@ -48,8 +69,6 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           }
         }
       }
-
-      Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
 
       StringWriter outputWriter = new StringWriter();
       StringWriter errorWriter = new StringWriter();

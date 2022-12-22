@@ -1,5 +1,7 @@
 package jp.tkms.waffle.data.log.message;
 
+import jp.tkms.waffle.data.computer.Computer;
+
 public class ErrorLogMessage extends LogMessage {
   public ErrorLogMessage(String message) {
     super(message);
@@ -11,5 +13,9 @@ public class ErrorLogMessage extends LogMessage {
 
   public static void issue(Throwable e) {
     new ErrorLogMessage(getStackTrace(e)).printMessage();
+  }
+
+  public static void issue(Computer computer, String message) {
+    new ErrorLogMessage("Computer(" + computer.getName() + ") " + message).printMessage();
   }
 }

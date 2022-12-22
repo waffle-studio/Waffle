@@ -112,6 +112,25 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     Envelope response = super.processRequestAndResponse(envelope);
 
     if (response != null) {
+      for (RequestRepreparingMessage message : response.getMessageBundle().getCastedMessageList(RequestRepreparingMessage.class)) {
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          try {
+            String executorId = job.getJobId().replaceFirst("\\..*$", "");
+            VirtualJobExecutor executor = jobManager.getRunningExecutor(executorId);
+            if (executor == null) {
+              executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
+            }
+            if (executor != null) {
+              executor.removeRunning(job.getJobId());
+            }
+            InfoLogMessage.issue(job.getRun(), "will re-prepare");
+          } catch (RunNotFoundException e) {
+            //NOP
+          }
+        }
+      }
+
       for (PodTaskFinishedMessage message : response.getMessageBundle().getCastedMessageList(PodTaskFinishedMessage.class)) {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {

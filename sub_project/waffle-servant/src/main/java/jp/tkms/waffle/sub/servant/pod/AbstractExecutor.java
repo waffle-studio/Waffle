@@ -160,6 +160,8 @@ public abstract class AbstractExecutor {
       return;
     }
      */
+    System.err.println("Executor started at " + System.currentTimeMillis());
+
     while (isAlive && waitingTimeCounter <= timeout) {
       boolean isChanged = false;
 

@@ -24,6 +24,7 @@ import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.*;
 import jp.tkms.waffle.manager.Filter;
 import jp.tkms.waffle.sub.servant.Envelope;
+import jp.tkms.waffle.sub.servant.ExecKey;
 import jp.tkms.waffle.sub.servant.TaskJson;
 import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.*;
@@ -267,13 +268,16 @@ abstract public class AbstractSubmitter {
         environments.merge(run.getActualComputer().getEnvironments());
         environments.merge(run.getEnvironments());
 
+        ExecKey execKey = new ExecKey();
         Path remoteBinPath = run.getRemoteBinPath();
         TaskJson taskJson = new TaskJson(projectName, workspaceName, executableName,
           remoteBinPath == null ? null : remoteBinPath.toString(),
-          run.getCommand(), arguments, environments.toJsonObject()
+          run.getCommand(), arguments, environments.toJsonObject(),
+          execKey
         );
         //putText(job, TASK_JSON, taskJson.toString());
         envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(TASK_JSON), taskJson.toString()));
+        envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(jp.tkms.waffle.sub.servant.Constants.EXEC_KEY), execKey.toString()));
 
         String jvmActivationCommand = getJvmActivationCommand().replaceAll("\"", "\\\"");
         if (!jvmActivationCommand.trim().equals("")) {
@@ -502,12 +506,24 @@ abstract public class AbstractSubmitter {
         ErrorLogMessage.issue("Servant> " + message.getMessage());
       }
 
+      for (StorageWarningMessage message : response.getMessageBundle().getCastedMessageList(StorageWarningMessage.class)) {
+        ErrorLogMessage.issue(computer, message.getMessage() + " (Remaining Byte & INode)");
+      }
+
       for (JobExceptionMessage message : response.getMessageBundle().getCastedMessageList(JobExceptionMessage.class)) {
         WarnLogMessage.issue("Servant:JobException> " + message.getMessage());
 
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           job.setState(State.Excepted);
+        }
+      }
+
+      for (RequestRepreparingMessage message : response.getMessageBundle().getCastedMessageList(RequestRepreparingMessage.class)) {
+        AbstractTask job = findJobFromStore(message.getType(), message.getId());
+        if (job != null) {
+          job.setState(State.Created);
+          InfoLogMessage.issue(job.getRun(), "will re-prepare");
         }
       }
 

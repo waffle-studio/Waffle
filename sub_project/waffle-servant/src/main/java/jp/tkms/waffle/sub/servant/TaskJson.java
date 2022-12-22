@@ -12,6 +12,7 @@ public class TaskJson {
   public static final String WORKSPACE = "workspace";
   public static final String ENVIRONMENT = "environment";
   public static final String TIMEOUT = "timeout";
+  public static final String EXEC_KEY = "exec_key";
 
   private JsonObject instance;
 
@@ -19,7 +20,7 @@ public class TaskJson {
     this.instance = jsonObject;
   }
 
-  public TaskJson(String project, String workspace, String executableName, String executable, String command, JsonArray arguments, JsonObject environments) {
+  public TaskJson(String project, String workspace, String executableName, String executable, String command, JsonArray arguments, JsonObject environments, ExecKey execKey) {
     this.instance = new JsonObject();
     instance.set(PROJECT, project);
     instance.set(WORKSPACE, workspace);
@@ -28,6 +29,7 @@ public class TaskJson {
     instance.set(COMMAND, command);
     instance.set(ARGUMENT, arguments);
     instance.set(ENVIRONMENT, environments);
+    instance.set(EXEC_KEY, execKey.toString());
   }
 
   public long getTimeout() {
@@ -68,6 +70,14 @@ public class TaskJson {
 
   public JsonObject getEnvironments() {
     return instance.get(ENVIRONMENT).asObject();
+  }
+
+  public ExecKey getExecKey() {
+    try {
+      return new ExecKey(getStringOrThrowException(EXEC_KEY));
+    } catch (Exception e) {
+      return new ExecKey();
+    }
   }
 
   public void setTimeout(long timeout) {
