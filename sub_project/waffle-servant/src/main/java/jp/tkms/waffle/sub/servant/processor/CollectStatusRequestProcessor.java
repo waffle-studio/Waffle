@@ -81,6 +81,8 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
           }
         } catch (Exception e) {
           response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));
+          response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
+          response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
         }
       });
     } catch (Exception e) {
