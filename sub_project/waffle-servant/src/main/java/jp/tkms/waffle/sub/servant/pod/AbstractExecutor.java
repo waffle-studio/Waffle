@@ -311,6 +311,8 @@ public abstract class AbstractExecutor {
   protected void jobAdded(String jobName) {
     System.out.println("'" + jobName + "' was added at " + System.currentTimeMillis());
     slotArray.set(getNextSlotIndex(), jobName);
+    ENTITIES_PATH.resolve(jobName).toFile().deleteOnExit();
+    JOBS_PATH.resolve(jobName).toFile().deleteOnExit();
   }
 
   protected void jobRemoved(String jobName) {
