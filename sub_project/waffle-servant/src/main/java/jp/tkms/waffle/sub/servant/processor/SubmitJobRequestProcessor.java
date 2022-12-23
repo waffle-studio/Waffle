@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage> {
   public static final String XSUB_TYPE = "XSUB_TYPE";
@@ -35,6 +36,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<SubmitJobMessage> messageList) throws ClassNotFoundException, IOException {
+    ArrayList<Path> removingList = new ArrayList<>();
     Map environments = new HashMap(System.getenv());
     if (!environments.containsKey(XSUB_TYPE)) {
       environments.put(XSUB_TYPE, NONE);
@@ -44,14 +46,12 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
       Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
 
       if (Files.exists(workingDirectory.resolve(Constants.XSUB_LOG_FILE))) { // If already executed, remove and request resubmit
-        for (int count = 0; count < MAX_REMOVING_RETRYING; count += 1) {
-          try {
-            Files.walk(workingDirectory).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-          } catch (IOException e) {
-            continue;
-          }
-          break;
+        try {
+          Files.deleteIfExists(workingDirectory.resolve(Constants.ALIVE));
+        } catch (IOException e) {
+          //NOP
         }
+        removingList.add(workingDirectory);
         response.add(new RequestRepreparingMessage(message));
         return;
       }
@@ -112,5 +112,23 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         throw new RuntimeException(e);
       }
     });
+
+    if (!removingList.isEmpty()) {
+      try {
+        TimeUnit.SECONDS.sleep(Constants.WATCHDOG_INTERVAL);
+      } catch (InterruptedException e) {
+        //NOP
+      }
+      removingList.stream().parallel().forEach(path -> {
+        for (int count = 0; count < MAX_REMOVING_RETRYING; count += 1) {
+          try {
+            Files.walk(path).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+          } catch (IOException e) {
+            continue;
+          }
+          break;
+        }
+      });
+    }
   }
 }

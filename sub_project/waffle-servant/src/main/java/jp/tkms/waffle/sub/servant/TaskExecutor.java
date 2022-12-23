@@ -109,6 +109,7 @@ public class TaskExecutor extends TaskCommand {
       }
 
       flagWatchdog = new FlagWatchdog();
+      flagWatchdog.start();
 
       DirectoryHash directoryHash = new DirectoryHash(baseDirectory, taskDirectory);
       directoryHash.waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
@@ -390,6 +391,7 @@ public class TaskExecutor extends TaskCommand {
       if (!interrupted) {
         System.err.println("The task will be killed because missing " + flagPath);
         recursiveKill(String.valueOf(getPid()));
+        System.exit(1);
       }
       return;
     }
