@@ -101,6 +101,10 @@ public class Main {
         DirectoryHash directoryHash = new DirectoryHash(baseDirectory, Paths.get("."));
         directoryHash.save();
         break;
+      case "bench":
+        EasyBench easyBench = new EasyBench();
+        easyBench.print();
+        break;
       default:
         exitWithInvalidArgumentsMessage("", "");
     }
@@ -110,7 +114,7 @@ public class Main {
 
   private static void exitWithInvalidArgumentsMessage(String mode, String additionalOption) {
     System.err.println("usage: java -jar <JAVA JAR> [BASE DIRECTORY] "
-      + (mode == null || mode.equals("") ? "[MODE{main,exec,terminal}]" : mode) + " " + additionalOption);
+      + (mode == null || mode.equals("") ? "[MODE{main,exec,terminal,sync_hash,bench}]" : mode) + " " + additionalOption);
     System.exit(1);
   }
 

@@ -1,5 +1,7 @@
 package jp.tkms.waffle.sub.servant.pod;
 
+import jp.tkms.waffle.sub.servant.EasyBench;
+
 import java.io.IOException;
 
 public class PodMain {
@@ -10,10 +12,14 @@ public class PodMain {
     int shutdownTime = 0;
     int marginTime = 0;
 
+    if (new EasyBench().isRejected()) {
+      System.err.println("EasyBench rejects the host");
+      System.exit(1);
+    }
+
     if (args.length != 4) {
       System.err.println("invalid arguments");
       System.err.println("<JAVA JAR> [MODE] [TIMEOUT] [FORCE SHUTDOWN TIME] [SHUTDOWN PREPARATION MARGIN]");
-      System.err.println("invalid arguments");
       System.exit(1);
     }
 
