@@ -584,8 +584,8 @@ abstract public class AbstractSubmitter {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           if (message.isFinished()) {
-            job.setState(State.Finalizing);
             job.getRun().setExitStatus(message.getExitStatus());
+            job.setState(State.Finalizing);
             finishedProcessorManager.startup();
             preparingProcessorManager.startup();
           } else {
