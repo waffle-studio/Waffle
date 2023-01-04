@@ -49,6 +49,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
     this.path = path;
     setToProperty(KEY_CLASS, getClass().getConstructors()[0].getDeclaringClass().getSimpleName());
     setParentConductorRun(parent);
+    ChildElementsArrayList.createSortingFlag(path);
   }
 
   public static AbstractRun getInstance(Workspace workspace, String localPathString) throws RunNotFoundException {
