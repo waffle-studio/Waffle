@@ -326,7 +326,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   public Map<String, Object> v() { return variables(); }
    */
 
-  public Map<Object, Object> v() {
+  public WrappedJson v() {
     return getVariables();
   }
 

@@ -15,6 +15,7 @@ import jp.tkms.waffle.exception.RunNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
 abstract public class AbstractRun extends WorkspaceData implements PropertyFile {
   public static final String RUN = "RUN";
@@ -489,4 +490,9 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
     return basePath.resolve(childPath);
   }
    */
+
+  public AbstractRun with(Consumer<AbstractRun> tasks) {
+    tasks.accept(this);
+    return this;
+  }
 }

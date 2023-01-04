@@ -48,6 +48,7 @@ abstract public class MainTemplate extends AbstractTemplate {
           javascript("var waffle_uri='" + component.request.uri() + "';"),
           element("script", new Attributes(value("src", "/jsoneditor/jsoneditor.min.js"))),
           element("script", new Attributes(value("src", "/js/jquery.min.js"))),
+          element("script", new Attributes(value("src", "/js/autoresizetextarea.js"))),
           element("script", new Attributes(value("src", "/js/short.js")))
         ),
         body((component.isSidebarCollapsed() ? "sidebar-collapse " : "") + "hold-transition layout-footer-fixed layout-fixed",

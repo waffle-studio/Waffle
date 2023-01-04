@@ -4,6 +4,8 @@ import com.eclipsesource.json.*;
 import jp.tkms.utils.value.Values;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jruby.RubyHash;
+import org.jruby.RubySymbol;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -73,29 +75,61 @@ public class WrappedJson implements Map<Object, Object> {
   }
 
   public WrappedJson merge(WrappedJson wrappedJson) {
-    if (wrappedJson == null) {
-      throw new NullPointerException("object is null");
-    } else {
+    if (wrappedJson != null) {
       for (Object key : wrappedJson.keySet()) {
         Object value = wrappedJson.get(key);
         if (value instanceof WrappedJson) {
           Object currentValue = get(key);
           if (currentValue instanceof WrappedJson) {
-            ((WrappedJson)currentValue).merge((WrappedJson)value);
+            ((WrappedJson) currentValue).merge(new WrappedJson(((WrappedJson) value).toJsonObject()));
           } else {
             put(key, value);
           }
+        } else if (value instanceof WrappedJsonArray) {
+          put(key, new WrappedJsonArray(((WrappedJsonArray) value).toArrayList()));
         } else {
           put(key, value);
         }
       }
-
-      return this;
     }
+    return this;
+  }
+
+  public WrappedJson merge(String jsonText) {
+    return merge(new WrappedJson(jsonText));
+  }
+
+  public WrappedJson refer(WrappedJson wrappedJson, boolean isForceReplacing) {
+    if (wrappedJson != null) {
+      for (Object key : this.keySet()) {
+        if (wrappedJson.containsKey(key)) {
+          if (!isForceReplacing && get(key) instanceof WrappedJson && wrappedJson.get(key) instanceof WrappedJson) {
+            ((WrappedJson) get(key)).merge((WrappedJson) wrappedJson.get(key));
+          } else {
+            this.put(key, wrappedJson.toJsonObject().get(key.toString()));
+          }
+        }
+      }
+    }
+    return this;
+  }
+
+  public WrappedJson refer(String jsonText, boolean isForceReplacing) {
+    return refer(new WrappedJson(jsonText), isForceReplacing);
+  }
+
+  public WrappedJson refer(WrappedJson wrappedJson) {
+    return refer(wrappedJson, false);
+  }
+
+  public WrappedJson refer(String jsonText) {
+    return refer(jsonText, false);
   }
 
   public static JsonValue toJsonValue(Object object) {
-    if (object instanceof String) {
+    if (object instanceof JsonValue) {
+      return (JsonValue) object;
+    } else if (object instanceof String) {
       return Json.value((String) object);
     } else if (object instanceof Map) {
       WrappedJson wrappedJson = new WrappedJson();

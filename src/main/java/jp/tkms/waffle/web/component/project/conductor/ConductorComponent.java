@@ -118,6 +118,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
           ErrorLogMessage.issue("Workspace(" + workspaceName + ") is not found.");
           response.redirect(LogsComponent.getUrl());
         } else {
+          if (workspace.getNote().length() <= 0) {
+            workspace.setNote(request.queryParams(KEY_NOTE));
+          } else {
+            workspace.setNote(workspace.getNote() + "\n" + request.queryParams(KEY_NOTE));
+          }
+
           ConductorRun conductorRun = ConductorRun.create(workspace, conductor);
           conductorRun.putVariablesByJson(request.queryParams(KEY_DEFAULT_VARIABLES));
           conductorRun.start(true);
@@ -494,9 +500,12 @@ public class ConductorComponent extends AbstractAccessControlledComponent {
                       }
                     }
                     , null)
-                  ),
+                ),
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formInputGroup("text", KEY_CONDUCTOR, "Name", "name", FileName.removeRestrictedCharacters(name), null)
+                ),
+                Lte.divCol(Lte.DivSize.F12,
+                  Lte.formTextAreaGroup(KEY_NOTE, "Note", 2, "", null)
                 ),
                 Lte.divCol(Lte.DivSize.F12,
                   Lte.formJsonEditorGroup(KEY_DEFAULT_VARIABLES, "Variables", "form", variables, null)

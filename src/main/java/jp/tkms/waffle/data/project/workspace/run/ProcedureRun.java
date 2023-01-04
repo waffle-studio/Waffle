@@ -611,6 +611,6 @@ public class ProcedureRun extends AbstractRun {
   /*
   public HashMap variables() { return getParentConductorRun().getVariables(); }
    */
-  public Map<Object, Object> v() { return getParentConductorRun().v(); }
+  public WrappedJson v() { return getParentConductorRun().v(); }
   public void v(String key, Object value) { getParentConductorRun().v().put(key, value); }
 }

@@ -113,7 +113,7 @@ public class Lte {
       element("textarea",
         new Attributes(
             value("class", "form-control"),
-            value("rows", String.valueOf(rows)),
+            value("data-auto-resize", String.valueOf(rows)),
             value("name", name),
             value("id", id)
         )

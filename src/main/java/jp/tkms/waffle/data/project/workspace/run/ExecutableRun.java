@@ -715,30 +715,13 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
   public ArrayList<Object> a() { return arguments(); }
 
-  private HashMap<Object, Object> parametersWrapper = null;
-  public HashMap parameters() {
+  private WrappedJson parametersWrapper = null;
+  public WrappedJson parameters() {
     if (parametersWrapper == null) {
-      parametersWrapper = new HashMap<Object, Object>(getParameters()) {
-        @Override
-        public Object get(Object key) {
-          return getParameter(key.toString());
-        }
-
-        @Override
-        public Object put(Object key, Object value) {
-          super.put(key, value);
-          putParameter(key.toString(), value);
-          return value;
-        }
-
-        @Override
-        public String toString() {
-          return getParameters().toString();
-        }
-      };
+      parametersWrapper = getParameters().withUpdateHandler((updated)->{updateParametersStore(updated);});
     }
 
     return parametersWrapper;
   }
-  public HashMap p() { return parameters(); }
+  public WrappedJson p() { return parameters(); }
 }
