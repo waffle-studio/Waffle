@@ -32,7 +32,10 @@ public class LocalSharedFlag {
 
   public static LocalSharedFlag getFlag(Path path) {
     if (Files.isDirectory(path)) {
-      path = path.resolve(getFlagFileName());
+      path = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
+      if (!Files.isRegularFile(path)) {
+        path = path.resolve(getFlagFileName());
+      }
     } else {
       path = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
     }
