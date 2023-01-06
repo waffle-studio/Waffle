@@ -2,7 +2,6 @@ package jp.tkms.waffle.web.component.misc;
 
 import jp.tkms.utils.crypt.DecryptingException;
 import jp.tkms.utils.crypt.RSA;
-import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.web.component.AbstractComponent;
 import jp.tkms.waffle.web.component.ResponseBuilder;
@@ -19,9 +18,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SigninComponent extends AbstractComponent {
+
+  public enum Mode {Default, Key}
   private static final String KEY_KEYID = "keyid";
   private static final String KEY_PASSWORD = "password";
   private static final String KEY_REDIRECT = "redirect";
+  private static final String SPLIT = "/////";
   private Mode mode;
 
   private static LinkedHashMap<Long, RSA> rsaKeyPairMap = new LinkedHashMap<>();
@@ -36,12 +38,17 @@ public class SigninComponent extends AbstractComponent {
   }
 
   public static void register() {
+    Spark.get(getUrl(Mode.Key), new ResponseBuilder(() -> new SigninComponent(Mode.Key)));
     Spark.get(getUrl(), new ResponseBuilder(() -> new SigninComponent()));
     Spark.post(getUrl(), new ResponseBuilder(() -> new SigninComponent()));
   }
 
   private static String getUrl() {
     return "/signin";
+  }
+
+  private static String getUrl(Mode mode) {
+    return getUrl() + "/@" + mode.name();
   }
 
   public static String getUrl(String redirect) {
@@ -69,6 +76,9 @@ public class SigninComponent extends AbstractComponent {
       } else {
         renderSigninForm(errors);
       }
+    } else if (Mode.Key.equals(mode)) {
+      Map.Entry<Long, RSA> rsaKeyEntry = getRsaKey();
+      response.body(rsaKeyEntry.getKey().toString() + SPLIT + rsaKeyEntry.getValue().getPublicKey());
     } else {
       if (Password.isNotEmpty()) {
         renderSigninForm(new ArrayList<>());
@@ -107,9 +117,7 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        Map.Entry<Long, RSA> rsaKeyEntry = getRsaKey();
-        return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
-          Html.javascript("var pubkey='" + rsaKeyEntry.getValue().getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
+        return getEncryptionScript() +
           Html.element("form",
             new Html.Attributes(Html.value("action", getUrl()),
               Html.value("onsubmit", "onsubmit()"),
@@ -117,7 +125,7 @@ public class SigninComponent extends AbstractComponent {
             ),
             Lte.card("Register a password to access the web interface.", null,
               Html.div(null,
-                Html.inputHidden(KEY_KEYID, rsaKeyEntry.getKey().toString()),
+                Html.inputHidden(KEY_KEYID, ""),
                 Lte.formInputGroup("text", KEY_PASSWORD, null, "Password", null, errors).replaceFirst("value=\"\"", "autofocus"),
                 Html.br(),
                 Lte.alert(Lte.Color.Secondary,
@@ -160,9 +168,7 @@ public class SigninComponent extends AbstractComponent {
 
       @Override
       protected String pageContent() {
-        Map.Entry<Long, RSA> rsaKeyEntry = getRsaKey();
-        return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
-          Html.javascript("var pubkey='" + rsaKeyEntry.getValue().getPublicKey() + "'; var onsubmit=function(e){var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(pubkey);p.value=c.encrypt(p.value);};") +
+        return getEncryptionScript() +
           Html.element("form",
             new Html.Attributes(Html.value("action", getUrl()),
               Html.value("onsubmit", "onsubmit()"),
@@ -170,7 +176,7 @@ public class SigninComponent extends AbstractComponent {
             ),
             Lte.card(null, null,
               Html.div(null,
-                Html.inputHidden(KEY_KEYID, rsaKeyEntry.getKey().toString()),
+                Html.inputHidden(KEY_KEYID, ""),
                 Html.inputHidden(KEY_REDIRECT, request.queryParams(KEY_REDIRECT)),
                 Lte.formInputGroup("password", KEY_PASSWORD, null, "Password", null, errors).replaceFirst("value=\"\"", "autofocus"),
                 Html.br(),
@@ -231,5 +237,12 @@ public class SigninComponent extends AbstractComponent {
     }
   }
 
-  public enum Mode {Default, Setup}
+  private String getEncryptionScript() {
+    return Html.element("script", new Html.Attributes(Html.value("src", "js/jsencrypt.min.js"))) +
+      Html.javascript("var onsubmit=function(e){simpleget('" + getUrl(Mode.Key) + "'," +
+        "function(res){var key=res.split('" + SPLIT + "');" +
+        "document.getElementsByName('" + KEY_KEYID + "')[0].value=key[0];" +
+        "var p=document.getElementsByName('" + KEY_PASSWORD + "')[0];var c=new JSEncrypt();c.setPublicKey(key[1]);" +
+        "p.value=c.encrypt(p.value);e.target.onsubmit=undefined;e.target.submit();});return false;};");
+  }
 }
