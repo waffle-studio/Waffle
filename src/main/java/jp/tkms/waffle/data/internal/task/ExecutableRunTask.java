@@ -5,6 +5,7 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
+import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.web.BrowserMessage;
@@ -91,16 +92,25 @@ public class ExecutableRunTask extends AbstractTask {
     super.setState(state);
     ExecutableRun run = getRun();
     if (run != null) {
-      switch (state) {
-        case Canceled:
-        case Excepted:
+      if (State.Finished.equals(state)) {
+        run.finish();
+      }
+      run.setState(state);
+
+      switch (run.getState()) {
         case Failed:
-        case Finished:
-          run.finish();
-          run.setState(state);
-          break;
-        default:
-          run.setState(state);
+        case Excepted:
+          String failedHandleName = run.getFailedHandler();
+          if (failedHandleName != null) {
+            ProcedureRun failedHandler = ProcedureRun.create(run.getParentConductorRun(), run.getParentConductorRun().getConductor(), failedHandleName);
+            failedHandler.run();
+          }
+      }
+
+      switch (run.getState()) {
+        case Failed:
+        case Excepted:
+          run.tryAutomaticRetry();
       }
     }
   }

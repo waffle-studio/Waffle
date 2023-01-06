@@ -33,9 +33,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -837,7 +835,7 @@ abstract public class AbstractSubmitter {
   }
 
   public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
-    reducePreperingTask(createdJobList, submittedJobList, preparedJobList);
+    reducePreparingTask(createdJobList, submittedJobList, preparedJobList);
 
     ArrayList<AbstractTask> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
@@ -924,7 +922,7 @@ abstract public class AbstractSubmitter {
      */
   }
 
-  private void reducePreperingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> preparedJobList) {
+  private void reducePreparingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> preparedJobList) {
     if (preparingSize < submittedJobList.size() * 2) {
       preparingSize = submittedJobList.size() * 2;
     }

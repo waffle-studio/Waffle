@@ -7,9 +7,7 @@ import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.ConfirmPreparingMessage;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdatePreparedMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
@@ -27,9 +25,14 @@ public class ConfirmPreparingRequestProcessor extends RequestProcessor<ConfirmPr
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<ConfirmPreparingMessage> messageList) throws ClassNotFoundException, IOException {
+    Set<String> ignoreSet = new HashSet<>();
+    for (RequestRepreparingMessage message : response.getMessageBundle().getCastedMessageList(RequestRepreparingMessage.class)) {
+      ignoreSet.add(message.getId());
+    }
+
     Set<String> addedSet = new HashSet<>();
     for (ConfirmPreparingMessage message : messageList) {
-      if (addedSet.add(message.getId())) {
+      if (addedSet.add(message.getId()) && !ignoreSet.contains(message.getId())) {
         response.add(new UpdatePreparedMessage(message));
       }
     }

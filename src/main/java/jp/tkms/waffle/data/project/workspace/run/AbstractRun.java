@@ -104,6 +104,11 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
   public Path getPath() {
     return path;
   }
+
+  protected void setPath(Path path) {
+    this.path = path;
+  }
+
   /*
   public ArrayList<AbstractRun> getList() {
     return new ChildElementsArrayList().getList(getDirectoryPath(), name -> {

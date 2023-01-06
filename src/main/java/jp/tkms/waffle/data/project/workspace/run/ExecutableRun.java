@@ -17,8 +17,10 @@ import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.archive.ArchivedExecutable;
 import jp.tkms.waffle.data.project.workspace.executable.StagedExecutable;
 import jp.tkms.waffle.data.util.*;
+import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
+import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
@@ -40,6 +42,8 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   private static final String KEY_TASK_ID = "task_id";
   private static final String KEY_PREPROCESSED = "preprocessed";
   protected static final String KEY_UPDATE_HANDLER = "update_handler";
+  protected static final String KEY_FAILED_HANDLER = "failed_handler";
+  private static final String KEY_PRIOR_RUN = "prior_run";
   protected static final String RESULT_PATH_SEPARATOR = ":";
 
   //private ProcedureRun parentRun = null;
@@ -194,6 +198,82 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     ManagerMaster.signalFinished(this);
 
     setState(State.Finished);
+  }
+
+  public void tryAutomaticRetry() {
+    if (getPriorRunSize() < getExecutable().getAutomaticRetry()) {
+      retry();
+    }
+  }
+
+  public ExecutableRun retry() {
+    ExecutableRun created  = null;
+    Path path = getPath();
+    try {
+      ExecutableRun removed = moveToTrash();
+      created = create(removed.getParentConductorRun(), path, removed.getExecutable(), removed.getComputer());
+      created.setExpectedName(removed.getExpectedName());
+      created.updateParametersStore(removed.getParameters());
+      addPriorRun(removed);
+    } catch (RunNotFoundException e) {
+      ErrorLogMessage.issue(e);
+    }
+    created.start();
+    return created;
+  }
+
+  public void handleFailed(String procedureName) throws ChildProcedureNotFoundException {
+    getParentConductorRun().getConductor().getChildProcedureScript(procedureName);
+    setToProperty(KEY_FAILED_HANDLER, procedureName);
+  }
+
+  ExecutableRun moveToTrash() throws RunNotFoundException {
+    try {
+      ExecutableRunTask.getInstance(getTaskId()).remove();
+    } catch (NullPointerException e) {
+      ErrorLogMessage.issue(e);
+    }
+    synchronized (instanceCache) {
+      Path nextPath = getParentConductorRun().getTrashBinPath().resolve(UUID.randomUUID().toString());
+      Path nextAbsolutePath = Constants.WORK_DIR.resolve(nextPath);
+      Path oldPath = getPath();
+      String oldId = getLocalPath().toString();
+      setPath(nextAbsolutePath);
+      try {
+        Files.createDirectories(nextAbsolutePath.getParent());
+        Files.move(oldPath, nextAbsolutePath);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+      instanceCache.remove(oldId);
+      return getInstance(nextPath.toString());
+    }
+  }
+
+  public String getFailedHandler() {
+    return getStringFromProperty(KEY_FAILED_HANDLER);
+  }
+
+  public ArrayList<ExecutableRun> getPriorRun() {
+    ArrayList<ExecutableRun> list = new ArrayList<>();
+    for (Object o : getArrayFromProperty(KEY_PRIOR_RUN, new WrappedJsonArray())) {
+      try {
+        list.add(getInstance(o.toString()));
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+    return list;
+  }
+
+  public int getPriorRunSize() {
+    return getArrayFromProperty(KEY_PRIOR_RUN, new WrappedJsonArray()).size();
+  }
+
+  public void addPriorRun(ExecutableRun run) {
+    WrappedJsonArray array = getArrayFromProperty(KEY_PRIOR_RUN, new WrappedJsonArray());
+    array.add(run.getLocalPath().toString());
+    setToProperty(KEY_PRIOR_RUN, array);
   }
 
   @Override

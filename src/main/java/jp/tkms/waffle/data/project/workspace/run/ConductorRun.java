@@ -4,7 +4,6 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.conductor.Conductor;
 import jp.tkms.waffle.data.project.workspace.HasLocalPath;
@@ -19,7 +18,6 @@ import jp.tkms.waffle.web.Key;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
@@ -27,6 +25,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String VARIABLES_JSON_FILE = "VARIABLES" + Constants.EXT_JSON;
   public static final String KEY_CONDUCTOR = "conductor";
   public static final String KEY_ACTIVE_RUN = "active_run";
+  private static final String TRASHBIN_DIR = ".TRASH";
   private static final String ESCAPING_WAFFLE_WORKSPACE_NAME = "<#WAFFLE_WORKSPACE_NAME>";
 
   private ArchivedConductor conductor;
@@ -359,5 +358,9 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     if (jsonArray.isEmpty()) {
       finish();
     }
+  }
+
+  Path getTrashBinPath() {
+    return getLocalPath().resolve(TRASHBIN_DIR);
   }
 }

@@ -189,7 +189,7 @@ public class ExecutableComponent extends AbstractAccessControlledComponent {
                 Lte.formInputGroup("text", "sim_cmd", "Executable command", "", executable.getCommand(), errors),
                 Lte.formInputGroup("text", "req_t", "Required thread", "", executable.getRequiredThread().toString(), errors),
                 Lte.formInputGroup("text", "req_m", "Required memory (GB)", "", executable.getRequiredMemory().toString(), errors),
-                Lte.formInputGroup("number", "retry", "Automatic retry", "", executable.getAutoMaticRetry().toString(), errors),
+                Lte.formInputGroup("number", "retry", "Automatic retry", "", executable.getAutomaticRetry().toString(), errors),
                 Lte.formSwitchGroup(KEY_PARALLEL_INHIBITED, "Inhibits parallel execution", executable.isParallelProhibited(), errors)
               ),
               Lte.formSubmitButton("success", "Update"),

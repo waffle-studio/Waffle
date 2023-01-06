@@ -284,7 +284,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
     setToProperty(KEY_REQUIRED_MEMORY, requiredMemory);
   }
 
-  public Integer getAutoMaticRetry() {
+  public Integer getAutomaticRetry() {
     return getIntFromProperty(KEY_RETRY, 0);
   }
 

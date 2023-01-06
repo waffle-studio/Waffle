@@ -11,7 +11,6 @@ import java.util.ArrayList;
 public abstract class RequestProcessor<T extends AbstractRequestMessage> {
   public static void processMessages(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {
     for (RequestProcessor processor : new RequestProcessor[]{
-      new ConfirmPreparingRequestProcessor(),
       new PutTextFileRequestProcessor(),
       new ChangePermssionRequestProcessor(),
       new PutValueRequestProcessor(),
@@ -22,7 +21,8 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
       new SubmitPodTaskRequestProcessor(),
       new CollectStatusRequestProcessor(),
       new CollectPodTaskStatusRequestProcessor(),
-      new CollectPodStatusRequestProcessor()
+      new CollectPodStatusRequestProcessor(),
+      new ConfirmPreparingRequestProcessor()
     }) {
       processor.processIfMessagesExist(baseDirectory, request, response);
     }
