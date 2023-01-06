@@ -57,7 +57,7 @@ dependencies {
   implementation group: 'org.apache.sshd', name: 'sshd-scp', version: '2.9.1'
   implementation group: 'org.apache.sshd', name: 'sshd-sftp', version: '2.9.1'
   //implementation 'org.json:json:20190722'
-  implementation 'org.jruby:jruby-complete:9.2.12.0'
+  implementation 'org.jruby:jruby-complete:9.4.0.0'
   implementation 'org.xerial:sqlite-jdbc:3.30.1'
   implementation 'org.slf4j:slf4j-nop:1.7.25'
   //implementation 'org.slf4j:slf4j-simple:1.7.25'
@@ -166,9 +166,9 @@ classes.dependsOn(updateVersionFile, copyFilesToResource)
 updateVersionFile.mustRunAfter(processResources)
 copyFilesToResource.mustRunAfter(processResources)
 
-task runJar(type: Exec, dependsOn: build) {
-  executable "java"
-  args "-jar", "build/libs/waffle-all.jar"
+task buildLocal(type: Exec, dependsOn: build) {
+  executable "cp"
+  args "build/libs/waffle-all.jar", "WAFFLE/.INTERNAL/waffle-all.jar"
 }
 
 task buildDocs(type: Exec, dependsOn: build) {
