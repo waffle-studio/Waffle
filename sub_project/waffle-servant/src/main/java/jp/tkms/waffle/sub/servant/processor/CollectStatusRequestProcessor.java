@@ -5,8 +5,6 @@ import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.*;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 import jp.tkms.waffle.sub.servant.message.response.*;
-import org.jruby.embed.LocalContextScope;
-import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 
@@ -33,7 +31,8 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
       environments.put(XSUB_TYPE, NONE);
     }
 
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+    //ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+    ScriptingContainer container = new ScriptingContainer();
     ArrayList<String> argumentList = new ArrayList<>();
     argumentList.add("-m");
     HashSet<String> jobIdSet = new HashSet<>();
@@ -47,7 +46,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
     container.setArgv(argumentList.toArray(new String[argumentList.size()]));
     container.setOutput(outputWriter);
     container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXstatPath(baseDirectory).toString());
-    outputWriter.flush();
+    container.terminate();
 
     try {
       JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
@@ -89,6 +88,5 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
       e.printStackTrace();
     }
     outputWriter.close();
-    container.terminate();
   }
 }

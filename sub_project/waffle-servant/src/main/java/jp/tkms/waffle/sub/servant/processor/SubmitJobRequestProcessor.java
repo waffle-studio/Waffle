@@ -77,7 +77,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         directoryHash.createEmptyHashFile();
 
         synchronized (this) {
-          ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+          ScriptingContainer container = new ScriptingContainer(LocalContextScope.CONCURRENT, LocalVariableBehavior.TRANSIENT);
           container.setEnvironment(environments);
           container.setCurrentDirectory(workingDirectory.toString());
           container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
