@@ -10,6 +10,7 @@ import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
+import jp.tkms.waffle.data.util.State;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -81,12 +82,14 @@ public class Manager {
       return;
     }
 
-    store.getList(run).stream().filter(Predicate.not(ProcedureRunGuard::isValueGuard))
-      .forEach(guard -> deactivateAndTryRun(store, guard));
+    if (State.Finished.equals(run.getState())) {
+      store.getList(run).stream().filter(Predicate.not(ProcedureRunGuard::isValueGuard))
+        .forEach(guard -> deactivateAndTryRun(store, guard));
 
-    ConductorRun parentConductorRun = run.getParentConductorRun();
-    if (parentConductorRun != null) {
-      parentConductorRun.updateRunningStatus((HasLocalPath) run);;
+      ConductorRun parentConductorRun = run.getParentConductorRun();
+      if (parentConductorRun != null) {
+        parentConductorRun.updateRunningStatus((HasLocalPath) run);;
+      }
     }
   }
 }
