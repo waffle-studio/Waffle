@@ -2,6 +2,7 @@ package jp.tkms.waffle.manager;
 
 import jp.tkms.waffle.data.internal.guard.ProcedureRunGuard;
 import jp.tkms.waffle.data.internal.guard.ProcedureRunGuardStore;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
@@ -17,6 +18,22 @@ public class ManagerMaster {
     synchronized (managerMap) {
       if (procedureRunGuardStore == null) {
         procedureRunGuardStore = ProcedureRunGuardStore.load();
+      }
+    }
+  }
+
+  public static void reset() {
+    synchronized (managerMap) {
+      boolean isRemoved = false;
+      if (procedureRunGuardStore != null) {
+        for (ProcedureRunGuard guard : procedureRunGuardStore.getList()) {
+          procedureRunGuardStore.remove(guard);
+          isRemoved = true;
+        }
+      }
+      if (isRemoved) {
+        managerMap.clear();
+        InfoLogMessage.issue("Remove all guards");
       }
     }
   }

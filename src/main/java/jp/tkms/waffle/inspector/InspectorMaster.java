@@ -6,6 +6,7 @@ import jp.tkms.waffle.data.internal.task.*;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.util.ComputerState;
 import jp.tkms.waffle.data.util.WaffleId;
+import jp.tkms.waffle.manager.ManagerMaster;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -111,6 +112,10 @@ public class InspectorMaster {
           }
         };
         masterThread.start();
+      }
+
+      if (inspectorMap.isEmpty()) {
+        ManagerMaster.reset();
       }
     }
 
