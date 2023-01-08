@@ -214,7 +214,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       created = create(removed.getParentConductorRun(), path, removed.getExecutable(), removed.getComputer());
       created.setExpectedName(removed.getExpectedName());
       created.updateParametersStore(removed.getParameters());
-      addPriorRun(removed);
+      created.addPriorRun(removed);
     } catch (RunNotFoundException e) {
       ErrorLogMessage.issue(e);
     }
@@ -271,8 +271,13 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   public void addPriorRun(ExecutableRun run) {
-    WrappedJsonArray array = getArrayFromProperty(KEY_PRIOR_RUN, new WrappedJsonArray());
+    WrappedJsonArray currentArray = getArrayFromProperty(KEY_PRIOR_RUN, new WrappedJsonArray());
+    WrappedJsonArray array = new WrappedJsonArray();
     array.add(run.getLocalPath().toString());
+    for (ExecutableRun r : run.getPriorRun()) {
+      array.add(r.getLocalPath().toString());
+    }
+    array.addAll(currentArray);
     setToProperty(KEY_PRIOR_RUN, array);
   }
 

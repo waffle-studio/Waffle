@@ -289,6 +289,9 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
   }
 
   public void setAutomaticRetry(int count) {
+    if (count < 0) {
+      count = 0;
+    }
     setToProperty(KEY_RETRY, count);
   }
 

@@ -493,6 +493,27 @@ public class RunComponent extends AbstractAccessControlledComponent {
 
          */
 
+        if (executableRun.getPriorRunSize() > 0) {
+          content += Lte.card(Html.fasIcon("trash") + "Failed Runs", null,
+          Lte.table("table-condensed table-sm", new Lte.Table() {
+            @Override
+            public ArrayList<Future<Lte.TableRow>> tableRows() {
+              ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
+              for (ExecutableRun child : executableRun.getPriorRun()) {
+                list.add(Main.interfaceThreadPool.submit(() -> {
+                    return new Lte.TableRow(
+                      new Lte.TableValue(null, Html.a(getUrlFromLocalPath(child), null, null, child.getPath().getFileName().toString())),
+                      new Lte.TableValue(null, child.getCreatedDateTime().toString())
+                    );
+                  })
+                );
+              }
+              return list;
+            }
+          })
+          , null, null, "p-0");
+        }
+
         String parametersAndResults = "";
 
         if (executableRun.getParametersStoreSize() <= Constants.HUGE_FILE_SIZE) {
