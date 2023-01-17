@@ -542,18 +542,12 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   public void setArguments(ArrayList<Object> arguments) {
     this.arguments = new WrappedJsonArray(arguments);
-    //String argumentsJson = this.arguments.toString();
 
     Path storePath = this.getPath().resolve(ARGUMENTS_JSON_FILE);
     try {
       JsonWriter.writeValue(storePath, this.arguments);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(argumentsJson);
-      filewriter.close();
-       */
     } catch (IOException e) {
-      e.printStackTrace();
+      ErrorLogMessage.issue(e);
     }
   }
 
@@ -565,7 +559,12 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   public WrappedJson getEnvironments() {
     if (environments == null) {
-      environments = getObjectFromProperty(KEY_ENVIRONMENTS, new WrappedJson());
+      Path storePath = this.getPath().resolve(ENVIRONMENTS_JSON_FILE);
+      String json = "{}";
+      if (Files.exists(storePath)) {
+        json = StringFileUtil.read(storePath);
+      }
+      environments = new WrappedJson(json);
     }
     return environments;
   }
@@ -577,7 +576,13 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   public Object putEnvironment(String key, Object value) {
     environments = getEnvironments();
     environments.put(key, value);
-    setToProperty(KEY_ENVIRONMENTS, environments);
+
+    Path storePath = this.getPath().resolve(ENVIRONMENTS_JSON_FILE);
+    try {
+      JsonWriter.writeValue(storePath, environments);
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
     return environments;
   }
 

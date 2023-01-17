@@ -16,6 +16,7 @@ public interface ComputerTask extends DataDirectory {
   public static final String PARAMETERS_JSON_FILE = "PARAMETERS" + Constants.EXT_JSON;
   public static final String RESULTS_JSON_FILE = "RESULTS" + Constants.EXT_JSON;
   public static final String ARGUMENTS_JSON_FILE = "ARGUMENTS" + Constants.EXT_JSON;
+  public static final String ENVIRONMENTS_JSON_FILE = "ENVIRONMENTS" + Constants.EXT_JSON;
   public static final String KEY_ENVIRONMENTS = "environments";
   static final String KEY_COMPUTER = "computer";
   static final String KEY_ACTUAL_COMPUTER = "actual_computer";
