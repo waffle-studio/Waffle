@@ -4,6 +4,7 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.web.UserSession;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.*;
@@ -38,7 +39,7 @@ public class PushNotifier {
       try {
         session.getRemote().sendString(m);
       } catch (IOException e) {
-        ErrorLogMessage.issue(e);
+        InfoLogMessage.issue("PushNotifier.WebSocket : " + e.getMessage());
       }
     }));
 

@@ -10,6 +10,7 @@ import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.RequestRepreparingMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
+import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
@@ -94,8 +95,18 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         //System.out.println(jsonObject.toString());
         response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString(), workingDirectory));
       } catch (Exception e) {
-        //e.printStackTrace();
         response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));
+        if (e.toString().startsWith("Unexpected end of input at 1:1")) {
+          try {
+            Files.deleteIfExists(workingDirectory.resolve(Constants.ALIVE));
+          } catch (IOException ex) {
+            //NOP
+          }
+          removingList.add(workingDirectory);
+          response.add(new RequestRepreparingMessage(message));
+        } else {
+          response.add(new UpdateStatusMessage(message, -3));
+        }
 
         errorWriter.flush();
         outputWriter.flush();
