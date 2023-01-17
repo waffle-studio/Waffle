@@ -18,6 +18,7 @@ import jp.tkms.waffle.web.Key;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String CONDUCTOR_RUN = "CONDUCTOR_RUN";
@@ -27,6 +28,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   public static final String KEY_ACTIVE_RUN = "active_run";
   private static final String TRASHBIN_DIR = ".TRASH";
   private static final String ESCAPING_WAFFLE_WORKSPACE_NAME = "<#WAFFLE_WORKSPACE_NAME>";
+  private static final String ESCAPING_WAFFLE_UUID = "<#WAFFLE_UUID>";
 
   private ArchivedConductor conductor;
 
@@ -73,6 +75,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     started();
     setState(State.Running);
     if (conductor != null) {
+      expandEscaping();
       ProcedureRun procedureRun = ProcedureRun.create(this, conductor, Key.MAIN_PROCEDURE);
       procedureRun.start();
 
@@ -137,6 +140,16 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     return getVariablesStorePath().toFile().length();
   }
 
+  public void expandEscaping() {
+    String json = getFromVariablesStore();
+    json = json.replace(ESCAPING_WAFFLE_WORKSPACE_NAME, getWorkspace().getName());
+    String priorJson = json;
+    do {
+      json = json.replaceFirst(ESCAPING_WAFFLE_UUID, UUID.randomUUID().toString());
+    } while (!priorJson.equals(json));
+    putVariablesByJson(json);
+  }
+
   private String getFromVariablesStore() {
     Path storePath = getVariablesStorePath();
     String json = "{}";
@@ -165,8 +178,6 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   public void putVariablesByJson(String json) {
-    json = json.replace(ESCAPING_WAFFLE_WORKSPACE_NAME, getWorkspace().getName());
-
     if (json == null) { return; }
 
     try {
