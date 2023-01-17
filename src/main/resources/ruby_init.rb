@@ -1,3 +1,5 @@
+require "json"
+
 module Waffle
     class Executable < Java::jp.tkms.waffle.data.project.executable.Executable
     end

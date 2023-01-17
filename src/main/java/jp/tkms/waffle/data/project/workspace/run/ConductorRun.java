@@ -143,10 +143,9 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   public void expandEscaping() {
     String json = getFromVariablesStore();
     json = json.replace(ESCAPING_WAFFLE_WORKSPACE_NAME, getWorkspace().getName());
-    String priorJson = json;
-    do {
+    while (json.contains(ESCAPING_WAFFLE_UUID)) {
       json = json.replaceFirst(ESCAPING_WAFFLE_UUID, UUID.randomUUID().toString());
-    } while (!priorJson.equals(json));
+    }
     putVariablesByJson(json);
   }
 
