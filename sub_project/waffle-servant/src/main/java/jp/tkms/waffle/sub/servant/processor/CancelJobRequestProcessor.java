@@ -41,6 +41,7 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
       container.setEnvironment(environments);
       container.setArgv(new String[]{message.getJobId()});
       try {
+        container.runScriptlet("require 'jruby'");
         container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
       } catch (RuntimeException e) {
         e.printStackTrace();

@@ -84,6 +84,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
           container.setOutput(outputWriter);
           container.setError(errorWriter);
+          container.runScriptlet("require 'jruby'");
           container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
           container.clear();
           container.terminate();

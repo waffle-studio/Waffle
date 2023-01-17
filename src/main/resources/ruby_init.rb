@@ -1,3 +1,4 @@
+require "jruby"
 require "json"
 
 module Waffle

@@ -45,6 +45,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
     container.setEnvironment(environments);
     container.setArgv(argumentList.toArray(new String[argumentList.size()]));
     container.setOutput(outputWriter);
+    container.runScriptlet("require 'jruby'");
     container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXstatPath(baseDirectory).toString());
     container.terminate();
 

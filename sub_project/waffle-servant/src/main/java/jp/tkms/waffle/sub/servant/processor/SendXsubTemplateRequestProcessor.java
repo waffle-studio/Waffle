@@ -37,6 +37,7 @@ public class SendXsubTemplateRequestProcessor extends RequestProcessor<SendXsubT
     container.setEnvironment(environments);
     container.setArgv(new String[]{"-t"});
     container.setOutput(outputWriter);
+    container.runScriptlet("require 'jruby'");
     container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
     outputWriter.flush();
     response.add(new XsubTemplateMessage(outputWriter.toString()));
