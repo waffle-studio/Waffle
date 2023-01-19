@@ -139,42 +139,6 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     propertyStoreCache = cache;
   }
 
-  public boolean acquireExecutableLock(ExecutableRun run) {
-    synchronized (this) {
-      /*
-      if (lockerObject.containsKey(getExecutableLockKey(run.getExecutable()))) {
-        return false;
-      } else {
-        lockerObject.put(getExecutableLockKey(run.getExecutable()), run.getLocalPath().toString());
-        return true;
-      }
-       */
-      if (getStringFromProperty(getExecutableLockKey(run.getExecutable())) == null) {
-        setToProperty(getExecutableLockKey(run.getExecutable()), run.getLocalPath().toString());
-        return true;
-      } else {
-        return false;
-      }
-    }
-  }
-
-  public void releaseExecutableLock(ExecutableRun run) {
-    synchronized (this) {
-      /*
-      if (lockerObject.getString(getExecutableLockKey(run.getExecutable()), "").equals(run.getLocalPath().toString())) {
-        lockerObject.remove(getExecutableLockKey(run.getExecutable()));
-      }
-       */
-      if (getStringFromProperty(getExecutableLockKey(run.getExecutable()), "").equals(run.getLocalPath().toString())) {
-        removeFromProperty(getExecutableLockKey(run.getExecutable()));
-      }
-    }
-  }
-
-  private String getExecutableLockKey(Executable executable) {
-    return KEY_EXECUTABLE_LOCK + executable.getName();
-  }
-
   public void finish() {
     setToProperty(KEY_FINISHED, true);
   }

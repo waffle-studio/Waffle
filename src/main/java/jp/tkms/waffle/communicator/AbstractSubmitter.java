@@ -34,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -850,6 +851,7 @@ abstract public class AbstractSubmitter {
     });
 
     Executable skippedExecutable = null;
+    HashSet<String> lockedExecutableNameSet = new HashSet<>();
 
     for (AbstractTask job : queuedJobList) {
       if (Main.hibernatingFlag) { return; }
@@ -868,9 +870,12 @@ abstract public class AbstractSubmitter {
         if (isSubmittable) {
           if (run instanceof ExecutableRun) {
             ExecutableRun executableRun = (ExecutableRun) run;
-            if (executableRun.getExecutable().isParallelProhibited()
-              && !executableRun.getWorkspace().acquireExecutableLock(executableRun)) {
-              isSubmittable = false;
+            String executableName = executableRun.getExecutable().getName();
+            if (executableRun.getExecutable().isParallelProhibited()) {
+              if (lockedExecutableNameSet.contains(executableName) || isRunningSameExecutableInWorkspace(executableRun)) {
+                isSubmittable = false;
+              }
+              lockedExecutableNameSet.add(executableName);
             }
           }
         }
@@ -920,6 +925,34 @@ abstract public class AbstractSubmitter {
       preparedCount += 1;
     }
      */
+  }
+
+  private boolean isRunningSameExecutableInWorkspace(ExecutableRun executableRun) {
+    if (mode.equals(Inspector.Mode.Normal)) {
+      for (ExecutableRunTask job : ExecutableRunTask.getList()) {
+        try {
+          ComputerTask computerTask = job.getRun();
+          if (computerTask instanceof ExecutableRun) {
+            ExecutableRun run = (ExecutableRun) computerTask;
+            if (!run.getWorkspace().getLocalPath().equals(executableRun.getLocalPath())) {
+              continue;
+            }
+            if (!run.getExecutable().getName().equals(executableRun.getExecutable().getName())) {
+              continue;
+            }
+            switch (job.getState()) {
+              case Submitted:
+              case Running:
+              case Finalizing:
+                return true;
+            }
+          }
+        } catch (RunNotFoundException e) {
+          //NOP
+        }
+      }
+    }
+    return false;
   }
 
   private void reducePreparingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> preparedJobList) {

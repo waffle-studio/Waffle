@@ -67,13 +67,6 @@ public class ExecutableRunTask extends AbstractTask {
 
   @Override
   public void remove() {
-    try {
-      ExecutableRun run = getRun();
-      run.getWorkspace().releaseExecutableLock(run);
-    } catch (RunNotFoundException e) {
-      //NOP
-    }
-
     InspectorMaster.removeExecutableRunTask(getId());
     try {
       Path storePath = getPropertyStorePath();
