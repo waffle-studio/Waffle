@@ -36,21 +36,23 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
       environments.put(XSUB_TYPE, NONE);
     }
 
-    for (CancelJobMessage message : messageList) {
+    messageList.stream().limit(8).parallel().forEach(message -> {
       ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-      container.setEnvironment(environments);
-      container.setArgv(new String[]{message.getJobId()});
-      try {
-        container.runScriptlet("require 'jruby'");
-        container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
-      } catch (RuntimeException e) {
-        e.printStackTrace();
+      synchronized (this) {
+        try {
+          container.setEnvironment(environments);
+          container.setArgv(new String[]{message.getJobId()});
+          container.runScriptlet("require 'jruby'");
+          container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXdelPath(baseDirectory).toString());
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
       }
       container.clear();
       container.terminate();
       response.add(new JobCanceledMessage(message));
       response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
       response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
-    }
+    });
   }
 }
