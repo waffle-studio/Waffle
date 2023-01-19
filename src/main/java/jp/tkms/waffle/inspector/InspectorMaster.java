@@ -113,13 +113,15 @@ public class InspectorMaster {
         };
         masterThread.start();
       }
+    }
 
+    forceCheck();
+
+    synchronized (inspectorMap) {
       if (inspectorMap.isEmpty()) {
         ManagerMaster.reset();
       }
     }
-
-    forceCheck();
   }
 
   public static void forceCheck() {
@@ -137,7 +139,6 @@ public class InspectorMaster {
           }
         }
       }
-
     }
   }
 
