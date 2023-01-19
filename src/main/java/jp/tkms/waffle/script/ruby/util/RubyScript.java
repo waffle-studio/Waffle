@@ -96,7 +96,7 @@ public class RubyScript {
         runningCount.incrementAndGet();
         PushNotifier.sendRubyRunningStatus(true);
         failed = false;
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
         try {
           try {
             container.runScriptlet(getInitScript());

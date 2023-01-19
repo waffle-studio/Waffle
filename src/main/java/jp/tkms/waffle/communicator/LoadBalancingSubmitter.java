@@ -57,7 +57,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
    */
 
   @Override
-  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
     int globalFreeJobSlot = computer.getMaximumNumberOfJobs();
@@ -127,5 +127,7 @@ public class LoadBalancingSubmitter extends MultiComputerSubmitter {
     }
 
     InspectorMaster.forceCheck();
+
+    return true;
   }
 }

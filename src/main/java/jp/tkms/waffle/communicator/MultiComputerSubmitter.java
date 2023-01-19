@@ -121,7 +121,7 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   */
 
   @Override
-  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
 
     double globalFreeThread = computer.getMaximumNumberOfThreads();
     double globalFreeMemory = computer.getAllocableMemorySize();
@@ -192,6 +192,8 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
     }
 
     InspectorMaster.forceCheck();
+
+    return true;
   }
 
   @Override

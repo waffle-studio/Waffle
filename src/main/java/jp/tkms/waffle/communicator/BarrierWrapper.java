@@ -104,7 +104,7 @@ public class BarrierWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_BARRIER, ""));
       if (new Date().after(deadline)) {
@@ -128,6 +128,8 @@ public class BarrierWrapper extends AbstractSubmitterWrapper {
     }
 
     InspectorMaster.forceCheck();
+
+    return true;
   }
 
   @Override

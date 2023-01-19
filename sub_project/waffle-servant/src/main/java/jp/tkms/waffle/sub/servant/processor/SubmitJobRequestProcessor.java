@@ -46,6 +46,11 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
     messageList.stream().parallel().forEach(message -> {
       Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
 
+      if (!Files.exists(workingDirectory)) {
+        response.add(new RequestRepreparingMessage(message));
+        return;
+      }
+
       if (Files.exists(workingDirectory.resolve(Constants.XSUB_LOG_FILE))) { // If already executed, remove and request resubmit
         try {
           Files.deleteIfExists(workingDirectory.resolve(Constants.ALIVE));
@@ -77,8 +82,8 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         DirectoryHash directoryHash = new DirectoryHash(baseDirectory, message.getWorkingDirectory());
         directoryHash.createEmptyHashFile();
 
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
         synchronized (this) {
-          ScriptingContainer container = new ScriptingContainer(LocalContextScope.CONCURRENT, LocalVariableBehavior.TRANSIENT);
           container.setEnvironment(environments);
           container.setCurrentDirectory(workingDirectory.toString());
           container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
@@ -86,34 +91,30 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           container.setError(errorWriter);
           container.runScriptlet("require 'jruby'");
           container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
-          container.clear();
-          container.terminate();
-          directoryHash.save();
-          outputWriter.flush();
         }
+        container.clear();
+        container.terminate();
+        directoryHash.save();
 
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
-        //System.out.println(jsonObject.toString());
         response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString(), workingDirectory));
       } catch (Exception e) {
-        if (!e.getMessage().contains("Unexpected end of input at 1:1")) {
-          response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));
-          response.add(new UpdateStatusMessage(message, -3));
-        }
-
+        response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));
+        response.add(new UpdateStatusMessage(message, -3));
         errorWriter.flush();
         outputWriter.flush();
         String errorMessage = errorWriter.toString();
         if ("".equals(errorMessage)) {
           response.add(new JobExceptionMessage(message, e.getMessage() + "\n" + outputWriter.toString()));
         } else {
-          response.add(new JobExceptionMessage(message, errorWriter.toString()));
+          response.add(new JobExceptionMessage(message, errorWriter.toString() + "\n" + outputWriter.toString()));
         }
       }
       try {
+        errorWriter.close();
         outputWriter.close();
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        //NOP
       }
     });
 

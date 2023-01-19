@@ -701,86 +701,6 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  /*
-  class CreatedProcessor extends Thread {
-    @Override
-    public void run() {
-      ArrayList<AbstractJob> createdJobList = new ArrayList<>();
-      ArrayList<AbstractJob> preparedJobList = new ArrayList<>();
-
-      do {
-        if (Main.hibernateFlag) {
-          return;
-        }
-
-        Envelope envelope = new Envelope(Constants.WORK_DIR);
-
-        createdJobList.clear();
-        preparedJobList.clear();
-
-        for (AbstractJob job : new ArrayList<>(getJobList(mode, computer))) {
-          try {
-            if (!job.exists() && job.getRun().isRunning()) {
-              job.cancel();
-              WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
-              continue;
-            }
-            switch (job.getState(true)) {
-              case Created:
-                createdJobList.add(job);
-                break;
-              case Prepared:
-                preparedJobList.add(job);
-            }
-          } catch (RunNotFoundException e) {
-            try {
-              cancel(envelope, job);
-            } catch (RunNotFoundException ex) {
-            }
-            job.remove();
-            WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed.");
-          }
-        }
-
-        if (createdJobList.isEmpty() || preparedJobList.size() >= preparingNumber || Main.hibernateFlag) {
-          return;
-        }
-
-        try {
-          processCreated(envelope, createdJobList, preparedJobList);
-        } catch (FailedToControlRemoteException e) {
-          ErrorLogMessage.issue(e);
-        }
-
-        processRequestAndResponse(envelope);
-      } while (!createdJobList.isEmpty() && preparedJobList.size() < preparingNumber);
-      return;
-    }
-  }
-
-  public void processCreated(Envelope envelope, ArrayList<AbstractJob> createdJobList, ArrayList<AbstractJob> preparedJobList) throws FailedToControlRemoteException {
-    int preparedCount = preparedJobList.size();
-
-    for (AbstractJob job : createdJobList) {
-      if (Main.hibernateFlag || preparedCount >= preparingNumber) {
-        break;
-      }
-
-      try {
-        prepareJob(envelope, job);
-      } catch (FailedToTransferFileException e) {
-        WarnLogMessage.issue(job.getComputer(), e.getMessage());
-      } catch (WaffleException e) {
-        WarnLogMessage.issue(e);
-      }
-
-      preparedCount += 1;
-    }
-
-    return;
-  }
-   */
-
   class PreparingProcessor extends Thread {
     @Override
     public void run() {
@@ -821,28 +741,35 @@ abstract public class AbstractSubmitter {
         }
       }
 
-      if (!Main.hibernatingFlag) {
-        try {
-          processPreparing(envelope, submittedJobList, createdJobList, preparedJobList);
-        } catch (FailedToControlRemoteException e) {
-          ErrorLogMessage.issue(e);
+      reducePreparingTask(createdJobList, submittedJobList, preparedJobList);
+
+      boolean isRemained = true;
+      while (isRemained) {
+        if (!Main.hibernatingFlag) {
+          try {
+            isRemained = !processPreparing(envelope, submittedJobList, createdJobList, preparedJobList);
+          } catch (FailedToControlRemoteException e) {
+            ErrorLogMessage.issue(e);
+          }
+        }
+
+        processRequestAndResponse(envelope);
+        if (Main.hibernatingFlag) { break; }
+        if (isRemained) {
+          envelope = new Envelope(Constants.WORK_DIR);
         }
       }
-
-      processRequestAndResponse(envelope);
 
       return;
     }
   }
 
-  public void processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
-    reducePreparingTask(createdJobList, submittedJobList, preparedJobList);
-
+  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     ArrayList<AbstractTask> queuedJobList = new ArrayList<>();
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
 
-    createdJobList.stream().parallel().forEach((job)->{
+    createdJobList.stream().limit(10).parallel().forEach((job)->{
       try {
         prepareJob(envelope, job);
       } catch (Exception e) {
@@ -853,11 +780,12 @@ abstract public class AbstractSubmitter {
     Executable skippedExecutable = null;
     HashSet<String> lockedExecutableNameSet = new HashSet<>();
 
+    int submittingCount = 0;
     for (AbstractTask job : queuedJobList) {
-      if (Main.hibernatingFlag) { return; }
+      if (Main.hibernatingFlag) { return true; }
 
       try {
-        ComputerTask run = job.getRun();;
+        ComputerTask run = job.getRun();
 
         if (skippedExecutable != null && run instanceof ExecutableRun) {
           if (((ExecutableRun) run).getExecutable() == skippedExecutable) {
@@ -884,7 +812,9 @@ abstract public class AbstractSubmitter {
           skippedExecutable = null;
           submit(envelope, job);
           submittedJobList.add(job);
-          //createdProcessorManager.startup();
+          submittingCount += 1;
+          createdJobList.remove(job);
+          preparedJobList.remove(job);
         } else {
           if (run instanceof ExecutableRun) {
             skippedExecutable = ((ExecutableRun) run).getExecutable();
@@ -897,34 +827,13 @@ abstract public class AbstractSubmitter {
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
       }
-    }
 
-
-    /*
-    if (givePenalty) {
-      preparingNumber += 1;
-    }
-
-    int preparedCount = preparedJobList.size();
-
-    for (AbstractJob job : createdJobList) {
-      if (Main.hibernateFlag || preparedCount >= preparingNumber) {
-        break;
+      if (submittingCount >= 10) {
+        return false;
       }
-
-      if (!submittedJobList.contains(job)) {
-        try {
-          prepareJob(envelope, job);
-        } catch (FailedToTransferFileException e) {
-          WarnLogMessage.issue(job.getComputer(), e.getMessage());
-        } catch (WaffleException e) {
-          WarnLogMessage.issue(e);
-        }
-      }
-
-      preparedCount += 1;
     }
-     */
+
+    return true;
   }
 
   private boolean isRunningSameExecutableInWorkspace(ExecutableRun executableRun) {
@@ -962,7 +871,6 @@ abstract public class AbstractSubmitter {
     int space = preparingSize - preparedJobList.size();
     space = Math.max(space, 0);
 
-    int currentSize = createdJobList.size();
     for (int i = createdJobList.size() -1; i >= space; i -= 1) {
       createdJobList.remove(i);
     }
