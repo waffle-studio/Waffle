@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,17 +64,19 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
 
           if (jsonObject.get(message.getJobId()).asObject().getString("status", null).toString().equals("finished")) {
             int exitStatus = -2;
+            Path exitStatusFile = baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE);
             try {
               exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
             } catch (Exception | Error e) {
               exitStatus = -1;
             }
-            if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0) {
+            if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0 || isSynchronizationTimeout(exitStatusFile)) {
               //(new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
               response.add(new UpdateStatusMessage(message, exitStatus));
               response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
               response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
             } else {
+              response.add(new ExceptionMessage(message.getWorkingDirectory().toString()));
               response.add(new UpdateStatusMessage(message));
             }
           } else {
@@ -89,5 +92,14 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
       e.printStackTrace();
     }
     outputWriter.close();
+  }
+
+  public static boolean isSynchronizationTimeout(Path path) {
+    try {
+      long diff = System.currentTimeMillis() - Files.readAttributes(path, BasicFileAttributes.class).lastModifiedTime().toMillis();
+      return diff > Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT * 1000;
+    } catch (IOException e) {
+      return false;
+    }
   }
 }
