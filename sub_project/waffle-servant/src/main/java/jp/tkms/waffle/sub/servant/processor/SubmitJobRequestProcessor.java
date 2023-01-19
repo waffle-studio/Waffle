@@ -96,16 +96,8 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         //System.out.println(jsonObject.toString());
         response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString(), workingDirectory));
       } catch (Exception e) {
-        response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));
-        if (e.toString().startsWith("Unexpected end of input at 1:1")) {
-          try {
-            Files.deleteIfExists(workingDirectory.resolve(Constants.ALIVE));
-          } catch (IOException ex) {
-            //NOP
-          }
-          removingList.add(workingDirectory);
-          response.add(new RequestRepreparingMessage(message));
-        } else {
+        if (!e.getMessage().contains("Unexpected end of input at 1:1")) {
+          response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));
           response.add(new UpdateStatusMessage(message, -3));
         }
 
