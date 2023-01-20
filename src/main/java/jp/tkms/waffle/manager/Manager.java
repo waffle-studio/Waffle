@@ -82,7 +82,8 @@ public class Manager {
       return;
     }
 
-    if (State.Finished.equals(run.getState())) {
+    State state = run.getState();
+    if (State.Finalizing.equals(state) || State.Finished.equals(state)) {
       store.getList(run).stream().filter(Predicate.not(ProcedureRunGuard::isValueGuard))
         .forEach(guard -> deactivateAndTryRun(store, guard));
 
