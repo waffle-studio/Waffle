@@ -62,6 +62,7 @@ public class ProcedureRun extends AbstractRun {
     workingDirectory = directory;
     try {
       Files.createDirectories(workingDirectory);
+      ChildElementsArrayList.createSortingFlag(workingDirectory);
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
