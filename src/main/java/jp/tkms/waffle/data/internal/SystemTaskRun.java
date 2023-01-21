@@ -317,11 +317,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
       Path storePath = getPath().resolve(ARGUMENTS_JSON_FILE);
       String json = "[]";
       if (Files.exists(storePath)) {
-        try {
-          json = new String(Files.readAllBytes(storePath));
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+        json = StringFileUtil.read(storePath);
       } else {
         setArguments(new ArrayList<>());
       }
@@ -335,16 +331,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     //String argumentsJson = this.arguments.toString();
 
     Path storePath = getPath().resolve(ARGUMENTS_JSON_FILE);
-    try {
-      JsonWriter.writeValue(storePath, this.arguments);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(argumentsJson);
-      filewriter.close();
-       */
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    this.arguments.writeMinimalFile(storePath);
   }
 
   public void addArgument(Object o) {
@@ -391,16 +378,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     }
 
     Path storePath = getParametersStorePath();
-    try {
-      JsonWriter.writeValue(storePath, parameters);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(parameters.toString(2));
-      filewriter.close();
-       */
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    parameters.writeMinimalFile(storePath);
   }
 
   private Path getParametersStorePath() {
@@ -415,11 +393,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     Path storePath = getParametersStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
-      try {
-        json = new String(Files.readAllBytes(storePath));
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      json = StringFileUtil.read(storePath);
     }
     return json;
   }
@@ -474,16 +448,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     }
 
     Path storePath = getResultsStorePath();
-    try {
-      JsonWriter.writeValue(storePath, results);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(results.toString(2));
-      filewriter.close();
-       */
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    results.writeMinimalFile(storePath);
   }
 
   private Path getResultsStorePath() {
@@ -498,11 +463,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
     Path storePath = getResultsStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
-      try {
-        json = new String(Files.readAllBytes(storePath));
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      json = StringFileUtil.read(storePath);
     }
     return json;
   }

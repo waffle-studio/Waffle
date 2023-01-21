@@ -456,7 +456,6 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       case Failed:
       case Finished:
         setToProperty(KEY_FINISHED_AT, DateTime.getCurrentEpoch());
-        //finish();
     }
 
     if (!State.Created.equals(state)) {
@@ -542,13 +541,8 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   public void setArguments(ArrayList<Object> arguments) {
     this.arguments = new WrappedJsonArray(arguments);
-
     Path storePath = this.getPath().resolve(ARGUMENTS_JSON_FILE);
-    try {
-      JsonWriter.writeValue(storePath, this.arguments);
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
+    this.arguments.writeMinimalFile(storePath);
   }
 
   public void addArgument(Object o) {
@@ -578,11 +572,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     environments.put(key, value);
 
     Path storePath = this.getPath().resolve(ENVIRONMENTS_JSON_FILE);
-    try {
-      JsonWriter.writeValue(storePath, environments);
-    } catch (IOException e) {
-      ErrorLogMessage.issue(e);
-    }
+    environments.writeMinimalFile(storePath);
     return environments;
   }
 
@@ -600,17 +590,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       parameters = new WrappedJson();
     }
 
-    Path storePath = getParametersStorePath();
-    try {
-      JsonWriter.writeValue(storePath, parameters);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(parameters.toString(2));
-      filewriter.close();
-       */
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    parameters.writeMinimalFile(getParametersStorePath());
   }
 
   private Path getParametersStorePath() {
@@ -625,11 +605,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     Path storePath = getParametersStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
-      try {
-        json = new String(Files.readAllBytes(storePath));
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      json = StringFileUtil.read(storePath);
     }
     return json;
   }
@@ -684,16 +660,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     }
 
     Path storePath = getResultsStorePath();
-    try {
-      JsonWriter.writeValue(storePath, results);
-      /*
-      FileWriter filewriter = new FileWriter(storePath.toFile());
-      filewriter.write(results.toString(2));
-      filewriter.close();
-       */
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    results.writeMinimalFile(storePath);
 
     ManagerMaster.signalUpdated(this);
   }
@@ -710,11 +677,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     Path storePath = getResultsStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
-      try {
-        json = new String(Files.readAllBytes(storePath));
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      json = StringFileUtil.read(storePath);
     }
     return json;
   }

@@ -9,6 +9,7 @@ import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
+import jp.tkms.waffle.data.util.StringFileUtil;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -61,11 +62,11 @@ public class DocumentBuilder {
     Parser parser = Parser.builder(options).build();
     HtmlRenderer renderer = HtmlRenderer.builder(options).build();
 
-    String markdownText = String.join("\n", Files.readAllLines(mdPath, StandardCharsets.UTF_8));
+    String markdownText = StringFileUtil.read(mdPath);
 
     Node document = parser.parse(markdownText);
     String htmlText = renderer.render(document);
 
-    Files.writeString(htmlPath, htmlText);
+    StringFileUtil.write(htmlPath, htmlText);
   }
 }

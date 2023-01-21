@@ -3,6 +3,7 @@ package jp.tkms.waffle.data;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
+import jp.tkms.waffle.data.util.StringFileUtil;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -25,10 +26,7 @@ public interface InternalHashedLinkData extends InternalHashedData {
     Path localPath = InternalHashedData.getLocalPath(path);
     Path idFilePath = Constants.WORK_DIR.resolve(localPath.resolve(".id"));
     if (Files.exists(idFilePath)) {
-      try {
-        id = Files.readString(idFilePath);
-      } catch (IOException e) {
-      }
+      id = StringFileUtil.read(idFilePath);
     }
 
     if (id == null) {
@@ -69,11 +67,7 @@ public interface InternalHashedLinkData extends InternalHashedData {
   static Path getDataPath(Project project, String group, String id) {
     Path pathFilePath = InternalHashedData.getHashedDirectoryPath(project, group, UUID.fromString(id)).resolve("path");
     if (Files.exists(pathFilePath)) {
-      try {
-        return Constants.WORK_DIR.resolve(Files.readString(pathFilePath));
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
+      return Constants.WORK_DIR.resolve(StringFileUtil.read(pathFilePath));
     }
     return null;
   }

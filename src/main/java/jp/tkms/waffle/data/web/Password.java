@@ -5,6 +5,7 @@ import jp.tkms.utils.string.HashString;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.computer.MasterPassword;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.util.StringFileUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,11 +16,7 @@ public class Password {
 
   public static void setPassword(String password) {
     if (isNotEmpty(password)) {
-      try {
-        Files.writeString(getPasswordFilePath(), SHA_PREFIX + HashString.toSHA256Base64(password));
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
+      StringFileUtil.write(getPasswordFilePath(), SHA_PREFIX + HashString.toSHA256Base64(password));
     }
   }
 
@@ -35,7 +32,7 @@ public class Password {
     String password = null;
     try {
       NewFile.createIfNotExists(getPasswordFilePath());
-      password = Files.readString(getPasswordFilePath()).trim();
+      password = StringFileUtil.read(getPasswordFilePath()).trim();
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }

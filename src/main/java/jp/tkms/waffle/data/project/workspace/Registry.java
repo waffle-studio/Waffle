@@ -1,8 +1,10 @@
 package jp.tkms.waffle.data.project.workspace;
 
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.DataDirectory;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.ValueType;
 
 import java.io.File;
@@ -42,11 +44,7 @@ public class Registry extends WorkspaceData implements Map<Object, Object>, Data
 
     for (File file : getBaseDirectoryPath(workspace).toFile().listFiles()) {
       if (file.isFile()) {
-        try {
-          keyValueList.add(new KeyValue(file.getName(), Files.readString(file.toPath())));
-        } catch (IOException e) {
-          ErrorLogMessage.issue(e);
-        }
+        keyValueList.add(new KeyValue(file.getName(), StringFileUtil.read(file.toPath())));
       }
     }
 
@@ -65,17 +63,20 @@ public class Registry extends WorkspaceData implements Map<Object, Object>, Data
       synchronized (workspace) {
         try {
           if (ValueType.Integer.equals(type)) {
-            result = Integer.valueOf(Files.readString(path));
+            result = Integer.valueOf(StringFileUtil.read(path));
           } else if (ValueType.Double.equals(type)) {
-            result = Double.valueOf(Files.readString(path));
+            result = Double.valueOf(StringFileUtil.read(path));
           } else if (ValueType.Boolean.equals(type)) {
-            result = Boolean.valueOf(Files.readString(path));
+            result = Boolean.valueOf(StringFileUtil.read(path));
           } else if (ValueType.String.equals(type)) {
-            result = Files.readString(path);
+            result = StringFileUtil.read(path);
           } else {
-            result = Files.readAllBytes(path);
+            try (LockByKey lock = LockByKey.acquire(path.toAbsolutePath().normalize())) {
+              result = Files.readAllBytes(path);
+            }
           }
         } catch (IOException e) {
+          ErrorLogMessage.issue(e);
         }
       }
     }
@@ -103,13 +104,7 @@ public class Registry extends WorkspaceData implements Map<Object, Object>, Data
             ErrorLogMessage.issue(e);
           }
         }
-        try {
-          FileWriter filewriter = new FileWriter(path.toFile());
-          filewriter.write(value.toString());
-          filewriter.close();
-        } catch (IOException e) {
-          ErrorLogMessage.issue(e);
-        }
+        StringFileUtil.write(path, value.toString());
       }
     }
   }

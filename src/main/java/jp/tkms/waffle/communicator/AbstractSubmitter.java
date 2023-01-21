@@ -919,6 +919,8 @@ abstract public class AbstractSubmitter {
           }
         }
 
+        processRequestAndResponse(envelope);
+
         if (!finalizingJobList.isEmpty()) {
           try {
             processFinished(finalizingJobList);
@@ -926,8 +928,6 @@ abstract public class AbstractSubmitter {
             ErrorLogMessage.issue(e);
           }
         }
-
-        processRequestAndResponse(envelope);
 
       } while (!finalizingJobList.isEmpty());
       return;

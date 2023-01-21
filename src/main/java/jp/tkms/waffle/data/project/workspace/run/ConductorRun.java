@@ -153,11 +153,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     Path storePath = getVariablesStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
-      try {
-        json = new String(Files.readAllBytes(storePath));
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      json = StringFileUtil.read(storePath);
     }
     return json;
   }

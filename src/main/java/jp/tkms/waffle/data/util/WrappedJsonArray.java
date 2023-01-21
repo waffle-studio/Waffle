@@ -3,6 +3,7 @@ package jp.tkms.waffle.data.util;
 import com.eclipsesource.json.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -50,6 +51,10 @@ public class WrappedJsonArray implements List<Object> {
 
   public JsonArray toJsonArray() {
     return jsonArray;
+  }
+
+  public void writeMinimalFile(Path path) {
+    StringFileUtil.write(path, toString());
   }
 
   @Override

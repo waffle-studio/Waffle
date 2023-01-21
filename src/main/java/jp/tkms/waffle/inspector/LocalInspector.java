@@ -2,6 +2,7 @@ package jp.tkms.waffle.inspector;
 
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.computer.Computer;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.sub.servant.Constants;
 
 import java.io.IOException;
@@ -15,11 +16,7 @@ public class LocalInspector extends Inspector {
     super(mode, computer);
 
     Path notifierPath = Paths.get(computer.getWorkBaseDirectory()).resolve(Constants.NOTIFIER);
-    try {
-      Files.writeString(notifierPath, UUID.randomUUID().toString());
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    StringFileUtil.write(notifierPath, UUID.randomUUID().toString());
     Main.registerFileChangeEventListener(notifierPath.getParent(), () -> {
       notifyUpdate();
     });

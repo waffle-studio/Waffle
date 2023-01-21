@@ -18,6 +18,7 @@ import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
 import jp.tkms.waffle.data.util.FileName;
 import jp.tkms.waffle.data.util.State;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
@@ -119,11 +120,7 @@ public class WorkspaceConvertorRun extends WorkspaceData implements PropertyFile
     Path storePath = getParametersStorePath();
     String json = "{}";
     if (Files.exists(storePath)) {
-      try {
-        json = new String(Files.readAllBytes(storePath));
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      json = StringFileUtil.read(storePath);
     }
     return json;
   }

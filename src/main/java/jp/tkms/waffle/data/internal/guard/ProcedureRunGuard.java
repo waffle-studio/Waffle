@@ -5,11 +5,11 @@ import jp.tkms.waffle.data.PropertyFile;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.Workspace;
 import jp.tkms.waffle.data.project.workspace.run.ProcedureRun;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.data.util.WrappedJson;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -116,7 +116,7 @@ public class ProcedureRunGuard implements PropertyFile {
     ProcedureRunGuard guard = null;
     try {
       if (jsonPath != null) {
-        WrappedJson jsonObject = new WrappedJson(Files.readString(jsonPath));
+        WrappedJson jsonObject = new WrappedJson(StringFileUtil.read(jsonPath));
         String original = jsonObject.getString(KEY_ORIGINAL, null);
         WaffleId id = WaffleId.valueOf(jsonObject.getLong(KEY_ID, null));
         Path path = Paths.get(jsonObject.getString(KEY_PATH, null));

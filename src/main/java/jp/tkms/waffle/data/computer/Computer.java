@@ -549,7 +549,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
   public void lock(boolean isLock) {
     try {
       if (isLock) {
-        Files.writeString(getLockFilePath(), "");
+        StringFileUtil.write(getLockFilePath(), "");
         getLockFilePath().toFile().deleteOnExit();
       } else {
         Files.deleteIfExists(getLockFilePath());

@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data;
 
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.StringFileUtil;
@@ -19,21 +20,17 @@ public interface PropertyFile {
     return Paths.get("waffle.json");
   }
 
-  private Object getLockerObject() {
-    return this;
-  }
-
   private Path getAbsolutePropertyStorePath() {
     Path path = getPropertyStorePath();
     if (path.isAbsolute()) {
-      return path;
+      return path.normalize();
     } else {
-      return Constants.WORK_DIR.resolve(path);
+      return Constants.WORK_DIR.resolve(path).normalize();
     }
   }
 
   private WrappedJson getPropertyStore() {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       WrappedJson cache = getPropertyStoreCache();
       if (cache == null) {
         Path storePath = getAbsolutePropertyStorePath();
@@ -58,13 +55,13 @@ public interface PropertyFile {
   }
 
   default void reloadPropertyStore() {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       setPropertyStoreCache(null);
     }
   }
 
   private void updatePropertyStore() {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       if (getPropertyStoreCache() != null) {
         getPropertyStoreCache().writePrettyFile(getAbsolutePropertyStorePath());
       }
@@ -72,13 +69,13 @@ public interface PropertyFile {
   }
 
   default String getStringFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getString(key, null);
     }
   }
 
   default String getStringFromProperty(String key, String defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       String value = getStringFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -88,13 +85,13 @@ public interface PropertyFile {
   }
 
   default Boolean getBooleanFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getBoolean(key, null);
     }
   }
 
   default Boolean getBooleanFromProperty(String key, Boolean defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       Boolean value = getBooleanFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -104,13 +101,13 @@ public interface PropertyFile {
   }
 
   default Integer getIntFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getInt(key, null);
     }
   }
 
   default Integer getIntFromProperty(String key, Integer defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       Integer value = getIntFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -120,13 +117,13 @@ public interface PropertyFile {
   }
 
   default Long getLongFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getLong(key, null);
     }
   }
 
   default Long getLongFromProperty(String key, Long defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       Long value = getLongFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -136,13 +133,13 @@ public interface PropertyFile {
   }
 
   default Double getDoubleFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getDouble(key, null);
     }
   }
 
   default Double getDoubleFromProperty(String key, Double defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       Double value = getDoubleFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -152,13 +149,13 @@ public interface PropertyFile {
   }
 
   default WrappedJson getObjectFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getObject(key, null);
     }
   }
 
   default WrappedJson getObjectFromProperty(String key, WrappedJson defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       WrappedJson value = getObjectFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -168,13 +165,13 @@ public interface PropertyFile {
   }
 
   default WrappedJsonArray getArrayFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       return getPropertyStore().getArray(key, null);
     }
   }
 
   default WrappedJsonArray getArrayFromProperty(String key, WrappedJsonArray defaultValue) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       WrappedJsonArray value = getArrayFromProperty(key);
       if (value == null) {
         value = defaultValue;
@@ -184,70 +181,70 @@ public interface PropertyFile {
   }
 
   default void removeFromProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().remove(key);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, String value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, boolean value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, int value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, long value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, double value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, WrappedJson value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void setToProperty(String key, WrappedJsonArray value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, value);
       updatePropertyStore();
     }
   }
 
   default void putNewArrayToProperty(String key) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().put(key, new ArrayList<>());
       updatePropertyStore();
     }
   }
 
   default void putToArrayOfProperty(String key, String value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       WrappedJsonArray array = getPropertyStore().getArray(key, null);
       if (array == null) {
         array = new WrappedJsonArray();
@@ -261,7 +258,7 @@ public interface PropertyFile {
   }
 
   default void removeFromArrayOfProperty(String key, Object value) {
-    synchronized (getLockerObject()) {
+    try (LockByKey lock = LockByKey.acquire(getAbsolutePropertyStorePath())) {
       getPropertyStore().getArray(key, new WrappedJsonArray()).remove(value);
       updatePropertyStore();
     }

@@ -1,5 +1,6 @@
 package jp.tkms.waffle;
 
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.utils.debug.DebugString;
 import jp.tkms.utils.value.Init;
 import jp.tkms.waffle.communicator.JobNumberLimitedLocalSubmitter;
@@ -9,8 +10,8 @@ import jp.tkms.waffle.data.log.Log;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.util.InstanceCache;
-import jp.tkms.waffle.data.util.PathLocker;
 import jp.tkms.waffle.data.util.ResourceFile;
+import jp.tkms.waffle.data.util.StringFileUtil;
 import jp.tkms.waffle.data.web.Password;
 import jp.tkms.waffle.data.web.UserSession;
 import jp.tkms.waffle.inspector.InspectorMaster;
@@ -24,7 +25,6 @@ import jp.tkms.waffle.web.component.computer.ComputersComponent;
 import jp.tkms.waffle.web.component.websocket.PushNotifier;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
-//import org.slf4j.impl.SimpleLoggerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
@@ -118,7 +118,7 @@ public class Main {
     //Check already running process
     try {
       if (Constants.PID_FILE.toFile().exists()) {
-        if (Runtime.getRuntime().exec("kill -0 " + new String(Files.readAllBytes(Constants.PID_FILE))).waitFor() == 0) {
+        if (Runtime.getRuntime().exec("kill -0 " + StringFileUtil.read(Constants.PID_FILE)).waitFor() == 0) {
           System.err.println("The WAFFLE on '" + Constants.WORK_DIR + "' is already running.");
           System.err.println("You should hibernate it if you want startup WAFFLE on this console.");
           System.err.println("(If you want to force startup, delete '" + Constants.PID_FILE.toString() + "'.)");
@@ -127,7 +127,7 @@ public class Main {
         }
       }
       Files.createDirectories(Constants.PID_FILE.getParent());
-      Files.write(Constants.PID_FILE, (String.valueOf(PID)).getBytes());
+      StringFileUtil.write(Constants.PID_FILE, String.valueOf(PID));
       Constants.PID_FILE.toFile().deleteOnExit();
     } catch (IOException | InterruptedException e) {
       ErrorLogMessage.issue(e);
@@ -356,7 +356,7 @@ public class Main {
         } catch (Throwable e) {}
         System.out.println("(5/7) Web interface common threads stopped");
 
-        PathLocker.waitAllCachedFiles();
+        LockByKey.syncAll();
         System.out.println("(6/7) File buffer threads stopped");
 
         Log.close();

@@ -397,10 +397,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
     Path path = getExtractorScriptPath(name);
     if (Files.exists(path)) {
-      try {
-        script = new String(Files.readAllBytes(path));
-      } catch (IOException e) {
-      }
+      script = StringFileUtil.read(path);
     }
 
     return script;
@@ -490,10 +487,7 @@ public class Executable extends ProjectData implements DataDirectory, PropertyFi
 
     Path path = getCollectorScriptPath(name);
     if (Files.exists(path)) {
-      try {
-        script = new String(Files.readAllBytes(path));
-      } catch (IOException e) {
-      }
+      script = StringFileUtil.read(path);
     }
 
     return script;
