@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import com.eclipsesource.json.JsonArray;
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.util.WrappedJson;
@@ -208,7 +209,7 @@ abstract public class AbstractSubmitter {
   }
 
   public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
-    try {
+    try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
       forcePrepare(envelope, job);
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
     } catch (FailedToControlRemoteException e) {
@@ -338,7 +339,7 @@ abstract public class AbstractSubmitter {
   }
 
   void jobFinalizing(AbstractTask job) throws WaffleException {
-    try {
+    try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
       int exitStatus = job.getRun().getExitStatus();
 
       if (exitStatus == 0) {
@@ -362,7 +363,7 @@ abstract public class AbstractSubmitter {
       }
       job.remove();
     } catch (Exception e) {
-      try {
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         job.getRun().appendErrorNote(LogMessage.getStackTrace(e));
       } catch (RunNotFoundException runNotFoundException) {
         ErrorLogMessage.issue(e);
@@ -452,7 +453,7 @@ abstract public class AbstractSubmitter {
     ArrayList<ComputerTask> combinedList = new ArrayList<>();
     for (ArrayList<AbstractTask> list : lists) {
       for (AbstractTask job : list) {
-        try {
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           combinedList.add(job.getRun());
         } catch (RunNotFoundException e) {
           //NOP
@@ -544,7 +545,7 @@ abstract public class AbstractSubmitter {
           if (job instanceof ExecutableRunTask) {
             ExecutableRun run = ((ExecutableRunTask) job).getRun();
             Object value = message.getValue();
-            try {
+            try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
               if (message.getValue().indexOf('.') < 0) {
                 value = Integer.valueOf(message.getValue());
               } else {
@@ -634,7 +635,7 @@ abstract public class AbstractSubmitter {
           return;
         }
 
-        try {
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           if (!job.exists() && job.getRun().isRunning()) {
             job.cancel();
             WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
@@ -651,7 +652,7 @@ abstract public class AbstractSubmitter {
               cancelJobList.add(job);
           }
         } catch (RunNotFoundException e) {
-          try {
+          try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
             cancel(envelope, job);
           } catch (RunNotFoundException ex) {
           }
@@ -683,7 +684,7 @@ abstract public class AbstractSubmitter {
 
     for (AbstractTask job : cancelJobList) {
       if (Main.hibernatingFlag) { return; }
-      try {
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         cancel(envelope, job);
       } catch (RunNotFoundException e) {
         job.remove();
@@ -692,7 +693,7 @@ abstract public class AbstractSubmitter {
 
     for (AbstractTask job : submittedJobList) {
       if (Main.hibernatingFlag) { return; }
-      try {
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         update(envelope, job);
       } catch (RunNotFoundException e) {
         job.remove();
@@ -714,7 +715,8 @@ abstract public class AbstractSubmitter {
 
       for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
         if (Main.hibernatingFlag) { return; }
-        try {
+
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           if (!job.exists() && job.getRun().isRunning()) {
             job.cancel();
             WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
@@ -733,7 +735,7 @@ abstract public class AbstractSubmitter {
               submittedJobList.add(job);
           }
         } catch (RunNotFoundException e) {
-          try {
+          try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
             cancel(envelope, job);
           } catch (RunNotFoundException | FailedToControlRemoteException ex) { }
           job.remove();
@@ -770,7 +772,7 @@ abstract public class AbstractSubmitter {
     queuedJobList.addAll(createdJobList);
 
     createdJobList.stream().limit(10).parallel().forEach((job)->{
-      try {
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         prepareJob(envelope, job);
       } catch (Exception e) {
         ErrorLogMessage.issue(e);
@@ -784,7 +786,7 @@ abstract public class AbstractSubmitter {
     for (AbstractTask job : queuedJobList) {
       if (Main.hibernatingFlag) { return true; }
 
-      try {
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         ComputerTask run = job.getRun();
 
         if (skippedExecutable != null && run instanceof ExecutableRun) {
@@ -822,7 +824,7 @@ abstract public class AbstractSubmitter {
         }
       } catch (NullPointerException | WaffleException e) {
         WarnLogMessage.issue(e);
-        try {
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           job.setState(State.Excepted);
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
@@ -839,7 +841,7 @@ abstract public class AbstractSubmitter {
   private boolean isRunningSameExecutableInWorkspace(ExecutableRun executableRun) {
     if (mode.equals(Inspector.Mode.Normal)) {
       for (ExecutableRunTask job : ExecutableRunTask.getList()) {
-        try {
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           ComputerTask computerTask = job.getRun();
           if (computerTask instanceof ExecutableRun) {
             ExecutableRun run = (ExecutableRun) computerTask;
@@ -891,7 +893,7 @@ abstract public class AbstractSubmitter {
         for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
           if (Main.hibernatingFlag) { return; }
 
-          try {
+          try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
             ComputerTask run = job.getRun();
 
             if (!job.exists() && run.isRunning()) {
@@ -911,7 +913,7 @@ abstract public class AbstractSubmitter {
                 job.remove();
             }
           } catch (RunNotFoundException e) {
-            try {
+            try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
               cancel(envelope, job);
             } catch (RunNotFoundException | FailedToControlRemoteException ex) { }
             job.remove();
@@ -938,11 +940,11 @@ abstract public class AbstractSubmitter {
     for (AbstractTask job : finalizingJobList) {
       if (Main.hibernatingFlag) { return; }
 
-      try {
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         jobFinalizing(job);
       } catch (WaffleException e) {
         WarnLogMessage.issue(e);
-        try {
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           job.setState(State.Excepted);
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);

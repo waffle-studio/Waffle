@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.util.State;
@@ -14,6 +15,8 @@ public abstract class AbstractSubmitterWrapper extends AbstractSubmitter {
 
   @Override
   public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
-    job.setState(State.Canceled);
+    try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+      job.setState(State.Canceled);
+    }
   }
 }

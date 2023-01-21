@@ -1,5 +1,6 @@
 package jp.tkms.waffle.communicator;
 
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.internal.InternalFiles;
@@ -205,8 +206,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   @Override
   public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
-    if (jobManager.removeJob(envelope, job)) {
-      job.setState(State.Canceled);
+    try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+      if (jobManager.removeJob(envelope, job)) {
+        job.setState(State.Canceled);
+      }
     }
   }
 
@@ -633,7 +636,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
     public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       Path podDirectory = InternalFiles.getLocalPath(getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code()));
-      envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalPath()));
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+        envelope.add(new CancelPodTaskMessage(job.getTypeCode(), job.getHexCode(), podDirectory, job.getRun().getLocalPath()));
+      }
     }
 
     String getId() {
