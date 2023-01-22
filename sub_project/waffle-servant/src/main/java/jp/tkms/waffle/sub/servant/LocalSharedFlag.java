@@ -31,18 +31,20 @@ public class LocalSharedFlag {
   }
 
   public static LocalSharedFlag getFlag(Path path) {
+    Path flagPath = null;
+
     if (Files.isDirectory(path)) {
-      path = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
-      if (!Files.isRegularFile(path)) {
-        path = path.resolve(getFlagFileName());
+      flagPath = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
+      if (!Files.isRegularFile(flagPath)) {
+        flagPath = path.resolve(getFlagFileName());
       }
     } else {
-      path = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
+      flagPath = path.getParent().resolve(getFlagFileName(path.getFileName().toString()));
     }
 
-    if (Files.isRegularFile(path)) {
+    if (Files.isRegularFile(flagPath)) {
       try {
-        return new LocalSharedFlag(path);
+        return new LocalSharedFlag(flagPath);
       } catch (IOException e) {
         return noneFlag;
       }
