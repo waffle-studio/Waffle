@@ -841,7 +841,7 @@ abstract public class AbstractSubmitter {
   private boolean isRunningSameExecutableInWorkspace(ExecutableRun executableRun) {
     if (mode.equals(Inspector.Mode.Normal)) {
       for (ExecutableRunTask job : ExecutableRunTask.getList()) {
-        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+        try {
           ComputerTask computerTask = job.getRun();
           if (computerTask instanceof ExecutableRun) {
             ExecutableRun run = (ExecutableRun) computerTask;
@@ -851,11 +851,13 @@ abstract public class AbstractSubmitter {
             if (!run.getExecutable().getName().equals(executableRun.getExecutable().getName())) {
               continue;
             }
-            switch (job.getState()) {
-              case Submitted:
-              case Running:
-              case Finalizing:
-                return true;
+            try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+              switch (job.getState()) {
+                case Submitted:
+                case Running:
+                case Finalizing:
+                  return true;
+              }
             }
           }
         } catch (RunNotFoundException e) {
