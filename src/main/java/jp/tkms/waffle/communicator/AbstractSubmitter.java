@@ -845,7 +845,7 @@ abstract public class AbstractSubmitter {
           ComputerTask computerTask = job.getRun();
           if (computerTask instanceof ExecutableRun) {
             ExecutableRun run = (ExecutableRun) computerTask;
-            if (!run.getWorkspace().getLocalPath().equals(executableRun.getLocalPath())) {
+            if (!run.getWorkspace().getLocalPath().equals(executableRun.getWorkspace().getLocalPath())) {
               continue;
             }
             if (!run.getExecutable().getName().equals(executableRun.getExecutable().getName())) {
