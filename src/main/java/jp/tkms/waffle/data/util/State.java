@@ -6,11 +6,12 @@ import jp.tkms.waffle.web.template.Lte;
 import java.util.ArrayList;
 
 public enum State {
-  Created, Prepared, Submitted, Running, Finalizing, Finished, Failed, Excepted, Cancel, Canceled, None;
+  Created, Prepared, Submitted, Running, Finalizing, Finished, Failed, Excepted, Cancel, Canceled, Retrying, None;
 
   static final ArrayList<State> displayPriority = new ArrayList<>() {
     {
       add(Running);
+      add(Retrying);
       add(Created);
       add(Prepared);
       add(Submitted);
@@ -53,6 +54,8 @@ public enum State {
       case Cancel:
         return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Canceled:
+        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+      case Retrying:
         return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
       case None:
         return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());

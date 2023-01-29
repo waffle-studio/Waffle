@@ -1,5 +1,6 @@
 package jp.tkms.waffle.data.project.workspace.run;
 
+import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
@@ -81,7 +82,6 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     ExecutableRun run = new ExecutableRun(parent.getWorkspace(), parent, path);
     run.setExecutable(executable);
     run.setComputer(computer);
-    run.setActualComputer(computer);
     run.putParametersByJson(executable.getDefaultParameters().toString());
     run.resetData(false);
     return run;
@@ -107,10 +107,12 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
+    setActualComputer(getComputer());
     setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
     setToProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch());
     setToProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch());
     setToProperty(KEY_EXIT_STATUS, -1);
+    setToProperty(KEY_STARTED, false);
     super.setState(State.Created);
   }
 
@@ -234,6 +236,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     } finally {
       isRetrying = false;
     }
+    setState(State.Retrying);
     start();
     return this;
   }
@@ -298,9 +301,6 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     WrappedJsonArray currentArray = getArrayFromProperty(KEY_PRIOR_RUN, new WrappedJsonArray());
     WrappedJsonArray array = new WrappedJsonArray();
     array.add(run.getLocalPath().toString());
-    for (ExecutableRun r : run.getPriorRun()) {
-      array.add(r.getLocalPath().toString());
-    }
     array.addAll(currentArray);
     setToProperty(KEY_PRIOR_RUN, array);
   }
@@ -469,9 +469,17 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   @Override
   public void setState(State state) {
-    if (isRetrying) { return; }
-
-    super.setState(state);
+    try (LockByKey lock = LockByKey.acquire(getPath())) {
+      if (isRetrying) {
+        return;
+      }
+      if (State.Created.equals(state)) {
+        if (!State.Retrying.equals(getState())) {
+          return;
+        }
+      }
+      super.setState(state);
+    }
 
     switch (state) {
       case Submitted:
