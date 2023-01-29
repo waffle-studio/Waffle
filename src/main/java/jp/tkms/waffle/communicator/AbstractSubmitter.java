@@ -361,7 +361,9 @@ abstract public class AbstractSubmitter {
       } else {
         job.setState(State.Failed);
       }
-      job.remove();
+      if (!State.Created.equals(job.getState())) {
+        job.remove();
+      }
     } catch (Exception e) {
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         job.getRun().appendErrorNote(LogMessage.getStackTrace(e));

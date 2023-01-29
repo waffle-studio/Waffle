@@ -8,7 +8,6 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
-import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.Project;
@@ -20,7 +19,6 @@ import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.exception.ChildProcedureNotFoundException;
 import jp.tkms.waffle.exception.OccurredExceptionsException;
 import jp.tkms.waffle.exception.RunNotFoundException;
-import jp.tkms.waffle.inspector.InspectorMaster;
 import jp.tkms.waffle.manager.ManagerMaster;
 import jp.tkms.waffle.script.ScriptProcessor;
 import jp.tkms.waffle.communicator.AbstractSubmitter;
@@ -28,9 +26,9 @@ import jp.tkms.waffle.web.updater.RunStatusUpdater;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ExecutableRun extends AbstractRun implements DataDirectory, ComputerTask {
   public static final String EXECUTABLE_RUN = "EXECUTABLE_RUN";
@@ -56,6 +54,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   private State state = null;
   private WrappedJson environments = null;
   private WrappedJsonArray arguments = null;
+  private boolean isRetrying = false;
 
   private static final InstanceCache<String, ExecutableRun> instanceCache = new InstanceCache<>();
 
@@ -83,18 +82,36 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     run.setExecutable(executable);
     run.setComputer(computer);
     run.setActualComputer(computer);
-    run.setState(State.Created);
-    run.setToProperty(KEY_EXIT_STATUS, -1);
-    run.setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
-    run.setToProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch());
-    run.setToProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch());
+    run.putParametersByJson(executable.getDefaultParameters().toString());
+    run.resetData(false);
+    return run;
+  }
+
+  private void resetData(boolean removeBase) {
+    if (removeBase) {
+      try (Stream<Path> stream = Files.walk(getBasePath())) { // remove BASE files
+        stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+      } catch (IOException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
     try {
-      Files.createDirectories(run.getBasePath());
+      Files.createDirectories(getBasePath());
     } catch (IOException e) {
       ErrorLogMessage.issue(e);
     }
-    run.putParametersByJson(executable.getDefaultParameters().toString());
-    return run;
+    updateResultsStore(new WrappedJson());
+    try {
+      Files.deleteIfExists(getPath().resolve(Constants.STDOUT_FILE));
+      Files.deleteIfExists(getPath().resolve(Constants.STDERR_FILE));
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+    setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
+    setToProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch());
+    setToProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch());
+    setToProperty(KEY_EXIT_STATUS, -1);
+    super.setState(State.Created);
   }
 
   public static ExecutableRun create(ConductorRun parent, String expectedName, ArchivedExecutable executable, Computer computer) {
@@ -207,47 +224,54 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   public ExecutableRun retry() {
-    ExecutableRun created  = null;
-    Path path = getPath();
+    isRetrying = true;
     try {
-      ExecutableRun removed = moveToTrash();
-      created = create(removed.getParentConductorRun(), path, removed.getExecutable(), removed.getComputer());
-      created.setExpectedName(removed.getExpectedName());
-      created.updateParametersStore(removed.getParameters());
-      created.addPriorRun(removed);
+      ExecutableRun removed = archiveToTrashBin();
+      addPriorRun(removed);
+      resetData(true);
     } catch (RunNotFoundException e) {
       ErrorLogMessage.issue(e);
+    } finally {
+      isRetrying = false;
     }
-    created.start();
-    return created;
+    start();
+    return this;
+  }
+
+  private ExecutableRun archiveToTrashBin() throws RunNotFoundException {
+    Path nextPath = getParentConductorRun().getTrashBinPath().resolve(UUID.randomUUID().toString());
+    Path nextAbsolutePath = Constants.WORK_DIR.resolve(nextPath);
+    Path myPath = Constants.WORK_DIR.resolve(getPath());
+    try {
+      try (Stream<Path> stream = Files.walk(myPath)) { // create next directories
+        stream.filter(p -> Files.isDirectory(p)).forEach(p -> {
+          try {
+            Files.createDirectories(nextAbsolutePath.resolve(myPath.relativize(p)));
+          } catch (IOException e) {
+            ErrorLogMessage.issue(e);
+          }
+        });
+      }
+
+      try (Stream<Path> stream = Files.walk(myPath)) { // copy files
+        stream.filter(p -> !Files.isDirectory(p)).forEach(p -> {
+          try {
+            Files.copy(p, nextAbsolutePath.resolve(myPath.relativize(p)), StandardCopyOption.REPLACE_EXISTING);
+          } catch (IOException e) {
+            ErrorLogMessage.issue(e);
+          }
+        });
+      }
+    } catch (IOException e) {
+      ErrorLogMessage.issue(e);
+    }
+
+    return getInstance(nextPath.toString());
   }
 
   public void handleFailed(String procedureName) throws ChildProcedureNotFoundException {
     getParentConductorRun().getConductor().getChildProcedureScript(procedureName);
     setToProperty(KEY_FAILED_HANDLER, procedureName);
-  }
-
-  ExecutableRun moveToTrash() throws RunNotFoundException {
-    try {
-      ExecutableRunTask.getInstance(getTaskId()).remove();
-    } catch (NullPointerException e) {
-      ErrorLogMessage.issue(e);
-    }
-    synchronized (instanceCache) {
-      Path nextPath = getParentConductorRun().getTrashBinPath().resolve(UUID.randomUUID().toString());
-      Path nextAbsolutePath = Constants.WORK_DIR.resolve(nextPath);
-      Path oldPath = getPath();
-      String oldId = getLocalPath().toString();
-      setPath(nextAbsolutePath);
-      try {
-        Files.createDirectories(nextAbsolutePath.getParent());
-        Files.move(oldPath, nextAbsolutePath);
-      } catch (IOException e) {
-        ErrorLogMessage.issue(e);
-      }
-      instanceCache.remove(oldId);
-      return getInstance(nextPath.toString());
-    }
   }
 
   public String getFailedHandler() {
@@ -445,6 +469,8 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
   @Override
   public void setState(State state) {
+    if (isRetrying) { return; }
+
     super.setState(state);
 
     switch (state) {
