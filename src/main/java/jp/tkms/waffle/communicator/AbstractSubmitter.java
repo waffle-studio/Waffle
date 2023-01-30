@@ -532,7 +532,8 @@ abstract public class AbstractSubmitter {
       for (RequestRepreparingMessage message : response.getMessageBundle().getCastedMessageList(RequestRepreparingMessage.class)) {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
-          job.setState(State.Created);
+          job.setState(State.Retrying);
+          job.setJobId("");
           InfoLogMessage.issue(job.getRun(), "will re-prepare");
         }
       }

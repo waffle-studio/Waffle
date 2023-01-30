@@ -108,11 +108,13 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       ErrorLogMessage.issue(e);
     }
     setActualComputer(getComputer());
+    setJobId("");
     setToProperty(KEY_CREATED_AT, DateTime.getCurrentEpoch());
     setToProperty(KEY_SUBMITTED_AT, DateTime.getEmptyEpoch());
     setToProperty(KEY_FINISHED_AT, DateTime.getEmptyEpoch());
     setToProperty(KEY_EXIT_STATUS, -1);
     setToProperty(KEY_STARTED, false);
+    setToProperty(KEY_PREPROCESSED, false);
     super.setState(State.Created);
   }
 
