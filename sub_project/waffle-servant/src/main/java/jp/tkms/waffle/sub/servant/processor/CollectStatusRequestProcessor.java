@@ -66,7 +66,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
             int exitStatus = -2;
             Path exitStatusFile = baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE);
             try {
-              exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
+              exitStatus = Integer.parseInt(new String(Files.readAllBytes(exitStatusFile)));
             } catch (Exception | Error e) {
               exitStatus = -1;
             }

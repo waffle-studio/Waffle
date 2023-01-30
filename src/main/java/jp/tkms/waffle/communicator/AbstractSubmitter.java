@@ -361,6 +361,16 @@ abstract public class AbstractSubmitter {
       } else {
         job.setState(State.Failed);
       }
+
+      ComputerTask run = job.getRun();
+      if (run instanceof ExecutableRun) {
+        switch (run.getState()) {
+          case Failed:
+          case Excepted:
+            ((ExecutableRun) run).tryAutomaticRetry();
+        }
+      }
+
       job.remove();
     } catch (Exception e) {
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
@@ -712,6 +722,7 @@ abstract public class AbstractSubmitter {
       ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
       ArrayList<AbstractTask> createdJobList = new ArrayList<>();
       ArrayList<AbstractTask> preparedJobList = new ArrayList<>();
+      ArrayList<AbstractTask> retryingJobList = new ArrayList<>();
 
       for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
         if (Main.hibernatingFlag) { return; }
@@ -723,6 +734,9 @@ abstract public class AbstractSubmitter {
             continue;
           }
           switch (job.getState(true)) {
+            case Retrying:
+              retryingJobList.add(job);
+              break;
             case Created:
               createdJobList.add(job);
               break;
@@ -759,6 +773,16 @@ abstract public class AbstractSubmitter {
         if (Main.hibernatingFlag) { break; }
         if (isRemained) {
           envelope = new Envelope(Constants.WORK_DIR);
+        }
+      }
+
+      for (AbstractTask task : retryingJobList) {
+        try {
+          if (computer.getName().equals(task.getComputerName())) {
+            task.setState(jp.tkms.waffle.data.util.State.Created);
+          }
+        } catch (Exception e) {
+          WarnLogMessage.issue(e);
         }
       }
 

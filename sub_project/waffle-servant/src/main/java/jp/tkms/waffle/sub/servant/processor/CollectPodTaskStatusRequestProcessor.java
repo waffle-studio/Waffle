@@ -5,10 +5,7 @@ import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.*;
 import jp.tkms.waffle.sub.servant.message.request.CollectPodTaskStatusMessage;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.PodTaskFinishedMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateResultMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import jp.tkms.waffle.sub.servant.pod.AbstractExecutor;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
@@ -43,25 +40,29 @@ public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<Colle
         Path jobsDirectory = baseDirectory.resolve(message.getPodDirectory()).resolve(AbstractExecutor.JOBS_PATH);
         if (message.isForceFinish() || !Files.exists(jobsDirectory.resolve(message.getId()))) {
           int exitStatus = -2;
+          Path exitStatusFile = baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE);
           try {
-            exitStatus = Integer.parseInt(new String(Files.readAllBytes(baseDirectory.resolve(message.getWorkingDirectory()).resolve(Constants.EXIT_STATUS_FILE))));
+            exitStatus = Integer.parseInt(new String(Files.readAllBytes(exitStatusFile)));
           } catch (Exception | Error e) {
             exitStatus = -1;
           }
-          if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0) {
+          if ((exitStatus >= 0 && new DirectoryHash(baseDirectory, message.getWorkingDirectory()).isMatchToHashFile()) || exitStatus < 0 || CollectStatusRequestProcessor.isSynchronizationTimeout(exitStatusFile)) {
             //(new DirectoryHash(baseDirectory, message.getWorkingDirectory())).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+            response.add(new PodTaskFinishedMessage(message));
             response.add(new UpdateStatusMessage(message, exitStatus));
             response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
             response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
-            response.add(new PodTaskFinishedMessage(message));
           } else {
+            response.add(new ExceptionMessage(message.getWorkingDirectory().toString()));
             response.add(new UpdateStatusMessage(message));
           }
         } else {
           response.add(new UpdateStatusMessage(message));
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        response.add(new JobExceptionMessage(message, e.getMessage()));
+        response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
+        response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));
       }
     });
   }

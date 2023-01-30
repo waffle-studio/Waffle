@@ -99,12 +99,6 @@ public class ExecutableRunTask extends AbstractTask {
             failedHandler.run();
           }
       }
-
-      switch (run.getState()) {
-        case Failed:
-        case Excepted:
-          run.tryAutomaticRetry();
-      }
     }
   }
 
