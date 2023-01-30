@@ -1,27 +1,53 @@
 package jp.tkms.waffle.sub.servant.processor;
 
+import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.DirectoryHash;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.SubmitPodTaskMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.PodTaskRefusedMessage;
+import jp.tkms.waffle.sub.servant.message.response.RequestRepreparingMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import jp.tkms.waffle.sub.servant.pod.AbstractExecutor;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.concurrent.TimeUnit;
 
 public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTaskMessage> {
+  private final static String POD_RUN_FLAG = ".POD_RUN" + DirectoryHash.IGNORE_FLAG;
+
   protected SubmitPodTaskRequestProcessor() {
   }
 
   @Override
   protected void processIfMessagesExist(Path baseDirectory, Envelope request, Envelope response, ArrayList<SubmitPodTaskMessage> messageList) throws ClassNotFoundException, IOException {
+    ArrayList<Path> removingList = new ArrayList<>();
+
     messageList.stream().parallel().forEach(message -> {
       Path podPath = baseDirectory.resolve(message.getPodDirectory());
+      Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
+
+      if (!Files.exists(workingDirectory)) {
+        response.add(new RequestRepreparingMessage(message));
+        return;
+      }
+
+      if (Files.exists(workingDirectory.resolve(POD_RUN_FLAG))) { // If already executed, remove and request resubmit
+        try {
+          Files.deleteIfExists(workingDirectory.resolve(Constants.ALIVE));
+        } catch (IOException e) {
+          //NOP
+        }
+        removingList.add(workingDirectory);
+        response.add(new RequestRepreparingMessage(message));
+        return;
+      }
 
       if (!Files.exists(podPath.resolve(AbstractExecutor.UPDATE_FILE_PATH)) || Files.exists(podPath.resolve(AbstractExecutor.LOCKOUT_FILE_PATH))) {
         response.add(new PodTaskRefusedMessage(message.getJobId()));
@@ -40,7 +66,12 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
         }
       }
 
-      Path workingDirectory = baseDirectory.resolve(message.getWorkingDirectory()).toAbsolutePath().normalize();
+      try {
+        Files.createFile(workingDirectory.resolve(POD_RUN_FLAG));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
       new DirectoryHash(baseDirectory, workingDirectory).save();
       try {
         Files.setPosixFilePermissions(workingDirectory, PosixFilePermissions.fromString("rwxrwx---"));
@@ -82,5 +113,23 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
         response.add(new JobExceptionMessage(message, e.getMessage()));
       }
     });
+
+    if (!removingList.isEmpty()) {
+      try {
+        TimeUnit.SECONDS.sleep(Constants.WATCHDOG_INTERVAL);
+      } catch (InterruptedException e) {
+        //NOP
+      }
+      removingList.stream().parallel().forEach(path -> {
+        for (int count = 0; count < SubmitJobRequestProcessor.MAX_REMOVING_RETRYING; count += 1) {
+          try {
+            Files.walk(path).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+          } catch (IOException e) {
+            continue;
+          }
+          break;
+        }
+      });
+    }
   }
 }
