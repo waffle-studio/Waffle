@@ -38,6 +38,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getUrl(), new ResponseBuilder(() -> new JobsComponent()));
     Spark.get(getUrl(Mode.Abort, null), new ResponseBuilder(() -> new JobsComponent(Mode.Abort)));
+    Spark.get(getUrl(Mode.Cancel, null), new ResponseBuilder(() -> new JobsComponent(Mode.Cancel)));
   }
 
   public static String getUrl() {
@@ -60,6 +61,16 @@ public class JobsComponent extends AbstractAccessControlledComponent {
         }
         response.redirect(getUrl());
       }
+    } else if (mode == Mode.Cancel) {
+        ExecutableRunTask job = ExecutableRunTask.getInstance(request.params("id"));
+        if (job != null) {
+          try {
+            job.cancel();
+          } catch (RunNotFoundException e) {
+            ErrorLogMessage.issue(e);
+          }
+          response.redirect(getUrl());
+        }
     } else {
      renderJobList();
     }
@@ -151,5 +162,5 @@ public class JobsComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  public enum Mode {Default, Abort}
+  public enum Mode {Default, Abort, Cancel}
 }
