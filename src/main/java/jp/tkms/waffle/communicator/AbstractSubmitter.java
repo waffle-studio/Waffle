@@ -949,6 +949,7 @@ abstract public class AbstractSubmitter {
               case Excepted:
                 //WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not running; The task was removed." );
               case Aborted:
+              case Canceled:
                 job.remove();
             }
           } catch (RunNotFoundException e) {
