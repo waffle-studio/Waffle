@@ -87,6 +87,8 @@ public class ExecutableRunTask extends AbstractTask {
     if (run != null) {
       if (State.Finished.equals(state)) {
         run.finish();
+      } else if (State.Aborted.equals(state)) {
+        run.finish();
       }
       run.setState(state);
 

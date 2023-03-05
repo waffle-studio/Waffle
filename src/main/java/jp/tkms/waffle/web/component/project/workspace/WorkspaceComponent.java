@@ -33,7 +33,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   public static final String KEY_WORKSPACE = "workspace";
   public static final String KEY_NOTE = "note";
 
-  public enum Mode {Default, RedirectToWorkspace, UpdateNote, Cancel}
+  public enum Mode {Default, RedirectToWorkspace, UpdateNote, Abort}
   private Mode mode;
 
   private Project project;
@@ -50,7 +50,7 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getUrl(null), new ResponseBuilder(() -> new WorkspaceComponent()));
     Spark.post(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new WorkspaceComponent(Mode.UpdateNote)));
-    Spark.get(getUrl(null, Mode.Cancel), new ResponseBuilder(() -> new WorkspaceComponent(Mode.Cancel)));
+    Spark.get(getUrl(null, Mode.Abort), new ResponseBuilder(() -> new WorkspaceComponent(Mode.Abort)));
 
     RunComponent.register();
     StagedExecutableComponent.register();
@@ -83,8 +83,8 @@ public class WorkspaceComponent extends AbstractAccessControlledComponent {
         workspace.setNote(request.queryParams(KEY_NOTE));
         response.redirect(getUrl(workspace));
         break;
-      case Cancel:
-        workspace.cancel();
+      case Abort:
+        workspace.abort();
         response.redirect(getUrl(workspace));
         break;
       case RedirectToWorkspace:

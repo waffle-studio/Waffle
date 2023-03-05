@@ -16,7 +16,7 @@ public abstract class AbstractSubmitterWrapper extends AbstractSubmitter {
   @Override
   public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
-      job.setState(State.Canceled);
+      job.setState(State.Aborted);
     }
   }
 }

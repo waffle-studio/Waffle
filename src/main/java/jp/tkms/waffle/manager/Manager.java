@@ -83,7 +83,7 @@ public class Manager {
     }
 
     State state = run.getState();
-    if (State.Finalizing.equals(state) || State.Finished.equals(state)) {
+    if (State.Finalizing.equals(state) || State.Finished.equals(state) || State.Canceled.equals(state)) {
       store.getList(run).stream().filter(Predicate.not(ProcedureRunGuard::isValueGuard))
         .forEach(guard -> deactivateAndTryRun(store, guard));
 

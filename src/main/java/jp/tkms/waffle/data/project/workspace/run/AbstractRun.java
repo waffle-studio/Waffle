@@ -144,6 +144,8 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
       || state.equals(State.Prepared)
       || state.equals(State.Submitted)
       || state.equals(State.Running)
+      || state.equals(State.Cancel)
+      || state.equals(State.Abort)
       || state.equals(State.Finalizing)
     );
   }

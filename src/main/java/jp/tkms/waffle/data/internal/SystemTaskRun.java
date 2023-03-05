@@ -240,7 +240,7 @@ public class SystemTaskRun implements ComputerTask, DataDirectory, PropertyFile 
       case Submitted:
         setToProperty(KEY_SUBMITTED_AT, DateTime.getCurrentEpoch());
         break;
-      case Canceled:
+      case Aborted:
       case Excepted:
       case Failed:
       case Finished:

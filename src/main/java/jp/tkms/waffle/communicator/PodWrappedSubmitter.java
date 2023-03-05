@@ -162,7 +162,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
           try {
-            job.setState(State.Canceled);
+            job.setState(State.Aborted);
           } catch (RunNotFoundException e) {
             WarnLogMessage.issue(e);
           }
@@ -208,7 +208,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public void cancel(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
       if (jobManager.removeJob(envelope, job)) {
-        job.setState(State.Canceled);
+        job.setState(State.Aborted);
       }
     }
   }

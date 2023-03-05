@@ -84,7 +84,7 @@ public class SystemTask extends AbstractTask {
     SystemTaskRun run = getRun();
     if (run != null) {
       switch (state) {
-        case Canceled:
+        case Aborted:
         case Excepted:
         case Failed:
         case Finished:

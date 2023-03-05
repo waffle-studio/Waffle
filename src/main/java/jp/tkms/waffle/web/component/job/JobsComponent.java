@@ -37,7 +37,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
 
   static public void register() {
     Spark.get(getUrl(), new ResponseBuilder(() -> new JobsComponent()));
-    Spark.get(getUrl(Mode.Cancel, null), new ResponseBuilder(() -> new JobsComponent(Mode.Cancel)));
+    Spark.get(getUrl(Mode.Abort, null), new ResponseBuilder(() -> new JobsComponent(Mode.Abort)));
   }
 
   public static String getUrl() {
@@ -50,11 +50,11 @@ public class JobsComponent extends AbstractAccessControlledComponent {
 
   @Override
   public void controller() {
-    if (mode == Mode.Cancel) {
+    if (mode == Mode.Abort) {
       ExecutableRunTask job = ExecutableRunTask.getInstance(request.params("id"));
       if (job != null) {
         try {
-          job.cancel();
+          job.abort();
         } catch (RunNotFoundException e) {
           ErrorLogMessage.issue(e);
         }
@@ -135,7 +135,7 @@ public class JobsComponent extends AbstractAccessControlledComponent {
                       ),
                       Html.spanWithId(job.getPath().toString() + "-jobid", job.getJobId()),
                       Html.spanWithId(job.getPath().toString() + "-badge", job.getState().getStatusBadge()),
-                      Html.a(getUrl(Mode.Cancel, job), Html.fasIcon("times-circle"))
+                      Html.a(getUrl(Mode.Abort, job), Html.fasIcon("times-circle"))
                     ).setAttributes(new Html.Attributes(Html.value("id", job.getPath().toString() + "-jobrow")));
                   } catch (Exception e) {
                     WarnLogMessage.issue(e);
@@ -151,5 +151,5 @@ public class JobsComponent extends AbstractAccessControlledComponent {
     }.render(this);
   }
 
-  public enum Mode {Default, Cancel}
+  public enum Mode {Default, Abort}
 }

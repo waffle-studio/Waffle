@@ -61,6 +61,12 @@ public abstract class AbstractTask<T extends ComputerTask> implements PropertyFi
     return id.getReversedBase36Code();
   }
 
+  public void abort() throws RunNotFoundException {
+    if (getRun().isRunning()) {
+      setState(State.Abort);
+    }
+  }
+
   public void cancel() throws RunNotFoundException {
     if (getRun().isRunning()) {
       setState(State.Cancel);

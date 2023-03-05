@@ -317,6 +317,19 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     return null;
   }
 
+  public void abort() {
+    if (getTaskId() != null) {
+      try {
+        ExecutableRunTask job = ExecutableRunTask.getInstance(getTaskId());
+        if (job != null) {
+          job.abort();
+        }
+      } catch (RunNotFoundException e) {
+        ErrorLogMessage.issue(e);
+      }
+    }
+  }
+
   public void cancel() {
     if (getTaskId() != null) {
       try {
@@ -488,6 +501,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
         setToProperty(KEY_SUBMITTED_AT, DateTime.getCurrentEpoch());
         break;
       case Canceled:
+      case Aborted:
       case Excepted:
       case Failed:
       case Finished:

@@ -1,6 +1,5 @@
 package jp.tkms.waffle.web.updater;
 
-import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.web.template.Html;
@@ -44,7 +43,7 @@ public class RunStatusUpdater extends AbstractUpdater {
         State.Excepted.getStatusBadge()
       ),
       Html.divWithId("template-Canceled-badge",
-        State.Canceled.getStatusBadge()
+        State.Aborted.getStatusBadge()
       ),
       reloadDaemon
     );

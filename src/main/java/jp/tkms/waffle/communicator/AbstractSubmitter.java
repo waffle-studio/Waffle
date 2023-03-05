@@ -229,7 +229,12 @@ abstract public class AbstractSubmitter {
     if (! job.getJobId().equals("-1")) {
       envelope.add(new CancelJobMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
     } else {
-      job.setState(State.Canceled);
+      if (job.getState().equals(State.Abort)) {
+        job.setState(State.Aborted);
+      }
+      if (job.getState().equals(State.Cancel)) {
+        job.setState(State.Canceled);
+      }
     }
   }
 
@@ -577,7 +582,12 @@ abstract public class AbstractSubmitter {
       for (JobCanceledMessage message : response.getMessageBundle().getCastedMessageList(JobCanceledMessage.class)) {
         AbstractTask job = findJobFromStore(message.getType(), message.getId());
         if (job != null) {
-          job.setState(State.Canceled);
+          if (job.getState().equals(State.Abort)) {
+            job.setState(State.Aborted);
+          }
+          if (job.getState().equals(State.Cancel)) {
+            job.setState(State.Canceled);
+          }
         }
       }
 
@@ -648,7 +658,7 @@ abstract public class AbstractSubmitter {
 
         try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           if (!job.exists() && job.getRun().isRunning()) {
-            job.cancel();
+            job.abort();
             WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
             continue;
           }
@@ -659,6 +669,7 @@ abstract public class AbstractSubmitter {
             case Running:
               runningJobList.add(job);
               break;
+            case Abort:
             case Cancel:
               cancelJobList.add(job);
           }
@@ -730,7 +741,7 @@ abstract public class AbstractSubmitter {
 
         try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           if (!job.exists() && job.getRun().isRunning()) {
-            job.cancel();
+            job.abort();
             WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
             continue;
           }
@@ -746,6 +757,7 @@ abstract public class AbstractSubmitter {
               break;
             case Submitted:
             case Running:
+            case Abort:
             case Cancel:
               submittedJobList.add(job);
           }
@@ -924,7 +936,7 @@ abstract public class AbstractSubmitter {
             ComputerTask run = job.getRun();
 
             if (!job.exists() && run.isRunning()) {
-              job.cancel();
+              job.abort();
               WarnLogMessage.issue(run, "The task file is not exists; The task will cancel.");
               continue;
             }
@@ -936,7 +948,7 @@ abstract public class AbstractSubmitter {
               case Failed:
               case Excepted:
                 //WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not running; The task was removed." );
-              case Canceled:
+              case Aborted:
                 job.remove();
             }
           } catch (RunNotFoundException e) {

@@ -8,7 +8,6 @@ import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.ProjectData;
-import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.data.util.*;
@@ -147,14 +146,14 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     return getBooleanFromProperty(KEY_FINISHED, false);
   }
 
-  public void cancel() {
+  public void abort() {
     finish();
 
     for (ExecutableRunTask task : ExecutableRunTask.getList()) {
       try {
         ExecutableRun run = task.getRun();
         if (getLocalPath().equals(run.getWorkspace().getLocalPath())) {
-          run.cancel();
+          run.abort();
         }
       } catch (RunNotFoundException e) {
         //NOP

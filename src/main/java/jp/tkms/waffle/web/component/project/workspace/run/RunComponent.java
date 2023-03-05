@@ -40,7 +40,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   private ArrayList<HasLocalPath> childrenList = null;
   private String directoryName;
 
-  public enum Mode {Default, ReCheck, UpdateNote, Root}
+  public enum Mode {Default, ReCheck, UpdateNote, Root, Abort, Cancel}
 
   public RunComponent(Mode mode) {
     super();
@@ -56,6 +56,8 @@ public class RunComponent extends AbstractAccessControlledComponent {
     Spark.get(getUrl(null), new ResponseBuilder(() -> new RunComponent()));
     Spark.get(getUrl(null, Mode.ReCheck), new ResponseBuilder(() -> new RunComponent(Mode.ReCheck)));
     Spark.get(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new RunComponent(Mode.UpdateNote)));
+    Spark.get(getUrl(null, Mode.Abort), new ResponseBuilder(() -> new RunComponent(Mode.Abort)));
+    Spark.get(getUrl(null, Mode.Cancel), new ResponseBuilder(() -> new RunComponent(Mode.Cancel)));
   }
 
   public static String getRootUrl(Workspace workspace) {
@@ -145,6 +147,14 @@ public class RunComponent extends AbstractAccessControlledComponent {
     switch (mode) {
       case ReCheck:
         //run.recheck();
+        response.redirect(RunComponent.getUrl(abstractRun));
+        return;
+      case Abort:
+        ((ExecutableRun) abstractRun).abort();
+        response.redirect(RunComponent.getUrl(abstractRun));
+        return;
+      case Cancel:
+        ((ExecutableRun) abstractRun).cancel();
         response.redirect(RunComponent.getUrl(abstractRun));
         return;
     }
