@@ -443,6 +443,11 @@ public class Main {
     }
   }
 
+  private static void createJarRemovingFlag() throws IOException {
+    Files.createDirectories(Constants.REMOVE_JAR_FILE.getParent());
+    Files.createFile(Constants.REMOVE_JAR_FILE);
+  }
+
   private static void createAutomaticRestartingFlag() throws IOException {
     Files.createDirectories(Constants.AUTO_START_FILE.getParent());
     Files.createFile(Constants.AUTO_START_FILE);
@@ -457,6 +462,12 @@ public class Main {
   }
 
   public static void updateProcess() {
+    try {
+      createJarRemovingFlag();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    /*
     try {
       final File currentJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
       if(!currentJar.getName().endsWith(".jar")) {
@@ -485,5 +496,6 @@ public class Main {
     } catch (Exception e) {
       e.printStackTrace();
     }
+     */
   }
 }
