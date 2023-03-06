@@ -40,7 +40,7 @@ abstract public class AbstractRun extends WorkspaceData implements PropertyFile 
   //private AbstractRun responsible = null;
 
   public abstract void start();
-  public abstract void finish();
+  public abstract void finish(State nextState);
   public abstract String getName();
   public abstract String getId();
 

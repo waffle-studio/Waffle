@@ -209,7 +209,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
   }
 
   @Override
-  public void finish() {
+  public void finish(State nextState) {
     setState(State.Finalizing);
     /*
     processFinalizers();
@@ -218,7 +218,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
 
     ManagerMaster.signalFinished(this);
 
-    setState(State.Finished);
+    setState(nextState);
   }
 
   public void tryAutomaticRetry() {

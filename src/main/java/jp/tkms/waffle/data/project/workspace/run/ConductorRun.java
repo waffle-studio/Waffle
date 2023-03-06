@@ -95,7 +95,8 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
   }
 
   @Override
-  public void finish() {
+  public void finish(State nextState) {
+    setState(State.Finalizing);
     /*
     setState(State.Finalizing);
     processFinalizers();
@@ -110,6 +111,8 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     if (isRoot()) {
       getWorkspace().finish();
     }
+
+    setState(nextState);
   }
 
   protected Path getVariablesStorePath() {
@@ -362,7 +365,7 @@ public class ConductorRun extends AbstractRun implements DataDirectory {
     WrappedJsonArray jsonArray = getArrayFromProperty(KEY_ACTIVE_RUN, new WrappedJsonArray());
 
     if (jsonArray.isEmpty()) {
-      finish();
+      finish(State.Finished);
     }
   }
 

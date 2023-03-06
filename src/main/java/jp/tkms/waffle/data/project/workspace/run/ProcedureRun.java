@@ -325,13 +325,13 @@ public class ProcedureRun extends AbstractRun {
    */
 
   @Override
-  public void finish() {
+  public void finish(State nextState) {
     setState(State.Finalizing);
     /*
     processFinalizers();
     getResponsible().reportFinishedRun(this);
      */
-    setState(State.Finished);
+    setState(nextState);
   }
 
   @Override

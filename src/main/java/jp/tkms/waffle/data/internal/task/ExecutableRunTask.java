@@ -85,12 +85,11 @@ public class ExecutableRunTask extends AbstractTask {
     super.setState(state);
     ExecutableRun run = getRun();
     if (run != null) {
-      if (State.Finished.equals(state)) {
-        run.finish();
-      } else if (State.Aborted.equals(state)) {
-        run.finish();
+      if (State.Finished.equals(state) || State.Canceled.equals(state)) {
+        run.finish(state);
+      } else {
+        run.setState(state);
       }
-      run.setState(state);
 
       switch (run.getState()) {
         case Failed:
