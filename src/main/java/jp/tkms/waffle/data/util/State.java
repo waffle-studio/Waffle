@@ -38,33 +38,33 @@ public enum State {
   public String getStatusBadge() {
     switch (this) {
       case Created:
-        return Lte.badge("secondary", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("secondary rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Prepared:
-        return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("info rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Submitted:
-        return Lte.badge("info", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("info rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Running:
-        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("warning rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Finished:
-        return Lte.badge("success", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("success rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Finalizing:
-        return Lte.badge("warning", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("warning rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Failed:
-        return Lte.badge("danger", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("danger rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Excepted:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Abort:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Aborted:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Cancel:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Canceled:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case Retrying:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
       case None:
-        return Lte.badge("dark", new Html.Attributes(Html.value("style","width:6em;")), name());
+        return Lte.badge("dark rounded-pill", new Html.Attributes(Html.value("style","width:6em;")), name());
     }
     return null;
   }

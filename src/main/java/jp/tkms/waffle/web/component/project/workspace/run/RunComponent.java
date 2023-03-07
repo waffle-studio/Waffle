@@ -54,10 +54,12 @@ public class RunComponent extends AbstractAccessControlledComponent {
   static public void register() {
     Spark.get(getRootUrl(null), new ResponseBuilder(() -> new RunComponent()));
     Spark.get(getUrl(null), new ResponseBuilder(() -> new RunComponent()));
+    /*
     Spark.get(getUrl(null, Mode.ReCheck), new ResponseBuilder(() -> new RunComponent(Mode.ReCheck)));
     Spark.get(getUrl(null, Mode.UpdateNote), new ResponseBuilder(() -> new RunComponent(Mode.UpdateNote)));
     Spark.get(getUrl(null, Mode.Abort), new ResponseBuilder(() -> new RunComponent(Mode.Abort)));
     Spark.get(getUrl(null, Mode.Cancel), new ResponseBuilder(() -> new RunComponent(Mode.Cancel)));
+     */
   }
 
   public static String getRootUrl(Workspace workspace) {
@@ -77,7 +79,7 @@ public class RunComponent extends AbstractAccessControlledComponent {
   }
 
   public static String getUrl(AbstractRun run, Mode mode) {
-    return getUrl(run) + "/@" + mode.name();
+    return getUrl(run) + "?mode=" + mode.name();
   }
 
   public static String getUrlFromLocalPath(HasLocalPath localPath) {
@@ -88,8 +90,20 @@ public class RunComponent extends AbstractAccessControlledComponent {
     return path.toString();
   }
 
+  public Mode getMode() {
+    String modeDescription = request.queryParamOrDefault("mode", "").toLowerCase();
+    for (Mode mode : Mode.values()) {
+      if (modeDescription.equals(mode.name().toLowerCase())) {
+        return mode;
+      }
+    }
+    return Mode.Default;
+  }
+
   @Override
   public void controller() throws ProjectNotFoundException {
+    mode = getMode();
+
     project = Project.getInstance(request.params(ProjectComponent.KEY_PROJECT));
     workspace = Workspace.getInstance(project, request.params(WorkspaceComponent.KEY_WORKSPACE));
 
@@ -444,7 +458,12 @@ public class RunComponent extends AbstractAccessControlledComponent {
               @Override
               public ArrayList<Future<Lte.TableRow>> tableRows() {
                 ArrayList<Future<Lte.TableRow>> list = new ArrayList<>();
-                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Status", executableRun.getState().getStatusBadge());}));
+                list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Status",
+                  executableRun.getState().getStatusBadge()
+                  + (executableRun.isRunning() ? " | "
+                    + Html.a(getUrl(executableRun, Mode.Abort), Lte.badge("secondary",  new Html.Attributes(Html.value("style","width:5em;")), Html.fasIcon("times-circle") + "Abort"))
+                    + Html.a(getUrl(executableRun, Mode.Cancel), Lte.badge("secondary", new Html.Attributes(Html.value("style","width:5em;")), Html.fasIcon("cut") + "Cancel")) : "")
+                );}));
                 /*
                 if (run.getActorGroup() != null) {
                   list.add(Main.interfaceThreadPool.submit(() -> { return new Lte.TableRow("Conductor", Html.a(ConductorComponent.getUrl(run.getActorGroup()), run.getActorGroup().getName()));}));
