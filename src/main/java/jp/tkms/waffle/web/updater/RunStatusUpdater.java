@@ -68,7 +68,7 @@ public class RunStatusUpdater extends AbstractUpdater {
       "td[6].id = id + '-badge';" +
       "document.getElementById('jobs_table').appendChild(tr); }" +
       "else if (status == 'Submitted') { document.getElementById(id + '-jobid').innerHTML=jobid; }" +
-      "else if (status == 'Failed' || status == 'Finished' || status == 'Excepted' || status == 'Canceled' ) { document.getElementById(id + '-jobrow').remove(); } }catch(e){}" +
+      "else if (status == 'Failed' || status == 'Finished' || status == 'Excepted' || status == 'Canceled' || status == 'Aborted' ) { document.getElementById(id + '-jobrow').remove(); } }catch(e){}" +
       "try{document.getElementById(id + '-badge').innerHTML = document.getElementById('template-' + status + '-badge').innerHTML;}catch(e){}" +
       "try{if (id==run_id) {setTimeout(function(){location.reload();}, 1000);}}catch(e){}";
   }
