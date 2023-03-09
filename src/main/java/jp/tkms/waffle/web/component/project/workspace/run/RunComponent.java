@@ -565,31 +565,36 @@ public class RunComponent extends AbstractAccessControlledComponent {
           );
         }
 
-        content += Lte.card(Html.fasIcon("list-alt") + "Parameters & Results",
-          Lte.cardToggleButton(false), Lte.divRow(parametersAndResults) , null);
+        content += Lte.collapsedCard(Html.fasIcon("list-alt") + "Parameters & Results", null,
+          Lte.divRow(parametersAndResults),
+          null, null, null,
+          project .getName() + "#" + executableRun.getExecutable().getName() + "#PARAMRES",
+          false, request);
 
         String stdout = executableRun.getStdout();
         if (stdout != null) {
-          content += Lte.card(Html.fasIcon("file") + "Standard Output",
-            Lte.cardToggleButton(true),
+          content += Lte.collapsedCard(Html.fasIcon("file") + "Standard Output", null,
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
                 Lte.readonlyTextAreaGroup("", null, stdout)
               )
-            )
-            , null, "collapsed-card.stop", null);
+            ),
+            null, null, null,
+            project .getName() + "#" + executableRun.getExecutable().getName() + "#STDOUT",
+            false, request);
         }
 
         String stderr = executableRun.getStderr();
         if (stderr != null) {
-          content += Lte.card(Html.fasIcon("file") + "Standard Error",
-            Lte.cardToggleButton(true),
+          content += Lte.collapsedCard(Html.fasIcon("file") + "Standard Error", null,
             Lte.divRow(
               Lte.divCol(Lte.DivSize.F12,
                 Lte.readonlyTextAreaGroup("", null, stderr)
               )
-            )
-            , null, "collapsed-card.stop", null);
+            ),
+            null, null, null,
+            project .getName() + "#" + executableRun.getExecutable().getName() + "#STDERR",
+            false, request);
         }
 
         return content;

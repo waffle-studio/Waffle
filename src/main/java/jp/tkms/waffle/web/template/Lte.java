@@ -4,6 +4,8 @@ import jp.tkms.utils.concurrent.FutureArrayList;
 import jp.tkms.utils.stream.Editor;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.log.message.ErrorLogMessage;
+import jp.tkms.waffle.data.util.FileName;
+import spark.Request;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -12,6 +14,8 @@ import java.util.concurrent.Future;
 import static jp.tkms.waffle.web.template.Html.*;
 
 public class Lte {
+  public static final String COLLAPSED_STATE_KEY = "collapsed_state_key";
+
   public enum DivSize {
     F12, F12Md6Sm3, F12Md12Sm6;
 
@@ -83,6 +87,26 @@ public class Lte {
 
   public static String card(String title, String tools, String body, String footer) {
     return card(title, tools, body, footer, null, null);
+  }
+
+  public static String collapsedCard(String title, String tools, String body, String footer, String additionalClass,
+                                     String additionalBodyClass, String collapseKey, boolean defaultCollapse, Request request) {
+    if (title == null) { title = null; }
+    if (collapseKey == null) { collapseKey = title; }
+    collapseKey = getCollapsedStateKey(collapseKey);
+    if (additionalClass == null) { additionalClass = ""; }
+    if (tools == null) { tools = ""; }
+    boolean collapsed = defaultCollapse;
+    if (request.cookies().containsKey(collapseKey)) {
+      collapsed = request.cookies().get(collapseKey).equals("1");
+    }
+    return card(title, tools  + " " + Lte.cardToggleButton(collapsed),
+      body, footer , (collapsed ? "collapsed-card " : "")
+        + COLLAPSED_STATE_KEY + " " + collapseKey + " " + additionalClass, additionalBodyClass);
+  }
+
+  public static String getCollapsedStateKey(String key) {
+    return COLLAPSED_STATE_KEY + "__" + FileName.removeRestrictedCharacters(key);
   }
 
   public static String badge(String colorType, Attributes attributes, String value) {
