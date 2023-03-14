@@ -826,6 +826,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
 
   @Override
   public boolean isConnected() {
+    if (targetSubmitter == null) {
+      return false;
+    }
     return targetSubmitter.isConnected();
   }
 
