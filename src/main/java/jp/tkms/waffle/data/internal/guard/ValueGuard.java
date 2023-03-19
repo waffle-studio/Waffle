@@ -5,6 +5,7 @@ public class ValueGuard extends Guard {
   public static final String VALUE = "value";
 
   String[] slicedGuard;
+  boolean isIndirectValue;
 
   public ValueGuard(String guard) throws InsufficientStatementException, InvalidOperatorException {
     slicedGuard = guard.split(" ", 4);
@@ -24,6 +25,12 @@ public class ValueGuard extends Guard {
       default:
         throw new InvalidOperatorException(guard);
     }
+
+    isIndirectValue = isIndirectValue(getValue());
+  }
+
+  private boolean isIndirectValue(String value) {
+    return false;
   }
 
   public String getTargetRunPath() {
