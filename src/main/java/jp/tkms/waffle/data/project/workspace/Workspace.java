@@ -18,6 +18,8 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Workspace extends ProjectData implements DataDirectory, PropertyFile, HasNote, Serializable {
   public static final String WORKSPACE = "WORKSPACE";
@@ -27,6 +29,7 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
   public static final String SCRIPT_OUTPUT_FILE = "SCRIPT_OUTPUT.txt";
   public static final String KEY_EXECUTABLE_LOCK = "executable_lock#";
   private static final String KEY_FINISHED = "finished";
+  private static final Pattern PATH_RESOLVER = Pattern.compile("^"+ Project.PROJECT + "/(.+)/" + WORKSPACE + "/([^/]+)");
 
   private static final InstanceCache<String, Workspace> instanceCache = new InstanceCache<>();
 
@@ -39,7 +42,15 @@ public class Workspace extends ProjectData implements DataDirectory, PropertyFil
     initialise();
   }
 
-  public String getName() {
+  public static Workspace resolveFromLocalPathString(String localPathString) {
+    Matcher matcher = PATH_RESOLVER.matcher(localPathString);
+    if (matcher.find() && matcher.groupCount() == 2) {
+      return getInstance(Project.getInstance(matcher.group(1)), matcher.group(2));
+    }
+    return null;
+  }
+
+    public String getName() {
     return name;
   }
 
