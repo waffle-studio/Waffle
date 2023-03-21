@@ -1,10 +1,7 @@
 package jp.tkms.waffle.data.util;
 
-import jnr.ffi.annotations.In;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
-import jp.tkms.waffle.data.project.Project;
 import jp.tkms.waffle.data.project.workspace.Workspace;
-import jp.tkms.waffle.data.project.workspace.run.AbstractRun;
 import jp.tkms.waffle.data.project.workspace.run.ConductorRun;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
 import jp.tkms.waffle.exception.RunNotFoundException;
@@ -32,32 +29,40 @@ public class IndirectValue {
   public static final Pattern PATTERN = Pattern.compile((PREFIX + "(.)" + DELIMITER + "(.+)" + "(.+)" + SUFFIX).replaceAll("([\\[\\]\\*\\-])","\\\\$1"));
 
   private String type;
-  private String globalKey;
-  private String localKey;
+  private String runKey;
+  private String valueKey;
 
-  public IndirectValue(String type, String globalKey, String localKey) {
+  public IndirectValue(String type, String runKey, String valueKey) {
     this.type = type;
-    this.globalKey = globalKey;
-    this.localKey = localKey;
+    this.runKey = runKey;
+    this.valueKey = valueKey;
   }
 
   public String getKey() {
-    return PREFIX + type + DELIMITER + globalKey + DELIMITER + localKey + SUFFIX;
+    return PREFIX + type + DELIMITER + runKey + DELIMITER + valueKey + SUFFIX;
+  }
+
+  public String getRunKey() {
+    return runKey;
+  }
+
+  public String getValueKey() {
+    return valueKey;
   }
 
   public Workspace getWorkspace() {
-    return Workspace.resolveFromLocalPathString(globalKey);
+    return Workspace.resolveFromLocalPathString(runKey);
   }
 
   public String getString(String defaults) {
     try {
       switch (type) {
         case "V":
-          return ConductorRun.getInstance(getWorkspace(), globalKey).getVariables().getString(localKey, defaults);
+          return ConductorRun.getInstance(getWorkspace(), runKey).getVariables().getString(valueKey, defaults);
         case "P":
-          return ExecutableRun.getInstance(globalKey).getParameters().getString(localKey, defaults);
+          return ExecutableRun.getInstance(runKey).getParameters().getString(valueKey, defaults);
         case "R":
-          return ExecutableRun.getInstance(globalKey).getResults().getString(localKey, defaults);
+          return ExecutableRun.getInstance(runKey).getResults().getString(valueKey, defaults);
       }
     } catch (RunNotFoundException | NullPointerException e) {
       return defaults;
@@ -72,21 +77,34 @@ public class IndirectValue {
   public static IndirectValue convert(String key) throws WarnLogMessage {
     Matcher matcher = PATTERN.matcher(key);
     if (matcher.find() && matcher.groupCount() == 3) {
-      IndirectValue indirectValue = new IndirectValue(matcher.group(1).toUpperCase(), matcher.group(2), matcher.group(3));
-      return indirectValue;
+      String type = matcher.group(1).toUpperCase();
+      switch (type) {
+        case "V":
+        case "P":
+        case "R":
+          return new IndirectValue(type, matcher.group(2), matcher.group(3));
+      }
     }
     throw new WarnLogMessage("Invalid indirect value key: " + key);
   }
 
-  public static IndirectValue getVariableKey(String localPath, String key) {
-    return new IndirectValue("V", localPath, key);
+  public static boolean isMatchKeyPattern(String key) {
+    Matcher matcher = PATTERN.matcher(key);
+    if (matcher.find() && matcher.groupCount() == 3) {
+      return true;
+    }
+    return false;
   }
 
-  public static IndirectValue getParameterKey(String localPath, String key) {
-    return new IndirectValue("P", localPath, key);
+  public static IndirectValue getVariableIndirectValue(ConductorRun run, String key) {
+    return new IndirectValue("V", run.getLocalPath().toString(), key);
   }
 
-  public static IndirectValue getResultKey(String localPath, String key) {
-    return new IndirectValue("R", localPath, key);
+  public static IndirectValue getParameterIndirectValue(ExecutableRun run, String key) {
+    return new IndirectValue("P", run.getLocalPath().toString(), key);
+  }
+
+  public static IndirectValue getResultIndirectValue(ExecutableRun run, String key) {
+    return new IndirectValue("R", run.getLocalPath().toString(), key);
   }
 }
