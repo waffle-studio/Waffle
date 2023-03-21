@@ -33,7 +33,7 @@ public class Manager {
     executorService.submit(() -> finishProcess(store, run));
   }
 
-  private boolean isConformed(ValueGuard valueGuard, Object value) {
+  private boolean isPassed(ValueGuard valueGuard, Object value) {
     return (new Filter(valueGuard)).apply(value);
   }
 
@@ -59,13 +59,13 @@ public class Manager {
               ValueGuard valueGuard = new ValueGuard(guardString);
               if (run instanceof ConductorRun) {
                 ConductorRun conductorRun = (ConductorRun) run;
-                if (isConformed(valueGuard, conductorRun.getVariable(valueGuard.getKey()))) {
+                if (isPassed(valueGuard, conductorRun.getVariable(valueGuard.getKey()))) {
                   deactivateAndTryRun(store, guard);
                   break;
                 }
               } else if (run instanceof ExecutableRun) {
                 ExecutableRun executableRun = (ExecutableRun) run;
-                if (isConformed(valueGuard, executableRun.getResult(valueGuard.getKey()))) {
+                if (isPassed(valueGuard, executableRun.getResult(valueGuard.getKey()))) {
                   deactivateAndTryRun(store, guard);
                   break;
                 }

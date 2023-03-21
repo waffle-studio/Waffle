@@ -4,6 +4,7 @@ import com.eclipsesource.json.JsonArray;
 import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.data.util.IndirectValue;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
@@ -619,7 +620,12 @@ abstract public class AbstractSubmitter {
 
       Envelope replies = new Envelope(Constants.WORK_DIR);
       for (SendValueMessage message : response.getMessageBundle().getCastedMessageList(SendValueMessage.class)) {
-        String value = ExecutableRun.getResultFromFullKey(message.getKey());
+        String value = null;
+        try {
+          value = IndirectValue.convert(message.getKey()).getString();
+        } catch (WarnLogMessage e) {
+          value = null;
+        }
         if (message.getFilterOperator().equals("")
           || (new Filter(message.getFilterOperator(), message.getFilterValue())).apply(value)
         ) {

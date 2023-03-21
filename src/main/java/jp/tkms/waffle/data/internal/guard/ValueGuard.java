@@ -53,7 +53,11 @@ public class ValueGuard extends Guard {
   }
 
   public String getValue() {
-    return slicedGuard[3];
+    if (isIndirectValue()) {
+      return indirectValue.getString("null");
+    } else {
+      return slicedGuard[3];
+    }
   }
 
   public static class InsufficientStatementException extends Exception {

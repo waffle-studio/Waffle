@@ -74,6 +74,11 @@ public class IndirectValue {
     return getString(null);
   }
 
+  @Override
+  public String toString() {
+    return getKey();
+  }
+
   public static IndirectValue convert(String key) throws WarnLogMessage {
     Matcher matcher = PATTERN.matcher(key);
     if (matcher.find() && matcher.groupCount() == 3) {

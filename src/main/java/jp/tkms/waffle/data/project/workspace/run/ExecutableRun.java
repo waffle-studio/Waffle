@@ -172,6 +172,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
     }
   }
 
+  /*
   public static String getResultFromFullKey(String fullKey) {
     try {
       IndirectValue indirectValue = IndirectValue.convert(fullKey);
@@ -190,6 +191,7 @@ public class ExecutableRun extends AbstractRun implements DataDirectory, Compute
       return null;
     }
   }
+   */
 
   public String getResultKey(String key) {
     //return getLocalPath().toString() + RESULT_PATH_SEPARATOR + key;
