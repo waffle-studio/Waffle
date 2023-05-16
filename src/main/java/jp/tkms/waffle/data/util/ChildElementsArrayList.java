@@ -11,6 +11,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -33,7 +34,7 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
     }
   });
 
-  private static Long lastCreationTime = 0L;
+  private static AtomicLong lastCreationTime = new AtomicLong(0);
 
   public static void createSortingFlag(Path path) {
     try {
@@ -43,11 +44,11 @@ public class ChildElementsArrayList<T> extends ArrayList<T> {
           synchronized (lastCreationTime) {
             Files.createFile(dotSortPath);
             long creationTime = Files.readAttributes(dotSortPath, BasicFileAttributes.class).lastModifiedTime().toMillis();
-            if (creationTime <= lastCreationTime) {
-              creationTime = lastCreationTime + 1;
+            if (creationTime <= lastCreationTime.get()) {
+              creationTime = lastCreationTime.get() + 1;
               Files.setAttribute(dotSortPath, "lastModifiedTime", FileTime.fromMillis(creationTime));
             }
-            lastCreationTime = creationTime;
+            lastCreationTime.set(creationTime);
           }
           return ;
         }
