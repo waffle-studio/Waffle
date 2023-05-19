@@ -19,11 +19,18 @@ repositories {
 }
 
 dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+
     implementation group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
     implementation group: 'com.esotericsoftware', name: 'kryo', version: '5.1.1'
     implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
     implementation group: 'org.jetbrains.pty4j', name: 'pty4j', version: '0.11.4'
     implementation 'org.jruby:jruby-complete:9.3.9.0'
+}
+
+tasks.named('test') {
+    // Use JUnit Platform for unit tests.
+    useJUnitPlatform()
 }
 
 task copyXsub(type: Copy){

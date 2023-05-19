@@ -67,6 +67,10 @@ public class MessageBundle {
     }
   }
 
+  public void clear() {
+    messageListSet.clear();
+  }
+
   public void serialize(OutputStream stream) throws IOException {
     //GZIPOutputStream outputStream = new GZIPOutputStream(stream);;
     Kryo kryo = new Kryo();
