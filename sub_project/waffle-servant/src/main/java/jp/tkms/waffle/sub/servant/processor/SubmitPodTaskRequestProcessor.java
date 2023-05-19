@@ -60,7 +60,7 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
           executableDirectoryHash.save();
         } else {
           if (executableDirectoryHash.update()) {
-            System.out.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
+            System.err.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
             //TODO: notify if hash changed
           }
         }
@@ -106,7 +106,7 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
         } catch (IOException e) {
           //NOP
         }
-        //System.out.println(jsonObject.toString());
+        //System.err.println(jsonObject.toString());
         response.add(new UpdateJobIdMessage(message, message.getJobId(), workingDirectory));
       } catch (Exception e) {
         e.printStackTrace();

@@ -143,7 +143,7 @@ public abstract class AbstractExecutor {
         }
 
         for (WatchEvent<?> event : watchKey.pollEvents()) {
-          System.out.println(event.kind().name() + " : " + event.context().toString());
+          System.err.println(event.kind().name() + " : " + event.context().toString());
         }
 
         checkJobs();
@@ -309,14 +309,14 @@ public abstract class AbstractExecutor {
   }
 
   protected void jobAdded(String jobName) {
-    System.out.println("'" + jobName + "' was added at " + System.currentTimeMillis());
+    System.err.println("'" + jobName + "' was added at " + System.currentTimeMillis());
     slotArray.set(getNextSlotIndex(), jobName);
     ENTITIES_PATH.resolve(jobName).toFile().deleteOnExit();
     JOBS_PATH.resolve(jobName).toFile().deleteOnExit();
   }
 
   protected void jobRemoved(String jobName) {
-    System.out.println("'" + jobName + "' was forcibly removed at " + System.currentTimeMillis());
+    System.err.println("'" + jobName + "' was forcibly removed at " + System.currentTimeMillis());
     synchronized (slotArray) {
       slotArray.set(getSlotIndex(jobName), null);
       try {
@@ -359,12 +359,12 @@ public abstract class AbstractExecutor {
         try {
           Path entityPath = ENTITIES_PATH.resolve(jobName);
           while (!Files.exists(entityPath)) {
-            System.out.println(entityPath.toString() + " is not exist; wait a second and retry.");
+            System.err.println(entityPath.toString() + " is not exist; wait a second and retry.");
             TimeUnit.SECONDS.sleep(1);
           }
           Path directoryPath = Paths.get(Files.readString(entityPath).trim());
           while (!Files.isWritable(directoryPath)) {
-            System.out.println(directoryPath.toString() + " is not writable; wait a second and retry.");
+            System.err.println(directoryPath.toString() + " is not writable; wait a second and retry.");
             TimeUnit.SECONDS.sleep(1);
           }
 
@@ -385,7 +385,7 @@ public abstract class AbstractExecutor {
                   if (line == null) {
                     isAlive = false;
                   } else {
-                    System.out.println(line);
+                    System.err.println(line);
                   }
                 }
               } catch (IOException e) {
@@ -409,7 +409,7 @@ public abstract class AbstractExecutor {
 
         jobFinished(jobName);
 
-        System.out.println("'" + jobName + "' finished at " + System.currentTimeMillis());
+        System.err.println("'" + jobName + "' finished at " + System.currentTimeMillis());
       }
 
       @Override

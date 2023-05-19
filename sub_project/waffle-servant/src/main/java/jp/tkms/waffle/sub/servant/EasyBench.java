@@ -50,6 +50,6 @@ public class EasyBench {
   }
 
   public void print() {
-    System.out.println(time + (isRejected() ? " REJECTED" : ""));
+    System.err.println(time + (isRejected() ? " REJECTED" : ""));
   }
 }

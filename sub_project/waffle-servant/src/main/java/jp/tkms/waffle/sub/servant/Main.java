@@ -25,24 +25,40 @@ public class Main {
         if (args.length < 3) {
           exitWithInvalidArgumentsMessage("main", "[MESSAGE PATH]");
         }
-        Path envelopePath = Paths.get(args[2]);
-        if (Files.exists(Envelope.getResponsePath(envelopePath))) {
-          System.err.println("Already exists a response for " + envelopePath.getFileName());
-          break;
-        }
-        Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
+        boolean isStdoutInMode = args[2].equals("-");
+        if (isStdoutInMode) {
+          EnvelopeTransceiver transceiver = new EnvelopeTransceiver(baseDirectory, System.out, System.in,
+            (me, request) -> {
+              try {
+                Envelope response = new Envelope(baseDirectory);
+                StorageWarningMessage.addMessageIfCritical(response);
+                RequestProcessor.processMessages(baseDirectory, request, response);
+                me.send(response);
+              } catch (Exception e) {
+                e.printStackTrace();
+              }
+            });
+          transceiver.waitForShutdown();
+        } else {
+          Path envelopePath = Paths.get(args[2]);
+          if (Files.exists(Envelope.getResponsePath(envelopePath))) {
+            System.err.println("Already exists a response for " + envelopePath.getFileName());
+            break;
+          }
+          Envelope request = Envelope.loadAndExtract(baseDirectory, envelopePath);
         /*
         if ("1".equals(System.getenv("DEBUG"))) {
           request.getMessageBundle().print("SERVANT:");
         }
          */
-        //request.getMessageBundle().print("SERVANT-IN:");
-        Envelope response = new Envelope(baseDirectory);
-        StorageWarningMessage.addMessageIfCritical(response);
-        RequestProcessor.processMessages(baseDirectory, request, response);
-        response.save(Envelope.getResponsePath(envelopePath));
-        //response.getMessageBundle().print("SERVANT-OUT:");
-        Files.delete(envelopePath);
+          //request.getMessageBundle().print("SERVANT-IN:");
+          Envelope response = new Envelope(baseDirectory);
+          StorageWarningMessage.addMessageIfCritical(response);
+          RequestProcessor.processMessages(baseDirectory, request, response);
+          response.save(Envelope.getResponsePath(envelopePath));
+          //response.getMessageBundle().print("SERVANT-OUT:");
+          Files.delete(envelopePath);
+        }
         break;
       case "exec":
         if (args.length < 3) {

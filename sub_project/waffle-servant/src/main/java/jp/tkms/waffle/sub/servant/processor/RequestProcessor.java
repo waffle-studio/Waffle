@@ -36,12 +36,12 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
     if (!messageList.isEmpty()) {
       /*
       if ("1".equals(System.getenv("DEBUG"))) {
-        System.out.println("PROCESS: " + this.getClass().getName());
+        System.err.println("PROCESS: " + this.getClass().getName());
       }
       long start = System.currentTimeMillis();
        */
       processIfMessagesExist(baseDirectory, request, response, messageList);
-      //System.out.println(this.getClass().getSimpleName() + ": " + (System.currentTimeMillis() - start));
+      //System.err.println(this.getClass().getSimpleName() + ": " + (System.currentTimeMillis() - start));
     }
   }
 

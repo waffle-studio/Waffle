@@ -6,6 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class EnvelopeTransceiver {
@@ -27,12 +28,12 @@ public class EnvelopeTransceiver {
   BufferedInputStream inputStream;
   boolean isAlive = true;
 
-  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, Consumer<Envelope> messageProcessor) {
+  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor) {
     this.outputStream = new BufferedOutputStream(outputStream);
     this.inputStream = new BufferedInputStream(inputStream);
     inputStreamProcessor = new InputStreamProcessor(this.inputStream, s -> {
       try {
-        messageProcessor.accept(Envelope.loadAndExtract(baseDirectory, s));
+        messageProcessor.accept(this, Envelope.loadAndExtract(baseDirectory, s));
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -55,9 +56,9 @@ public class EnvelopeTransceiver {
 
   public void shutdown() throws IOException {
     if (isAlive) {
+      isAlive = false;
       outputStream.write(TAG_BYE);
       flush();
-      isAlive = false;
       try {
         inputStreamProcessor.join(TIMEOUT);
       } catch (InterruptedException e) {
@@ -95,6 +96,16 @@ public class EnvelopeTransceiver {
       e.printStackTrace();
     }
     return resultStream.toByteArray();
+  }
+
+  public void waitForShutdown() {
+    while (isAlive) {
+      try {
+        inputStreamProcessor.join(TIMEOUT);
+      } catch (InterruptedException e) {
+        return;
+      }
+    }
   }
 
   private static class InputStreamProcessor extends Thread {

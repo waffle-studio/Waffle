@@ -26,7 +26,7 @@ public class OutputProcessor extends Thread {
     try (FileWriter writer = new FileWriter(outputFilePath.toFile(), StandardCharsets.UTF_8, false)) {
       try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
         while (reader.read(buf, 0, 1) != -1) {
-          //System.out.print(buf);
+          //System.err.print(buf);
 
           len = getLengthOf(buf);
           writer.write(buf, 0, len);

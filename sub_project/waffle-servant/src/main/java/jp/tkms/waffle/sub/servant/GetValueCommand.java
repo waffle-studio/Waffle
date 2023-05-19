@@ -60,7 +60,7 @@ public class GetValueCommand extends TaskCommand {
         if (Files.exists(responseFilePath)) {
           String value = new String(Files.readAllBytes(responseFilePath));
           if (value.endsWith(String.valueOf(RECORD_SEPARATING_MARK))) {
-            System.out.print(value);
+            System.err.print(value);
             isSuccess = true;
             break;
           }

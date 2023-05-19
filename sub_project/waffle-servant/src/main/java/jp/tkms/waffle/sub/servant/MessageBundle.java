@@ -43,11 +43,11 @@ public class MessageBundle {
   }
 
   public void print(String tag) {
-    System.out.println(tag + "{");
+    System.err.println(tag + "{");
     for (Map.Entry<Class<? extends AbstractMessage>, ArrayList<AbstractMessage>> entry : messageListSet.entrySet()) {
-      System.out.println(entry.getKey().getName() + " : " + entry.getValue().size());
+      System.err.println(entry.getKey().getName() + " : " + entry.getValue().size());
     }
-    System.out.println("}");
+    System.err.println("}");
   }
 
   public boolean isEmpty() {
