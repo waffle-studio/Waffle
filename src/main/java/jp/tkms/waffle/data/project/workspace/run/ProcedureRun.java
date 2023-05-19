@@ -201,8 +201,8 @@ public class ProcedureRun extends AbstractRun {
     addGuard(run.getLocalPath().toString());
   }
 
-  public void addGuard(HasLocalPath run, String valueKey, String operator, String value) {
-    addGuard(run.getLocalPath().toString() + " " + valueKey + " " + operator + " " + value);
+  public void addGuard(HasLocalPath run, String valueKey, String operator, Object value) {
+    addGuard(run.getLocalPath().toString() + " " + valueKey + " " + operator + " " + value.toString());
   }
 
   public void addReferableGuard(String key, HasLocalPath run) {
@@ -214,7 +214,7 @@ public class ProcedureRun extends AbstractRun {
     addReferableGuard(null, run);
   }
 
-  public void addReferableGuard(String key, HasLocalPath run, String valueKey, String operator, String value) {
+  public void addReferableGuard(String key, HasLocalPath run, String valueKey, String operator, Object value) {
     addReferable(key, run);
     addGuard(run, valueKey, operator, value);
   }

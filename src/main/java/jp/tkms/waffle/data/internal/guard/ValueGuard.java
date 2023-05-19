@@ -1,11 +1,14 @@
 package jp.tkms.waffle.data.internal.guard;
 
+import jp.tkms.waffle.data.log.message.WarnLogMessage;
+import jp.tkms.waffle.data.util.IndirectValue;
+
 public class ValueGuard extends Guard {
   public static final String KEY = "key";
   public static final String VALUE = "value";
 
   String[] slicedGuard;
-  boolean isIndirectValue;
+  IndirectValue indirectValue;
 
   public ValueGuard(String guard) throws InsufficientStatementException, InvalidOperatorException {
     slicedGuard = guard.split(" ", 4);
@@ -26,11 +29,15 @@ public class ValueGuard extends Guard {
         throw new InvalidOperatorException(guard);
     }
 
-    isIndirectValue = isIndirectValue(getValue());
+    try {
+      indirectValue = IndirectValue.convert(getValue());
+    } catch (WarnLogMessage e) {
+      indirectValue = null;
+    }
   }
 
-  private boolean isIndirectValue(String value) {
-    return false;
+  public boolean isIndirectValue() {
+    return indirectValue != null;
   }
 
   public String getTargetRunPath() {
@@ -46,7 +53,11 @@ public class ValueGuard extends Guard {
   }
 
   public String getValue() {
-    return slicedGuard[3];
+    if (isIndirectValue()) {
+      return indirectValue.getString("null");
+    } else {
+      return slicedGuard[3];
+    }
   }
 
   public static class InsufficientStatementException extends Exception {
