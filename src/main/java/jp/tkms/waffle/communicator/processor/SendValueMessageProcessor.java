@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator.processor;
 
 import jp.tkms.waffle.communicator.AbstractSubmitter;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.IndirectValue;
 import jp.tkms.waffle.manager.Filter;
@@ -14,7 +15,7 @@ import java.util.ArrayList;
 public class SendValueMessageProcessor extends ResponseProcessor<SendValueMessage> {
   @Override
   protected void processIfMessagesExist(AbstractSubmitter submitter, ArrayList<SendValueMessage> messageList) throws ClassNotFoundException, IOException {
-    Envelope replies = submitter.createEnvelope();
+    Envelope replies = submitter.getNextEnvelope();
     for (SendValueMessage message : messageList) {
       String value = null;
       try {
@@ -29,7 +30,11 @@ public class SendValueMessageProcessor extends ResponseProcessor<SendValueMessag
       }
     }
     if (!replies.isEmpty()) {
-      sendAndReceiveEnvelope(replies);
+      try {
+        submitter.sendAndReceiveEnvelope(replies);
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
     }
   }
 }

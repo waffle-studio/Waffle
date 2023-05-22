@@ -67,7 +67,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
+  public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
     return sendAndReceiveEnvelope(targetSubmitter, envelope);
   }
 
@@ -859,8 +859,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
-    return targetSubmitter.createProcess(command);
+  protected RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
+    return targetSubmitter.startProcess(command);
   }
 
   @Override

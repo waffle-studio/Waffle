@@ -21,7 +21,8 @@ public abstract class ResponseProcessor<T extends AbstractResponseMessage> {
     new JobCanceledMessageProcessor(),
     new UpdateJobIdMessageProcessor(),
     new UpdateStatusMessageProcessor(),
-    new SendValueMessageProcessor()
+    new SendValueMessageProcessor(),
+    new SyncResponseMessageProcessor()
   };
 
   public static void processMessages(AbstractSubmitter submitter, Envelope response) throws ClassNotFoundException, IOException {

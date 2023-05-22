@@ -159,6 +159,13 @@ public class Envelope {
     filePathList.clear();
   }
 
+  public Envelope getRawEnvelope() {
+    Envelope envelope = new Envelope(baseDirectory);
+    envelope.messageBundle = messageBundle;
+    envelope.filePathList = filePathList;
+    return envelope;
+  }
+
   private static void deleteFiles(Path path) {
     if (Files.isDirectory(path)) {
       try (Stream<Path> files = Files.list(path)) {

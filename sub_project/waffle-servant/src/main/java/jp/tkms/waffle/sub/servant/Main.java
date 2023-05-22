@@ -1,5 +1,6 @@
 package jp.tkms.waffle.sub.servant;
 
+import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.StorageWarningMessage;
 import jp.tkms.waffle.sub.servant.processor.RequestProcessor;
 

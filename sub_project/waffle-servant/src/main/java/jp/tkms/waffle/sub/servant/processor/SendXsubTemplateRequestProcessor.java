@@ -3,6 +3,7 @@ package jp.tkms.waffle.sub.servant.processor;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.SendXsubTemplateMessage;
+import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdateXsubTemplateMessage;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
@@ -31,7 +32,7 @@ public class SendXsubTemplateRequestProcessor extends RequestProcessor<SendXsubT
     }
 
     StringWriter outputWriter = new StringWriter();
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
     container.setEnvironment(environments);
     container.setArgv(new String[]{"-t"});
     container.setOutput(outputWriter);
@@ -40,6 +41,10 @@ public class SendXsubTemplateRequestProcessor extends RequestProcessor<SendXsubT
     outputWriter.flush();
     response.add(new UpdateXsubTemplateMessage(messageList.get(0), outputWriter.toString()));
     outputWriter.close();
-    container.terminate();
+    try {
+      container.finalize();
+    } catch (Throwable e) {
+      response.add(new ExceptionMessage(e.getMessage()));
+    }
   }
 }

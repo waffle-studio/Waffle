@@ -191,7 +191,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
+  protected RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
     RemoteProcess remoteProcess = new RemoteProcess();
     try {
       SshSessionSshj.LiveExecChannel channel = session.execLiveCommand(command, "");

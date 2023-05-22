@@ -22,7 +22,8 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
     new CollectStatusRequestProcessor(),
     new CollectPodTaskStatusRequestProcessor(),
     new CollectPodStatusRequestProcessor(),
-    new ConfirmPreparingRequestProcessor()
+    new ConfirmPreparingRequestProcessor(),
+    new SyncRequestProcessor()
   };
 
   public static void processMessages(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {

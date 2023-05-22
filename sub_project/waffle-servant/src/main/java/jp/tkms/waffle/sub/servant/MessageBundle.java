@@ -124,5 +124,7 @@ public class MessageBundle {
     kryo.register(UpdatePreparedMessage.class);
     kryo.register(StorageWarningMessage.class);
     kryo.register(RequestRepreparingMessage.class);
+    kryo.register(SyncRequestMessage.class);
+    kryo.register(SyncResponseMessage.class);
   }
 }

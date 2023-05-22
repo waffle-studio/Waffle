@@ -1,25 +1,14 @@
 package jp.tkms.waffle.sub.servant.processor;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.*;
 import jp.tkms.waffle.sub.servant.message.request.CollectPodTaskStatusMessage;
-import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 import jp.tkms.waffle.sub.servant.message.response.*;
 import jp.tkms.waffle.sub.servant.pod.AbstractExecutor;
-import org.jruby.embed.LocalContextScope;
-import org.jruby.embed.LocalVariableBehavior;
-import org.jruby.embed.PathType;
-import org.jruby.embed.ScriptingContainer;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 
 public class CollectPodTaskStatusRequestProcessor extends RequestProcessor<CollectPodTaskStatusMessage> {
   protected CollectPodTaskStatusRequestProcessor() {

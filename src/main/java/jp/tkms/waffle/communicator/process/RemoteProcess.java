@@ -9,8 +9,10 @@ public class RemoteProcess {
   private InputStream inputStream;
   private InputStream errorStream;
   private Runnable finalizer = null;
+  private boolean isClosed = false;
 
   public void close() {
+    isClosed = true;
     if (finalizer != null) {
       finalizer.run();
     }
@@ -48,5 +50,9 @@ public class RemoteProcess {
 
   public void setFinalizer(Runnable runnable) {
     this.finalizer = runnable;
+  }
+
+  public boolean isClosed() {
+    return isClosed;
   }
 }

@@ -21,11 +21,11 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   public JobNumberLimitedLocalSubmitter(Computer computer) {
     super(computer);
-    setPipeMode(true);
   }
 
   @Override
   public AbstractSubmitter connect(boolean retry) {
+    switchToSelfCommunicativeEnvelopeMode();
     return this;
   }
 
@@ -78,7 +78,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
+  protected RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
     RemoteProcess remoteProcess = new RemoteProcess();
     ProcessBuilder processBuilder = new ProcessBuilder("sh", "-c", command);
     try {

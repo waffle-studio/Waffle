@@ -1,22 +1,17 @@
 package jp.tkms.waffle.sub.servant.processor;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.CancelJobMessage;
-import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
+import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.JobCanceledMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,8 +32,8 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
     }
 
     messageList.stream().limit(8).parallel().forEach(message -> {
-      ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-      synchronized (this) {
+      ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
+      //synchronized (this) {
         try {
           container.setEnvironment(environments);
           container.setArgv(new String[]{message.getJobId()});
@@ -47,9 +42,13 @@ public class CancelJobRequestProcessor extends RequestProcessor<CancelJobMessage
         } catch (Exception e) {
           e.printStackTrace();
         }
-      }
+      //}
       container.clear();
-      container.terminate();
+      try {
+        container.finalize();
+      } catch (Throwable e) {
+        response.add(new ExceptionMessage(e.getMessage()));
+      }
       response.add(new JobCanceledMessage(message));
       response.add(message.getWorkingDirectory().resolve(Constants.STDOUT_FILE));
       response.add(message.getWorkingDirectory().resolve(Constants.STDERR_FILE));

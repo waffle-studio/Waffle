@@ -64,7 +64,7 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
+  protected RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
     return null;
   }
 
