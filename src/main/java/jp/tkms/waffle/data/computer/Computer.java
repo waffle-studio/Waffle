@@ -1,7 +1,6 @@
 package jp.tkms.waffle.data.computer;
 
 import jp.tkms.waffle.Constants;
-import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.data.HasNote;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
@@ -15,19 +14,11 @@ import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.communicator.*;
 
-import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
 import java.io.IOException;
-import java.nio.channels.UnresolvedAddressException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Computer implements DataDirectory, PropertyFile, HasNote {
@@ -180,13 +171,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
   public void update() {
     try {
       AbstractSubmitter.checkWaffleServant(this, false);
-      WrappedJson jsonObject = AbstractSubmitter.getXsubTemplate(this, false);
-      if (jsonObject != null) {
-        setXsubTemplate(jsonObject);
-        setParameters(getParameters());
-        setState(ComputerState.Viable);
-        setMessage("");
-      }
+      AbstractSubmitter.updateXsubTemplate(this, false);
     } catch (RuntimeException | WaffleException e) {
       e.printStackTrace();
       String message = e.getMessage();
@@ -225,7 +210,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     }
   }
 
-  private void setMessage(String message) {
+  public void setMessage(String message) {
     setToProperty(KEY_MESSAGE, message);
   }
 
@@ -233,7 +218,7 @@ public class Computer implements DataDirectory, PropertyFile, HasNote {
     return getStringFromProperty(KEY_MESSAGE, "");
   }
 
-  private void setState(ComputerState state) {
+  public void setState(ComputerState state) {
     setToProperty(KEY_STATE, state.ordinal());
   }
 

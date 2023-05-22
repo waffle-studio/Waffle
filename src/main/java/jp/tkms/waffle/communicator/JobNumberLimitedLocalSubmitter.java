@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.util.WrappedJson;
@@ -20,6 +21,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   public JobNumberLimitedLocalSubmitter(Computer computer) {
     super(computer);
+    setPipeMode(true);
   }
 
   @Override
@@ -33,7 +35,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+  public Path parseHomePath(String pathString) {
     if (pathString.startsWith("~")) {
       pathString = pathString.replaceAll("^~", System.getProperty("user.home"));
     } else if (!pathString.startsWith("/")) {
@@ -52,7 +54,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String exec(String command) {
+  public String exec(String command) throws FailedToControlRemoteException {
     String result = "";
     ProcessBuilder p = new ProcessBuilder("sh", "-c", command);
     p.redirectErrorStream(true);
@@ -69,10 +71,26 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
       }
 
     } catch (IOException e) {
-      ErrorLogMessage.issue(e);
+      throw new FailedToControlRemoteException(e);
     }
 
     return result;
+  }
+
+  @Override
+  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
+    RemoteProcess remoteProcess = new RemoteProcess();
+    ProcessBuilder processBuilder = new ProcessBuilder("sh", "-c", command);
+    try {
+      Process process = processBuilder.start();
+      remoteProcess.setFinalizer(() -> {
+        process.destroy();
+      });
+      remoteProcess.setStream(process.getOutputStream(), process.getInputStream(), process.getErrorStream());
+    } catch (IOException e) {
+      throw new FailedToControlRemoteException(e);
+    }
+    return remoteProcess;
   }
 
   @Override

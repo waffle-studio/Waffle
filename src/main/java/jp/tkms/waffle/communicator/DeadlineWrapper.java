@@ -1,6 +1,7 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
@@ -41,7 +42,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+  public Path parseHomePath(String pathString) {
     return null;
   }
 
@@ -62,6 +63,11 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
 
   @Override
   public String exec(String command) throws FailedToControlRemoteException {
+    return null;
+  }
+
+  @Override
+  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
     return null;
   }
 

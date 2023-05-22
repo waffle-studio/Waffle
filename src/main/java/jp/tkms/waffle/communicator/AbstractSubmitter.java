@@ -4,8 +4,10 @@ import com.eclipsesource.json.JsonArray;
 import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
-import jp.tkms.waffle.data.util.IndirectValue;
-import jp.tkms.waffle.data.util.WrappedJson;
+import jp.tkms.waffle.communicator.process.RemoteProcess;
+import jp.tkms.waffle.communicator.processor.ResponseProcessor;
+import jp.tkms.waffle.communicator.util.SelfCommunicativeEnvelope;
+import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
@@ -21,23 +23,25 @@ import jp.tkms.waffle.data.log.message.LogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.project.executable.Executable;
 import jp.tkms.waffle.data.project.workspace.run.ExecutableRun;
-import jp.tkms.waffle.data.util.State;
-import jp.tkms.waffle.data.util.WaffleId;
 import jp.tkms.waffle.exception.*;
 import jp.tkms.waffle.manager.Filter;
 import jp.tkms.waffle.sub.servant.Envelope;
+import jp.tkms.waffle.sub.servant.EnvelopeTransceiver;
 import jp.tkms.waffle.sub.servant.ExecKey;
 import jp.tkms.waffle.sub.servant.TaskJson;
 import jp.tkms.waffle.sub.servant.message.request.*;
 import jp.tkms.waffle.sub.servant.message.response.*;
+import org.checkerframework.checker.units.qual.A;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 @CommunicatorDescription("ABSTRACT SUBMITTER")
@@ -53,11 +57,14 @@ abstract public class AbstractSubmitter {
   private int pollingInterval = 5;
   private int preparingSize = INITIAL_PREPARING;
   private Inspector.Mode mode;
+  private boolean isPipeMode = false;
 
 
   //ProcessorManager<CreatedProcessor> createdProcessorManager = new ProcessorManager<>(() -> new CreatedProcessor());
   ProcessorManager<PreparingProcessor> preparingProcessorManager = new ProcessorManager<>(() -> new PreparingProcessor());
   ProcessorManager<FinishedProcessor> finishedProcessorManager = new ProcessorManager<>(() -> new FinishedProcessor());
+
+  private ArrayList<RemoteProcess> remoteProcesses = new ArrayList<>();
 
   private static Path tempDirectoryPath = null;
 
@@ -69,17 +76,22 @@ abstract public class AbstractSubmitter {
     pollingInterval = 0;
   }
 
+  public Computer getComputer() {
+    return computer;
+  }
+
   abstract public AbstractSubmitter connect(boolean retry);
   abstract public boolean isConnected();
 
   abstract public WrappedJson getDefaultParameters(Computer computer);
 
-  abstract public Path parseHomePath(String pathString) throws FailedToControlRemoteException;
+  abstract public Path parseHomePath(String pathString);
 
   abstract public void createDirectories(Path path) throws FailedToControlRemoteException;
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
   abstract boolean deleteFile(Path path) throws FailedToControlRemoteException;
   abstract public String exec(String command) throws FailedToControlRemoteException;
+  abstract protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException;
   abstract public void chmod(int mod, Path path) throws FailedToControlRemoteException;
   //abstract public void putText(AbstractJob job, Path path, String text) throws FailedToTransferFileException, RunNotFoundException;
   abstract public String getFileContents(ComputerTask run, Path path) throws FailedToTransferFileException;
@@ -123,6 +135,16 @@ abstract public class AbstractSubmitter {
     transferFilesFromRemote(remotePath, localPath, null);
   }
 
+  public RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
+    RemoteProcess process = createProcess(command);
+    remoteProcesses.add(process);
+    return process;
+  }
+
+  protected void setPipeMode(boolean mode) {
+    this.isPipeMode = mode;
+  }
+
   private static Path getTempDirectoryPath() throws IOException {
     if (tempDirectoryPath == null) {
       synchronized (AbstractSubmitter.class) {
@@ -135,12 +157,31 @@ abstract public class AbstractSubmitter {
     return tempDirectoryPath;
   }
 
-  public static Envelope sendAndReceiveEnvelope(AbstractSubmitter submitter, Envelope envelope) throws Exception {
+  private Path getRemoteWorkBasePath() {
+    return parseHomePath(computer.getWorkBaseDirectory());
+  }
+
+  private static String getServantCommand(AbstractSubmitter submitter, Path remoteEnvelopePath) {
+    String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
+    if (!jvmActivationCommand.trim().equals("") && !jvmActivationCommand.trim().endsWith(";")) {
+      jvmActivationCommand += ";";
+    }
+
+    return getSanitizedEnvironments(submitter.computer)
+      + "sh -c \"" + jvmActivationCommand
+      + "java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '"
+      + getWaffleServantPath(submitter, submitter.computer)
+      + "' '" + submitter.getRemoteWorkBasePath() + "' main '" + (remoteEnvelopePath == null ? "-" : remoteEnvelopePath) + "'\"";
+  }
+
+  protected static Envelope sendAndReceiveEnvelope(AbstractSubmitter submitter, Envelope envelope) throws Exception {
+    if (envelope instanceof SelfCommunicativeEnvelope) {
+      return null;
+    }
     //envelope.getMessageBundle().print("HOST");
     if (!envelope.isEmpty()) {
       Path tmpFile = getTempDirectoryPath().resolve(UUID.randomUUID().toString());
-      Path remoteWorkBasePath = submitter.parseHomePath(submitter.computer.getWorkBaseDirectory());
-      Path remoteEnvelopePath = remoteWorkBasePath.resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
+      Path remoteEnvelopePath = submitter.getRemoteWorkBasePath().resolve(DOT_ENVELOPE).resolve(tmpFile.getFileName());
       Files.createDirectories(tmpFile.getParent());
 
       //do {
@@ -151,17 +192,7 @@ abstract public class AbstractSubmitter {
       //} while (!submitter.exists(remoteEnvelopePath));
       //envelope.getMessageBundle().print("REQ:");
 
-      String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
-      if (!jvmActivationCommand.trim().equals("") && !jvmActivationCommand.trim().endsWith(";")) {
-        jvmActivationCommand += ";";
-      }
-
-      String message = (submitter.exec(
-        getSanitizedEnvironments(submitter.computer)
-        + "sh -c \"" + jvmActivationCommand
-        + "java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '"
-        + getWaffleServantPath(submitter, submitter.computer)
-        + "' '" + remoteWorkBasePath + "' main '" + remoteEnvelopePath + "'\"")).trim();
+      String message = submitter.exec(getServantCommand(submitter, remoteEnvelopePath)).trim();
       if (!"".equals(message)) {
         InfoLogMessage.issue("REMOTE(SERVANT)> " + message);
       }
@@ -199,7 +230,7 @@ abstract public class AbstractSubmitter {
     return environments;
   }
 
-  public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
+  protected Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
     return sendAndReceiveEnvelope(this, envelope);
   }
 
@@ -396,7 +427,7 @@ abstract public class AbstractSubmitter {
     return getBaseDirectory(run).resolve(path);
   }
 
-  public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) throws FailedToControlRemoteException {
+  public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) {
     return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
     //return Paths.get(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
   }
@@ -434,25 +465,15 @@ abstract public class AbstractSubmitter {
     return result;
   }
 
-  public static WrappedJson getXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
+  public static void updateXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
     AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
-    WrappedJson jsonObject = new WrappedJson();
     if (!(submitter instanceof AbstractSubmitterWrapper)) {
       submitter.connect(retry);
-      Envelope request = new Envelope(Constants.WORK_DIR);
-      request.add(new SendXsubTemplateMessage());
-      try {
-        Envelope response = submitter.sendAndReceiveEnvelope(request);
-        for (XsubTemplateMessage message : response.getMessageBundle().getCastedMessageList(XsubTemplateMessage.class)) {
-          jsonObject = new WrappedJson(message.getTemplate());
-          break;
-        }
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
-      }
+      Envelope request = submitter.createEnvelope();
+      request.add(new SendXsubTemplateMessage(computer.getName()));
+      submitter.processRequestAndResponse(request);
       submitter.close();
     }
-    return jsonObject;
   }
 
   public static WrappedJson getParameters(Computer computer) {
@@ -491,7 +512,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected static AbstractTask findJobFromStore(byte type, String id) {
+  public static AbstractTask findJobFromStore(byte type, String id) {
     WaffleId targetId = WaffleId.valueOf(id);
     if (type == SystemTaskStore.TYPE_CODE) {
       for (SystemTask job : SystemTask.getList()) {
@@ -512,130 +533,7 @@ abstract public class AbstractSubmitter {
   protected Envelope processRequestAndResponse(Envelope envelope) {
     Envelope response = null;
     try {
-      response = sendAndReceiveEnvelope(envelope);
-
-      if (response == null) {
-        return null;
-      }
-
-      for (ExceptionMessage message : response.getMessageBundle().getCastedMessageList(ExceptionMessage.class)) {
-        ErrorLogMessage.issue("Servant> " + message.getMessage());
-      }
-
-      for (StorageWarningMessage message : response.getMessageBundle().getCastedMessageList(StorageWarningMessage.class)) {
-        ErrorLogMessage.issue(computer, message.getMessage() + " (Remaining Byte & INode)");
-      }
-
-      for (JobExceptionMessage message : response.getMessageBundle().getCastedMessageList(JobExceptionMessage.class)) {
-        WarnLogMessage.issue("Servant:JobException> " + message.getMessage());
-
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          job.setState(State.Excepted);
-        }
-      }
-
-      for (RequestRepreparingMessage message : response.getMessageBundle().getCastedMessageList(RequestRepreparingMessage.class)) {
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          job.setState(State.Retrying);
-          job.setJobId("");
-          InfoLogMessage.issue(job.getRun(), "will re-prepare");
-        }
-      }
-
-      for (UpdatePreparedMessage message : response.getMessageBundle().getCastedMessageList(UpdatePreparedMessage.class)) {
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          job.setState(State.Prepared);
-          InfoLogMessage.issue(job.getRun(), "was prepared");
-        }
-      }
-
-      for (PutFileMessage message : response.getMessageBundle().getCastedMessageList(PutFileMessage.class)) {
-        message.putFile();
-      }
-
-      for (UpdateResultMessage message : response.getMessageBundle().getCastedMessageList(UpdateResultMessage.class)) {
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          if (job instanceof ExecutableRunTask) {
-            ExecutableRun run = ((ExecutableRunTask) job).getRun();
-            Object value = message.getValue();
-            try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
-              if (message.getValue().indexOf('.') < 0) {
-                value = Integer.valueOf(message.getValue());
-              } else {
-                value = Double.valueOf(message.getValue());
-              }
-            } catch (Exception e) {
-              if (message.getValue().equalsIgnoreCase("true")) {
-                value = Boolean.TRUE;
-              } else if (message.getValue().equalsIgnoreCase("false")) {
-                value = Boolean.FALSE;
-              }
-            }
-            run.putResultDynamically(message.getKey(), value);
-          }
-        }
-      }
-
-      for (JobCanceledMessage message : response.getMessageBundle().getCastedMessageList(JobCanceledMessage.class)) {
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          if (job.getState().equals(State.Abort)) {
-            job.setState(State.Aborted);
-          }
-          if (job.getState().equals(State.Cancel)) {
-            job.setState(State.Canceled);
-          }
-        }
-      }
-
-      for (UpdateJobIdMessage message : response.getMessageBundle().getCastedMessageList(UpdateJobIdMessage.class)) {
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          job.setJobId(message.getJobId());
-          job.setState(State.Submitted);
-          job.getRun().setRemoteWorkingDirectoryLog(message.getWorkingDirectory());
-          InfoLogMessage.issue(job.getRun(), "was submitted");
-        }
-      }
-
-      for (UpdateStatusMessage message : response.getMessageBundle().getCastedMessageList(UpdateStatusMessage.class)) {
-        AbstractTask job = findJobFromStore(message.getType(), message.getId());
-        if (job != null) {
-          if (message.isFinished()) {
-            job.getRun().setExitStatus(message.getExitStatus());
-            job.setState(State.Finalizing);
-            finishedProcessorManager.startup();
-            preparingProcessorManager.startup();
-          } else {
-            if (job.getState().equals(State.Submitted)) {
-              job.setState(State.Running);
-            }
-          }
-        }
-      }
-
-      Envelope replies = new Envelope(Constants.WORK_DIR);
-      for (SendValueMessage message : response.getMessageBundle().getCastedMessageList(SendValueMessage.class)) {
-        String value = null;
-        try {
-          value = IndirectValue.convert(message.getKey()).getString();
-        } catch (WarnLogMessage e) {
-          value = null;
-        }
-        if (message.getFilterOperator().equals("")
-          || (new Filter(message.getFilterOperator(), message.getFilterValue())).apply(value)
-        ) {
-          replies.add(new PutValueMessage(message, value == null ? "null" : value));
-        }
-      }
-      if (!replies.isEmpty()) {
-        sendAndReceiveEnvelope(replies);
-      }
-
+      response = processResponse(sendAndReceiveEnvelope(envelope));
     } catch (Exception e) {
       InfoLogMessage.issue(computer, "Communication was failed: " + e.getMessage());
     }
@@ -643,10 +541,23 @@ abstract public class AbstractSubmitter {
     return response;
   }
 
+
+  protected Envelope processResponse(Envelope response) {
+    try {
+      if (response == null) {
+        return null;
+      }
+      ResponseProcessor.processMessages(this, response);
+    } catch (Exception e) {
+      InfoLogMessage.issue(computer, "Communication was failed: " + e.getMessage());
+    }
+    return response;
+  }
+
   public void checkSubmitted() throws FailedToControlRemoteException {
     try {
       isRunning = true;
-      Envelope envelope = new Envelope(Constants.WORK_DIR);
+      Envelope envelope = createEnvelope();
       pollingInterval = computer.getPollingInterval();
 
       //createdProcessorManager.startup();
@@ -730,12 +641,20 @@ abstract public class AbstractSubmitter {
     }
   }
 
+  public void startupFinishedProcessorManager() {
+    finishedProcessorManager.startup();
+  }
+
+  public void startupPreparingProcessorManager() {
+    preparingProcessorManager.startup();
+  }
+
   class PreparingProcessor extends Thread {
     @Override
     public void run() {
       //createdProcessorManager.startup();
 
-      Envelope envelope = new Envelope(Constants.WORK_DIR);
+      Envelope envelope = createEnvelope();
 
       ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
       ArrayList<AbstractTask> createdJobList = new ArrayList<>();
@@ -791,7 +710,7 @@ abstract public class AbstractSubmitter {
         processRequestAndResponse(envelope);
         if (Main.hibernatingFlag) { break; }
         if (isRemained) {
-          envelope = new Envelope(Constants.WORK_DIR);
+          envelope = createEnvelope();
         }
       }
 
@@ -931,7 +850,7 @@ abstract public class AbstractSubmitter {
       do {
         if (Main.hibernatingFlag) { return; }
 
-        Envelope envelope = new Envelope(Constants.WORK_DIR);
+        Envelope envelope = createEnvelope();
 
         finalizingJobList.clear();
 
@@ -1023,11 +942,11 @@ abstract public class AbstractSubmitter {
         int count = 0;
         while (processor.isAlive()) {
           try {
-            Thread.sleep(1000);
+            TimeUnit.MILLISECONDS.sleep(500);
           } catch (InterruptedException e) {
             ErrorLogMessage.issue(e);
           }
-          if (count++ == 10) {
+          if (count++ == 20) {
             InfoLogMessage.issue("Submitter is closing; wait few minutes.");
           }
         }
@@ -1039,14 +958,35 @@ abstract public class AbstractSubmitter {
     synchronized (this) {
       while (isRunning) {
         try {
-          Thread.sleep(1000);
+          TimeUnit.MILLISECONDS.sleep(500);
         } catch (InterruptedException e) {
           ErrorLogMessage.issue(e);
         }
       }
+
+      for (RemoteProcess remoteProcess : remoteProcesses) {
+        remoteProcess.close();
+      }
+
       preparingProcessorManager.close();
       //createdProcessorManager.close();
       finishedProcessorManager.close();
     }
+  }
+
+  protected Envelope createEnvelope() {
+    if (isPipeMode) {
+      try {
+        RemoteProcess remoteProcess = startProcess(getServantCommand(this, null));
+        return new SelfCommunicativeEnvelope(Constants.WORK_DIR,
+          new EnvelopeTransceiver(Constants.WORK_DIR, remoteProcess.getOutputStream(), remoteProcess.getInputStream(),
+            ((transceiver, envelope) -> {
+              processResponse(envelope);
+            })));
+      } catch (FailedToControlRemoteException e) {
+        WarnLogMessage.issue(e);
+      }
+    }
+    return new Envelope(Constants.WORK_DIR);
   }
 }

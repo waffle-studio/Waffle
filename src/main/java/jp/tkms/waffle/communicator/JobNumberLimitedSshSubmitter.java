@@ -1,10 +1,12 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.communicator.util.SshSessionSshj;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.computer.MasterPassword;
+import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
@@ -143,13 +145,12 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+  public Path parseHomePath(String pathString) {
     if (pathString.indexOf('~') == 0) {
       try {
         pathString = pathString.replaceAll("^~", session.getHomePath());
       } catch (Exception e) {
-        e.printStackTrace();
-        throw new FailedToControlRemoteException(e);
+        ErrorLogMessage.issue(e);
       }
     }
     return Paths.get(pathString);
@@ -187,6 +188,22 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     }
 
     return result;
+  }
+
+  @Override
+  protected RemoteProcess createProcess(String command) throws FailedToControlRemoteException {
+    RemoteProcess remoteProcess = new RemoteProcess();
+    try {
+      SshSessionSshj.LiveExecChannel channel = session.execLiveCommand(command, "");
+      remoteProcess.setStream(channel.getOutputStream(), channel.getInputStream(), channel.getErrorStream());
+      remoteProcess.setFinalizer(() -> {
+        channel.close();
+      });
+    } catch (Exception e) {
+      WarnLogMessage.issue(computer, e);
+      return null;
+    }
+    return remoteProcess;
   }
 
   @Override

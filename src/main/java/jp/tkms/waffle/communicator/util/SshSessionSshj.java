@@ -338,6 +338,31 @@ public class SshSessionSshj implements AutoCloseable {
     }
   }
 
+  public LiveExecChannel execLiveCommand(String command, String workDir) throws Exception {
+    synchronized (sessionWrapper) {
+      LiveExecChannel channel = new LiveExecChannel();
+      boolean isFailed = false;
+      do {
+        isFailed = false;
+        ChannelProvider provider = new ChannelProvider();
+        try {
+          channel.exec(command, workDir, provider);
+        } catch (Exception e) {
+          if (Main.hibernatingFlag) {
+            throw e;
+          }
+          if (e instanceof NullPointerException || e instanceof IllegalStateException || e.getMessage().equals("channel is not opened.")) {
+            isFailed = true;
+            provider.failed();
+          } else {
+            throw new RuntimeException(e);
+          }
+        }
+      } while (isFailed);
+      return channel;
+    }
+  }
+
   private static String commandString(String... words) {
     StringBuilder builder = new StringBuilder();
     for (String w : words) {
@@ -629,6 +654,65 @@ public class SshSessionSshj implements AutoCloseable {
       }
     } while (isFailed);
     return result;
+  }
+
+  public class LiveExecChannel {
+    private Session.Command channel;
+    private String submittedCommand;
+    private OutputStream outputStream;
+    private InputStream inputStream;
+    private InputStream errorStream;
+    private int exitStatus;
+
+    public LiveExecChannel() throws Exception {
+      exitStatus = -1;
+    }
+
+    public OutputStream getOutputStream() {
+      return outputStream;
+    }
+
+    public InputStream getInputStream() {
+      return inputStream;
+    }
+
+    public InputStream getErrorStream() {
+      return errorStream;
+    }
+
+    public int getExitStatus() {
+      return exitStatus;
+    }
+
+    public String getSubmittedCommand() {
+      return submittedCommand;
+    }
+
+    public LiveExecChannel exec(String command, String workDir, ChannelProvider provider) throws Exception {
+      submittedCommand = "cd " + workDir + " && " + command;
+      String fullCommand = "sh -c '" + submittedCommand.replaceAll("'", "'\\\\''") + "'";
+      channel = provider.createExecChannel(fullCommand);
+      outputStream = channel.getOutputStream();
+      inputStream = channel.getInputStream();
+      errorStream = channel.getErrorStream();
+      (new Thread(() -> {
+        close();
+      })).start();
+      return this;
+    }
+
+    public void close() {
+      try {
+        exitStatus = channel.getExitStatus();
+      } catch (Exception e) {
+        WarnLogMessage.issue(e);
+      }
+      try {
+        channel.close();
+      } catch (Exception e) {
+        WarnLogMessage.issue(e);
+      }
+    }
   }
 
   public class ExecChannel {
