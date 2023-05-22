@@ -119,8 +119,8 @@ public class Main {
     try {
       if (Constants.PID_FILE.toFile().exists()) {
         if (Runtime.getRuntime().exec("kill -0 " + StringFileUtil.read(Constants.PID_FILE)).waitFor() == 0) {
-          System.err.println("The WAFFLE on '" + Constants.WORK_DIR + "' is already running.");
-          System.err.println("You should hibernate it if you want startup WAFFLE on this console.");
+          System.err.println("The Waffle on '" + Constants.WORK_DIR + "' is already running.");
+          System.err.println("You should hibernate it if you want startup Waffle on this console.");
           System.err.println("(If you want to force startup, delete '" + Constants.PID_FILE.toString() + "'.)");
           aliveFlag = false;
           System.exit(1);

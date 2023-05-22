@@ -60,6 +60,8 @@ abstract public class AbstractSubmitter {
   ProcessorManager<PreparingProcessor> preparingProcessorManager = new ProcessorManager<>(PreparingProcessor::new);
   ProcessorManager<FinishedProcessor> finishedProcessorManager = new ProcessorManager<>(FinishedProcessor::new);
 
+  private boolean isBroken = false;
+  private boolean isClosed = false;
   protected SelfCommunicativeEnvelope selfCommunicativeEnvelope = null;
   private AtomicLong remoteSyncedTime = new AtomicLong(-1);
 
@@ -104,6 +106,10 @@ abstract public class AbstractSubmitter {
 
   public void close() {
     synchronized (this) {
+      if (isClosed) {
+        return;
+      }
+
       try {
         Simple.waitUntil(() -> isRunning, TimeUnit.MILLISECONDS, 500);
       } catch (InterruptedException e) {
@@ -116,6 +122,8 @@ abstract public class AbstractSubmitter {
 
       preparingProcessorManager.close();
       finishedProcessorManager.close();
+
+      isClosed = true;
     }
   }
 
@@ -130,9 +138,21 @@ abstract public class AbstractSubmitter {
 
   public Envelope getNextEnvelope() {
     if (isPipeMode()) {
+      if (selfCommunicativeEnvelope.isClosed()) {
+        brake();
+      }
       return selfCommunicativeEnvelope;
     }
     return new Envelope(Constants.WORK_DIR);
+  }
+
+  private void brake() {
+    if (!isBroken) {
+      new Thread(() -> {
+        isBroken = true;
+        close();
+      }).start();
+    }
   }
 
   public void setRemoteSyncedTime(long value) {
@@ -238,7 +258,7 @@ abstract public class AbstractSubmitter {
     envelope.add(new SyncRequestMessage(localTime));
     envelope.flush();
     try {
-      Simple.waitFor(() -> remoteSyncedTime.get() >= localTime || Main.hibernatingFlag, TimeUnit.MILLISECONDS, 50);
+      Simple.waitFor(() -> remoteSyncedTime.get() >= localTime || System.currentTimeMillis() >= localTime + TIMEOUT, TimeUnit.MILLISECONDS, 50);
     } catch (InterruptedException e) {
       ErrorLogMessage.issue(e);
     }
@@ -593,8 +613,8 @@ abstract public class AbstractSubmitter {
       ArrayList<AbstractTask> cancelJobList = new ArrayList<>();
 
       for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-        if (Main.hibernatingFlag) {
-          return;
+        if (Main.hibernatingFlag || isBroken) {
+          break;
         }
 
         try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
@@ -624,17 +644,19 @@ abstract public class AbstractSubmitter {
         }
       }
 
-      if (!Main.hibernatingFlag) {
+      if (!(Main.hibernatingFlag || isBroken)) {
         processSubmitted(envelope, submittedJobList, runningJobList, cancelJobList);
       }
 
-      if (!Main.hibernatingFlag) {
+      if (!(Main.hibernatingFlag || isBroken)) {
         preparingProcessorManager.startup();
       }
 
       isRunning = false;
 
-      processRequestAndResponse(envelope);
+      if (!isBroken) {
+        processRequestAndResponse(envelope);
+      }
       return;
     } catch (FailedToControlRemoteException e) {
       isRunning = false;
@@ -646,7 +668,7 @@ abstract public class AbstractSubmitter {
     submittedJobList.addAll(runningJobList);
 
     for (AbstractTask job : cancelJobList) {
-      if (Main.hibernatingFlag) { return; }
+      if (Main.hibernatingFlag || isBroken) { return; }
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         cancel(envelope, job);
       } catch (RunNotFoundException e) {
@@ -655,7 +677,7 @@ abstract public class AbstractSubmitter {
     }
 
     for (AbstractTask job : submittedJobList) {
-      if (Main.hibernatingFlag) { return; }
+      if (Main.hibernatingFlag || isBroken) { return; }
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         update(envelope, job);
       } catch (RunNotFoundException e) {
@@ -673,7 +695,16 @@ abstract public class AbstractSubmitter {
     preparingProcessorManager.startup();
   }
 
+  public boolean isClosed() {
+    return isClosed;
+  }
+
   class PreparingProcessor extends Thread {
+
+    public PreparingProcessor() {
+      super("PreparingProcessor");
+    }
+
     @Override
     public void run() {
       //createdProcessorManager.startup();
@@ -686,7 +717,7 @@ abstract public class AbstractSubmitter {
       ArrayList<AbstractTask> retryingJobList = new ArrayList<>();
 
       for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-        if (Main.hibernatingFlag) { return; }
+        if (Main.hibernatingFlag || isBroken) { return; }
 
         try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
           if (!job.exists() && job.getRun().isRunning()) {
@@ -723,7 +754,7 @@ abstract public class AbstractSubmitter {
 
       boolean isRemained = true;
       while (isRemained) {
-        if (!Main.hibernatingFlag) {
+        if (!(Main.hibernatingFlag || isBroken)) {
           try {
             isRemained = !processPreparing(envelope, submittedJobList, createdJobList, preparedJobList);
           } catch (FailedToControlRemoteException e) {
@@ -734,7 +765,7 @@ abstract public class AbstractSubmitter {
         if (isPipeMode()) {
           processRequestAndResponse(envelope);
         }
-        if (Main.hibernatingFlag) { break; }
+        if (Main.hibernatingFlag || isBroken) { break; }
         if (isRemained) {
           envelope = getNextEnvelope();
         }
@@ -776,7 +807,7 @@ abstract public class AbstractSubmitter {
 
     int submittingCount = 0;
     for (AbstractTask job : queuedJobList) {
-      if (Main.hibernatingFlag) { return true; }
+      if (Main.hibernatingFlag || isBroken) { return true; }
 
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         ComputerTask run = job.getRun();
@@ -878,19 +909,23 @@ abstract public class AbstractSubmitter {
   }
 
   class FinishedProcessor extends Thread {
+    public FinishedProcessor() {
+      super("FinishedProcessor");
+    }
+
     @Override
     public void run() {
       ArrayList<AbstractTask> finalizingJobList = new ArrayList<>();
 
       do {
-        if (Main.hibernatingFlag) { return; }
+        if (Main.hibernatingFlag || isBroken) { return; }
 
         Envelope envelope = getNextEnvelope();
 
         finalizingJobList.clear();
 
         for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
-          if (Main.hibernatingFlag) { return; }
+          if (Main.hibernatingFlag || isBroken) { return; }
 
           try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
             ComputerTask run = job.getRun();
@@ -938,7 +973,7 @@ abstract public class AbstractSubmitter {
 
   public void processFinished(ArrayList<AbstractTask> finalizingJobList) throws FailedToControlRemoteException {
     for (AbstractTask job : finalizingJobList) {
-      if (Main.hibernatingFlag) { return; }
+      if (Main.hibernatingFlag || isBroken) { return; }
 
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         jobFinalizing(job);

@@ -43,6 +43,10 @@ public class SelfCommunicativeEnvelope extends Envelope {
     autoFlusher.start();
   }
 
+  public boolean isClosed() {
+    return remoteProcess.isClosed();
+  }
+
   public void close() {
     autoFlusher.interrupt();
     flush();
@@ -56,12 +60,8 @@ public class SelfCommunicativeEnvelope extends Envelope {
   }
 
   public void flush() {
-    try {
-      if (entryCounter.get() > 0) {
-        send();
-      }
-    } catch (Exception e) {
-      ErrorLogMessage.issue(e);
+    if (entryCounter.get() > 0) {
+      send();
     }
   }
 
@@ -81,11 +81,16 @@ public class SelfCommunicativeEnvelope extends Envelope {
     }
   }
 
-  private void send() throws Exception {
+  private void send() {
     synchronized (messageLocker) {
       synchronized (fileLocker) {
         if (!remoteProcess.isClosed()) {
-          transceiver.send(getRawEnvelope());
+          try {
+            transceiver.send(getRawEnvelope());
+          } catch (Exception e) {
+            entryCounter.set(0);
+            close();
+          }
           clear();
           entryCounter.set(0);
         }
