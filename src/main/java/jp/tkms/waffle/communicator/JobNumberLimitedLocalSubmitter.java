@@ -7,7 +7,6 @@ import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -25,7 +24,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   @Override
   public AbstractSubmitter connect(boolean retry) {
-    switchToSelfCommunicativeEnvelopeMode();
+    switchToStreamMode();
     return this;
   }
 

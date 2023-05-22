@@ -16,6 +16,7 @@ import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.Channel;
 import net.schmizz.sshj.connection.channel.direct.DirectConnection;
 import net.schmizz.sshj.connection.channel.direct.Session;
+import net.schmizz.sshj.connection.channel.direct.Signal;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.keyprovider.*;
@@ -695,14 +696,12 @@ public class SshSessionSshj implements AutoCloseable {
       outputStream = channel.getOutputStream();
       inputStream = channel.getInputStream();
       errorStream = channel.getErrorStream();
-      (new Thread(() -> {
-        close();
-      })).start();
       return this;
     }
 
     public void close() {
       try {
+        channel.join(Constants.COMMUNICATION_TIMEOUT, TimeUnit.MILLISECONDS);
         exitStatus = channel.getExitStatus();
       } catch (Exception e) {
         WarnLogMessage.issue(e);

@@ -12,7 +12,6 @@ import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.communicator.util.SshSessionMina;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -124,6 +123,7 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
 
     InfoLogMessage.issue(computer, "acquired the connection");
 
+    switchToStreamMode();
     return this;
   }
 
@@ -195,13 +195,12 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     RemoteProcess remoteProcess = new RemoteProcess();
     try {
       SshSessionSshj.LiveExecChannel channel = session.execLiveCommand(command, "");
-      remoteProcess.setStream(channel.getOutputStream(), channel.getInputStream(), channel.getErrorStream());
       remoteProcess.setFinalizer(() -> {
         channel.close();
       });
+      remoteProcess.setStream(channel.getOutputStream(), channel.getInputStream(), channel.getErrorStream());
     } catch (Exception e) {
-      WarnLogMessage.issue(computer, e);
-      return null;
+      throw new FailedToControlRemoteException(e);
     }
     return remoteProcess;
   }

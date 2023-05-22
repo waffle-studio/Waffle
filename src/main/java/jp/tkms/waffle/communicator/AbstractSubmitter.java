@@ -116,7 +116,7 @@ abstract public class AbstractSubmitter {
         ErrorLogMessage.issue(e);
       }
 
-      if (isPipeMode()) {
+      if (isStreamMode()) {
         selfCommunicativeEnvelope.close();
       }
 
@@ -127,7 +127,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  protected void switchToSelfCommunicativeEnvelopeMode() {
+  protected void switchToStreamMode() {
     try {
       RemoteProcess remoteProcess = startProcess(getServantCommand(this, null));
       selfCommunicativeEnvelope = new SelfCommunicativeEnvelope(Constants.WORK_DIR, remoteProcess, this);
@@ -137,7 +137,7 @@ abstract public class AbstractSubmitter {
   }
 
   public Envelope getNextEnvelope() {
-    if (isPipeMode()) {
+    if (isStreamMode()) {
       if (selfCommunicativeEnvelope.isClosed()) {
         brake();
       }
@@ -762,7 +762,7 @@ abstract public class AbstractSubmitter {
           }
         }
 
-        if (isPipeMode()) {
+        if (isStreamMode()) {
           processRequestAndResponse(envelope);
         }
         if (Main.hibernatingFlag || isBroken) { break; }
@@ -785,7 +785,7 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  private boolean isPipeMode() {
+  private boolean isStreamMode() {
     return selfCommunicativeEnvelope != null;
   }
 
@@ -854,7 +854,7 @@ abstract public class AbstractSubmitter {
       }
 
       if (submittingCount >= 10) {
-        if (isPipeMode()) {
+        if (isStreamMode()) {
           //((SelfCommunicativeEnvelope) envelope).flush();
           submittingCount = 0;
         } else {
