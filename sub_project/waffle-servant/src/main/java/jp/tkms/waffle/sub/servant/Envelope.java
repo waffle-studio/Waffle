@@ -67,7 +67,15 @@ public class Envelope {
   }
 
   public void save(Path dataPath) throws Exception {
-    try (ZipOutputStream zipOutputStream = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(dataPath.toFile())), StandardCharsets.UTF_8)) {
+    try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(dataPath.toFile()))) {
+      save(outputStream);
+    } catch (Exception e) {
+      throw e;
+    }
+  }
+
+  public void save(OutputStream outputStream) throws Exception {
+    try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, StandardCharsets.UTF_8)) {
       Set<Path> sourceSet = new LinkedHashSet<>();
       for (Path filePath : filePathList) {
         if (Files.exists(baseDirectory.resolve(filePath))) {
@@ -104,13 +112,19 @@ public class Envelope {
   }
 
   public static Envelope loadAndExtract(Path baseDirectory, Path dataPath) throws Exception {
-    Envelope envelope = new Envelope(baseDirectory);
-
     if (!dataPath.isAbsolute()) {
       dataPath = baseDirectory.resolve(dataPath);
     }
 
-    try (ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(new FileInputStream(dataPath.toFile())), StandardCharsets.UTF_8)) {
+    try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(dataPath.toFile()))) {
+      return loadAndExtract(baseDirectory, inputStream);
+    }
+  }
+
+  public static Envelope loadAndExtract(Path baseDirectory, InputStream inputStream) throws Exception {
+    Envelope envelope = new Envelope(baseDirectory);
+
+    try (ZipInputStream zipInputStream = new ZipInputStream(inputStream, StandardCharsets.UTF_8)) {
       ZipEntry entry = null;
       ArrayList<BufferedOutputStream> streamList = new ArrayList<>();
       while ((entry = zipInputStream.getNextEntry()) != null) {
@@ -138,6 +152,11 @@ public class Envelope {
     }
 
     return envelope;
+  }
+
+  public void clear() {
+    messageBundle.clear();
+    filePathList.clear();
   }
 
   private static void deleteFiles(Path path) {

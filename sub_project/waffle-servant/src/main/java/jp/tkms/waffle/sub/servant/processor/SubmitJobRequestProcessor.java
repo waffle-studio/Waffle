@@ -69,7 +69,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
             executableDirectoryHash.save();
           } else {
             if (executableDirectoryHash.update()) {
-              System.out.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
+              System.err.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
               //TODO: notify if hash changed
             }
           }
