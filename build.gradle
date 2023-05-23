@@ -162,7 +162,7 @@ task updateVersionFile {
    }
  */
 
-classes.dependsOn(updateVersionFile, copyFilesToResource)
+compileJava.dependsOn(updateVersionFile, copyFilesToResource)
 updateVersionFile.mustRunAfter(processResources)
 copyFilesToResource.mustRunAfter(processResources)
 
