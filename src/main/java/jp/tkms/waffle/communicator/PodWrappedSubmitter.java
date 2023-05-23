@@ -822,6 +822,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public AbstractSubmitter connect(boolean retry) {
     Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, ""));
     targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer).connect(retry);
+    selfCommunicativeEnvelope = targetSubmitter.selfCommunicativeEnvelope;
     return this;
   }
 
