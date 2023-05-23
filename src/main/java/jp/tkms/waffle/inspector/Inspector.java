@@ -84,6 +84,10 @@ public class Inspector extends Thread {
         }
         InfoLogMessage.issue(computer, "scanned jobs");
       }
+
+      if (submitter.isClosed()) {
+        break;
+      }
     } while ((mode.equals(Mode.Normal) ? ExecutableRunTask.getList(computer).size() : SystemTask.getList(computer).size()) > 0);
 
     if (submitter != null) {

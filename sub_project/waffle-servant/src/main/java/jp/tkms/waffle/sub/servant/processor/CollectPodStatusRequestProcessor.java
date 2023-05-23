@@ -1,21 +1,14 @@
 package jp.tkms.waffle.sub.servant.processor;
 
-import jp.tkms.waffle.sub.servant.Constants;
-import jp.tkms.waffle.sub.servant.DirectoryHash;
 import jp.tkms.waffle.sub.servant.Envelope;
-import jp.tkms.waffle.sub.servant.EventReader;
 import jp.tkms.waffle.sub.servant.message.request.CollectPodStatusMessage;
-import jp.tkms.waffle.sub.servant.message.response.PodTaskFinishedMessage;
 import jp.tkms.waffle.sub.servant.message.response.UpdatePodStatusMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateResultMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
 import jp.tkms.waffle.sub.servant.pod.AbstractExecutor;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.stream.Stream;
 
 public class CollectPodStatusRequestProcessor extends RequestProcessor<CollectPodStatusMessage> {
   protected CollectPodStatusRequestProcessor() {

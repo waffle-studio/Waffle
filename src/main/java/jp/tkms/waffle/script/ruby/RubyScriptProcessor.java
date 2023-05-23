@@ -31,7 +31,7 @@ public class RubyScriptProcessor extends ScriptProcessor {
   @Override
   public String checkSyntax(Path scriptPath) {
     String error = "";
-    ScriptingContainer container = new ScriptingContainer(LocalContextScope.THREADSAFE);
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD);
     try {
       container.parse(PathType.ABSOLUTE, scriptPath.toString());
     } catch (ParseFailedException e) {

@@ -21,7 +21,7 @@ public class EnvelopeTransceiver {
   static final byte[] TAG_EXECUTE = {B_ESC, B_EOT};
   static final byte[] TAG_BYE = {B_ESC, B_EM};
   static final byte[] TAG_ESCAPE = {B_ESC, B_SE};
-  private static final long TIMEOUT = 10000;
+  private static final long TIMEOUT = 15000;
 
   InputStreamProcessor inputStreamProcessor;
   BufferedOutputStream outputStream;

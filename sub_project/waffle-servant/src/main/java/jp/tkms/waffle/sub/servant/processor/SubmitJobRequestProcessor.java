@@ -7,10 +7,7 @@ import jp.tkms.waffle.sub.servant.DirectoryHash;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.XsubFile;
 import jp.tkms.waffle.sub.servant.message.request.SubmitJobMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.RequestRepreparingMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateStatusMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
@@ -82,8 +79,8 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         DirectoryHash directoryHash = new DirectoryHash(baseDirectory, message.getWorkingDirectory());
         directoryHash.createEmptyHashFile();
 
-        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-        synchronized (this) {
+        ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
+        //synchronized (this) {
           container.setEnvironment(environments);
           container.setCurrentDirectory(workingDirectory.toString());
           container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
@@ -91,9 +88,13 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           container.setError(errorWriter);
           container.runScriptlet("require 'jruby'");
           container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
-        }
+        //}
         container.clear();
-        container.terminate();
+        try {
+          container.finalize();
+        } catch (Throwable e) {
+          response.add(new ExceptionMessage(e.getMessage()));
+        }
         directoryHash.save();
 
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();

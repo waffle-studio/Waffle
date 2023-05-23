@@ -5,6 +5,8 @@ import com.eclipsesource.json.JsonObject;
 import jp.tkms.waffle.sub.servant.*;
 import jp.tkms.waffle.sub.servant.message.request.CollectStatusMessage;
 import jp.tkms.waffle.sub.servant.message.response.*;
+import org.jruby.embed.LocalContextScope;
+import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.PathType;
 import org.jruby.embed.ScriptingContainer;
 
@@ -32,8 +34,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
       environments.put(XSUB_TYPE, NONE);
     }
 
-    //ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-    ScriptingContainer container = new ScriptingContainer();
+    ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
     ArrayList<String> argumentList = new ArrayList<>();
     argumentList.add("-m");
     HashSet<String> jobIdSet = new HashSet<>();
@@ -48,7 +49,11 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
     container.setOutput(outputWriter);
     container.runScriptlet("require 'jruby'");
     container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXstatPath(baseDirectory).toString());
-    container.terminate();
+    try {
+      container.finalize();
+    } catch (Throwable e) {
+      response.add(new ExceptionMessage(e.getMessage()));
+    }
 
     try {
       JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
@@ -89,7 +94,7 @@ public class CollectStatusRequestProcessor extends RequestProcessor<CollectStatu
         }
       });
     } catch (Exception e) {
-      e.printStackTrace();
+      response.add(new ExceptionMessage("XSUB results parsing error: " + outputWriter.toString()));
     }
     outputWriter.close();
   }

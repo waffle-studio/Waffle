@@ -9,21 +9,25 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public abstract class RequestProcessor<T extends AbstractRequestMessage> {
+
+  private static final RequestProcessor[] processors = {
+    new PutTextFileRequestProcessor(),
+    new ChangePermssionRequestProcessor(),
+    new PutValueRequestProcessor(),
+    new SendXsubTemplateRequestProcessor(),
+    new CancelJobRequestProcessor(),
+    new CancelPodTaskRequestProcessor(),
+    new SubmitJobRequestProcessor(),
+    new SubmitPodTaskRequestProcessor(),
+    new CollectStatusRequestProcessor(),
+    new CollectPodTaskStatusRequestProcessor(),
+    new CollectPodStatusRequestProcessor(),
+    new ConfirmPreparingRequestProcessor(),
+    new SyncRequestProcessor()
+  };
+
   public static void processMessages(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {
-    for (RequestProcessor processor : new RequestProcessor[]{
-      new PutTextFileRequestProcessor(),
-      new ChangePermssionRequestProcessor(),
-      new PutValueRequestProcessor(),
-      new SendXsubTemplateRequestProcessor(),
-      new CancelJobRequestProcessor(),
-      new CancelPodTaskRequestProcessor(),
-      new SubmitJobRequestProcessor(),
-      new SubmitPodTaskRequestProcessor(),
-      new CollectStatusRequestProcessor(),
-      new CollectPodTaskStatusRequestProcessor(),
-      new CollectPodStatusRequestProcessor(),
-      new ConfirmPreparingRequestProcessor()
-    }) {
+    for (RequestProcessor processor : processors) {
       processor.processIfMessagesExist(baseDirectory, request, response);
     }
   }

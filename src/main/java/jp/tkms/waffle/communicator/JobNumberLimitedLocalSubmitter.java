@@ -1,12 +1,12 @@
 package jp.tkms.waffle.communicator;
 
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
 import jp.tkms.waffle.data.util.WrappedJson;
 import jp.tkms.waffle.exception.FailedToControlRemoteException;
 import jp.tkms.waffle.exception.FailedToTransferFileException;
-import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -24,6 +24,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
 
   @Override
   public AbstractSubmitter connect(boolean retry) {
+    switchToStreamMode();
     return this;
   }
 
@@ -33,7 +34,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+  public Path parseHomePath(String pathString) {
     if (pathString.startsWith("~")) {
       pathString = pathString.replaceAll("^~", System.getProperty("user.home"));
     } else if (!pathString.startsWith("/")) {
@@ -52,7 +53,7 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
   }
 
   @Override
-  public String exec(String command) {
+  public String exec(String command) throws FailedToControlRemoteException {
     String result = "";
     ProcessBuilder p = new ProcessBuilder("sh", "-c", command);
     p.redirectErrorStream(true);
@@ -69,10 +70,26 @@ public class JobNumberLimitedLocalSubmitter extends AbstractSubmitter {
       }
 
     } catch (IOException e) {
-      ErrorLogMessage.issue(e);
+      throw new FailedToControlRemoteException(e);
     }
 
     return result;
+  }
+
+  @Override
+  protected RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
+    RemoteProcess remoteProcess = new RemoteProcess();
+    ProcessBuilder processBuilder = new ProcessBuilder("sh", "-c", command);
+    try {
+      Process process = processBuilder.start();
+      remoteProcess.setFinalizer(() -> {
+        process.destroy();
+      });
+      remoteProcess.setStream(process.getOutputStream(), process.getInputStream(), process.getErrorStream());
+    } catch (IOException e) {
+      throw new FailedToControlRemoteException(e);
+    }
+    return remoteProcess;
   }
 
   @Override

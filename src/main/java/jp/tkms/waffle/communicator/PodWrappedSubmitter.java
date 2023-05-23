@@ -3,6 +3,7 @@ package jp.tkms.waffle.communicator;
 import jp.tkms.utils.concurrent.LockByKey;
 import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
+import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.data.internal.InternalFiles;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
@@ -821,6 +822,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   public AbstractSubmitter connect(boolean retry) {
     Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, ""));
     targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer).connect(retry);
+    selfCommunicativeEnvelope = targetSubmitter.selfCommunicativeEnvelope;
     return this;
   }
 
@@ -833,7 +835,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public Path parseHomePath(String pathString) throws FailedToControlRemoteException {
+  public Path parseHomePath(String pathString) {
     return targetSubmitter.parseHomePath(pathString);
   }
 
@@ -855,6 +857,11 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   @Override
   public String exec(String command) throws FailedToControlRemoteException {
     return targetSubmitter.exec(command);
+  }
+
+  @Override
+  protected RemoteProcess startProcess(String command) throws FailedToControlRemoteException {
+    return targetSubmitter.startProcess(command);
   }
 
   @Override
