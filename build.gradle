@@ -19,6 +19,7 @@ buildscript {
 
 plugins {
   id "com.github.johnrengelman.shadow"
+  id "com.dorongold.task-tree" version "2.1.1"
 }
 
 //import org.apache.tools.ant.filters.ReplaceTokens
@@ -88,21 +89,14 @@ task buildServant(type: Exec) {
   executable "sh"
   args "-c", "cd sub_project/waffle-servant; ./gradlew build"
 }
+buildServant.dependsOn(':sub_project:waffle-servant:build')
 
-def copyJarFileAsResourceBin(path) {
-  String resourcesDir = 'build/resources/main'
-  String fileName = new String(path).replaceAll("^.*/", "")
-  copy {
-    from path
-    into resourcesDir
-  }
-  file(resourcesDir + '/' + fileName).renameTo(resourcesDir + '/' + fileName + '.bin')
+task copyServantJarFileAsResourceBin(type: Exec, dependsOn: buildServant) {
+  executable "cp"
+  args "./sub_project/waffle-servant/build/libs/waffle-servant-all.jar", "./build/resources/main/waffle-servant-all.jar.bin"
 }
 
-task copyFilesToResource(dependsOn: buildServant) {
-  copyJarFileAsResourceBin('sub_project/waffle-servant/build/libs/waffle-servant-all.jar')
-  copyJarFileAsResourceBin('sub_project/waffle-virtual-job-executor/build/libs/waffle-virtual-job-executor-all.jar')
-
+task copyFilesToResource(dependsOn: copyServantJarFileAsResourceBin) {
   copy {
     from ('./') {
       include 'LICENSE.md'
@@ -130,41 +124,13 @@ task updateVersionFile {
   println "version -> ${buildVersion}"
 }
 
-/*
-   task createXsub {
-   file("build/tmp/xsub_archive/xsub/bin/" + jruby_jar).renameTo(file("build/tmp/xsub_archive/xsub/bin/jruby-complete.jar"))
+processResources.dependsOn(copyFilesToResource)
+processResources.dependsOn(updateVersionFile)
+//updateVersionFile.mustRunAfter(processResources)
 
-   copy {
-   from ('lib') {
-   include jruby_jar
-   }
-   into 'build/tmp/xsub_archive/xsub/bin'
-   }
-
-   copy {
-   from 'src/main/resources/xsub/bin'
-   into 'build/tmp/xsub_archive/xsub/bin'
-   }
-
-   file("build/tmp/xsub_archive/xsub/bin").renameTo(file("build/tmp/xsub_archive/xsub/org_bin"))
-
-   copy {
-   from 'xsub'
-   into 'build/tmp/xsub_archive/xsub'
-   }
-   }
-
-   task createXsubArchive(type: Zip, dependsOn: createXsub) {
-   destinationDirectory = file('build/resources/main')
-   archiveFileName = 'xsub.zip'
-   from 'build/tmp/xsub_archive/'
-   excludes = ['.git',]
-   }
- */
-
-compileJava.dependsOn(updateVersionFile, copyFilesToResource)
-updateVersionFile.mustRunAfter(processResources)
-copyFilesToResource.mustRunAfter(processResources)
+compileJava.dependsOn(copyFilesToResource)
+compileJava.dependsOn(updateVersionFile)
+//copyFilesToResource.mustRunAfter(processResources)
 
 task buildLocal(type: Exec, dependsOn: build) {
   executable "cp"
@@ -175,6 +141,13 @@ task buildDocs(type: Exec, dependsOn: build) {
   executable "java"
   args "-cp", "build/libs/waffle-all.jar", "jp.tkms.waffle.DocumentBuilder"
 }
+
+task cleanServant(type: Exec) {
+  executable "sh"
+  args "-c", "cd sub_project/waffle-servant; ./gradlew clean"
+}
+
+clean.dependsOn(cleanServant)
 
 tasks.named('test') {
   // Use JUnit Platform for unit tests.
