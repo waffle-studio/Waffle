@@ -366,7 +366,7 @@ abstract public class AbstractSubmitter {
         }
         //putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer) + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
         envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(BATCH_FILE),
-          "sh -c \"" + jvmActivationCommand + "java -jar '" + getWaffleServantPath()
+          "sh -c \"" + jvmActivationCommand + "java -mx100m -XX:+UseSerialGC -jar '" + getWaffleServantPath()
           + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'\""));
         //+ "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
 

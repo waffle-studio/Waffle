@@ -12,10 +12,12 @@ public class PodMain {
     int shutdownTime = 0;
     int marginTime = 0;
 
+    /*
     if (new EasyBench().isRejected()) {
       System.err.println("EasyBench rejects the host");
       System.exit(1);
     }
+     */
 
     if (args.length != 4) {
       System.err.println("invalid arguments");
