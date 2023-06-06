@@ -10,10 +10,12 @@ import jp.tkms.waffle.sub.servant.message.AbstractMessage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public class SelfCommunicativeEnvelope extends Envelope {
   RemoteProcess remoteProcess;
   EnvelopeTransceiver transceiver;
+  Consumer<Envelope> additionalEnvelopeConsumer = null;
 
   Object messageLocker = new Object();
   Object fileLocker = new Object();
@@ -39,8 +41,15 @@ public class SelfCommunicativeEnvelope extends Envelope {
     this.transceiver = new EnvelopeTransceiver(baseDirectory, remoteProcess.getOutputStream(), remoteProcess.getInputStream(),
       ((transceiver, envelope) -> {
         submitter.processResponse(envelope);
+        if (additionalEnvelopeConsumer != null) {
+          additionalEnvelopeConsumer.accept(envelope);
+        }
       }));
     autoFlusher.start();
+  }
+
+  public void setAdditionalEnvelopeConsumer(Consumer<Envelope> additionalEnvelopeConsumer) {
+    this.additionalEnvelopeConsumer = additionalEnvelopeConsumer;
   }
 
   public boolean isClosed() {

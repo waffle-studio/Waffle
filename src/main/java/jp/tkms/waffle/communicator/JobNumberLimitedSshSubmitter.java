@@ -157,6 +157,11 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
   }
 
   @Override
+  public Path getAbsolutePath(Path path) throws FailedToControlRemoteException {
+    return parseHomePath(computer.getWorkBaseDirectory()).resolve(path);
+  }
+
+  @Override
   public void createDirectories(Path path) throws FailedToControlRemoteException {
     try {
       session.mkdir(path.toString());

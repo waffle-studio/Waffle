@@ -47,6 +47,11 @@ public class BarrierWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
+  public Path getAbsolutePath(Path path) throws FailedToControlRemoteException {
+    return null;
+  }
+
+  @Override
   public void createDirectories(Path path) throws FailedToControlRemoteException {
 
   }

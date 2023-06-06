@@ -8,12 +8,12 @@ import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.communicator.processor.ResponseProcessor;
 import jp.tkms.waffle.communicator.util.SelfCommunicativeEnvelope;
+import jp.tkms.waffle.data.internal.ServantScript;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.Main;
 import jp.tkms.waffle.data.ComputerTask;
 import jp.tkms.waffle.data.computer.Computer;
-import jp.tkms.waffle.data.internal.ServantJarFile;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
 import jp.tkms.waffle.data.internal.task.ExecutableRunTask;
 import jp.tkms.waffle.data.internal.task.SystemTask;
@@ -86,6 +86,7 @@ abstract public class AbstractSubmitter {
 
   abstract public Path parseHomePath(String pathString);
 
+  abstract public Path getAbsolutePath(Path path) throws FailedToControlRemoteException;
   abstract public void createDirectories(Path path) throws FailedToControlRemoteException;
   abstract boolean exists(Path path) throws FailedToControlRemoteException;
   abstract boolean deleteFile(Path path) throws FailedToControlRemoteException;
@@ -198,17 +199,8 @@ abstract public class AbstractSubmitter {
     return parseHomePath(computer.getWorkBaseDirectory());
   }
 
-  private static String getServantCommand(AbstractSubmitter submitter, Path remoteEnvelopePath) {
-    String jvmActivationCommand = submitter.computer.getJvmActivationCommand().replace("\"", "\\\"");
-    if (!jvmActivationCommand.trim().equals("") && !jvmActivationCommand.trim().endsWith(";")) {
-      jvmActivationCommand += ";";
-    }
-
-    return getSanitizedEnvironments(submitter.computer)
-      + "sh -c \"" + jvmActivationCommand
-      + "java --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar '"
-      + getWaffleServantPath(submitter, submitter.computer)
-      + "' '" + submitter.getRemoteWorkBasePath() + "' main '" + (remoteEnvelopePath == null ? "-" : remoteEnvelopePath) + "'\"";
+  private static String getServantCommand(AbstractSubmitter submitter, Path remoteEnvelopePath) throws FailedToControlRemoteException {
+    return "sh '" + submitter.getAbsolutePath(submitter.getServantScript().getScriptPath()) + "' main '" + (remoteEnvelopePath == null ? "-" : remoteEnvelopePath) + "'";
   }
 
   protected static Envelope sendAndReceiveEnvelope(AbstractSubmitter submitter, Envelope envelope) throws Exception {
@@ -364,11 +356,12 @@ abstract public class AbstractSubmitter {
         if (!jvmActivationCommand.trim().equals("")) {
           jvmActivationCommand += ";";
         }
+
+        //String wsp = getAbsolutePath(getServantScript().getJarPath()).toString();
         //putText(job, BATCH_FILE, "java -jar '" + getWaffleServantPath(this, computer) + "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'");
-        envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(BATCH_FILE),
-          "sh -c \"" + jvmActivationCommand + "java -mx100m -XX:+UseSerialGC -jar '" + getWaffleServantPath()
-          + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'\""));
+        //envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(BATCH_FILE), "sh -c \"" + jvmActivationCommand + "java -mx100m -XX:+UseSerialGC -jar '" + wsp + "' '" + getWorkBaseDirectory() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'\""));
         //+ "' '" + parseHomePath(computer.getWorkBaseDirectory()) + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
+        envelope.add(new PutTextFileMessage(run.getLocalPath().resolve(BATCH_FILE), "sh '" + getWaffleServantPath() + "' exec '" + getRunDirectory(job.getRun()).resolve(TASK_JSON) + "'"));
 
         envelope.add(run.getBasePath());
 
@@ -471,14 +464,13 @@ abstract public class AbstractSubmitter {
     return getBaseDirectory(run).resolve(path);
   }
 
-  public static Path getWaffleServantPath(AbstractSubmitter submitter, Computer computer) {
-    return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
-    //return Paths.get(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
-  }
-
   public Path getWaffleServantPath() throws FailedToControlRemoteException {
     //return submitter.parseHomePath(computer.getWorkBaseDirectory()).resolve(ServantJarFile.JAR_FILE);
-    return getWaffleServantPath(this, computer);
+    return getAbsolutePath(getServantScript().getScriptPath());
+  }
+
+  protected ServantScript getServantScript() {
+    return new ServantScript(computer);
   }
 
   public static boolean checkWaffleServant(Computer computer, boolean retry) throws RuntimeException, WaffleException {
@@ -487,23 +479,25 @@ abstract public class AbstractSubmitter {
       return false;
     }
     submitter.connect(retry);
-    Path remoteServantPath = getWaffleServantPath(submitter, computer);
+    ServantScript servantScript = submitter.getServantScript();
     boolean result = false;
 
-    if (submitter.exists(remoteServantPath)) {
-      String remoteHash = submitter.exec("md5sum '" + remoteServantPath + "'  | sed -e 's/ .*//'").trim(); //TODO:
-      String localHash = ServantJarFile.getMD5Sum().trim();
-      if (remoteHash.length() == localHash.length() && !remoteHash.equals(localHash)) {
-        submitter.deleteFile(remoteServantPath);
-      } else {
-        result = true;
-      }
+    //if (submitter.exists(remoteServantPath)) {
+    //String remoteHash = submitter.exec("md5sum '" + remoteServantPath + "'  | sed -e 's/ .*//'").trim(); //TODO:
+    String remoteHash = submitter.exec("sh \"" + submitter.getAbsolutePath(servantScript.getScriptPath()).toString() + "\" version").trim(); //TODO:
+    //String localHash = ServantJarFile.getMD5Sum().trim();
+    String localHash = Main.VERSION;
+    if (localHash.equals(remoteHash)) {
+      result = true;
     }
+    //}
 
     if (!result) {
-      submitter.createDirectories(remoteServantPath.getParent());
-      submitter.transferFilesToRemote(ServantJarFile.getPath(), remoteServantPath);
-      result = submitter.exists(remoteServantPath);
+      submitter.createDirectories(submitter.getAbsolutePath(servantScript.getScriptPath().getParent()));
+      submitter.transferFilesToRemote(servantScript.generate(), submitter.getAbsolutePath(servantScript.getScriptPath()));
+      submitter.transferFilesToRemote(servantScript.getJre(), submitter.getAbsolutePath(servantScript.getJrePath()));
+      submitter.transferFilesToRemote(servantScript.getJar(), submitter.getAbsolutePath(servantScript.getJarPath()));
+      result = submitter.exists(submitter.getAbsolutePath(servantScript.getScriptPath()));
     }
     submitter.close();
     return result;

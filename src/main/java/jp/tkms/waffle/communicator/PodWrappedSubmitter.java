@@ -5,6 +5,7 @@ import jp.tkms.waffle.Constants;
 import jp.tkms.waffle.communicator.annotation.CommunicatorDescription;
 import jp.tkms.waffle.communicator.process.RemoteProcess;
 import jp.tkms.waffle.data.internal.InternalFiles;
+import jp.tkms.waffle.data.internal.ServantScript;
 import jp.tkms.waffle.data.util.*;
 import jp.tkms.waffle.inspector.Inspector;
 import jp.tkms.waffle.data.ComputerTask;
@@ -106,12 +107,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected Envelope processRequestAndResponse(Envelope envelope) {
-    jobManager.processEachRunningExecutor(entry -> {
-      envelope.add(new CollectPodStatusMessage(entry.getKey(), entry.getValue().getLocalPath()));
-    });
-
-    Envelope response = super.processRequestAndResponse(envelope);
+  public Envelope processResponse(Envelope response) {
+    // super.processResponse(response);
 
     if (response != null) {
       for (RequestRepreparingMessage message : response.getMessageBundle().getCastedMessageList(RequestRepreparingMessage.class)) {
@@ -193,6 +190,15 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     }
 
     return response;
+  }
+
+  @Override
+  protected Envelope processRequestAndResponse(Envelope envelope) {
+    jobManager.processEachRunningExecutor(entry -> {
+      envelope.add(new CollectPodStatusMessage(entry.getKey(), entry.getValue().getLocalPath()));
+    });
+
+    return processResponse(super.processRequestAndResponse(envelope));
   }
 
   @Override
@@ -823,6 +829,9 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     Computer targetComputer = Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, ""));
     targetSubmitter = AbstractSubmitter.getInstance(Inspector.Mode.Normal, targetComputer).connect(retry);
     selfCommunicativeEnvelope = targetSubmitter.selfCommunicativeEnvelope;
+    if (selfCommunicativeEnvelope != null) {
+      selfCommunicativeEnvelope.setAdditionalEnvelopeConsumer(envelope -> processResponse(envelope));
+    }
     return this;
   }
 
@@ -837,6 +846,16 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   @Override
   public Path parseHomePath(String pathString) {
     return targetSubmitter.parseHomePath(pathString);
+  }
+
+  @Override
+  public Path getAbsolutePath(Path path) throws FailedToControlRemoteException {
+    return targetSubmitter.parseHomePath(targetSubmitter.computer.getWorkBaseDirectory()).resolve(path);
+  }
+
+  @Override
+  protected ServantScript getServantScript() {
+    return new ServantScript(targetSubmitter.computer);
   }
 
   @Override
@@ -882,11 +901,6 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   @Override
   public void transferFilesFromRemote(Path remotePath, Path localPath, Boolean isDir) throws FailedToTransferFileException {
     targetSubmitter.transferFilesFromRemote(remotePath, localPath, isDir);
-  }
-
-  @Override
-  public Path getWaffleServantPath() throws FailedToControlRemoteException {
-    return getWaffleServantPath(targetSubmitter, targetSubmitter.computer);
   }
 
   @Override

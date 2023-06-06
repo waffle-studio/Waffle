@@ -9,6 +9,7 @@ import org.checkerframework.checker.units.qual.A;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,10 +27,16 @@ public class UserSession {
     if (waffleId == null) {
       synchronized (idMap) {
         if (Files.exists(Constants.UUID_FILE)) {
-          waffleId = StringFileUtil.read(Constants.UUID_FILE).trim();
-        } else {
+          String[] fullId = StringFileUtil.read(Constants.UUID_FILE).trim().split(":", 2);
+          if (fullId.length == 2) {
+            if (Constants.WORK_DIR.toString().equals(fullId[1])) {
+              waffleId = fullId[0];
+            }
+          }
+        }
+        if (waffleId == null) {
           waffleId = UUID.randomUUID().toString();
-          StringFileUtil.write(Constants.UUID_FILE, waffleId.toString());
+          StringFileUtil.write(Constants.UUID_FILE, waffleId.toString() + ":" + Constants.WORK_DIR);
         }
       }
     }

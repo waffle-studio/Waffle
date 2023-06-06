@@ -87,7 +87,7 @@ processResources.outputs.upToDateWhen { false }
 
 task buildServant(type: Exec) {
   executable "sh"
-  args "-c", "cd sub_project/waffle-servant; ./gradlew build"
+  args "-c", "cd sub_project/waffle-servant; ./make_jre.sh"
 }
 buildServant.dependsOn(':sub_project:waffle-servant:build')
 
@@ -96,7 +96,12 @@ task copyServantJarFileAsResourceBin(type: Exec, dependsOn: buildServant) {
   args "./sub_project/waffle-servant/build/libs/waffle-servant-all.jar", "./build/resources/main/waffle-servant-all.jar.bin"
 }
 
-task copyFilesToResource(dependsOn: copyServantJarFileAsResourceBin) {
+task copyServantJvmFileAsResourceBin(type: Exec, dependsOn: buildServant) {
+  executable "cp"
+  args "./sub_project/waffle-servant/build/waffle-servant-jre.tar.gz", "./build/resources/main/waffle-servant-jre.tar.gz.bin"
+}
+
+task copyFilesToResource {
   copy {
     from ('./') {
       include 'LICENSE.md'
@@ -109,6 +114,7 @@ task copyFilesToResource(dependsOn: copyServantJarFileAsResourceBin) {
     into 'build/resources/main/static/docs'
   }
 }
+copyFilesToResource.dependsOn(copyServantJarFileAsResourceBin, copyServantJvmFileAsResourceBin)
 
 task updateVersionFile {
   String versionFile = 'build/resources/main/version.txt'
