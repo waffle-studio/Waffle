@@ -788,20 +788,31 @@ abstract public class AbstractSubmitter {
     queuedJobList.addAll(preparedJobList);
     queuedJobList.addAll(createdJobList);
 
-    createdJobList.stream().limit(10).parallel().forEach((job)->{
-      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
-        prepareJob(envelope, job);
-      } catch (Exception e) {
-        ErrorLogMessage.issue(e);
-      }
-    });
-
     Executable skippedExecutable = null;
     HashSet<String> lockedExecutableNameSet = new HashSet<>();
 
-    int submittingCount = 0;
+    int preparedCount = 0;
+    int submittingCount = 10;
     for (AbstractTask job : queuedJobList) {
       if (Main.hibernatingFlag || isBroken) { return true; }
+
+      if (submittingCount >= 10) {
+        if (isStreamMode()) {
+          //((SelfCommunicativeEnvelope) envelope).flush();
+          submittingCount = 0;
+        } else {
+          return false;
+        }
+
+        createdJobList.stream().skip(preparedCount).limit(10).parallel().forEach((j)->{
+          try (LockByKey lock = LockByKey.acquire(j.getHexCode())) {
+            prepareJob(envelope, j);
+          } catch (Exception e) {
+            ErrorLogMessage.issue(e);
+          }
+        });
+        preparedCount += 10;
+      }
 
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         ComputerTask run = job.getRun();
@@ -845,15 +856,6 @@ abstract public class AbstractSubmitter {
           job.setState(State.Excepted);
         } catch (RunNotFoundException ex) { }
         throw new FailedToControlRemoteException(e);
-      }
-
-      if (submittingCount >= 10) {
-        if (isStreamMode()) {
-          //((SelfCommunicativeEnvelope) envelope).flush();
-          submittingCount = 0;
-        } else {
-          return false;
-        }
       }
     }
 
