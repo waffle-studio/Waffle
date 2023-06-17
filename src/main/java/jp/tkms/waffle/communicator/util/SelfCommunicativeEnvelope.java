@@ -9,6 +9,7 @@ import jp.tkms.waffle.sub.servant.message.AbstractMessage;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -16,6 +17,8 @@ public class SelfCommunicativeEnvelope extends Envelope {
   RemoteProcess remoteProcess;
   EnvelopeTransceiver transceiver;
   Consumer<Envelope> additionalEnvelopeConsumer = null;
+
+  HashMap<String, Byte> confirmPreparingMessageMap;
 
   Object messageLocker = new Object();
   Object fileLocker = new Object();
@@ -27,7 +30,7 @@ public class SelfCommunicativeEnvelope extends Envelope {
       while (!isInterrupted()) {
         try {
           sleep(1000);
-          flush();
+          flush(true);
         } catch (InterruptedException e) {
           return;
         }
@@ -37,6 +40,7 @@ public class SelfCommunicativeEnvelope extends Envelope {
 
   public SelfCommunicativeEnvelope(Path baseDirectory, RemoteProcess remoteProcess, AbstractSubmitter submitter) {
     super(baseDirectory);
+    this.confirmPreparingMessageMap = new HashMap<>();
     this.remoteProcess = remoteProcess;
     this.transceiver = new EnvelopeTransceiver(baseDirectory, remoteProcess.getOutputStream(), remoteProcess.getInputStream(),
       ((transceiver, envelope) -> {
@@ -69,8 +73,12 @@ public class SelfCommunicativeEnvelope extends Envelope {
   }
 
   public void flush() {
+    flush(false);
+  }
+
+  protected void flush(boolean isAuto) {
     if (entryCounter.get() > 0) {
-      send();
+      send(isAuto);
     }
   }
 
@@ -90,7 +98,7 @@ public class SelfCommunicativeEnvelope extends Envelope {
     }
   }
 
-  private void send() {
+  private void send(boolean isAuto) {
     synchronized (messageLocker) {
       synchronized (fileLocker) {
         if (!remoteProcess.isClosed()) {
@@ -102,8 +110,19 @@ public class SelfCommunicativeEnvelope extends Envelope {
           }
           clear();
           entryCounter.set(0);
+          if (!isAuto) {
+            confirmPreparingMessageMap.clear();
+          }
         }
       }
+    }
+  }
+
+  @Override
+  public boolean containsConfirmPreparingMessage(byte type, String hexCode) {
+    synchronized (messageLocker) {
+      Byte value = confirmPreparingMessageMap.get(hexCode);
+      return value != null && value.equals(type);
     }
   }
 }

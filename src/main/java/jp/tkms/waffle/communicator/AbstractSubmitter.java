@@ -307,18 +307,7 @@ abstract public class AbstractSubmitter {
   }
 
   private boolean containsConfirmPreparingMessage(Envelope envelope, AbstractTask job) {
-    ArrayList<ConfirmPreparingMessage> list = null;
-    synchronized (envelope) {
-      list = envelope.getMessageBundle().getCastedMessageList(ConfirmPreparingMessage.class);
-    }
-    if (list != null) {
-      for (ConfirmPreparingMessage message : list) {
-        if (message.getType() == job.getTypeCode() && message.getId().equals(job.getHexCode())) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return envelope.containsConfirmPreparingMessage(job.getTypeCode(), job.getHexCode());
   }
 
   protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {

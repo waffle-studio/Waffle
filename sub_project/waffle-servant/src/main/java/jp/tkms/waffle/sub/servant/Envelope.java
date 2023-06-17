@@ -1,6 +1,7 @@
 package jp.tkms.waffle.sub.servant;
 
 import jp.tkms.waffle.sub.servant.message.AbstractMessage;
+import jp.tkms.waffle.sub.servant.message.request.ConfirmPreparingMessage;
 import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import org.apache.commons.io.IOUtils;
 
@@ -64,6 +65,21 @@ public class Envelope {
 
   public MessageBundle getMessageBundle() {
     return messageBundle;
+  }
+
+  public boolean containsConfirmPreparingMessage(byte type, String hexCode) {
+    ArrayList<ConfirmPreparingMessage> list = null;
+    synchronized (this) {
+      list = getMessageBundle().getCastedMessageList(ConfirmPreparingMessage.class);
+    }
+    if (list != null) {
+      for (ConfirmPreparingMessage message : list) {
+        if (message.getType() == type && message.getId().equals(hexCode)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public void save(Path dataPath) throws Exception {
