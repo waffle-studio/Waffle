@@ -53,7 +53,7 @@ public class ServantScript {
       writeln(writer, computer.getJvmActivationCommand());
       writeln(writer, "if [ \"$1\" = \"exec\" ];then");
       //writeln(writer, "\"$WAFFLE_JAVA\" -Xms5m -Xmx100m -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=50 -XX:+UseSerialGC -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
-      writeln(writer, "\"$WAFFLE_JAVA\" --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
+      writeln(writer, "\"$WAFFLE_JAVA\" -client --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
       writeln(writer, "elif [ \"$1\" = \"main\" ];then");
       writeln(writer, "\"$WAFFLE_JAVA\" --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" main \"$2\"");
       writeln(writer, "else");
