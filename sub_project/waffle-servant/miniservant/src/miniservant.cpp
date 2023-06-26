@@ -7,10 +7,16 @@
 #include <string>
 #include <stdlib.h>
 #include <unistd.h>
-#include "app.h"
+#include "json.hpp"
+#include "miniservant.h"
 
+using json = nlohmann::json;
 
 int main(int argc, char* argv[]) {
+    std::string s = R"({ "happy": true, "pi": 3.141 } )";
+    json j = json::parse(s);
+    std::cout << j["pi"] << std::endl;
+    std::cout << j.dump() << std::endl;
     system("sleep 5");
     std::cout << argv[1] << std::endl;
     return 0;
