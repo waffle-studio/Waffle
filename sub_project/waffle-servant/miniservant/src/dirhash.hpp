@@ -1,12 +1,20 @@
 #include <vector>
 #include <filesystem>
 
-namespace miniservant {
-    class dirhash {
+namespace miniservant
+{
+    struct DirHashDefaultTargets
+    {
+        /* data */
+    };
+    
+    class dirhash
+    {
     public:
         dirhash(std::filesystem::path, std::filesystem::path, bool);
-        static std::filesystem::path* _init_default_target();
+        //~dirhash();
+        static std::filesystem::path *dirhash::_init_default_target();
     private:
-        static const std::filesystem::path* DEFAULT_TERGET;
+        static const std::filesystem::path *DEFAULT_TERGET;
     };
 }

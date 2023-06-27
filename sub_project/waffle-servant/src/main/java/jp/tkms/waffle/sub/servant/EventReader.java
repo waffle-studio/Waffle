@@ -35,6 +35,19 @@ public class EventReader {
       return;
     }
 
+    Path singleValueDirPath = recordPath.getParent().resolve(recordPath.getFileName().toString() + ".d");
+    if (Files.isDirectory(singleValueDirPath)) {
+      Path ignoreFlagPath = singleValueDirPath.getParent().resolve(singleValueDirPath.getFileName().toString() + DirectoryHash.IGNORE_FLAG);
+      try {
+        if (!Files.exists(ignoreFlagPath)) {
+          Files.createFile(ignoreFlagPath);
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+
     long cursor = 0;
     if (Files.exists(cursorPath)) {
       try {
