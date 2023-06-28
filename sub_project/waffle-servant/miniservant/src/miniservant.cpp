@@ -13,6 +13,10 @@
 using json = nlohmann::json;
 
 int main(int argc, char* argv[]) {
+    auto p = std::filesystem::path("//server/share") / "../dir";
+    p.make_preferred();
+    p = std::filesystem::path(p.lexically_normal());
+    std::cout << p.string() << std::endl;
     std::string s = R"({ "happy": true, "pi": 3.141 } )";
     json j = json::parse(s);
     std::cout << j["pi"] << std::endl;
