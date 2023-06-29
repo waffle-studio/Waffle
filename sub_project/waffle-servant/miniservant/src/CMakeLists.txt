@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
 project(miniservant CXX)
-set(CMAKE_CXX_STANDARD 17)  
-set(CMAKE_CXX_FLAGS "-std=c++17 -lstdc++fs")
+set(CMAKE_CXX_STANDARD 20)  
+set(CMAKE_CXX_FLAGS "-std=c++20 -lstdc++fs")
 add_executable(miniservant miniservant.cpp dirhash.cpp)

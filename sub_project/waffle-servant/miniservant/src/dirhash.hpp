@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <set>
 #include <filesystem>
 
 namespace miniservant
@@ -7,21 +8,28 @@ namespace miniservant
     class dirhash
     {
     public:
-        static inline std::filesystem::path* _init_default_target();
-        static inline std::filesystem::path _path_normalize(std::filesystem::path);
         static const std::string HASH_FILE;
         static const std::string IGNORE_FLAG;
+        static const std::vector<std::filesystem::path> DEFAULT_TERGET;
+        static const std::string SEPARATOR;
 
         dirhash(std::filesystem::path, std::filesystem::path, bool);
         dirhash(std::filesystem::path, std::filesystem::path);
         //~dirhash();
+        std::byte* getHash();
         void calculate();
+        void collectFilesStatusTo(std::set<std::string>, std::vector<std::filesystem::path>);
+        void collectDirectoryStatusTo(std::set<std::string>, std::filesystem::path);
+        std::filesystem::path getHashFilePath();
+        bool hasHashFile();
+        bool isMatchToHashFile();
+        bool waitToMatch(int);
+        void createEmptyHashFile();
+        void save();
+        bool update();
     private:
-        static const std::filesystem::path *DEFAULT_TERGET;
-        static const std::string SEPARATOR;
-
-        std::filesystem::path base_directory;
-        std::filesystem::path directory_path;
+        std::filesystem::path baseDirectory;
+        std::filesystem::path directoryPath;
         std::byte* hash;
     };
 }
