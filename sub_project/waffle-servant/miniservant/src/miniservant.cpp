@@ -8,15 +8,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "json.hpp"
+#include "dirhash.hpp"
 #include "miniservant.h"
 
 using json = nlohmann::json;
 
 int main(int argc, char* argv[]) {
-    auto p = std::filesystem::path("//server/share") / "../dir";
+    auto p = std::filesystem::path("/tmp");
     p.make_preferred();
     p = std::filesystem::path(p.lexically_normal());
     std::cout << p.string() << std::endl;
+
+    auto dh = miniservant::dirhash(p, p / "test");
+    std::cout << dh.directoryPath << std::endl;
+    std::cout << dh.getHashFilePath() << std::endl;
+    dh.save();
+    
+
     std::string s = R"({ "happy": true, "pi": 3.141 } )";
     json j = json::parse(s);
     std::cout << j["pi"] << std::endl;

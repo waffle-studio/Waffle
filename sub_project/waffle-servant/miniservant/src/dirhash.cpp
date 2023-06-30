@@ -1,4 +1,7 @@
 #include <cstring>
+#include <thread>
+#include <chrono>
+#include <fstream>
 #include "sha256.h"
 #include "dirhash.hpp"
 
@@ -33,26 +36,24 @@ namespace miniservant
         return nullptr;
     };
 
-    std::vector<std::filesystem::path> DEFAULT_TERGET = _init_default_target();
-    std::string HASH_FILE = ".WAFFLE_HASH";
-    std::string IGNORE_FLAG = ".WAFFLE_HASH_IGNORE";
-    std::string SEPARATOR = ":";
+    const std::vector<std::filesystem::path> dirhash::DEFAULT_TERGET = _init_default_target();
+    const std::string dirhash::HASH_FILE = ".WAFFLE_HASH";
+    const std::string dirhash::IGNORE_FLAG = ".WAFFLE_HASH_IGNORE";
+    const std::string dirhash::SEPARATOR = ":";
 
     dirhash::dirhash(std::filesystem::path base_directory, std::filesystem::path directory_path, bool is_ready)
     {
         this->hash = nullptr;
 
         this->baseDirectory = base_directory;
-        if (!directory_path.is_absolute())
-        {
+        if (directory_path.is_absolute())
+            this->directoryPath = directory_path;
+        else
             this->directoryPath = base_directory / directory_path;
-        }
         this->directoryPath = _path_normalize(this->directoryPath);
 
         if (is_ready)
-        {
             calculate();
-        }
     };
 
     dirhash::dirhash(std::filesystem::path base_directory, std::filesystem::path directory_path)
@@ -61,9 +62,7 @@ namespace miniservant
     std::byte *dirhash::getHash()
     {
         if (this->hash == nullptr)
-        {
             calculate();
-        }
         return this->hash;
     }
 
@@ -71,19 +70,19 @@ namespace miniservant
     {
         auto fileSet = std::set<std::string>();
         auto targetList = std::vector<std::filesystem::path>();
-        for (std::filesystem::path target : dirhash::DEFAULT_TERGET)
+        for (auto target : dirhash::DEFAULT_TERGET)
         {
             targetList.push_back(this->directoryPath / target);
         }
         collectFilesStatusTo(fileSet, targetList);
         std::string chainedStatus = "";
-        for (std::string s : fileSet)
+        for (auto s : fileSet)
         {
             chainedStatus.append(s);
             chainedStatus.append(SEPARATOR);
         }
-        SHA256 sha256;
-        std::string myHash = sha256(chainedStatus);
+        auto sha256 = ::SHA256();
+        sha256.add(chainedStatus.c_str(), chainedStatus.size());
         this->hashSize = sha256.HashBytes;
         unsigned char rawHash[sha256.HashBytes];
         sha256.getHash(rawHash);
@@ -95,23 +94,17 @@ namespace miniservant
         if (std::filesystem::exists(target))
         {
             if (std::filesystem::is_symlink(target))
-            {
-                // NOP
-            }
+                void();
             else if (std::filesystem::is_directory(target))
-            {
                 collectDirectoryStatusTo(fileSet, target);
-            }
             else if (target.filename().string() != HASH_FILE && !target.filename().string().ends_with(IGNORE_FLAG))
-            {
-                fileSet.insert(_path_normalize(std::filesystem::relative(target, this->baseDirectory)).string() + SEPARATOR + std::to_string(std::filesystem::file_size(p)));
-            }
+                fileSet.insert(_path_normalize(std::filesystem::relative(target, this->baseDirectory)).string() + SEPARATOR + std::to_string(std::filesystem::file_size(target)));
         }
     };
 
     void dirhash::collectFilesStatusTo(std::set<std::string> fileSet, std::vector<std::filesystem::path> targets)
     {
-        for (std::filesystem::path target : targets)
+        for (const auto target : targets)
         {
             collectFileStatusTo(fileSet, target);
         }
@@ -122,9 +115,8 @@ namespace miniservant
         bool hasIgnoreFlag = false;
         for (const auto &entry : std::filesystem::directory_iterator(target))
         {
-            if (entry.path().filename().string() == IGNORE_FLAG) {
+            if (entry.path().filename().string() == IGNORE_FLAG)
                 return;
-            }
         }
 
         for (const auto &entry : std::filesystem::directory_iterator(target))
@@ -135,7 +127,7 @@ namespace miniservant
 
     std::filesystem::path dirhash::getHashFilePath()
     {
-        return directoryPath / HASH_FILE;
+        return this->directoryPath / HASH_FILE;
     };
 
     bool dirhash::hasHashFile()
@@ -148,23 +140,58 @@ namespace miniservant
         return 0 == std::memcmp(hash, _read_hash_file(getHashFilePath()), this->hashSize);
     };
 
-    bool dirhash::waitToMatch(int)
+    bool dirhash::waitToMatch(int timeout)
     {
+        bool isMatched = false;
+        int count = 0;
 
+        while (!(isMatched = isMatchToHashFile()) && count < timeout)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            calculate();
+            if (timeout >= 0)
+                count += 1;
+        }
+        return isMatched;
     };
 
     void dirhash::createEmptyHashFile()
     {
-
+        if (!hasHashFile())
+        {
+            auto path = getHashFilePath();
+            auto stream = std::ofstream(path);
+            stream << "";
+            stream.close();
+            std::filesystem::permissions(path, std::filesystem::perms::all);
+        }
     };
 
     void dirhash::save()
     {
-
+        auto path = getHashFilePath();
+        auto stream = std::ofstream(path);
+        stream.write((char*)getHash(), hashSize);
+        stream.close();
+        std::filesystem::permissions(path, std::filesystem::perms::all);
     };
 
     bool dirhash::update()
     {
-
+        if (hasHashFile())
+        {
+            calculate();
+            if (!isMatchToHashFile())
+            {
+                save();
+                return true;
+            }
+        }
+        else
+        {
+            save();
+            return true;
+        }
+        return false;
     };
 }

@@ -18,6 +18,7 @@ namespace miniservant
         //~dirhash();
         std::byte* getHash();
         void calculate();
+        void collectFileStatusTo(std::set<std::string>, std::filesystem::path);
         void collectFilesStatusTo(std::set<std::string>, std::vector<std::filesystem::path>);
         void collectDirectoryStatusTo(std::set<std::string>, std::filesystem::path);
         std::filesystem::path getHashFilePath();
@@ -27,9 +28,10 @@ namespace miniservant
         void createEmptyHashFile();
         void save();
         bool update();
-    private:
+    //private:
         std::filesystem::path baseDirectory;
         std::filesystem::path directoryPath;
         std::byte* hash;
+        int hashSize = 0;
     };
 }
