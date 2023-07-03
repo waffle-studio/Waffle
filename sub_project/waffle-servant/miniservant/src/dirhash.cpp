@@ -4,6 +4,7 @@
 #include <fstream>
 #include "sha256.h"
 #include "dirhash.hpp"
+#include <iostream>
 
 namespace miniservant
 {
@@ -59,9 +60,15 @@ namespace miniservant
     dirhash::dirhash(std::filesystem::path base_directory, std::filesystem::path directory_path)
         : dirhash::dirhash(base_directory, directory_path, true){};
 
-    std::byte *dirhash::getHash()
+    dirhash::~dirhash()
     {
-        if (this->hash == nullptr)
+        if (this->hashSize > 0)
+            free(this->hash);
+    }
+
+    unsigned char* dirhash::getHash()
+    {
+        if (this->hashSize <= 0)
             calculate();
         return this->hash;
     }
@@ -74,22 +81,38 @@ namespace miniservant
         {
             targetList.push_back(this->directoryPath / target);
         }
-        collectFilesStatusTo(fileSet, targetList);
+        collectFilesStatusTo(&fileSet, targetList);
         std::string chainedStatus = "";
+        auto a = std::vector<std::string>();
         for (auto s : fileSet)
         {
             chainedStatus.append(s);
             chainedStatus.append(SEPARATOR);
+            std::cout << s << std::endl;
+            a.push_back(s);
+        }
+        std::cout << "----" << std::endl;
+        std::random_shuffle(a.begin(), a.end());
+        for (auto s : a)
+        {
+            std::cout << s << std::endl;
+        }
+        std::cout << "----" << std::endl;
+        std::random_shuffle(a.begin(), a.end());
+        std::sort(a.begin(), a.end());
+        for (auto s : a)
+        {
+            std::cout << s << std::endl;
         }
         auto sha256 = ::SHA256();
         sha256.add(chainedStatus.c_str(), chainedStatus.size());
+        if (this->hashSize <= 0)
+            this->hash = (unsigned char*)malloc(sizeof(unsigned char) * sha256.HashBytes);
         this->hashSize = sha256.HashBytes;
-        unsigned char rawHash[sha256.HashBytes];
-        sha256.getHash(rawHash);
-        this->hash = (std::byte *)rawHash;
+        sha256.getHash(this->hash);
     };
 
-    void dirhash::collectFileStatusTo(std::set<std::string> fileSet, std::filesystem::path target)
+    void dirhash::collectFileStatusTo(std::set<std::string>* fileSet, std::filesystem::path target)
     {
         if (std::filesystem::exists(target))
         {
@@ -98,11 +121,11 @@ namespace miniservant
             else if (std::filesystem::is_directory(target))
                 collectDirectoryStatusTo(fileSet, target);
             else if (target.filename().string() != HASH_FILE && !target.filename().string().ends_with(IGNORE_FLAG))
-                fileSet.insert(_path_normalize(std::filesystem::relative(target, this->baseDirectory)).string() + SEPARATOR + std::to_string(std::filesystem::file_size(target)));
+                (*fileSet).insert(_path_normalize(std::filesystem::relative(target, this->baseDirectory)).string() + SEPARATOR + std::to_string(std::filesystem::file_size(target)));
         }
     };
 
-    void dirhash::collectFilesStatusTo(std::set<std::string> fileSet, std::vector<std::filesystem::path> targets)
+    void dirhash::collectFilesStatusTo(std::set<std::string>* fileSet, std::vector<std::filesystem::path> targets)
     {
         for (const auto target : targets)
         {
@@ -110,7 +133,7 @@ namespace miniservant
         }
     };
 
-    void dirhash::collectDirectoryStatusTo(std::set<std::string> fileSet, std::filesystem::path target)
+    void dirhash::collectDirectoryStatusTo(std::set<std::string>* fileSet, std::filesystem::path target)
     {
         bool hasIgnoreFlag = false;
         for (const auto &entry : std::filesystem::directory_iterator(target))
@@ -170,8 +193,8 @@ namespace miniservant
     void dirhash::save()
     {
         auto path = getHashFilePath();
-        auto stream = std::ofstream(path);
-        stream.write((char*)getHash(), hashSize);
+        auto stream = std::ofstream(path, std::ios::binary);
+        stream.write(reinterpret_cast<char *>(getHash()), hashSize);
         stream.close();
         std::filesystem::permissions(path, std::filesystem::perms::all);
     };

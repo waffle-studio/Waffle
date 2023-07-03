@@ -14,12 +14,8 @@
 using json = nlohmann::json;
 
 int main(int argc, char* argv[]) {
-    auto p = std::filesystem::path("/tmp");
-    p.make_preferred();
-    p = std::filesystem::path(p.lexically_normal());
-    std::cout << p.string() << std::endl;
-
-    auto dh = miniservant::dirhash(p, p / "test");
+    auto p = std::filesystem::path("/");
+    auto dh = miniservant::dirhash(p / "/home/takami/waffle/WAFFLE/LOCAL", p / "/home/takami/waffle/WAFFLE/LOCAL/PROJECT/test3/WORKSPACE/test1_300_1/RUN/sleep");
     std::cout << dh.directoryPath << std::endl;
     std::cout << dh.getHashFilePath() << std::endl;
     dh.save();
@@ -29,7 +25,7 @@ int main(int argc, char* argv[]) {
     json j = json::parse(s);
     std::cout << j["pi"] << std::endl;
     std::cout << j.dump() << std::endl;
-    system("sleep 5");
+    //system("sleep 5");
     std::cout << argv[1] << std::endl;
     return 0;
 }

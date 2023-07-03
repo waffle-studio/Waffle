@@ -15,12 +15,12 @@ namespace miniservant
 
         dirhash(std::filesystem::path, std::filesystem::path, bool);
         dirhash(std::filesystem::path, std::filesystem::path);
-        //~dirhash();
-        std::byte* getHash();
+        ~dirhash();
+        unsigned char* getHash();
         void calculate();
-        void collectFileStatusTo(std::set<std::string>, std::filesystem::path);
-        void collectFilesStatusTo(std::set<std::string>, std::vector<std::filesystem::path>);
-        void collectDirectoryStatusTo(std::set<std::string>, std::filesystem::path);
+        void collectFileStatusTo(std::set<std::string>*, std::filesystem::path);
+        void collectFilesStatusTo(std::set<std::string>*, std::vector<std::filesystem::path>);
+        void collectDirectoryStatusTo(std::set<std::string>*, std::filesystem::path);
         std::filesystem::path getHashFilePath();
         bool hasHashFile();
         bool isMatchToHashFile();
@@ -31,7 +31,7 @@ namespace miniservant
     //private:
         std::filesystem::path baseDirectory;
         std::filesystem::path directoryPath;
-        std::byte* hash;
+        unsigned char* hash;
         int hashSize = 0;
     };
 }
