@@ -141,6 +141,8 @@ namespace miniservant
     bool dirhash::isMatchToHashFile()
     {
         auto path = getHashFilePath();
+        if (!std::filesystem::exists(path))
+            return false;
         auto stream = std::ifstream(path, std::ios::binary);
         auto size = std::filesystem::file_size(path);
         unsigned char data[size];
