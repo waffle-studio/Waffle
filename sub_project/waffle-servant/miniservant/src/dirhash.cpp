@@ -32,11 +32,6 @@ namespace miniservant
         return std::filesystem::path(path.lexically_normal());
     };
 
-    inline std::byte* _read_hash_file(std::filesystem::path path)
-    {
-        return nullptr;
-    };
-
     const std::vector<std::filesystem::path> dirhash::DEFAULT_TERGET = _init_default_target();
     const std::string dirhash::HASH_FILE = ".WAFFLE_HASH";
     const std::string dirhash::IGNORE_FLAG = ".WAFFLE_HASH_IGNORE";
@@ -145,7 +140,14 @@ namespace miniservant
 
     bool dirhash::isMatchToHashFile()
     {
-        return 0 == std::memcmp(hash, _read_hash_file(getHashFilePath()), (int)this->hashSize);
+        auto path = getHashFilePath();
+        auto stream = std::ifstream(path, std::ios::binary);
+        auto size = std::filesystem::file_size(path);
+        unsigned char data[size];
+        stream.read(reinterpret_cast<char *>(data), size);
+        stream.close();
+        unsigned char* hash = getHash();
+        return this->hashSize == size && 0 == std::memcmp(hash, data, size);
     };
 
     bool dirhash::waitToMatch(int timeout)
