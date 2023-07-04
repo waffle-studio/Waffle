@@ -4,7 +4,6 @@
 #include <fstream>
 #include "sha256.h"
 #include "dirhash.hpp"
-#include <iostream>
 
 namespace miniservant
 {
@@ -18,11 +17,12 @@ namespace miniservant
 
     inline std::vector<std::filesystem::path> _init_default_target()
     {
-        static auto res = std::vector<std::filesystem::path>(4);
+        static auto res = std::vector<std::filesystem::path>();
         res.push_back(std::filesystem::path("BASE"));
-        res.push_back(std::filesystem::path("EVENT_STATUS.log"));
+        res.push_back(std::filesystem::path("EXIT_STATUS.log"));
         res.push_back(std::filesystem::path("STDOUT.txt"));
         res.push_back(std::filesystem::path("STDERR.txt"));
+        res.push_back(std::filesystem::path("task.json"));
         return res;
     };
 
@@ -83,32 +83,16 @@ namespace miniservant
         }
         collectFilesStatusTo(&fileSet, targetList);
         std::string chainedStatus = "";
-        auto a = std::vector<std::string>();
         for (auto s : fileSet)
         {
             chainedStatus.append(s);
             chainedStatus.append(SEPARATOR);
-            std::cout << s << std::endl;
-            a.push_back(s);
-        }
-        std::cout << "----" << std::endl;
-        std::random_shuffle(a.begin(), a.end());
-        for (auto s : a)
-        {
-            std::cout << s << std::endl;
-        }
-        std::cout << "----" << std::endl;
-        std::random_shuffle(a.begin(), a.end());
-        std::sort(a.begin(), a.end());
-        for (auto s : a)
-        {
-            std::cout << s << std::endl;
         }
         auto sha256 = ::SHA256();
         sha256.add(chainedStatus.c_str(), chainedStatus.size());
         if (this->hashSize <= 0)
             this->hash = (unsigned char*)malloc(sizeof(unsigned char) * sha256.HashBytes);
-        this->hashSize = sha256.HashBytes;
+        this->hashSize = (short)sha256.HashBytes;
         sha256.getHash(this->hash);
     };
 
@@ -144,7 +128,8 @@ namespace miniservant
 
         for (const auto &entry : std::filesystem::directory_iterator(target))
         {
-            collectFileStatusTo(fileSet, entry.path());
+            if (entry.path().filename().string() != "." && entry.path().filename().string() != "..")
+                collectFileStatusTo(fileSet, entry.path());
         }
     };
 
@@ -160,7 +145,7 @@ namespace miniservant
 
     bool dirhash::isMatchToHashFile()
     {
-        return 0 == std::memcmp(hash, _read_hash_file(getHashFilePath()), this->hashSize);
+        return 0 == std::memcmp(hash, _read_hash_file(getHashFilePath()), (int)this->hashSize);
     };
 
     bool dirhash::waitToMatch(int timeout)
@@ -194,7 +179,7 @@ namespace miniservant
     {
         auto path = getHashFilePath();
         auto stream = std::ofstream(path, std::ios::binary);
-        stream.write(reinterpret_cast<char *>(getHash()), hashSize);
+        stream.write(reinterpret_cast<char *>(getHash()), (int)hashSize);
         stream.close();
         std::filesystem::permissions(path, std::filesystem::perms::all);
     };

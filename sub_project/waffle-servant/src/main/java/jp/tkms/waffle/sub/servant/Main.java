@@ -115,7 +115,7 @@ public class Main {
         }
         break;
       case "sync_hash":
-        DirectoryHash directoryHash = new DirectoryHash(baseDirectory, Paths.get("."));
+        DirectoryHash directoryHash = new DirectoryHash(baseDirectory, Paths.get(".").toAbsolutePath());
         directoryHash.save();
         break;
       case "bench":

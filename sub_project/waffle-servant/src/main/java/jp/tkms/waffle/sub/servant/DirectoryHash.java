@@ -19,7 +19,8 @@ public class DirectoryHash {
     Paths.get(Constants.BASE),
     Paths.get(Constants.EXIT_STATUS_FILE),
     Paths.get(Constants.STDOUT_FILE),
-    Paths.get(Constants.STDERR_FILE)
+    Paths.get(Constants.STDERR_FILE),
+    Paths.get("task.json")
   };
 
   public static final String HASH_FILE = ".WAFFLE_HASH";

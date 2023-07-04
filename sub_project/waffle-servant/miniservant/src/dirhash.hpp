@@ -32,6 +32,6 @@ namespace miniservant
         std::filesystem::path baseDirectory;
         std::filesystem::path directoryPath;
         unsigned char* hash;
-        int hashSize = 0;
+        short hashSize = 0;
     };
 }
