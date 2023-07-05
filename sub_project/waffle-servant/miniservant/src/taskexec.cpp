@@ -1,21 +1,4 @@
-package jp.tkms.waffle.sub.servant;
-
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-import jp.tkms.waffle.sub.servant.pod.PodTask;
-
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
-
-public class TaskExecutor extends TaskCommand {
+#include "taskexec.hpp"
 
   ArrayList<String> environmentList;
   Path executableBaseDirectory;
@@ -25,9 +8,6 @@ public class TaskExecutor extends TaskCommand {
   String command;
   JsonArray argumentList;
   JsonObject environmentMap;
-  long timeout;
-  private long pid;
-  ExecKey execKey;
   FlagWatchdog flagWatchdog;
 
   public TaskExecutor(Path baseDirectory, Path taskJsonPath) throws Exception {
@@ -401,4 +381,3 @@ public class TaskExecutor extends TaskCommand {
       interrupt();
     }
   }
-}
