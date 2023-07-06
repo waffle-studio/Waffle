@@ -1,19 +1,28 @@
+#include <iostream>
 #include "taskexec.hpp"
 
-  ArrayList<String> environmentList;
-  Path executableBaseDirectory;
-  String projectName;
-  String workspaceName;
-  String executableName;
-  String command;
-  JsonArray argumentList;
-  JsonObject environmentMap;
-  FlagWatchdog flagWatchdog;
+  //FlagWatchdog flagWatchdog;
 
-  public TaskExecutor(Path baseDirectory, Path taskJsonPath) throws Exception {
-    super(baseDirectory, taskJsonPath);
+namespace miniservant
+{
+  taskexec::taskexec(std::filesystem::path base_directory, std::filesystem::path task_json_path)
+  {
+    this->baseDirectory = base_directory;
+    this->taskJsonPath = task_json_path;
+    this->environmentList = std::vector<std::string>();
 
-    this.environmentList = new ArrayList<>();
+    nlohmann::json taskJson;
+    try
+    {
+        auto stream = std::ifstream(task_json_path);
+        taskJson = nlohmann::json::parse(stream);
+        stream.close(); // the stream will auto close in next line.
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return;
+    }
 
     TaskJson taskJson = new TaskJson(Json.parse(new FileReader(taskJsonPath.toFile())).asObject());
     try {
@@ -381,3 +390,4 @@
       interrupt();
     }
   }
+}
