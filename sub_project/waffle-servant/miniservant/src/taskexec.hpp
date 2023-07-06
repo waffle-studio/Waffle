@@ -9,10 +9,15 @@ namespace miniservant
     {
     public:
         taskexec(std::filesystem::path, std::filesystem::path);
+        void shutdown();
+        void close();
+        void execute();
+        bool authorizeExecKey();
 
         // private:
         std::filesystem::path baseDirectory;
         std::filesystem::path taskJsonPath;
+        std::filesystem::path taskDirectory;
         std::vector<std::string> environmentList;
         std::filesystem::path executableBaseDirectory;
         std::string projectName;

@@ -1,14 +1,46 @@
 #include <iostream>
+#include <fstream>
+#include <thread>
+#include <chrono>
+#include <unistd.h>
+#include "subprocess.hpp"
+#include "dirhash.hpp"
 #include "taskexec.hpp"
 
-  //FlagWatchdog flagWatchdog;
+//FlagWatchdog flagWatchdog;
 
 namespace miniservant
 {
+  const short SHUTDOWN_TIMEOUT = 3;
+  const short DIRECTORY_SYNCHRONIZATION_TIMEOUT = 300;
+
+  void recursiveKill(std::string child_pid)
+  {
+    auto process = subprocess::run({"ps", "--ppid", child_pid, "-o", "pid="});
+    std::string buf;
+    while (std::getline(std::stringstream(process.cout), buf))
+      recursiveKill(buf);
+    subprocess::run({"kill", "-9", child_pid});
+  };
+
+  void createFile(std::filesystem::path path, std::string contents)
+  {
+    auto stream = std::ofstream(path);
+    stream << contents;
+    stream.close();
+  }
+
+  inline std::filesystem::path _path_normalize(std::filesystem::path path)
+  {
+    path.make_preferred();
+    return std::filesystem::path(path.lexically_normal());
+  };
+
   taskexec::taskexec(std::filesystem::path base_directory, std::filesystem::path task_json_path)
   {
-    this->baseDirectory = base_directory;
-    this->taskJsonPath = task_json_path;
+    this->baseDirectory = _path_normalize(base_directory);
+    this->taskJsonPath = _path_normalize(task_json_path);
+    this->taskDirectory = this->taskJsonPath.parent_path();
     this->environmentList = std::vector<std::string>();
 
     nlohmann::json taskJson;
@@ -24,127 +56,100 @@ namespace miniservant
         return;
     }
 
-    TaskJson taskJson = new TaskJson(Json.parse(new FileReader(taskJsonPath.toFile())).asObject());
-    try {
-      executableBaseDirectory = baseDirectory.resolve(taskJson.getExecutable()).resolve(Constants.BASE).normalize();
-    } catch (Exception e) {
-      executableBaseDirectory = null;
+    auto taskJsonExecutable = taskJson["executable"];
+    if (taskJsonExecutable.is_null())
+      this->executableBaseDirectory = _path_normalize(this->baseDirectory / taskJsonExecutable / "BASE");
+    else
+      this->executableBaseDirectory = std::filesystem::path("/");
+
+    projectName = taskJson["project"];
+    workspaceName = taskJson["workspace"];
+    executableName = taskJson["executable"];
+    command = taskJson["command"];
+    argumentList = taskJson["argument"];
+    environmentMap = taskJson["environment"];
+    timeout = taskJson["timeout"];
+    execKey = taskJson["exec_key"];
+
+    pid = "";
+  }
+
+  void taskexec::shutdown()
+  {
+    if (this->pid == "")
+      return;
+    for (int sec = 0; sec < SHUTDOWN_TIMEOUT; sec += 1)
+    {
+      if (subprocess::run({"kill", "-0", this->pid}).returncode == 1)
+        return;
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    projectName = taskJson.getProject();
-    workspaceName = taskJson.getWorkspace();
-    executableName = taskJson.getExecutableName();
-    command = taskJson.getCommand();
-    argumentList = taskJson.getArguments();
-    environmentMap = taskJson.getEnvironments();
-    timeout = taskJson.getTimeout();
-    execKey = taskJson.getExecKey();
-
-    pid = Long.valueOf(java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+    recursiveKill(this->pid);
   }
 
-  private void setPid(long pid) {
-    this.pid = pid;
-  }
-
-  public long getPid() {
-    return pid;
-  }
-
-  public void shutdown() {
-    try {
-      for (int sec = 0; sec < Constants.SHUTDOWN_TIMEOUT; sec += 1) {
-        if (Runtime.getRuntime().exec("kill -0 " + getPid()).waitFor() == 1) {
-          return;
-        }
-        TimeUnit.SECONDS.sleep(1);
-      }
-      recursiveKill(String.valueOf(getPid()));
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private void close() {
-    if (flagWatchdog != null) {
+  void taskexec::close()
+  {
+    /*
+    if (flagWatchdog != null)
+    {
       flagWatchdog.close();
     }
+    */
 
-    try {
-      Files.writeString(baseDirectory.resolve(Constants.NOTIFIER), UUID.randomUUID().toString());
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    auto stream = std::ofstream(this->baseDirectory / ".NOTIFIER");
+    auto time = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    stream << this->execKey + std::to_string(time);
+    stream.close();
   }
 
-  private void recursiveKill(String childPid) {
-    ProcessBuilder processBuilder
-      = new ProcessBuilder("ps", "--ppid", childPid, "-o", "pid=");
+  void taskexec::execute()
+  {
     try {
-      Process process = processBuilder.start();
-      try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-        process.waitFor();
-        reader.lines().forEach((child) -> recursiveKill(child));
-      }
-      Runtime.getRuntime().exec("kill -9 " + childPid).waitFor();
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-    }
-  }
-
-  public void execute() {
-    try {
-      if (!execKey.authorize(getTaskDirectory())) {
+      if (!authorizeExecKey()) {
         return;
       }
 
-      flagWatchdog = new FlagWatchdog();
-      flagWatchdog.start();
+      //flagWatchdog = new FlagWatchdog();
+      //flagWatchdog.start();
 
-      DirectoryHash directoryHash = new DirectoryHash(baseDirectory, taskDirectory);
-      directoryHash.waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
-      if (executableBaseDirectory != null) {
-        new DirectoryHash(baseDirectory, executableBaseDirectory.getParent()).waitToMatch(Constants.DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+      dirhash directoryHash = dirhash(baseDirectory, this->taskDirectory);
+      directoryHash.waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+      if (executableBaseDirectory != std::filesystem::path("/"))
+      {
+        dirhash(baseDirectory, executableBaseDirectory.parent_path()).waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
       }
 
-      Path executingBaseDirectory = taskDirectory.resolve(Constants.BASE).normalize();
-      Path stdoutPath = taskDirectory.resolve(Constants.STDOUT_FILE);
-      Path stderrPath = taskDirectory.resolve(Constants.STDERR_FILE);
-      Path eventFilePath = taskDirectory.resolve(Constants.EVENT_FILE);
-      Path statusFilePath = taskDirectory.resolve(Constants.EXIT_STATUS_FILE);
+      std::filesystem::path executingBaseDirectory = taskDirectory / "BASE";
+      std::filesystem::path stdoutPath = taskDirectory / "STDOUT.txt";
+      std::filesystem::path stderrPath = taskDirectory / "STDERR.txt";
+      std::filesystem::path eventFilePath = taskDirectory / "EVENT.bin";
+      std::filesystem::path statusFilePath = taskDirectory / "EXET_STATUS.log";
 
-      if (System.getenv().containsKey(Constants.WAFFLE_SLOT_INDEX)) {
-        addEnvironment(Constants.WAFFLE_SLOT_INDEX, System.getenv().get(Constants.WAFFLE_SLOT_INDEX));
-      }
+      char* waffleSlotIndex = std::getenv("WAFFLE_SLOT_INDEX");
+      if (waffleSlotIndex != NULL)
+        subprocess::cenv["WAFFLE_SLOT_INDEX"] = std::string(waffleSlotIndex);
 
-      addEnvironment("PATH", Main.getBinDirectory(baseDirectory).toString() + File.pathSeparator + System.getenv().get("PATH"));
-      addEnvironment(Constants.WAFFLE_BASE, executingBaseDirectory.toString());
-      addEnvironment(Constants.WAFFLE_TASK_JSONFILE, taskJsonPath.toString());
-      addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.toString());
-      addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.toString());
+      addEnvironment("PATH", (this->baseDirectory / "bin").string() + ":" + std::string(std::getenv("PATH")));
+      addEnvironment("WAFFLE_BASE", executingBaseDirectory.string());
+      addEnvironment("WAFFLE_TASK_JSONFILE", taskJsonPath.string());
+      addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.string());
+      addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.string());
 
-      try {
-        Files.createFile(stdoutPath);
-        Files.createFile(stderrPath);
-        Files.createFile(eventFilePath);
-      } catch (IOException e) {
-        // NOP
-      }
+      createFile(stdoutPath, "");
+      createFile(stderrPath, "");
+      createFile(eventFilePath, "");
 
       // write a status file
-      try {
-        FileWriter writer = new FileWriter(statusFilePath.toFile(), StandardCharsets.UTF_8, false);
-        writer.write("-2");
-        writer.flush();
-        writer.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      createFile(statusFilePath, "-2");
 
-      Files.createDirectories(executingBaseDirectory);
+      std::filesystem::create_directories(executingBaseDirectory);
 
-      if (executableBaseDirectory != null) {
+      if (executableBaseDirectory != std::filesystem::path("/"))
+      {
         // try to change permission of the command
-        Runtime.getRuntime().exec(new String[]{"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"},
+        subprocess::run
+        subprocess::run({"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"})
+        Runtime.getRuntime().exec(new String[],
           getEnvironments(), executableBaseDirectory.toFile()).waitFor();
 
         // prepare local shared directory path
@@ -174,18 +179,6 @@ namespace miniservant
           exitValue = 1;
         }
       } else {
-        // pre-process for local shared
-        /*
-        addEnvironment("WAFFLE_LOCAL_SHARED", localSharedDirectory.toString());
-        Files.createDirectories(localSharedDirectory);
-        for (JsonObject.Member member : localSharedMap) {
-          String key = member.getName();
-          String remote = member.getValue().asString();
-          Runtime.getRuntime().exec(new String[]{"sh", "-c", "mkdir -p `dirname \"" + remote + "\"`;if [ -e \"${WAFFLE_LOCAL_SHARED}/" + key + "\" ]; then ln -fs \"${WAFFLE_LOCAL_SHARED}/" + key + "\" \"" + remote + "\"; else echo \"" + key + "\" >> \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; fi"},
-            getEnvironments(), executingBaseDirectory.toFile()).waitFor();
-        }
-         */
-
         // BEGIN of main command executing
         ArrayList<String> commandArray = new ArrayList<>();
         commandArray.addAll(Arrays.asList(command.split("\\s")));
@@ -213,17 +206,6 @@ namespace miniservant
         outProcessor.join();
         errProcessor.join();
         // END of main command executing
-
-        // post-process of local shared
-        /*
-        for (JsonObject.Member member : localSharedMap) {
-          String key = member.getName();
-          String remote = member.getValue().asString();
-          Runtime.getRuntime().exec(
-            new String[]{"sh", "-c", "if grep \"^" + key + "$\" \"${WAFFLE_BATCH_WORKING_DIR}/non_prepared_local_shared.txt\"; then mv \"" + remote + "\" \"${WAFFLE_LOCAL_SHARED}/" + key + "\"; ln -fs \"${WAFFLE_LOCAL_SHARED}/"  + key + "\" \"" + remote + "\" ;fi"},
-            getEnvironments(), executingBaseDirectory.toFile()).waitFor();
-        }
-         */
 
         exitValue = process.exitValue();
       }

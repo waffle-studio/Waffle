@@ -56,6 +56,8 @@ void execTask(std::filesystem::path base_directory, std::filesystem::path task_j
         return;
     }
     
+    if (task["pi"].is_null())
+        std::cout << "NULL" << std::endl;
     std::cout << task["pi"] << std::endl;
     std::cout << task.dump() << std::endl;
     system("sleep 10");

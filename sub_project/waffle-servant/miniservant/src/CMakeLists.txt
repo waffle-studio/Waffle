@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 project(miniservant CXX)
 set(CMAKE_CXX_STANDARD 20)  
-set(CMAKE_CXX_FLAGS "-std=c++2a -lstdc++fs")
-
+set(CMAKE_CXX_FLAGS "-std=c++2a")
 file(GLOB main_cpp "*.cpp")
-add_executable(miniservant ${main_cpp})
+file(GLOB subprocess_cpp "subprocess/*.cpp")
+add_executable(miniservant ${main_cpp} ${subprocess_cpp})
+
+target_link_libraries(miniservant PUBLIC stdc++fs)
+target_link_libraries(miniservant PUBLIC pthread)
