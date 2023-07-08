@@ -6,6 +6,10 @@
 
 namespace miniservant
 {
+    enum LocalSharedFlag {
+        None, Run, Workspace, Project
+    };
+
     class taskexec
     {
     public:
@@ -15,15 +19,19 @@ namespace miniservant
         void close();
         void execute();
         bool authorizeExecKey();
+        LocalSharedFlag getLocalSharedFlag(std::filesystem::path);
         void createRecursiveLink(std::filesystem::path, std::filesystem::path, std::filesystem::path, std::filesystem::path);
+        void recursiveMerge(std::filesystem::path, std::filesystem::path);
+        void merge(std::filesystem::path, std::filesystem::path);
+        std::string extractEnvValue(std::string);
 
-        void flagWatchdogThreadFunc();
+        void flagWatchdogThreadFunc(std::filesystem::path);
 
         // private:
         std::filesystem::path baseDirectory;
         std::filesystem::path taskJsonPath;
         std::filesystem::path taskDirectory;
-        std::filesystem::path executableBaseDirectory;
+        std::filesystem::path* executableBaseDirectory;
         std::string projectName;
         std::string workspaceName;
         std::string executableName;
@@ -34,6 +42,6 @@ namespace miniservant
         std::string execKey;
 
         std::thread* flagWatchdogThread = nullptr;
-        bool isClosed = FALSE;
+        bool isClosed = false;
     };
 }

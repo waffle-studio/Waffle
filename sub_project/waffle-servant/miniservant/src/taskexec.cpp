@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "subprocess.hpp"
 #include "dirhash.hpp"
+#include "outproc.hpp"
 #include "taskexec.hpp"
 
 //FlagWatchdog flagWatchdog;
@@ -13,6 +14,8 @@ namespace miniservant
   const short WATCHDOG_INTERVAL = 2;
   const short SHUTDOWN_TIMEOUT = 3;
   const short DIRECTORY_SYNCHRONIZATION_TIMEOUT = 300;
+  const std::string WAFFLE_LOCAL_SHARED(".WAFFLE_LOCAL_SHARED");
+
 
   void recursiveKill(std::string child_pid)
   {
@@ -29,6 +32,22 @@ namespace miniservant
     auto stream = std::ofstream(path);
     stream << contents;
     stream.close();
+  }
+
+  void flagWatchdogThreadFunc(bool* is_closed, std::filesystem::path flag_path)
+  {
+    createFile(flag_path, "");
+    while (std::filesystem::exists(flag_path) && *is_closed)
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    if (!std::filesystem::exists(flag_path))
+    {
+      std::cerr << "The task will be killed because missing " << flag_path.string() << std::endl;
+      recursiveKill(std::to_string(getpid()));
+      exit(1);
+    }
+    else
+      std::filesystem::remove(flag_path);
   }
 
   inline std::filesystem::path _path_normalize(std::filesystem::path path)
@@ -58,9 +77,9 @@ namespace miniservant
 
     auto taskJsonExecutable = taskJson["executable"];
     if (taskJsonExecutable.is_null())
-      this->executableBaseDirectory = _path_normalize(this->baseDirectory / taskJsonExecutable / "BASE");
+      *this->executableBaseDirectory = _path_normalize(this->baseDirectory / taskJsonExecutable / "BASE");
     else
-      this->executableBaseDirectory = std::filesystem::path("/");
+      this->executableBaseDirectory = nullptr;
 
     projectName = taskJson["project"];
     workspaceName = taskJson["workspace"];
@@ -92,10 +111,11 @@ namespace miniservant
   {
     if (!this->isClosed)
     {
-      if (flagWatchdog != nullptr)
+      this->isClosed = true;
+      if (flagWatchdogThread != nullptr)
       {
-        flagWatchdog->detach();
-        flagWatchdog = nullptr;
+        flagWatchdogThread->detach();
+        flagWatchdogThread = nullptr;
       }
 
       auto stream = std::ofstream(this->baseDirectory / ".NOTIFIER");
@@ -112,13 +132,13 @@ namespace miniservant
         return;
       }
 
-      *flagWatchdog = std::thread(flagWatchdogThreadFunc);
+      *flagWatchdogThread = std::thread(miniservant::flagWatchdogThreadFunc, &this->isClosed, this->taskDirectory / "ALIVE");
 
       dirhash directoryHash = dirhash(baseDirectory, this->taskDirectory);
       directoryHash.waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
-      if (executableBaseDirectory != std::filesystem::path("/"))
+      if (executableBaseDirectory != nullptr)
       {
-        dirhash(baseDirectory, executableBaseDirectory.parent_path()).waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+        dirhash(baseDirectory, executableBaseDirectory->parent_path()).waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
       }
 
       std::filesystem::path executingBaseDirectory = taskDirectory / "BASE";
@@ -152,7 +172,7 @@ namespace miniservant
         subprocess::cenv[key] = std::string(value); // dump()?
       }
 
-      if (executableBaseDirectory != std::filesystem::path("/"))
+      if (executableBaseDirectory != nullptr)
       {
         // try to change permission of the command
         subprocess::run({"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"});
@@ -162,7 +182,7 @@ namespace miniservant
         auto workspaceLocalSharedDirectory = baseDirectory / "PROJECT" / projectName / "WORKSPACE" / workspaceName / "LOCAL_SHARED" / executableName;
 
         // create link of executable entities
-        createRecursiveLink(executableBaseDirectory, executingBaseDirectory, projectLocalSharedDirectory, workspaceLocalSharedDirectory);
+        createRecursiveLink(*executableBaseDirectory, executingBaseDirectory, projectLocalSharedDirectory, workspaceLocalSharedDirectory);
       }
 
       int exitValue = 0;
@@ -183,12 +203,13 @@ namespace miniservant
           commandArray.push_back(value.dump()); //?
         }
 
-        auto process = subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
+        auto process =
+            subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
 
-        OutputProcessor outProcessor =
-          new OutputProcessor(process.getInputStream(), stdoutPath, new EventRecorder(baseDirectory, eventFilePath));
-        OutputProcessor errProcessor =
-          new OutputProcessor(process.getErrorStream(), stderrPath, new EventRecorder(baseDirectory, eventFilePath));
+        outproc outProcessor =
+            outproc(process.cout, stdoutPath, baseDirectory, eventFilePath);
+        outproc errProcessor =
+            outproc(process.cerr, stderrPath, baseDirectory, eventFilePath);
         outProcessor.start();
         errProcessor.start();
 
@@ -216,154 +237,129 @@ namespace miniservant
 
       // update hash file
       directoryHash.update();
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
       std::cerr << e.what();
     }
     close();
   }
 
-  void taskexec::createRecursiveLink(std::filesystem::path source, std::filesystem::path destination, std::filesystem::path projectLocalShared, std::filesystem::path workspaceLocalShared) throws IOException
+  bool taskexec::authorizeExecKey()
   {
-    if (Files.isDirectory(source)) {
-      Files.createDirectories(destination);
-    }
-    try (Stream<Path> stream = Files.list(source)) {
-      stream.forEach(path -> {
-        try {
-          Path localShared = projectLocalShared;
-
-          switch (LocalSharedFlag.getFlag(path).getLevel()) {
-            case None:
-              if (Files.isDirectory(path)) {
-                createRecursiveLink(path, destination.resolve(path.getFileName()),
-                  projectLocalShared.resolve(path.getFileName()), workspaceLocalShared.resolve(path.getFileName()));
-              } else {
-                Files.createSymbolicLink(destination.resolve(path.getFileName()), path);
-              }
-              break;
-            case Run:
-              if (Files.isDirectory(path)) {
-                recursiveMerge(path, destination.resolve(path.getFileName()));
-              } else {
-                Files.copy(path, destination.resolve(path.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-              }
-              break;
-            case Workspace: // replace localShared from project's.
-              localShared = workspaceLocalShared;
-            case Project: // localShared is projectLocalShared when Project case
-              Path sharedPath = localShared.resolve(path.getFileName());
-              if (Files.isDirectory(path)) {
-                recursiveMerge(path, sharedPath);
-              } else {
-                merge(path, sharedPath);
-              }
-              Files.createSymbolicLink(destination.resolve(path.getFileName()), sharedPath);
-              break;
-          }
-        } catch (IOException e) {
-          e.printStackTrace();
-          try {
-            Files.writeString(Paths.get("/tmp/err"), e.toString());
-          } catch (IOException ex) {
-            ex.printStackTrace();
-          }
-        }
-      });
-    }
+    auto path = this->taskDirectory / ".EXEC_KEY";
+    if (!std::filesystem::exists(path))
+      return false;
+    auto stream = std::ifstream(path);
+    auto size = std::filesystem::file_size(path);
+    char data[size];
+    stream.read(reinterpret_cast<char *>(data), size);
+    stream.close();
+    return std::strcmp(this->execKey.c_str(), data) == 0;
   }
 
-  private void recursiveMerge(Path source, Path destination) throws IOException {
-    if (Files.isDirectory(source)) {
-      Files.createDirectories(destination);
+  LocalSharedFlag taskexec::getLocalSharedFlag(std::filesystem::path path)
+  {
+    auto flagPath = path.parent_path() / (WAFFLE_LOCAL_SHARED + "." + path.filename().string()); 
+    if (std::filesystem::is_directory(path))
+    {
+      flagPath = path.parent_path() / (WAFFLE_LOCAL_SHARED + "." + path.filename().string()); 
+      if (!std::filesystem::is_regular_file(flagPath))
+        flagPath = path / WAFFLE_LOCAL_SHARED;
     }
-    try (Stream<Path> stream = Files.list(source)) {
-      stream.forEach(path -> {
-        try {
-          if (Files.isDirectory(path)) {
-            recursiveMerge(path, destination.resolve(path.getFileName()));
-          } else {
-            merge(path, destination.resolve(path.getFileName()));
-          }
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      });
+
+    if (std::filesystem::is_regular_file(flagPath))
+    {
+      auto stream = std::ifstream(flagPath);
+      if (std::filesystem::file_size(flagPath) <= 0)
+        return LocalSharedFlag::None;
+      char data[1];
+      stream.read(reinterpret_cast<char *>(data), 1);
+      switch (data[0])
+      {
+        case 'w':
+        case 'W':
+          return LocalSharedFlag::Workspace;
+        case 'p':
+        case 'P':
+          return LocalSharedFlag::Project;
+      }
+      return LocalSharedFlag::Run;
     }
+
+    return LocalSharedFlag::None;
   }
 
-  private void merge(Path source, Path destination) {
-    if (!Files.exists(destination)) {
-      try {
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
-      } catch (IOException e) {
-        e.printStackTrace();
+  void taskexec::createRecursiveLink(std::filesystem::path source, std::filesystem::path destination, std::filesystem::path projectLocalShared, std::filesystem::path workspaceLocalShared)
+  {
+    if (std::filesystem::is_directory(source))
+      std::filesystem::create_directories(destination);
+
+    for (const auto &entry : std::filesystem::directory_iterator(source))
+    {
+      auto path = entry.path();
+      if (path.filename().string() == "." || path.filename().string() == "..")
+        continue;
+      auto localShared = projectLocalShared;
+      switch (getLocalSharedFlag(path))
+      {
+      case None:
+        if (std::filesystem::is_directory(path))
+          createRecursiveLink(path, destination / path.filename(),
+                              projectLocalShared / path.filename(), workspaceLocalShared / path.filename());
+        else
+          std::filesystem::create_symlink(destination / path.filename(), path);
+        break;
+      case Run:
+        if (std::filesystem::is_directory(path))
+          recursiveMerge(path, destination / path.filename());
+        else
+          std::filesystem::copy(path, destination / path.filename(), std::filesystem::copy_options::overwrite_existing);
+        break;
+      case Workspace: // replace localShared from project's.
+        localShared = workspaceLocalShared;
+      case Project: // localShared is projectLocalShared when Project case
+        auto sharedPath = localShared / path.filename();
+        if (std::filesystem::is_directory(path))
+          recursiveMerge(path, sharedPath);
+        else
+          merge(path, sharedPath);
+        std::filesystem::create_symlink(destination / path.filename(), sharedPath);
+        break;
       }
     }
   }
 
-  public void addEnvironment(String name, String value) {
-    try {
-      //Process process = Runtime.getRuntime().exec(new String[]{"echo", "-n", value},
-        //getEnvironments(), executableBaseDirectory.toFile());
-      Path workingDirectory = Paths.get(".");
-      if (executableBaseDirectory != null) {
-        workingDirectory = executableBaseDirectory;
-      }
-      Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo -n \"" + value + "\""},
-        getEnvironments(), workingDirectory.toFile());
-      InputStream inputStream = process.getInputStream();
-      process.waitFor();
-      value = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+  void taskexec::recursiveMerge(std::filesystem::path source, std::filesystem::path destination)
+  {
+    if (std::filesystem::is_directory(source))
+      std::filesystem::create_directories(destination);
+    for (const auto &entry : std::filesystem::directory_iterator(source))
+    {
+      auto path = entry.path();
+      if (path.filename().string() == "." || path.filename().string() == "..")
+        continue;
+      if (std::filesystem::is_directory(path))
+        recursiveMerge(path, destination / path.filename());
+      else
+        merge(path, destination / path.filename());
     }
-    environmentList.add(name + '=' + value);
   }
 
-  private String[] getEnvironments() {
-    return environmentList.toArray(new String[environmentList.size()]);
+  void taskexec::merge(std::filesystem::path source, std::filesystem::path destination)
+  {
+    if (!std::filesystem::exists(destination))
+      std::filesystem::copy(source, destination, std::filesystem::copy_options::overwrite_existing);
   }
 
-  private class FlagWatchdog extends Thread {
-    Path flagPath;
-    boolean interrupted;
-
-    public FlagWatchdog() {
-      this.interrupted = false;
-      this.flagPath = getTaskDirectory().resolve(Constants.ALIVE);
-
-      try {
-        Files.createFile(flagPath);
-      } catch (IOException e) {
-        e.printStackTrace();
-      } finally {
-        flagPath.toFile().deleteOnExit();
-      }
+  std::string taskexec::extractEnvValue(std::string value)
+  {
+    auto workingDirectory = std::filesystem::path(".");
+    if (this->executableBaseDirectory != nullptr)
+    {
+      workingDirectory = *executableBaseDirectory;
     }
-
-    @Override
-    public void run() {
-      while (Files.exists(flagPath) && !interrupted) {
-        try {
-          TimeUnit.SECONDS.sleep(Constants.WATCHDOG_INTERVAL);
-        } catch (InterruptedException e) {
-          continue;
-        }
-      }
-
-      if (!interrupted) {
-        System.err.println("The task will be killed because missing " + flagPath);
-        recursiveKill(String.valueOf(getPid()));
-        System.exit(1);
-      }
-      return;
-    }
-
-    public void close() {
-      interrupted = true;
-      interrupt();
-    }
+    auto process = subprocess::run({"echo", "-n", value}, {.cwd = workingDirectory.string()});
+    return process.cout;
   }
 }
