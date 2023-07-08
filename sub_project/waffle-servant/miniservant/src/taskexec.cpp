@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <thread>
 #include <chrono>
 #include <unistd.h>
 #include "subprocess.hpp"
@@ -11,6 +10,7 @@
 
 namespace miniservant
 {
+  const short WATCHDOG_INTERVAL = 2;
   const short SHUTDOWN_TIMEOUT = 3;
   const short DIRECTORY_SYNCHRONIZATION_TIMEOUT = 300;
 
@@ -20,7 +20,8 @@ namespace miniservant
     std::string buf;
     while (std::getline(std::stringstream(process.cout), buf))
       recursiveKill(buf);
-    subprocess::run({"kill", "-9", child_pid});
+    if (child_pid != std::to_string(getpid()))
+      subprocess::run({"kill", "-9", child_pid});
   };
 
   void createFile(std::filesystem::path path, std::string contents)
@@ -41,7 +42,6 @@ namespace miniservant
     this->baseDirectory = _path_normalize(base_directory);
     this->taskJsonPath = _path_normalize(task_json_path);
     this->taskDirectory = this->taskJsonPath.parent_path();
-    this->environmentList = std::vector<std::string>();
 
     nlohmann::json taskJson;
     try
@@ -70,36 +70,39 @@ namespace miniservant
     environmentMap = taskJson["environment"];
     timeout = taskJson["timeout"];
     execKey = taskJson["exec_key"];
+  }
 
-    pid = "";
+  taskexec::~taskexec()
+  {
+    close();
   }
 
   void taskexec::shutdown()
   {
-    if (this->pid == "")
-      return;
     for (int sec = 0; sec < SHUTDOWN_TIMEOUT; sec += 1)
     {
-      if (subprocess::run({"kill", "-0", this->pid}).returncode == 1)
+      if (subprocess::run({"ps", "--ppid", std::to_string(getpid()), "-o", "pid="}).cout == "")
         return;
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    recursiveKill(this->pid);
+    recursiveKill(std::to_string(getpid()));
   }
 
   void taskexec::close()
   {
-    /*
-    if (flagWatchdog != null)
+    if (!this->isClosed)
     {
-      flagWatchdog.close();
-    }
-    */
+      if (flagWatchdog != nullptr)
+      {
+        flagWatchdog->detach();
+        flagWatchdog = nullptr;
+      }
 
-    auto stream = std::ofstream(this->baseDirectory / ".NOTIFIER");
-    auto time = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    stream << this->execKey + std::to_string(time);
-    stream.close();
+      auto stream = std::ofstream(this->baseDirectory / ".NOTIFIER");
+      auto time = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      stream << this->execKey + std::to_string(time);
+      stream.close();
+    }
   }
 
   void taskexec::execute()
@@ -109,8 +112,7 @@ namespace miniservant
         return;
       }
 
-      //flagWatchdog = new FlagWatchdog();
-      //flagWatchdog.start();
+      *flagWatchdog = std::thread(flagWatchdogThreadFunc);
 
       dirhash directoryHash = dirhash(baseDirectory, this->taskDirectory);
       directoryHash.waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
@@ -129,11 +131,11 @@ namespace miniservant
       if (waffleSlotIndex != NULL)
         subprocess::cenv["WAFFLE_SLOT_INDEX"] = std::string(waffleSlotIndex);
 
-      addEnvironment("PATH", (this->baseDirectory / "bin").string() + ":" + std::string(std::getenv("PATH")));
-      addEnvironment("WAFFLE_BASE", executingBaseDirectory.string());
-      addEnvironment("WAFFLE_TASK_JSONFILE", taskJsonPath.string());
-      addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.string());
-      addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.string());
+      subprocess::cenv["PATH"] = (this->baseDirectory / "bin").string() + ":" + std::string(std::getenv("PATH"));
+      subprocess::cenv["WAFFLE_BASE"] = executingBaseDirectory.string();
+      subprocess::cenv["WAFFLE_TASK_JSONFILE"] = taskJsonPath.string();
+      subprocess::cenv["WAFFLE_BATCH_WORKING_DIR"] = taskDirectory.string();
+      subprocess::cenv["WAFFLE_WORKING_DIR"] = executingBaseDirectory.string();
 
       createFile(stdoutPath, "");
       createFile(stderrPath, "");
@@ -144,51 +146,44 @@ namespace miniservant
 
       std::filesystem::create_directories(executingBaseDirectory);
 
+      // load custom environments
+      for (auto &[key, value] : environmentMap.items())
+      {
+        subprocess::cenv[key] = std::string(value); // dump()?
+      }
+
       if (executableBaseDirectory != std::filesystem::path("/"))
       {
         // try to change permission of the command
-        subprocess::run
-        subprocess::run({"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"})
-        Runtime.getRuntime().exec(new String[],
-          getEnvironments(), executableBaseDirectory.toFile()).waitFor();
+        subprocess::run({"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"});
 
         // prepare local shared directory path
-        Path projectLocalSharedDirectory = baseDirectory.resolve(Constants.PROJECT).resolve(projectName)
-          .resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
-        Path workspaceLocalSharedDirectory = baseDirectory.resolve(Constants.PROJECT).resolve(projectName)
-          .resolve(Constants.WORKSPACE).resolve(workspaceName)
-          .resolve(Constants.LOCAL_SHARED).resolve(executableName).normalize();
+        auto projectLocalSharedDirectory = baseDirectory / "PROJECT" / projectName / "LOCAL_SHARED" / executableName;
+        auto workspaceLocalSharedDirectory = baseDirectory / "PROJECT" / projectName / "WORKSPACE" / workspaceName / "LOCAL_SHARED" / executableName;
 
         // create link of executable entities
-        createRecursiveLink(executableBaseDirectory, executingBaseDirectory,
-          projectLocalSharedDirectory, workspaceLocalSharedDirectory);
-      }
-
-      // load custom environments
-      for (JsonObject.Member member : environmentMap) {
-        addEnvironment(member.getName(), member.getValue().asString());
+        createRecursiveLink(executableBaseDirectory, executingBaseDirectory, projectLocalSharedDirectory, workspaceLocalSharedDirectory);
       }
 
       int exitValue = 0;
 
-      if (command.equals(PodTask.PODTASK)) {
-        try {
-          PodTask podTask = new PodTask(argumentList);
-          podTask.run();
-        } catch (Exception e) {
-          exitValue = 1;
-        }
-      } else {
+      if (command == "#PODTASK")
+      {
+        subprocess::run({"echo PODTASK"});
+        std::exit(126);
+      }
+      else
+      {
         // BEGIN of main command executing
-        ArrayList<String> commandArray = new ArrayList<>();
-        commandArray.addAll(Arrays.asList(command.split("\\s")));
-        for (JsonValue value : argumentList) {
-          commandArray.add(value.isString() ? value.asString() : value.toString());
+        auto commandArray = std::vector<std::string>();
+        //commandArray.addAll(Arrays.asList(command.split("\\s")));
+        commandArray.push_back(command);
+        for (auto &value : argumentList)
+        {
+          commandArray.push_back(value.dump()); //?
         }
 
-        Process process = Runtime.getRuntime().exec(commandArray.toArray(new String[commandArray.size()]),
-          getEnvironments(), executingBaseDirectory.toFile());
-        setPid(process.pid());
+        auto process = subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
 
         OutputProcessor outProcessor =
           new OutputProcessor(process.getInputStream(), stdoutPath, new EventRecorder(baseDirectory, eventFilePath));
@@ -197,39 +192,38 @@ namespace miniservant
         outProcessor.start();
         errProcessor.start();
 
-        if (timeout < 0) {
-          process.waitFor();
-        } else {
-          process.waitFor(timeout, TimeUnit.SECONDS);
-        }
+        if (this->timeout < 0)
+          process.wait();
+        else
+          try
+          {
+            process.wait(timeout);
+          }
+          catch (const std::exception &e)
+          {
+            process.kill();
+          }
 
         outProcessor.join();
         errProcessor.join();
         // END of main command executing
 
-        exitValue = process.exitValue();
+        exitValue = process.returncode;
       }
 
       // write a status file
-      try {
-        FileWriter writer = new FileWriter(statusFilePath.toFile(), StandardCharsets.UTF_8, false);
-        writer.write(String.valueOf(exitValue));
-        writer.flush();
-        writer.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      createFile(statusFilePath, std::to_string(exitValue));
 
       // update hash file
       directoryHash.update();
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-    } finally {
-      close();
+    } catch (const std::exception &e) {
+      std::cerr << e.what();
     }
+    close();
   }
 
-  private void createRecursiveLink(Path source, Path destination, Path projectLocalShared, Path workspaceLocalShared) throws IOException {
+  void taskexec::createRecursiveLink(std::filesystem::path source, std::filesystem::path destination, std::filesystem::path projectLocalShared, std::filesystem::path workspaceLocalShared) throws IOException
+  {
     if (Files.isDirectory(source)) {
       Files.createDirectories(destination);
     }
