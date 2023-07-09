@@ -50,10 +50,14 @@ public class ServantScript {
       writeln(writer, "WAFFLE_SERVANT_SCRIPT_BASEDIR=\"$(pwd)\"");
       writeln(writer, "cd \"$WAFFLE_SERVANT_SCRIPT_WORKDIR\"");
       writeln(writer, "WAFFLE_JAVA=\"$WAFFLE_SERVANT_SCRIPT_DIR/waffle-servant-jre/bin/java\"");
+      writeln(writer, "WAFFLE_MINISERVANT=\"$WAFFLE_SERVANT_SCRIPT_DIR/waffle-servant-jre/bin/miniservant\"");
       writeln(writer, computer.getJvmActivationCommand());
       writeln(writer, "if [ \"$1\" = \"exec\" ];then");
-      //writeln(writer, "\"$WAFFLE_JAVA\" -Xms5m -Xmx100m -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=50 -XX:+UseSerialGC -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
+      writeln(writer, "\"$WAFFLE_MINISERVANT\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
+      writeln(writer, "EC=$?");
+      writeln(writer, "if [ $EC = 126 -o $EC = 127 ];then");
       writeln(writer, "\"$WAFFLE_JAVA\" -client --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
+      writeln(writer, "fi");
       writeln(writer, "elif [ \"$1\" = \"main\" ];then");
       writeln(writer, "\"$WAFFLE_JAVA\" --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" main \"$2\"");
       writeln(writer, "else");

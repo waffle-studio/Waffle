@@ -45,7 +45,7 @@ task createXsubArchive(type: Zip, dependsOn: copyXsub) {
     excludes = ['.git',]
 }
 
-assemble.dependsOn(jar, createXsubArchive)
+processResources.dependsOn(createXsubArchive)
 compileJava.dependsOn(createXsubArchive)
 
 mainClassName = 'jp.tkms.waffle.sub.servant.Main'
