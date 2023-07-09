@@ -1,7 +1,7 @@
 #include <thread>
 #include <filesystem>
-#include "eventrec.hpp"
 #include "subprocess.hpp"
+#include "eventrec.hpp"
 
 namespace miniservant
 {
@@ -16,6 +16,6 @@ namespace miniservant
         std::thread* thread = nullptr;
         subprocess::PipeHandle* pipe;
         std::filesystem::path filePath;
-        eventrec recorder;
+        eventrec* recorder;
     };
 }

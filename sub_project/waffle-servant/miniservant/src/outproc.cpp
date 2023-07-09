@@ -22,18 +22,18 @@ namespace miniservant
             }
         }
         writer.close();
-    }
+    };
 
     outproc::outproc(subprocess::PipeHandle* pipe, std::filesystem::path filePath, std::filesystem::path baseDirectory, std::filesystem::path eventFilePath)
     {
         this->pipe = pipe;
         this->filePath = filePath;
-        this->recorder = eventrec(baseDirectory, eventFilePath);
+        this->recorder = new eventrec(&baseDirectory, &eventFilePath);
     };
 
     void outproc::start()
     {
-        this->thread = new std::thread(outprocThreadFunc, this->pipe, this->filePath, &this->recorder); 
+        this->thread = new std::thread(outprocThreadFunc, this->pipe, this->filePath, this->recorder); 
     };
 
     void outproc::join()

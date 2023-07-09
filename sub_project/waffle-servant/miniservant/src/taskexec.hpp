@@ -25,7 +25,7 @@ namespace miniservant
         void merge(std::filesystem::path, std::filesystem::path);
         std::string extractEnvValue(std::string);
 
-        // private:
+    // private:
         std::filesystem::path* baseDirectory;
         std::filesystem::path* taskJsonPath;
         std::filesystem::path* taskDirectory;

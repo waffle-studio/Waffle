@@ -140,6 +140,12 @@ namespace miniservant
 
   void taskexec::execute()
   {
+    if (command == "#PODTASK")
+    {
+      subprocess::run({"echo", "PODTASK"});
+      exit(126);
+    }
+
     try {
       if (!authorizeExecKey()) {
         return;
@@ -159,7 +165,7 @@ namespace miniservant
       std::filesystem::path stdoutPath = *this->taskDirectory / "STDOUT.txt";
       std::filesystem::path stderrPath = *this->taskDirectory / "STDERR.txt";
       std::filesystem::path eventFilePath = *this->taskDirectory / "EVENT.bin";
-      std::filesystem::path statusFilePath = *this->taskDirectory / "EXET_STATUS.log";
+      std::filesystem::path statusFilePath = *this->taskDirectory / "EXIT_STATUS.log";
 
       char* waffleSlotIndex = std::getenv("WAFFLE_SLOT_INDEX");
       if (waffleSlotIndex != NULL)
@@ -201,53 +207,40 @@ namespace miniservant
 
       int exitValue = 0;
 
-      if (command == "#PODTASK")
+      // BEGIN of main command executing
+      auto commandArray = std::vector<std::string>();
+      // commandArray.addAll(Arrays.asList(command.split("\\s")));
+      commandArray.push_back(command);
+      for (auto &value : argumentList)
       {
-        subprocess::run({"echo PODTASK"});
-        std::exit(126);
+        commandArray.push_back((std::string)value);
       }
+
+      chdir(executingBaseDirectory.c_str());
+      auto process = subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory.string()).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
+
+      outproc outProcessor = outproc(&process.cout, stdoutPath, *this->baseDirectory, eventFilePath);
+      outproc errProcessor = outproc(&process.cerr, stderrPath, *this->baseDirectory, eventFilePath);
+      outProcessor.start();
+      errProcessor.start();
+
+      if (this->timeout < 0)
+        process.wait();
       else
-      {
-        // BEGIN of main command executing
-        auto commandArray = std::vector<std::string>();
-        //commandArray.addAll(Arrays.asList(command.split("\\s")));
-        commandArray.push_back(command);
-        for (auto &value : argumentList)
+        try
         {
-          commandArray.push_back((std::string)value);
+          process.wait(timeout);
+        }
+        catch (const std::exception &e)
+        {
+          process.kill();
         }
 
-        chdir(executingBaseDirectory.c_str());
-        auto process = subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory.string()).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
-        std::cout << executingBaseDirectory.string() << std::endl;
+      outProcessor.join();
+      errProcessor.join();
+      // END of main command executing
 
-        outproc outProcessor = outproc(&process.cout, stdoutPath, *this->baseDirectory, eventFilePath);
-        outproc errProcessor = outproc(&process.cerr, stderrPath, *this->baseDirectory, eventFilePath);
-        std::cout << executingBaseDirectory.string() << std::endl;
-        outProcessor.start();
-        errProcessor.start();
-        std::cout << executingBaseDirectory.string() << std::endl;
-
-        if (this->timeout < 0)
-          process.wait();
-        else
-          try
-          {
-            process.wait(timeout);
-          }
-          catch (const std::exception &e)
-          {
-            process.kill();
-          }
-        std::cout << executingBaseDirectory.string() << std::endl;
-
-        outProcessor.join();
-        errProcessor.join();
-        // END of main command executing
-
-        std::cout << executingBaseDirectory.string() << std::endl;
-        exitValue = process.returncode;
-      }
+      exitValue = process.returncode;
 
       // write a status file
       createFile(statusFilePath, std::to_string(exitValue));
