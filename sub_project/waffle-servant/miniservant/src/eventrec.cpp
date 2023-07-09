@@ -17,18 +17,22 @@ namespace miniservant
     const char EVENT_SEPARATOR = 0x1e;
     const char EVENT_VALUE_SEPARATOR = 0x1f;
 
-    eventrec::eventrec(std::filesystem::path* baseDirectory, std::filesystem::path* recordPath)
+    eventrec::eventrec(std::filesystem::path baseDirectory, std::filesystem::path recordPath)
     {
-        if (recordPath->is_absolute())
-            this->recordPath = new std::filesystem::path(recordPath->string());
+        if (recordPath.is_absolute())
+            this->recordPath = new std::filesystem::path(recordPath.string());
         else
-            this->recordPath = new std::filesystem::path((*baseDirectory / *recordPath).string());
+            this->recordPath = new std::filesystem::path(baseDirectory / recordPath);
         this->state = 0;
         this->nameBuilder = "";
         this->valueBuilder = "";
         this->cursor = 0;
         this->escape = false;
     };
+
+    eventrec::~eventrec(){
+        delete this->recordPath;
+    }
 
     void eventrec::write(std::string name, std::string value)
     {

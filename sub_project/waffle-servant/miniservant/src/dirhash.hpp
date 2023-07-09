@@ -28,9 +28,10 @@ namespace miniservant
         void createEmptyHashFile();
         void save();
         bool update();
-    //private:
-        std::filesystem::path baseDirectory;
-        std::filesystem::path directoryPath;
+
+    private:
+        std::filesystem::path* baseDirectory;
+        std::filesystem::path* directoryPath;
         unsigned char* hash;
         short hashSize = 0;
     };

@@ -9,10 +9,11 @@ namespace miniservant
     {
     public:
         outproc(subprocess::PipeHandle*, std::filesystem::path, std::filesystem::path, std::filesystem::path);
+        ~outproc();
         void start();
         void join();
 
-    //private:
+    private:
         std::thread* thread = nullptr;
         subprocess::PipeHandle* pipe;
         std::filesystem::path filePath;

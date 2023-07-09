@@ -26,10 +26,11 @@ namespace miniservant
         return res;
     };
 
-    inline std::filesystem::path _path_normalize(std::filesystem::path path)
+    inline std::filesystem::path* _new_normalized_path(std::filesystem::path path)
     {
-        path.make_preferred();
-        return std::filesystem::path(path.lexically_normal());
+        auto p = std::filesystem::path(path);
+        p.make_preferred();
+        return new std::filesystem::path(p.lexically_normal());
     };
 
     const std::vector<std::filesystem::path> dirhash::DEFAULT_TERGET = _init_default_target();
@@ -41,12 +42,11 @@ namespace miniservant
     {
         this->hash = nullptr;
 
-        this->baseDirectory = base_directory;
+        this->baseDirectory = _new_normalized_path(base_directory);
         if (directory_path.is_absolute())
-            this->directoryPath = directory_path;
+            this->directoryPath = _new_normalized_path(directory_path);
         else
-            this->directoryPath = base_directory / directory_path;
-        this->directoryPath = _path_normalize(this->directoryPath);
+            this->directoryPath = _new_normalized_path(base_directory / directory_path);
 
         if (is_ready)
             calculate();
@@ -59,6 +59,8 @@ namespace miniservant
     {
         if (this->hashSize > 0)
             free(this->hash);
+        delete baseDirectory;
+        delete directoryPath;
     }
 
     unsigned char* dirhash::getHash()
@@ -74,7 +76,7 @@ namespace miniservant
         auto targetList = std::vector<std::filesystem::path>();
         for (auto target : dirhash::DEFAULT_TERGET)
         {
-            targetList.push_back(this->directoryPath / target);
+            targetList.push_back(*this->directoryPath / target);
         }
         collectFilesStatusTo(&fileSet, targetList);
         std::string chainedStatus = "";
@@ -100,7 +102,11 @@ namespace miniservant
             else if (std::filesystem::is_directory(target))
                 collectDirectoryStatusTo(fileSet, target);
             else if (target.filename().string() != HASH_FILE && !target.filename().string().ends_with(IGNORE_FLAG))
-                (*fileSet).insert(_path_normalize(std::filesystem::relative(target, this->baseDirectory)).string() + SEPARATOR + std::to_string(std::filesystem::file_size(target)));
+            {
+                auto heap = _new_normalized_path(std::filesystem::relative(target, *this->baseDirectory));
+                (*fileSet).insert(heap->string() + SEPARATOR + std::to_string(std::filesystem::file_size(target)));
+                delete heap;
+            }
         }
     };
 
@@ -130,7 +136,7 @@ namespace miniservant
 
     std::filesystem::path dirhash::getHashFilePath()
     {
-        return this->directoryPath / HASH_FILE;
+        return *this->directoryPath / HASH_FILE;
     };
 
     bool dirhash::hasHashFile()

@@ -28,8 +28,15 @@ namespace miniservant
     {
         this->pipe = pipe;
         this->filePath = filePath;
-        this->recorder = new eventrec(&baseDirectory, &eventFilePath);
+        this->recorder = new eventrec(baseDirectory, eventFilePath);
     };
+
+    outproc::~outproc()
+    {
+        if (this->thread != nullptr)
+            delete this->thread;
+        delete this->recorder;
+    }
 
     void outproc::start()
     {

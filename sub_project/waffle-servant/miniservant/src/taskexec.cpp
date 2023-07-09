@@ -53,10 +53,11 @@ namespace miniservant
       std::filesystem::remove(flag_path);
   }
 
-  inline void _path_normalize(std::filesystem::path* path)
+  inline std::filesystem::path *_new_normalized_path(std::filesystem::path path)
   {
-    path->make_preferred();
-    path = new std::filesystem::path(path->lexically_normal());
+    auto p = std::filesystem::path(path);
+    p.make_preferred();
+    return new std::filesystem::path(p.lexically_normal());
   };
 
   inline nlohmann::json _default(nlohmann::json v, nlohmann::json d)
@@ -66,12 +67,10 @@ namespace miniservant
     return v;
   };
 
-  taskexec::taskexec(std::filesystem::path* base_directory, std::filesystem::path* task_json_path)
+  taskexec::taskexec(std::filesystem::path base_directory, std::filesystem::path task_json_path)
   {
-    this->baseDirectory = new std::filesystem::path(base_directory->string());
-    _path_normalize(this->baseDirectory);
-    this->taskJsonPath = new std::filesystem::path(task_json_path->string());
-    _path_normalize(this->taskJsonPath);
+    this->baseDirectory = _new_normalized_path(base_directory);
+    this->taskJsonPath = _new_normalized_path(task_json_path);
     this->taskDirectory = new std::filesystem::path(this->taskJsonPath->parent_path());
 
     nlohmann::json taskJson;
@@ -106,6 +105,11 @@ namespace miniservant
   taskexec::~taskexec()
   {
     close();
+    delete baseDirectory;
+    delete taskJsonPath;
+    delete taskDirectory;
+    if (executableBaseDirectory != nullptr)
+      delete executableBaseDirectory;
   }
 
   void taskexec::shutdown()

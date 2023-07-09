@@ -20,7 +20,10 @@ void termSignalHandler(int sig)
 void finalizeTask()
 {
     if (executer != nullptr)
+    {
         executer->shutdown();
+        delete executer;
+    }
 };
 
 int main(int argc, char* argv[]) {
@@ -37,9 +40,7 @@ int main(int argc, char* argv[]) {
     {
         std::signal(SIGTERM, termSignalHandler);
         std::atexit(finalizeTask);
-        auto taskJsonPath = std::filesystem::path(std::string(argv[3]));
-        auto tmpExecuter = miniservant::taskexec(&baseDirectory, &taskJsonPath);
-        executer = &tmpExecuter;
+        executer = new miniservant::taskexec(baseDirectory, std::filesystem::path(std::string(argv[3])));
         executer->execute();
         exitcode = 0;
     }
