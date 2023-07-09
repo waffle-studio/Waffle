@@ -5,6 +5,7 @@ namespace miniservant
     class eventrec
     {
     public:
-        eventrec(std::filesystem::path, std::filesystem::path);
+        eventrec(std::filesystem::path = "", std::filesystem::path = "");
+        void input(char);
     };
 }

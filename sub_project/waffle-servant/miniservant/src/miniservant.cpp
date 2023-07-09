@@ -7,60 +7,20 @@
 #include "json.hpp"
 #include "subprocess.hpp"
 #include "dirhash.hpp"
+#include "taskexec.hpp"
 #include "miniservant.h"
 
-const short SHUTDOWN_TIMEOUT = 3;
-
-std::string taskPid = "";
+miniservant::taskexec* executer = nullptr;
 
 void termSignalHandler(int sig)
 {
     exit(1);
 };
 
-void recursiveKill(std::string child_pid)
-{
-    auto process = subprocess::run({"ps", "--ppid", child_pid, "-o", "pid="});
-    std::string buf;
-    while(std::getline(std::stringstream(process.cout), buf))
-        recursiveKill(buf);
-    subprocess::run({"kill", "-9", child_pid});
-};
-
 void finalizeTask()
 {
-    if (taskPid != "")
-    {
-        recursiveKill(taskPid);
-    }
-};
-
-void execTask(std::filesystem::path base_directory, std::filesystem::path task_json)
-{
-    if (!std::filesystem::is_regular_file(task_json))
-    {
-        std::cerr << task_json.string() << " is not found" << std::endl;
-        return;
-    }
-
-    nlohmann::json task;
-    try
-    {
-        auto stream = std::ifstream(task_json);
-        task = nlohmann::json::parse(stream);
-        stream.close(); // the stream will auto close in next line.
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return;
-    }
-    
-    if (task["pi"].is_null())
-        std::cout << "NULL" << std::endl;
-    std::cout << task["pi"] << std::endl;
-    std::cout << task.dump() << std::endl;
-    system("sleep 10");
+    if (executer != nullptr)
+        executer->shutdown();
 };
 
 int main(int argc, char* argv[]) {
@@ -77,7 +37,10 @@ int main(int argc, char* argv[]) {
     {
         std::signal(SIGTERM, termSignalHandler);
         std::atexit(finalizeTask);
-        execTask(baseDirectory, std::filesystem::path(std::string(argv[3])));
+        auto taskJsonPath = std::filesystem::path(std::string(argv[3]));
+        auto tmpExecuter = miniservant::taskexec(&baseDirectory, &taskJsonPath);
+        executer = &tmpExecuter;
+        executer->execute();
         exitcode = 0;
     }
     else if (argc >= 2 && strcmp(argv[2], "sync_hash") == 0)

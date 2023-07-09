@@ -13,7 +13,7 @@ namespace miniservant
     class taskexec
     {
     public:
-        taskexec(std::filesystem::path, std::filesystem::path);
+        taskexec(std::filesystem::path*, std::filesystem::path*);
         ~taskexec();
         void shutdown();
         void close();
@@ -25,12 +25,10 @@ namespace miniservant
         void merge(std::filesystem::path, std::filesystem::path);
         std::string extractEnvValue(std::string);
 
-        void flagWatchdogThreadFunc(std::filesystem::path);
-
         // private:
-        std::filesystem::path baseDirectory;
-        std::filesystem::path taskJsonPath;
-        std::filesystem::path taskDirectory;
+        std::filesystem::path* baseDirectory;
+        std::filesystem::path* taskJsonPath;
+        std::filesystem::path* taskDirectory;
         std::filesystem::path* executableBaseDirectory;
         std::string projectName;
         std::string workspaceName;
@@ -40,8 +38,6 @@ namespace miniservant
         nlohmann::json environmentMap;
         long timeout;
         std::string execKey;
-
-        std::thread* flagWatchdogThread = nullptr;
         bool isClosed = false;
     };
 }

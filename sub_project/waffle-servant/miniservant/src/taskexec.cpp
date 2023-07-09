@@ -19,10 +19,13 @@ namespace miniservant
 
   void recursiveKill(std::string child_pid)
   {
-    auto process = subprocess::run({"ps", "--ppid", child_pid, "-o", "pid="});
-    std::string buf;
-    while (std::getline(std::stringstream(process.cout), buf))
+    auto process = subprocess::run({"ps", "--ppid", child_pid, "-o", "pid="}, {.cout = subprocess::PipeOption::pipe});
+    std::string buf = process.cout;
+    auto ss = std::stringstream(process.cout);
+    while (buf.size() > 0 && std::getline(ss, buf))
+    {
       recursiveKill(buf);
+    }
     if (child_pid != std::to_string(getpid()))
       subprocess::run({"kill", "-9", child_pid});
   };
@@ -50,22 +53,31 @@ namespace miniservant
       std::filesystem::remove(flag_path);
   }
 
-  inline std::filesystem::path _path_normalize(std::filesystem::path path)
+  inline void _path_normalize(std::filesystem::path* path)
   {
-    path.make_preferred();
-    return std::filesystem::path(path.lexically_normal());
+    path->make_preferred();
+    path = new std::filesystem::path(path->lexically_normal());
   };
 
-  taskexec::taskexec(std::filesystem::path base_directory, std::filesystem::path task_json_path)
+  inline nlohmann::json _default(nlohmann::json v, nlohmann::json d)
   {
-    this->baseDirectory = _path_normalize(base_directory);
-    this->taskJsonPath = _path_normalize(task_json_path);
-    this->taskDirectory = this->taskJsonPath.parent_path();
+    if (v.is_null())
+      return d[""];
+    return v;
+  };
+
+  taskexec::taskexec(std::filesystem::path* base_directory, std::filesystem::path* task_json_path)
+  {
+    this->baseDirectory = new std::filesystem::path(base_directory->string());
+    _path_normalize(this->baseDirectory);
+    this->taskJsonPath = new std::filesystem::path(task_json_path->string());
+    _path_normalize(this->taskJsonPath);
+    this->taskDirectory = new std::filesystem::path(this->taskJsonPath->parent_path());
 
     nlohmann::json taskJson;
     try
     {
-        auto stream = std::ifstream(task_json_path);
+        auto stream = std::ifstream(*this->taskJsonPath);
         taskJson = nlohmann::json::parse(stream);
         stream.close(); // the stream will auto close in next line.
     }
@@ -77,9 +89,9 @@ namespace miniservant
 
     auto taskJsonExecutable = taskJson["executable"];
     if (taskJsonExecutable.is_null())
-      *this->executableBaseDirectory = _path_normalize(this->baseDirectory / taskJsonExecutable / "BASE");
-    else
       this->executableBaseDirectory = nullptr;
+    else
+      this->executableBaseDirectory = new std::filesystem::path((*this->baseDirectory / taskJsonExecutable / "BASE"));
 
     projectName = taskJson["project"];
     workspaceName = taskJson["workspace"];
@@ -87,7 +99,7 @@ namespace miniservant
     command = taskJson["command"];
     argumentList = taskJson["argument"];
     environmentMap = taskJson["environment"];
-    timeout = taskJson["timeout"];
+    timeout = _default(taskJson["timeout"], nlohmann::json::parse("{\"\": -1}"));
     execKey = taskJson["exec_key"];
   }
 
@@ -100,7 +112,13 @@ namespace miniservant
   {
     for (int sec = 0; sec < SHUTDOWN_TIMEOUT; sec += 1)
     {
-      if (subprocess::run({"ps", "--ppid", std::to_string(getpid()), "-o", "pid="}).cout == "")
+      auto process = subprocess::run({"ps", "--ppid", std::to_string(getpid()), "-o", "pid="}, {.cout = subprocess::PipeOption::pipe});
+      std::string buf = process.cout;
+      long count = 0;
+      auto ss = std::stringstream(process.cout);
+      while (std::getline(ss, buf))
+        count += 1;
+      if (count <= 1)
         return;
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -112,13 +130,8 @@ namespace miniservant
     if (!this->isClosed)
     {
       this->isClosed = true;
-      if (flagWatchdogThread != nullptr)
-      {
-        flagWatchdogThread->detach();
-        flagWatchdogThread = nullptr;
-      }
 
-      auto stream = std::ofstream(this->baseDirectory / ".NOTIFIER");
+      auto stream = std::ofstream(*this->baseDirectory / ".NOTIFIER");
       auto time = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       stream << this->execKey + std::to_string(time);
       stream.close();
@@ -132,29 +145,30 @@ namespace miniservant
         return;
       }
 
-      *flagWatchdogThread = std::thread(miniservant::flagWatchdogThreadFunc, &this->isClosed, this->taskDirectory / "ALIVE");
+      auto flagPath = *this->taskDirectory / ".ALIVE";
+      std::thread(miniservant::flagWatchdogThreadFunc, &this->isClosed, flagPath).detach();
 
-      dirhash directoryHash = dirhash(baseDirectory, this->taskDirectory);
+      dirhash directoryHash = dirhash(*this->baseDirectory, *this->taskDirectory);
       directoryHash.waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
       if (executableBaseDirectory != nullptr)
       {
-        dirhash(baseDirectory, executableBaseDirectory->parent_path()).waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
+        dirhash(*this->baseDirectory, executableBaseDirectory->parent_path()).waitToMatch(DIRECTORY_SYNCHRONIZATION_TIMEOUT);
       }
 
-      std::filesystem::path executingBaseDirectory = taskDirectory / "BASE";
-      std::filesystem::path stdoutPath = taskDirectory / "STDOUT.txt";
-      std::filesystem::path stderrPath = taskDirectory / "STDERR.txt";
-      std::filesystem::path eventFilePath = taskDirectory / "EVENT.bin";
-      std::filesystem::path statusFilePath = taskDirectory / "EXET_STATUS.log";
+      std::filesystem::path executingBaseDirectory = *this->taskDirectory / "BASE";
+      std::filesystem::path stdoutPath = *this->taskDirectory / "STDOUT.txt";
+      std::filesystem::path stderrPath = *this->taskDirectory / "STDERR.txt";
+      std::filesystem::path eventFilePath = *this->taskDirectory / "EVENT.bin";
+      std::filesystem::path statusFilePath = *this->taskDirectory / "EXET_STATUS.log";
 
       char* waffleSlotIndex = std::getenv("WAFFLE_SLOT_INDEX");
       if (waffleSlotIndex != NULL)
         subprocess::cenv["WAFFLE_SLOT_INDEX"] = std::string(waffleSlotIndex);
 
-      subprocess::cenv["PATH"] = (this->baseDirectory / "bin").string() + ":" + std::string(std::getenv("PATH"));
+      subprocess::cenv["PATH"] = (*this->baseDirectory / "bin").string() + ":" + std::string(std::getenv("PATH"));
       subprocess::cenv["WAFFLE_BASE"] = executingBaseDirectory.string();
-      subprocess::cenv["WAFFLE_TASK_JSONFILE"] = taskJsonPath.string();
-      subprocess::cenv["WAFFLE_BATCH_WORKING_DIR"] = taskDirectory.string();
+      subprocess::cenv["WAFFLE_TASK_JSONFILE"] = this->taskJsonPath->string();
+      subprocess::cenv["WAFFLE_BATCH_WORKING_DIR"] = this->taskDirectory->string();
       subprocess::cenv["WAFFLE_WORKING_DIR"] = executingBaseDirectory.string();
 
       createFile(stdoutPath, "");
@@ -175,11 +189,11 @@ namespace miniservant
       if (executableBaseDirectory != nullptr)
       {
         // try to change permission of the command
-        subprocess::run({"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"});
+        subprocess::run({"sh", "-c", "chmod a+x '" + command + "' >/dev/null 2>&1"}, {.cwd = executableBaseDirectory->string()});
 
         // prepare local shared directory path
-        auto projectLocalSharedDirectory = baseDirectory / "PROJECT" / projectName / "LOCAL_SHARED" / executableName;
-        auto workspaceLocalSharedDirectory = baseDirectory / "PROJECT" / projectName / "WORKSPACE" / workspaceName / "LOCAL_SHARED" / executableName;
+        auto projectLocalSharedDirectory = *this->baseDirectory / "PROJECT" / projectName / "LOCAL_SHARED" / executableName;
+        auto workspaceLocalSharedDirectory = *this->baseDirectory / "PROJECT" / projectName / "WORKSPACE" / workspaceName / "LOCAL_SHARED" / executableName;
 
         // create link of executable entities
         createRecursiveLink(*executableBaseDirectory, executingBaseDirectory, projectLocalSharedDirectory, workspaceLocalSharedDirectory);
@@ -200,18 +214,19 @@ namespace miniservant
         commandArray.push_back(command);
         for (auto &value : argumentList)
         {
-          commandArray.push_back(value.dump()); //?
+          commandArray.push_back((std::string)value);
         }
 
-        auto process =
-            subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
+        chdir(executingBaseDirectory.c_str());
+        auto process = subprocess::RunBuilder(commandArray).cwd(executingBaseDirectory.string()).cerr(subprocess::PipeOption::pipe).cout(subprocess::PipeOption::pipe).popen();
+        std::cout << executingBaseDirectory.string() << std::endl;
 
-        outproc outProcessor =
-            outproc(process.cout, stdoutPath, baseDirectory, eventFilePath);
-        outproc errProcessor =
-            outproc(process.cerr, stderrPath, baseDirectory, eventFilePath);
+        outproc outProcessor = outproc(&process.cout, stdoutPath, *this->baseDirectory, eventFilePath);
+        outproc errProcessor = outproc(&process.cerr, stderrPath, *this->baseDirectory, eventFilePath);
+        std::cout << executingBaseDirectory.string() << std::endl;
         outProcessor.start();
         errProcessor.start();
+        std::cout << executingBaseDirectory.string() << std::endl;
 
         if (this->timeout < 0)
           process.wait();
@@ -224,11 +239,13 @@ namespace miniservant
           {
             process.kill();
           }
+        std::cout << executingBaseDirectory.string() << std::endl;
 
         outProcessor.join();
         errProcessor.join();
         // END of main command executing
 
+        std::cout << executingBaseDirectory.string() << std::endl;
         exitValue = process.returncode;
       }
 
@@ -247,12 +264,12 @@ namespace miniservant
 
   bool taskexec::authorizeExecKey()
   {
-    auto path = this->taskDirectory / ".EXEC_KEY";
+    auto path = *this->taskDirectory / ".EXEC_KEY";
     if (!std::filesystem::exists(path))
       return false;
     auto stream = std::ifstream(path);
     auto size = std::filesystem::file_size(path);
-    char data[size];
+    char data[size + 1] = {0};
     stream.read(reinterpret_cast<char *>(data), size);
     stream.close();
     return std::strcmp(this->execKey.c_str(), data) == 0;
@@ -308,7 +325,11 @@ namespace miniservant
           createRecursiveLink(path, destination / path.filename(),
                               projectLocalShared / path.filename(), workspaceLocalShared / path.filename());
         else
-          std::filesystem::create_symlink(destination / path.filename(), path);
+        {
+          if (std::filesystem::exists(destination / path.filename()))
+            std::filesystem::remove(destination / path.filename());
+          std::filesystem::create_symlink(path, destination / path.filename());
+        }
         break;
       case Run:
         if (std::filesystem::is_directory(path))
@@ -324,7 +345,7 @@ namespace miniservant
           recursiveMerge(path, sharedPath);
         else
           merge(path, sharedPath);
-        std::filesystem::create_symlink(destination / path.filename(), sharedPath);
+        std::filesystem::create_symlink(sharedPath, destination / path.filename());
         break;
       }
     }
