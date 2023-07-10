@@ -45,6 +45,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
 
       if (!Files.exists(workingDirectory)) {
         response.add(new RequestRepreparingMessage(message));
+        response.add(new ExceptionMessage("FNE: " + message.getWorkingDirectory()));
         return;
       }
 
@@ -56,6 +57,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         }
         removingList.add(workingDirectory);
         response.add(new RequestRepreparingMessage(message));
+        response.add(new ExceptionMessage("AR: " + message.getWorkingDirectory()));
         return;
       }
 

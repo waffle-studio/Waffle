@@ -278,8 +278,11 @@ abstract public class AbstractSubmitter {
 
   public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
     try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+      if (job.getState().equals(State.Submitted)) return;
+      InfoLogMessage.issue(job.getRun(), "will be submitted");
       forcePrepare(envelope, job);
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
+      job.setState(State.Submitted);
     } catch (FailedToControlRemoteException e) {
       WarnLogMessage.issue(job.getComputer(), e.getMessage());
       job.setState(State.Excepted);

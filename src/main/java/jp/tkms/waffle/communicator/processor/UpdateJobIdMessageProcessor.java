@@ -19,7 +19,8 @@ public class UpdateJobIdMessageProcessor extends ResponseProcessor<UpdateJobIdMe
       if (job != null) {
         try {
           job.setJobId(message.getJobId());
-          job.setState(State.Submitted);
+          //job.setState(State.Submitted);
+          job.setState(State.Running);
           job.getRun().setRemoteWorkingDirectoryLog(message.getWorkingDirectory());
           InfoLogMessage.issue(job.getRun(), "was submitted");
         } catch (RunNotFoundException e) {

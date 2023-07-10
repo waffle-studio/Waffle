@@ -77,8 +77,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     VirtualJobExecutor executor = jobManager.getNextExecutor(job);
     if (executor != null) {
       try {
+        if (job.getState().equals(State.Submitted)) return;
         forcePrepare(envelope, job);
         executor.submit(envelope, job);
+        job.setState(State.Submitted);
       } catch (FailedToControlRemoteException e) {
         WarnLogMessage.issue(job.getComputer(), e.getMessage());
         job.setState(State.Excepted);
@@ -628,6 +630,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
     public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
       synchronized (jobCache) {
         try {
+          if (job.getState().equals(State.Submitted)) return;
+
           String jobId = id.getReversedBase36Code() + '.' + getNextJobCount();
           Path podDirectory = InternalFiles.getLocalPath(getComputer().getLocalPath().resolve(JOB_MANAGER).resolve(id.getReversedBase36Code()));
           envelope.add(new SubmitPodTaskMessage(job.getTypeCode(), job.getHexCode(), jobId, podDirectory, job.getRun().getLocalPath(), job.getRun().getRemoteBinPath()));
@@ -645,6 +649,7 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
          */
           putToArrayOfProperty(RUNNING, jobId);
           jobCache.put(jobId, job);
+          job.setState(State.Submitted);
         } catch (Exception e) {
           job.setState(State.Excepted);
         }
