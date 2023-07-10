@@ -29,14 +29,14 @@ void finalizeTask()
 int main(int argc, char* argv[]) {
     unsigned short exitcode = 1;
     auto baseDirectory = std::filesystem::absolute(std::filesystem::path("."));
-    if (argc >= 1)
+    if (argc > 1)
     {
         baseDirectory = std::filesystem::absolute(std::filesystem::path(std::string(argv[1])));
         baseDirectory.make_preferred();
         baseDirectory = std::filesystem::path(baseDirectory.lexically_normal());
     }
 
-    if (argc >= 3 && strcmp(argv[2], "exec") == 0)
+    if (argc > 3 && strcmp(argv[2], "exec") == 0)
     {
         std::signal(SIGTERM, termSignalHandler);
         std::atexit(finalizeTask);
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
         executer->execute();
         exitcode = 0;
     }
-    else if (argc >= 2 && strcmp(argv[2], "sync_hash") == 0)
+    else if (argc > 2 && strcmp(argv[2], "sync_hash") == 0)
     {
         miniservant::dirhash(baseDirectory, std::filesystem::absolute(std::filesystem::path("."))).save();
         exitcode = 0;

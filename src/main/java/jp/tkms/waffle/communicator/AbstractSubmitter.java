@@ -651,7 +651,7 @@ abstract public class AbstractSubmitter {
   }
 
   public void processSubmitted(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> runningJobList, ArrayList<AbstractTask> cancelJobList) throws FailedToControlRemoteException {
-    submittedJobList.addAll(runningJobList);
+    //runningJobList.addAll(submittedJobList);
 
     for (AbstractTask job : cancelJobList) {
       if (Main.hibernatingFlag || isBroken) { return; }
@@ -662,7 +662,7 @@ abstract public class AbstractSubmitter {
       }
     }
 
-    for (AbstractTask job : submittedJobList) {
+    for (AbstractTask job : runningJobList) {
       if (Main.hibernatingFlag || isBroken) { return; }
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         update(envelope, job);
