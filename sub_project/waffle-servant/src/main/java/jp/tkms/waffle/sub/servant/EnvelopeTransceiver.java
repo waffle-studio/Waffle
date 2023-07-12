@@ -72,12 +72,14 @@ public class EnvelopeTransceiver {
     envelope.save(stream);
     envelope.clear();
 
-    outputStream.write(TAG_BEGIN);
-    outputStream.write(sanitize(stream.toByteArray()));
-    outputStream.write(TAG_END);
-    outputStream.write(sanitize(toSHA1(stream.toByteArray())));
-    outputStream.write(TAG_EXECUTE);
-    outputStream.flush();
+    synchronized (outputStream) {
+      outputStream.write(TAG_BEGIN);
+      outputStream.write(sanitize(stream.toByteArray()));
+      outputStream.write(TAG_END);
+      outputStream.write(sanitize(toSHA1(stream.toByteArray())));
+      outputStream.write(TAG_EXECUTE);
+      outputStream.flush();
+    }
   }
 
   private byte[] sanitize(byte[] bytes) {
@@ -186,6 +188,8 @@ public class EnvelopeTransceiver {
     private void processMessage() {
       if (checkConsistency()) {
         messageProcessor.accept(new ByteArrayInputStream(secondBuffer.toByteArray()));
+      } else {
+        System.err.println("RECEIVED ENVELOPE IS BROKEN: " + buffer.size() + " bytes (" + secondBuffer.size() + " bytes)");
       }
     }
   }
