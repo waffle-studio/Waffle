@@ -126,5 +126,6 @@ public class MessageBundle {
     kryo.register(RequestRepreparingMessage.class);
     kryo.register(SyncRequestMessage.class);
     kryo.register(SyncResponseMessage.class);
+    kryo.register(CheckJobIdMessage.class);
   }
 }
