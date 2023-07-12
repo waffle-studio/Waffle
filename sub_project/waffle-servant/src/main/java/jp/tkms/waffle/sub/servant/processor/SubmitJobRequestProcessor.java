@@ -45,8 +45,17 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
 
       if (!Files.exists(workingDirectory)) {
         response.add(new RequestRepreparingMessage(message));
-        response.add(new ExceptionMessage("FNE: " + message.getWorkingDirectory()));
         return;
+      }
+
+      Path jobIdPath = workingDirectory.resolve(Constants.JOBID_FILE);
+      if (Files.exists(jobIdPath)) {
+        try {
+          response.add(new UpdateJobIdMessage(message, new String(Files.readAllBytes(jobIdPath)), workingDirectory));
+          return;
+        } catch (IOException e) {
+          response.add(new JobExceptionMessage(message, e.toString()));
+        }
       }
 
       if (Files.exists(workingDirectory.resolve(Constants.XSUB_LOG_FILE))) { // If already executed, remove and request resubmit
@@ -57,7 +66,6 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         }
         removingList.add(workingDirectory);
         response.add(new RequestRepreparingMessage(message));
-        response.add(new ExceptionMessage("AR: " + message.getWorkingDirectory()));
         return;
       }
 
@@ -100,6 +108,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         directoryHash.save();
 
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
+        Files.writeString(workingDirectory.resolve(Constants.JOBID_FILE), jsonObject.getString("job_id", "XSUB_ERR"));
         response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString(), workingDirectory));
       } catch (Exception e) {
         response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));

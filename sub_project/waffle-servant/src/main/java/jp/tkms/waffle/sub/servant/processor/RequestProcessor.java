@@ -23,6 +23,7 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
     new CollectPodTaskStatusRequestProcessor(),
     new CollectPodStatusRequestProcessor(),
     new ConfirmPreparingRequestProcessor(),
+    new CheckJobIdRequestProcessor(),
     new SyncRequestProcessor()
   };
 

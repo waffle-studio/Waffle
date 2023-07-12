@@ -292,6 +292,10 @@ abstract public class AbstractSubmitter {
     }
   }
 
+  public void checkJobId(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
+    envelope.add(new CheckJobIdMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
+  }
+
   public void update(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException {
     envelope.add(new CollectStatusMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
   }
@@ -651,14 +655,22 @@ abstract public class AbstractSubmitter {
   }
 
   public void processSubmitted(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> runningJobList, ArrayList<AbstractTask> cancelJobList) throws FailedToControlRemoteException {
-    //runningJobList.addAll(submittedJobList);
-
     for (AbstractTask job : cancelJobList) {
       if (Main.hibernatingFlag || isBroken) { return; }
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         cancel(envelope, job);
       } catch (RunNotFoundException e) {
         job.remove();
+      }
+    }
+
+    for (AbstractTask job : submittedJobList) {
+      if (Main.hibernatingFlag || isBroken) { return; }
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+        checkJobId(envelope, job);
+      } catch (RunNotFoundException e) {
+        job.remove();
+        WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
       }
     }
 
