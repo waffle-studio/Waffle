@@ -130,7 +130,7 @@ public class TaskExecutor extends TaskCommand {
       addEnvironment("PATH", Main.getBinDirectory(baseDirectory).toString() + File.pathSeparator + System.getenv().get("PATH"));
       addEnvironment(Constants.WAFFLE_BASE, executingBaseDirectory.toString());
       addEnvironment(Constants.WAFFLE_TASK_JSONFILE, taskJsonPath.toString());
-      addEnvironment("WAFFLE_BATCH_WORKING_DIR", taskDirectory.toString());
+      addEnvironment(Constants.WAFFLE_BATCH_WORKING_DIR, taskDirectory.toString());
       addEnvironment("WAFFLE_WORKING_DIR", executingBaseDirectory.toString());
 
       try {

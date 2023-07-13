@@ -91,7 +91,7 @@ public class Main {
         if (args.length < 4) {
           exitWithInvalidArgumentsMessage("put_result", "[KEY] [VALUE]");
         }
-        EventRecorder.printEventString(args[2], args[3]);
+        EventRecorder.createEventRecord(args[2], args[3]);
         break;
       case "push_file":
         if (args.length < 4) {

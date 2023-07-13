@@ -17,13 +17,11 @@ public class EventReader {
   private Path recordPath;
   private Path cursorPath;
 
-  public EventReader(Path baseDirectory, Path recordPath) {
-    if (recordPath.isAbsolute()) {
-      this.recordPath = recordPath;
-    } else {
-      this.recordPath = baseDirectory.resolve(recordPath);
+  public EventReader(Path baseDirectory, Path workingDirectory) {
+    if (!workingDirectory.isAbsolute()) {
+      workingDirectory = baseDirectory.resolve(workingDirectory);
     }
-
+    this.recordPath = workingDirectory.resolve(Constants.EVENT_FILE);
     this.cursorPath = this.recordPath.getParent().resolve(this.recordPath.getFileName().toString() + CURSOR_FILE_SUFFIX);
   }
 

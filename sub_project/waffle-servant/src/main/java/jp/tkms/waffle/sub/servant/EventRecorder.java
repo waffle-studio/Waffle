@@ -3,7 +3,9 @@ package jp.tkms.waffle.sub.servant;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class EventRecorder {
   // [WAFFLE_RESULT:<Result Name>:<Result Value>]
@@ -96,5 +98,25 @@ public class EventRecorder {
       + SECTION_SEPARATING_MARK
       + value.replaceAll("\\\\", "\\\\").replaceAll(String.valueOf(END_MARK), "\\" + END_MARK)
       + END_MARK);
+  }
+
+  public static void createEventRecord(String key, String value) {
+    if (System.getenv().containsKey(Constants.WAFFLE_BATCH_WORKING_DIR)) {
+      Path eventDirPath = Paths.get(System.getenv().get(Constants.WAFFLE_BATCH_WORKING_DIR)).resolve(EventDirReader.EVENT_DIR);
+      Path tmpPath = eventDirPath.resolve("tmp");
+      Path newPath = eventDirPath.resolve("new");
+      Path recordPath;
+      do {
+        recordPath = tmpPath.resolve(String.format("%015d", System.currentTimeMillis()));
+      } while (Files.exists(recordPath));
+      try {
+        Files.createDirectories(tmpPath);
+        Files.createDirectories(newPath);
+        Files.writeString(recordPath, key + EventDirReader.SECTION_SEPARATING_MARK + value);
+        Files.move(recordPath, newPath.resolve(recordPath.getFileName()));
+      } catch (IOException e) {
+        //NOP
+      }
+    }
   }
 }
