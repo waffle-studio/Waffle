@@ -156,7 +156,7 @@ public class Main {
 
     writeExecutableFile(path, "#!/bin/sh\n\"" + javaBin + "\"" +
       " --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED" +
-      " -jar \"" + currentJar.toPath().toAbsolutePath() + "\" \"" + baseDirectory.toAbsolutePath() + "\" " + options + '\n');
+      " -jar \"" + currentJar.toPath().toAbsolutePath() + "\" \"" + baseDirectory.toAbsolutePath() + "\" " + options + " 2>/dev/null\n");
   }
 
   private static void writeExecutableFile(Path path, String contents) throws IOException {

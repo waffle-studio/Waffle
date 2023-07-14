@@ -25,7 +25,7 @@ public class Html {
   }
 
   public static String value(String name, String value) {
-    return name + "=\"" + removeNull(value) + "\"";
+    return name + "=\"" + removeNull(value).replace("\"", "&#34;") + "\"";
   }
 
   public static String elementWithClass(String tag, String classValue, String... values) {

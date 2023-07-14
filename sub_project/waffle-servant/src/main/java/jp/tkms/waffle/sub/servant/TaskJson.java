@@ -2,6 +2,10 @@ package jp.tkms.waffle.sub.servant;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TaskJson {
   public static final String EXECUTABLE = "executable";
@@ -21,13 +25,33 @@ public class TaskJson {
   }
 
   public TaskJson(String project, String workspace, String executableName, String executable, String command, JsonArray arguments, JsonObject environments, ExecKey execKey) {
+    String modifiedCommand = null;
+    JsonArray modifiedArguments = new JsonArray();
+    Matcher matcher = Pattern.compile("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'").matcher(command);
+    while (matcher.find()) {
+      String token = matcher.group();
+      if (matcher.group(1) != null) {
+          token = matcher.group(1);
+      } else if (matcher.group(2) != null) {
+        token = matcher.group(2);
+      }
+      if (modifiedCommand == null) {
+        modifiedCommand = token;
+      } else {
+        modifiedArguments.add(token);
+      }
+    }
+    for (JsonValue v : arguments) {
+      modifiedArguments.add(v);
+    }
+
     this.instance = new JsonObject();
     instance.set(PROJECT, project);
     instance.set(WORKSPACE, workspace);
     instance.set(EXECUTABLE_NAME, executableName);
     instance.set(EXECUTABLE, executable);
-    instance.set(COMMAND, command);
-    instance.set(ARGUMENT, arguments);
+    instance.set(COMMAND, modifiedCommand);
+    instance.set(ARGUMENT, modifiedArguments);
     instance.set(ENVIRONMENT, environments);
     instance.set(EXEC_KEY, execKey.toString());
   }

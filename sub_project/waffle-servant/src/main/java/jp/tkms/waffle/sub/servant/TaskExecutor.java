@@ -199,7 +199,7 @@ public class TaskExecutor extends TaskCommand {
 
         // BEGIN of main command executing
         ArrayList<String> commandArray = new ArrayList<>();
-        commandArray.addAll(Arrays.asList(command.split("\\s")));
+        commandArray.add(command);
         for (JsonValue value : argumentList) {
           commandArray.add(value.isString() ? value.asString() : value.toString());
         }
