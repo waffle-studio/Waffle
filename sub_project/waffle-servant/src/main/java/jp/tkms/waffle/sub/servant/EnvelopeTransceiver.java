@@ -1,6 +1,7 @@
 package jp.tkms.waffle.sub.servant;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -78,6 +79,7 @@ public class EnvelopeTransceiver {
       outputStream.write(TAG_END);
       outputStream.write(sanitize(toSHA1(stream.toByteArray())));
       outputStream.write(TAG_EXECUTE);
+      outputStream.write("\n\n".getBytes());
       outputStream.flush();
     }
   }

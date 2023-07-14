@@ -29,7 +29,7 @@ public class SelfCommunicativeEnvelope extends Envelope {
     public void run() {
       while (!isInterrupted()) {
         try {
-          sleep(1000);
+          sleep(500);
           flush(true);
         } catch (InterruptedException e) {
           return;

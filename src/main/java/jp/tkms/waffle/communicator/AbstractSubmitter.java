@@ -251,6 +251,7 @@ abstract public class AbstractSubmitter {
     envelope.flush();
     try {
       Simple.waitFor(() -> remoteSyncedTime.get() >= localTime || System.currentTimeMillis() >= localTime + TIMEOUT, TimeUnit.MILLISECONDS, 50);
+      //TODO: is it need timeout
     } catch (InterruptedException e) {
       ErrorLogMessage.issue(e);
     }
