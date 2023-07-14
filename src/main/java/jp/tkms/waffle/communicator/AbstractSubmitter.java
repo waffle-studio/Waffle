@@ -48,7 +48,7 @@ abstract public class AbstractSubmitter {
   protected static final String RUN_DIR = "run";
   protected static final String BATCH_FILE = "batch.sh";
   static final int INITIAL_PREPARING = 100;
-  static final int TIMEOUT = 30000;
+  static final int TIMEOUT = 120000; // 2min
 
   boolean isRunning = false;
   Computer computer;
@@ -761,9 +761,10 @@ abstract public class AbstractSubmitter {
           }
         }
 
-        if (isStreamMode()) {
+        if (!isBroken) {
           processRequestAndResponse(envelope);
         }
+
         if (Main.hibernatingFlag || isBroken) { break; }
         if (isRemained) {
           envelope = getNextEnvelope();
@@ -796,27 +797,31 @@ abstract public class AbstractSubmitter {
     Executable skippedExecutable = null;
     HashSet<String> lockedExecutableNameSet = new HashSet<>();
 
+    int prePrepareSize = 16;
     int preparedCount = 0;
-    int submittingCount = 10;
+    int submittingCount = -1;
     for (AbstractTask job : queuedJobList) {
       if (Main.hibernatingFlag || isBroken) { return true; }
 
-      if (submittingCount >= 10) {
+      if (submittingCount >= 10 || submittingCount == -1) {
         if (isStreamMode()) {
-          //((SelfCommunicativeEnvelope) envelope).flush();
+          ((SelfCommunicativeEnvelope) envelope).flush();
           submittingCount = 0;
-        } else {
+        } else if (submittingCount != -1) {
           return false;
         }
 
-        createdJobList.stream().skip(preparedCount).limit(10).parallel().forEach((j)->{
+        createdJobList.stream().skip(preparedCount).limit(prePrepareSize).parallel().forEach((j)->{
           try (LockByKey lock = LockByKey.acquire(j.getHexCode())) {
             prepareJob(envelope, j);
           } catch (Exception e) {
             ErrorLogMessage.issue(e);
           }
         });
-        preparedCount += 10;
+        if (isStreamMode()) {
+          ((SelfCommunicativeEnvelope) envelope).flush();
+        }
+        preparedCount += prePrepareSize;
       }
 
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {

@@ -90,7 +90,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         directoryHash.createEmptyHashFile();
 
         ScriptingContainer container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
-        //synchronized (this) {
+        synchronized (this) {
           container.setEnvironment(environments);
           container.setCurrentDirectory(workingDirectory.toString());
           container.setArgv(new String[]{"-p", message.getXsubParameter(), message.getCommand()});
@@ -98,7 +98,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           container.setError(errorWriter);
           container.runScriptlet("require 'jruby'");
           container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
-        //}
+        }
         container.clear();
         try {
           container.finalize();
