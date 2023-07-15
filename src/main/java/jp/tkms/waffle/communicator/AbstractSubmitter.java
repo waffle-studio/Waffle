@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -271,17 +272,17 @@ abstract public class AbstractSubmitter {
     return sendAndReceiveEnvelope(this, envelope);
   }
 
-  public void forcePrepare(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+  public void forcePrepare(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
     if (job.getState().equals(State.Created)) {
-      prepareJob(envelope, job);
+      prepareJob(envelope, job, preparedSet);
     }
   }
 
-  public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException {
     try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
       if (job.getState().equals(State.Submitted)) return;
       InfoLogMessage.issue(job.getRun(), "will be submitted");
-      forcePrepare(envelope, job);
+      forcePrepare(envelope, job, preparedSet);
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
       job.setState(State.Submitted);
     } catch (FailedToControlRemoteException e) {
@@ -314,13 +315,9 @@ abstract public class AbstractSubmitter {
     }
   }
 
-  private boolean containsConfirmPreparingMessage(Envelope envelope, AbstractTask job) {
-    return envelope.containsConfirmPreparingMessage(job.getTypeCode(), job.getHexCode());
-  }
-
-  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
-      if (!containsConfirmPreparingMessage(envelope, job) && job.getState().equals(State.Created)) {
+      if (!preparedSet.contains(job) && job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
         run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
@@ -375,6 +372,7 @@ abstract public class AbstractSubmitter {
 
         //job.setState(State.Prepared);
         //InfoLogMessage.issue(job.getRun(), "was prepared");
+        preparedSet.add(job);
         envelope.add(new ConfirmPreparingMessage(job.getTypeCode(), job.getHexCode()));
       }
     }
@@ -796,6 +794,7 @@ abstract public class AbstractSubmitter {
 
     Executable skippedExecutable = null;
     HashSet<String> lockedExecutableNameSet = new HashSet<>();
+    HashSet<AbstractTask> preparedSet = new HashSet<>();
 
     int prePrepareSize = 16;
     int preparedCount = 0;
@@ -813,7 +812,7 @@ abstract public class AbstractSubmitter {
 
         createdJobList.stream().skip(preparedCount).limit(prePrepareSize).parallel().forEach((j)->{
           try (LockByKey lock = LockByKey.acquire(j.getHexCode())) {
-            prepareJob(envelope, j);
+            prepareJob(envelope, j, preparedSet);
           } catch (Exception e) {
             ErrorLogMessage.issue(e);
           }
@@ -850,7 +849,7 @@ abstract public class AbstractSubmitter {
 
         if (isSubmittable) {
           skippedExecutable = null;
-          submit(envelope, job);
+          submit(envelope, job, preparedSet);
           submittedJobList.add(job);
           submittingCount += 1;
           createdJobList.remove(job);

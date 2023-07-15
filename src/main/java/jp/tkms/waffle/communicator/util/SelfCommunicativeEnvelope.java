@@ -117,12 +117,4 @@ public class SelfCommunicativeEnvelope extends Envelope {
       }
     }
   }
-
-  @Override
-  public boolean containsConfirmPreparingMessage(byte type, String hexCode) {
-    synchronized (messageLocker) {
-      Byte value = confirmPreparingMessageMap.get(hexCode);
-      return value != null && value.equals(type);
-    }
-  }
 }

@@ -4,10 +4,7 @@ import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.DirectoryHash;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.SubmitPodTaskMessage;
-import jp.tkms.waffle.sub.servant.message.response.JobExceptionMessage;
-import jp.tkms.waffle.sub.servant.message.response.PodTaskRefusedMessage;
-import jp.tkms.waffle.sub.servant.message.response.RequestRepreparingMessage;
-import jp.tkms.waffle.sub.servant.message.response.UpdateJobIdMessage;
+import jp.tkms.waffle.sub.servant.message.response.*;
 import jp.tkms.waffle.sub.servant.pod.AbstractExecutor;
 
 import java.io.File;
@@ -107,6 +104,7 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
           //NOP
         }
         //System.err.println(jsonObject.toString());
+        Files.writeString(workingDirectory.resolve(Constants.JOBID_FILE), message.getJobId());
         response.add(new UpdateJobIdMessage(message, message.getJobId(), workingDirectory));
       } catch (Exception e) {
         e.printStackTrace();

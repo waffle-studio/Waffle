@@ -67,21 +67,6 @@ public class Envelope {
     return messageBundle;
   }
 
-  public boolean containsConfirmPreparingMessage(byte type, String hexCode) {
-    ArrayList<ConfirmPreparingMessage> list = null;
-    synchronized (this) {
-      list = getMessageBundle().getCastedMessageList(ConfirmPreparingMessage.class);
-    }
-    if (list != null) {
-      for (ConfirmPreparingMessage message : list) {
-        if (message.getType() == type && message.getId().equals(hexCode)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   public void save(Path dataPath) throws Exception {
     try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(dataPath.toFile()))) {
       save(outputStream);
