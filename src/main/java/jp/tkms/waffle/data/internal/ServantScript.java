@@ -62,7 +62,7 @@ public class ServantScript {
       writeln(writer, "\"$WAFFLE_JAVA\" -client --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
       writeln(writer, "fi");
       writeln(writer, "elif [ \"$1\" = \"main\" ];then");
-      writeln(writer, "\"$WAFFLE_JAVA\" --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" main \"$2\"");
+      writeln(writer, "\"$WAFFLE_JAVA\" --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" main \"$2\" $3");
       writeln(writer, "else");
       writeln(writer, "if [ -e \"$WAFFLE_SERVANT_JAR\" ];then");
       writeln(writer, "echo " + Main.VERSION);

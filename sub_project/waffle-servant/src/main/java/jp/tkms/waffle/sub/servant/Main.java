@@ -3,6 +3,7 @@ package jp.tkms.waffle.sub.servant;
 import jp.tkms.waffle.sub.servant.message.response.ExceptionMessage;
 import jp.tkms.waffle.sub.servant.message.response.StorageWarningMessage;
 import jp.tkms.waffle.sub.servant.processor.RequestProcessor;
+import org.jruby.RubyProcess;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,8 +12,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
+  public  static long lastUpdatedTime = System.currentTimeMillis();
+
+  public static void updateTimestamp() {
+    lastUpdatedTime = System.currentTimeMillis();
+  }
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
       exitWithInvalidArgumentsMessage("", "");
@@ -28,9 +35,36 @@ public class Main {
         }
         boolean isStdoutInMode = args[2].equals("-");
         if (isStdoutInMode) {
+          if (args.length < 4) {
+            exitWithInvalidArgumentsMessage("main", "- [TIMEOUT]");
+          }
+          int timeout = -1;
+          try {
+            timeout = Integer.parseInt(args[3]);
+          } catch (NumberFormatException e) {
+            exitWithInvalidArgumentsMessage("main", "- [TIMEOUT]");
+          }
+
+          int timeoutByMillis = timeout * 1000;
+          Thread timeoutThread = new Thread(()->{
+            while (true) {
+              if (Main.lastUpdatedTime < System.currentTimeMillis() - timeoutByMillis) {
+                System.exit(3);
+              }
+              try {
+                TimeUnit.SECONDS.sleep(1);
+              } catch (InterruptedException e) {
+                return;
+              }
+            }
+          });
+          updateTimestamp();
+          timeoutThread.start();
+
           EnvelopeTransceiver transceiver = new EnvelopeTransceiver(baseDirectory, System.out, System.in,
             (me, request) -> {
               try {
+                Main.updateTimestamp();
                 Envelope response = new Envelope(baseDirectory);
                 StorageWarningMessage.addMessageIfCritical(response);
                 RequestProcessor.processMessages(baseDirectory, request, response);
@@ -40,6 +74,9 @@ public class Main {
               }
             });
           transceiver.waitForShutdown();
+
+          timeoutThread.interrupt();
+          timeoutThread.join();
         } else {
           Path envelopePath = Paths.get(args[2]);
           if (Files.exists(Envelope.getResponsePath(envelopePath))) {

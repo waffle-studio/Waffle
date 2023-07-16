@@ -1,6 +1,7 @@
 package jp.tkms.waffle.sub.servant.processor;
 
 import jp.tkms.waffle.sub.servant.Envelope;
+import jp.tkms.waffle.sub.servant.Main;
 import jp.tkms.waffle.sub.servant.message.request.AbstractRequestMessage;
 
 import java.io.IOException;
@@ -29,6 +30,7 @@ public abstract class RequestProcessor<T extends AbstractRequestMessage> {
 
   public static void processMessages(Path baseDirectory, Envelope request, Envelope response) throws ClassNotFoundException, IOException {
     for (RequestProcessor processor : processors) {
+      Main.updateTimestamp();
       processor.processIfMessagesExist(baseDirectory, request, response);
     }
   }

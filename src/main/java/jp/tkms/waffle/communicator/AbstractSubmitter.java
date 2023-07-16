@@ -201,7 +201,8 @@ abstract public class AbstractSubmitter {
   }
 
   private static String getServantCommand(AbstractSubmitter submitter, Path remoteEnvelopePath) throws FailedToControlRemoteException {
-    return "sh '" + submitter.getAbsolutePath(submitter.getServantScript().getScriptPath()) + "' main '" + (remoteEnvelopePath == null ? "-" : remoteEnvelopePath) + "'";
+    int timeout = submitter.getComputer().getPollingInterval() * 10;
+    return "sh '" + submitter.getAbsolutePath(submitter.getServantScript().getScriptPath()) + "' main '" + (remoteEnvelopePath == null ? "-" : remoteEnvelopePath) + "' " + timeout;
   }
 
   protected static Envelope sendAndReceiveEnvelope(AbstractSubmitter submitter, Envelope envelope) throws Exception {
