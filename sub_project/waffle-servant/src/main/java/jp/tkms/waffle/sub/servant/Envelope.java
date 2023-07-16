@@ -144,6 +144,13 @@ public class Envelope {
             BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(entryPath.toFile()));
             streamList.add(out);
             IOUtils.copy(zipInputStream, out);
+
+            if (streamList.size() > Constants.MAX_STREAM) {
+              for (BufferedOutputStream s : streamList) {
+                s.close();
+              }
+              streamList.clear();
+            }
           }
         }
       }

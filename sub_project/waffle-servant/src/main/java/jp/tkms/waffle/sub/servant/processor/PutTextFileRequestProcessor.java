@@ -1,5 +1,6 @@
 package jp.tkms.waffle.sub.servant.processor;
 
+import jp.tkms.waffle.sub.servant.Constants;
 import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.message.request.PutTextFileMessage;
 
@@ -10,7 +11,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class PutTextFileRequestProcessor extends RequestProcessor<PutTextFileMessage> {
-  static final int MAX_STREAM = 20;
 
   protected PutTextFileRequestProcessor() {
   }
@@ -24,7 +24,7 @@ public class PutTextFileRequestProcessor extends RequestProcessor<PutTextFileMes
       streamList.add(stream);
       stream.write(message.getValue().getBytes());
 
-      if (streamList.size() > MAX_STREAM) {
+      if (streamList.size() > Constants.MAX_STREAM) {
         for (BufferedOutputStream s : streamList) {
           s.close();
         }

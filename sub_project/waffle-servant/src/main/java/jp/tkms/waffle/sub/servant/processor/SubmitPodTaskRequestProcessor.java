@@ -41,7 +41,9 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
         } catch (IOException e) {
           //NOP
         }
-        removingList.add(workingDirectory);
+        synchronized (removingList) {
+          removingList.add(workingDirectory);
+        }
         response.add(new RequestRepreparingMessage(message));
         return;
       }
@@ -57,8 +59,7 @@ public class SubmitPodTaskRequestProcessor extends RequestProcessor<SubmitPodTas
           executableDirectoryHash.save();
         } else {
           if (executableDirectoryHash.update()) {
-            System.err.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
-            //TODO: notify if hash changed
+            response.add(new ExceptionMessage("EXECUTABLE FILES HAS CHANGED: " + message.getExecutableDirectory()));
           }
         }
       }

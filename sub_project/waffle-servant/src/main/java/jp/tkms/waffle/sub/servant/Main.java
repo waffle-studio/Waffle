@@ -13,12 +13,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
-  public  static long lastUpdatedTime = System.currentTimeMillis();
+  public  static AtomicLong lastUpdatedTime = new AtomicLong(System.currentTimeMillis());
 
   public static void updateTimestamp() {
-    lastUpdatedTime = System.currentTimeMillis();
+    lastUpdatedTime.set(System.currentTimeMillis());
   }
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
@@ -48,7 +49,7 @@ public class Main {
           int timeoutByMillis = timeout * 1000;
           Thread timeoutThread = new Thread(()->{
             while (true) {
-              if (Main.lastUpdatedTime < System.currentTimeMillis() - timeoutByMillis) {
+              if (Main.lastUpdatedTime.get() < System.currentTimeMillis() - timeoutByMillis) {
                 System.exit(3);
               }
               try {

@@ -24,4 +24,5 @@ public class Constants {
   public static final String WAFFLE_BATCH_WORKING_DIR = "WAFFLE_BATCH_WORKING_DIR";
   public static final int SHUTDOWN_TIMEOUT = 3;
   public static final int WATCHDOG_INTERVAL = 2;
+  public static final int MAX_STREAM = 20;
 }

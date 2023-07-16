@@ -55,7 +55,16 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
           return;
         } catch (IOException e) {
           response.add(new JobExceptionMessage(message, e.toString()));
+          return;
         }
+      }
+
+      if (!Files.exists(workingDirectory.resolve(message.getCommand()))) {
+        synchronized (removingList) {
+          removingList.add(workingDirectory);
+        }
+        response.add(new RequestRepreparingMessage(message));
+        return;
       }
 
       if (Files.exists(workingDirectory.resolve(Constants.XSUB_LOG_FILE))) { // If already executed, remove and request resubmit
@@ -64,7 +73,9 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         } catch (IOException e) {
           //NOP
         }
-        removingList.add(workingDirectory);
+        synchronized (removingList) {
+          removingList.add(workingDirectory);
+        }
         response.add(new RequestRepreparingMessage(message));
         return;
       }
@@ -76,8 +87,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
             executableDirectoryHash.save();
           } else {
             if (executableDirectoryHash.update()) {
-              System.err.println("!!!!! EXECUTABLE FILES HAS CHANGED !!!!!");
-              //TODO: notify if hash changed
+              response.add(new ExceptionMessage("EXECUTABLE FILES HAS CHANGED: " + message.getExecutableDirectory()));
             }
           }
         }

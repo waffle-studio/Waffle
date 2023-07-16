@@ -22,11 +22,14 @@ public class UpdateStatusMessageProcessor extends ResponseProcessor<UpdateStatus
             job.setState(State.Finalizing);
             submitter.startupFinishedProcessorManager();
             submitter.startupPreparingProcessorManager();
-          } else {
+          }
+          /*
+          else {
             if (job.getState().equals(State.Submitted)) {
               job.setState(State.Running);
             }
           }
+           */
         } catch (RunNotFoundException e) {
           WarnLogMessage.issue(e);
         }

@@ -46,7 +46,9 @@ public class CheckJobIdRequestProcessor extends RequestProcessor<CheckJobIdMessa
       if ("".equals(jobId)) {
         try {
           if (Files.exists(lostFlagPath) && Files.size(lostFlagPath) >= MAX_LOST_PASSING) {
-            removingList.add(workingDirectory);
+            synchronized (removingList) {
+              removingList.add(workingDirectory);
+            }
             response.add(new RequestRepreparingMessage(message));
           } else {
             try {
