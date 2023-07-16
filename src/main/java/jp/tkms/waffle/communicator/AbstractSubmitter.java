@@ -247,13 +247,17 @@ abstract public class AbstractSubmitter {
   }
 
   private void syncServantProcess() {
-    long localTime = System.currentTimeMillis();
-    SelfCommunicativeEnvelope envelope = (SelfCommunicativeEnvelope) getNextEnvelope();
-    envelope.add(new SyncRequestMessage(localTime));
-    envelope.flush();
+    long syncStartTime = System.currentTimeMillis();
     try {
-      Simple.waitFor(() -> remoteSyncedTime.get() >= localTime || System.currentTimeMillis() >= localTime + TIMEOUT, TimeUnit.MILLISECONDS, 50);
-      //TODO: is it need timeout
+      do {
+        long localTime = System.currentTimeMillis();
+        SelfCommunicativeEnvelope envelope = (SelfCommunicativeEnvelope) getNextEnvelope();
+        envelope.add(new SyncRequestMessage(localTime));
+        envelope.flush();
+        do {
+          TimeUnit.MILLISECONDS.sleep(50);
+        } while (!(remoteSyncedTime.get() >= localTime || System.currentTimeMillis() >= localTime + (TIMEOUT / 10)));
+      } while (!(remoteSyncedTime.get() >= syncStartTime || System.currentTimeMillis() >= syncStartTime + TIMEOUT));
     } catch (InterruptedException e) {
       ErrorLogMessage.issue(e);
     }
