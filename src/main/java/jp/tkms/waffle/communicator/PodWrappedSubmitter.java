@@ -73,12 +73,12 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException {
     VirtualJobExecutor executor = jobManager.getNextExecutor(job);
     if (executor != null) {
       try {
         if (job.getState().equals(State.Submitted)) return;
-        forcePrepare(envelope, job);
+        forcePrepare(envelope, job, preparedSet);
         executor.submit(envelope, job);
         job.setState(State.Submitted);
       } catch (FailedToControlRemoteException e) {
@@ -153,7 +153,12 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
           executor = VirtualJobExecutor.getInstance(jobManager, WaffleId.valueOf(executorId));
         }
         if (executor != null) {
-          executor.removeRunning(message.getJobId());
+          AbstractTask task = executor.removeRunning(message.getJobId());
+          try {
+            task.setState(State.Prepared);
+          } catch (RunNotFoundException e) {
+            ErrorLogMessage.issue(e);
+          }
         }
         InfoLogMessage.issue("PodTask(" + message.getJobId() + ") is refused by the pod; The task will be retried.");
       }
@@ -204,8 +209,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    super.prepareJob(envelope, job);
+  protected void prepareJob(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+    super.prepareJob(envelope, job, preparedSet);
 
     try {
       ComputerTask run = job.getRun();
@@ -739,10 +744,10 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
       }
     }
 
-    public void removeRunning(String jobId) {
+    public AbstractTask removeRunning(String jobId) {
       synchronized (jobCache) {
         removeFromArrayOfProperty(RUNNING, jobId);
-        jobCache.remove(jobId);
+        return jobCache.remove(jobId);
       }
     }
 

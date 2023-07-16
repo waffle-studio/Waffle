@@ -108,7 +108,7 @@ public class SubmitJobRequestProcessor extends RequestProcessor<SubmitJobMessage
         directoryHash.save();
 
         JsonObject jsonObject = Json.parse(outputWriter.toString()).asObject();
-        Files.writeString(workingDirectory.resolve(Constants.JOBID_FILE), jsonObject.getString("job_id", "XSUB_ERR"));
+        Files.writeString(workingDirectory.resolve(Constants.JOBID_FILE), jsonObject.getString("job_id", "S_ERR"));
         response.add(new UpdateJobIdMessage(message, jsonObject.getString("job_id", null).toString(), workingDirectory));
       } catch (Exception e) {
         response.add(new UpdateJobIdMessage(message, "FAILED", workingDirectory));

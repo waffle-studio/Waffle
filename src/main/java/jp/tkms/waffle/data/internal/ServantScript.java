@@ -58,7 +58,7 @@ public class ServantScript {
       writeln(writer, "if [ $EC = 1 -a $(echo \"$MINIOUT\" | grep GLIB | wc -l) -gt 0 ];then");
       writeln(writer, "EC=126");
       writeln(writer, "fi");
-      writeln(writer, "if [ $EC = 126 -o $EC = 127 -o $EC = 139 ];then");
+      writeln(writer, "if [ $EC = 126 -o $EC = 127 -o $EC = 139 -o $EC = 134 ];then");
       writeln(writer, "\"$WAFFLE_JAVA\" -client --illegal-access=deny --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -jar \"$WAFFLE_SERVANT_JAR\" \"$WAFFLE_SERVANT_SCRIPT_BASEDIR\" exec \"$2\"");
       writeln(writer, "fi");
       writeln(writer, "elif [ \"$1\" = \"main\" ];then");
