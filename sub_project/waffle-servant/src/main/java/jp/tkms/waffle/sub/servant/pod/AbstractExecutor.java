@@ -371,8 +371,10 @@ public abstract class AbstractExecutor {
           int slotIndex = getSlotIndex(jobName);
 
           process = new ProcessBuilder().directory(directoryPath.toFile())
-            .command("sh", "-c", Constants.WAFFLE_SLOT_INDEX + "=" + slotIndex + " sh " + BATCH_FILE).redirectErrorStream(true).start();
+            .command("sh", "-c", Constants.WAFFLE_SLOT_INDEX + "=" + slotIndex + " sh " + BATCH_FILE).inheritIO().start();
+            //.command("sh", "-c", Constants.WAFFLE_SLOT_INDEX + "=" + slotIndex + " sh " + BATCH_FILE).redirectErrorStream(true).start();
 
+          /*
           Thread inputStreamThread = new Thread() {
             boolean isAlive = true;
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -400,6 +402,7 @@ public abstract class AbstractExecutor {
             }
           };
           inputStreamThread.start();
+           */
 
           process.waitFor();
         } catch (Exception e) {
