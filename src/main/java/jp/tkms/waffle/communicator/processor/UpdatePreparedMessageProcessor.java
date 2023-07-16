@@ -2,7 +2,6 @@ package jp.tkms.waffle.communicator.processor;
 
 import jp.tkms.waffle.communicator.AbstractSubmitter;
 import jp.tkms.waffle.data.internal.task.AbstractTask;
-import jp.tkms.waffle.data.log.message.ErrorLogMessage;
 import jp.tkms.waffle.data.log.message.InfoLogMessage;
 import jp.tkms.waffle.data.log.message.WarnLogMessage;
 import jp.tkms.waffle.data.util.State;
@@ -26,5 +25,7 @@ public class UpdatePreparedMessageProcessor extends ResponseProcessor<UpdatePrep
         }
       }
     }
+
+    submitter.startupSubmittingProcessorManager();
   }
 }

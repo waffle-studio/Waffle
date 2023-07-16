@@ -115,7 +115,7 @@ public class DeadlineWrapper extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     try {
       Date deadline = dateFormat.parse(computer.getParameters().getString(KEY_DEADLINE, ""));
       if (new Date().before(deadline)) {

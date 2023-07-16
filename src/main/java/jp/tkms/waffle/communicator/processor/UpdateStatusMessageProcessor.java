@@ -21,7 +21,7 @@ public class UpdateStatusMessageProcessor extends ResponseProcessor<UpdateStatus
             job.getRun().setExitStatus(message.getExitStatus());
             job.setState(State.Finalizing);
             submitter.startupFinishedProcessorManager();
-            submitter.startupPreparingProcessorManager();
+            submitter.startupSubmittingProcessorManager();
           }
           /*
           else {

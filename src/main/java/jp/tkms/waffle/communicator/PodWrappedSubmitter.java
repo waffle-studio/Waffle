@@ -73,19 +73,19 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  public void submit(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
     VirtualJobExecutor executor = jobManager.getNextExecutor(job);
     if (executor != null) {
       try {
         if (job.getState().equals(State.Submitted)) return;
-        forcePrepare(envelope, job, preparedSet);
+        InfoLogMessage.issue(job.getRun(), "will be submitted");
+        if (job.getState().equals(State.Created)) {
+          return;
+        }
         executor.submit(envelope, job);
         job.setState(State.Submitted);
-      } catch (FailedToControlRemoteException e) {
-        WarnLogMessage.issue(job.getComputer(), e.getMessage());
-        job.setState(State.Excepted);
       } catch (Exception e) {
-        WarnLogMessage.issue(e);
+        WarnLogMessage.issue(job.getComputer(), e.getMessage());
         job.setState(State.Excepted);
       }
     }
@@ -209,8 +209,8 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
-  protected void prepareJob(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    super.prepareJob(envelope, job, preparedSet);
+  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
+    super.prepareJob(envelope, job);
 
     try {
       ComputerTask run = job.getRun();

@@ -7,6 +7,7 @@ import jp.tkms.waffle.sub.servant.message.request.PutTextFileMessage;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
@@ -20,6 +21,7 @@ public class PutTextFileRequestProcessor extends RequestProcessor<PutTextFileMes
     ArrayList<BufferedOutputStream> streamList = new ArrayList<>();
     for (PutTextFileMessage message : messageList) {
       Path path = baseDirectory.resolve(message.getPath());
+      Files.createDirectories(path.getParent());
       BufferedOutputStream stream = new BufferedOutputStream(new FileOutputStream(path.toFile()));
       streamList.add(stream);
       stream.write(message.getValue().getBytes());

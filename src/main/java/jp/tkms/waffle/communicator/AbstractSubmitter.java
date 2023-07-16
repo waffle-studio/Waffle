@@ -36,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -59,6 +58,7 @@ abstract public class AbstractSubmitter {
 
 
   ProcessorManager<PreparingProcessor> preparingProcessorManager = new ProcessorManager<>(PreparingProcessor::new);
+  ProcessorManager<SubmittingProcessor> submittingProcessorManager = new ProcessorManager<>(SubmittingProcessor::new);
   ProcessorManager<FinishedProcessor> finishedProcessorManager = new ProcessorManager<>(FinishedProcessor::new);
 
   private boolean isBroken = false;
@@ -123,6 +123,7 @@ abstract public class AbstractSubmitter {
       }
 
       preparingProcessorManager.close();
+      submittingProcessorManager.close();
       finishedProcessorManager.close();
 
       isClosed = true;
@@ -277,17 +278,13 @@ abstract public class AbstractSubmitter {
     return sendAndReceiveEnvelope(this, envelope);
   }
 
-  public void forcePrepare(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException, FailedToControlRemoteException, FailedToTransferFileException {
-    if (job.getState().equals(State.Created)) {
-      prepareJob(envelope, job, preparedSet);
-    }
-  }
-
-  public void submit(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException {
+  public void submit(Envelope envelope, AbstractTask job) throws RunNotFoundException {
     try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
       if (job.getState().equals(State.Submitted)) return;
       InfoLogMessage.issue(job.getRun(), "will be submitted");
-      forcePrepare(envelope, job, preparedSet);
+      if (job.getState().equals(State.Created)) {
+        return;
+      }
       envelope.add(new SubmitJobMessage(job.getTypeCode(), job.getHexCode(), getRunDirectory(job.getRun()), job.getRun().getRemoteBinPath(), BATCH_FILE, computer.getXsubParameters().toString()));
       job.setState(State.Submitted);
     } catch (FailedToControlRemoteException e) {
@@ -311,18 +308,17 @@ abstract public class AbstractSubmitter {
     if (! job.getJobId().equals("-1")) {
       envelope.add(new CancelJobMessage(job.getTypeCode(), job.getHexCode(), job.getJobId(), getRunDirectory(job.getRun())));
     } else {
-      if (job.getState().equals(State.Abort)) {
-        job.setState(State.Aborted);
-      }
       if (job.getState().equals(State.Cancel)) {
         job.setState(State.Canceled);
+      } else {
+        job.setState(State.Aborted);
       }
     }
   }
 
-  protected void prepareJob(Envelope envelope, AbstractTask job, Set<AbstractTask> preparedSet) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
+  protected void prepareJob(Envelope envelope, AbstractTask job) throws RunNotFoundException, FailedToControlRemoteException,FailedToTransferFileException {
     synchronized (job) {
-      if (!preparedSet.contains(job) && job.getState().equals(State.Created)) {
+      if (job.getState().equals(State.Created)) {
         ComputerTask run = job.getRun();
         run.setRemoteWorkingDirectoryLog(getRunDirectory(run).toString());
 
@@ -377,7 +373,6 @@ abstract public class AbstractSubmitter {
 
         //job.setState(State.Prepared);
         //InfoLogMessage.issue(job.getRun(), "was prepared");
-        preparedSet.add(job);
         envelope.add(new ConfirmPreparingMessage(job.getTypeCode(), job.getHexCode()));
       }
     }
@@ -598,9 +593,9 @@ abstract public class AbstractSubmitter {
       Envelope envelope = getNextEnvelope();
       pollingInterval = computer.getPollingInterval();
 
-      //createdProcessorManager.startup();
-      preparingProcessorManager.startup();
-      finishedProcessorManager.startup();
+      startupPreparingProcessorManager();
+      startupSubmittingProcessorManager();
+      startupFinishedProcessorManager();
 
       ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
       ArrayList<AbstractTask> runningJobList = new ArrayList<>();
@@ -643,7 +638,7 @@ abstract public class AbstractSubmitter {
       }
 
       if (!(Main.hibernatingFlag || isBroken)) {
-        preparingProcessorManager.startup();
+        startupSubmittingProcessorManager();
       }
 
       isRunning = false;
@@ -693,12 +688,20 @@ abstract public class AbstractSubmitter {
     finishedProcessorManager.startup();
   }
 
+  public void startupSubmittingProcessorManager() {
+    submittingProcessorManager.startup();
+  }
+
   public void startupPreparingProcessorManager() {
     preparingProcessorManager.startup();
   }
 
   public boolean isClosed() {
     return isClosed;
+  }
+
+  private boolean isStreamMode() {
+    return selfCommunicativeEnvelope != null;
   }
 
   class PreparingProcessor extends Thread {
@@ -709,12 +712,100 @@ abstract public class AbstractSubmitter {
 
     @Override
     public void run() {
-      //createdProcessorManager.startup();
+      Envelope envelope = getNextEnvelope();
 
+      ArrayList<AbstractTask> createdJobList = new ArrayList<>();
+      ArrayList<AbstractTask> preparedJobList = new ArrayList<>();
+
+      for (AbstractTask job : new ArrayList<>(getJobList(mode, computer))) {
+        if (Main.hibernatingFlag || isBroken) { return; }
+
+        try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+          if (!job.exists() && job.getRun().isRunning()) {
+            job.abort();
+            WarnLogMessage.issue(job.getRun(), "The task file is not exists; The task will cancel.");
+            continue;
+          }
+          switch (job.getState(true)) {
+            case Created:
+              createdJobList.add(job);
+              break;
+            case Prepared:
+              preparedJobList.add(job);
+              break;
+          }
+        } catch (RunNotFoundException e) {
+          try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+            cancel(envelope, job);
+          } catch (RunNotFoundException | FailedToControlRemoteException ex) { }
+          job.remove();
+          WarnLogMessage.issue("ExecutableRun(" + job.getId() + ") is not found; The task was removed." );
+        }
+      }
+
+      boolean isRemained = true;
+      while (isRemained) {
+        if (!(Main.hibernatingFlag || isBroken)) {
+          try {
+            isRemained = !processPreparing(envelope, createdJobList, preparedJobList);
+          } catch (FailedToControlRemoteException e) {
+            ErrorLogMessage.issue(e);
+          }
+        }
+
+        if (!isBroken) {
+          processRequestAndResponse(envelope);
+        }
+
+        if (Main.hibernatingFlag || isBroken) { break; }
+        if (isRemained) {
+          envelope = getNextEnvelope();
+        }
+      }
+    }
+  }
+
+  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
+    int nextPreparing = INITIAL_PREPARING - preparedJobList.size();
+    int triedCount = 0;
+    ArrayList<AbstractTask> queuedJobList = new ArrayList<>(createdJobList);
+    for (AbstractTask job : queuedJobList) {
+      if (Main.hibernatingFlag || isBroken) { return true; }
+      if (triedCount >= nextPreparing ) { return true; }
+
+      try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
+        prepareJob(envelope, job);
+        createdJobList.remove(job);
+        preparedJobList.add(job);
+      } catch (Exception e) {
+        ErrorLogMessage.issue(e);
+      }
+
+      if (triedCount % 10 == 9) {
+        if (isStreamMode()) {
+          ((SelfCommunicativeEnvelope) envelope).flush();
+        } else {
+          return false;
+        }
+      }
+
+      triedCount += 1;
+    }
+
+    return true;
+  }
+
+  class SubmittingProcessor extends Thread {
+
+    public SubmittingProcessor() {
+      super("SubmittingProcessor");
+    }
+
+    @Override
+    public void run() {
       Envelope envelope = getNextEnvelope();
 
       ArrayList<AbstractTask> submittedJobList = new ArrayList<>();
-      ArrayList<AbstractTask> createdJobList = new ArrayList<>();
       ArrayList<AbstractTask> preparedJobList = new ArrayList<>();
       ArrayList<AbstractTask> retryingJobList = new ArrayList<>();
 
@@ -730,9 +821,6 @@ abstract public class AbstractSubmitter {
           switch (job.getState(true)) {
             case Retrying:
               retryingJobList.add(job);
-              break;
-            case Created:
-              createdJobList.add(job);
               break;
             case Prepared:
               preparedJobList.add(job);
@@ -752,13 +840,11 @@ abstract public class AbstractSubmitter {
         }
       }
 
-      reducePreparingTask(createdJobList, submittedJobList, preparedJobList);
-
       boolean isRemained = true;
       while (isRemained) {
         if (!(Main.hibernatingFlag || isBroken)) {
           try {
-            isRemained = !processPreparing(envelope, submittedJobList, createdJobList, preparedJobList);
+            isRemained = !processSubmitting(envelope, submittedJobList, preparedJobList);
           } catch (FailedToControlRemoteException e) {
             ErrorLogMessage.issue(e);
           }
@@ -783,50 +869,16 @@ abstract public class AbstractSubmitter {
           WarnLogMessage.issue(e);
         }
       }
-
-      return;
     }
   }
 
-  private boolean isStreamMode() {
-    return selfCommunicativeEnvelope != null;
-  }
-
-  public boolean processPreparing(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
-    ArrayList<AbstractTask> queuedJobList = new ArrayList<>();
-    queuedJobList.addAll(preparedJobList);
-    queuedJobList.addAll(createdJobList);
-
+  public boolean processSubmitting(Envelope envelope, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> preparedJobList) throws FailedToControlRemoteException {
     Executable skippedExecutable = null;
     HashSet<String> lockedExecutableNameSet = new HashSet<>();
-    HashSet<AbstractTask> preparedSet = new HashSet<>();
 
-    int prePrepareSize = 16;
-    int preparedCount = 0;
-    int submittingCount = -1;
+    ArrayList<AbstractTask> queuedJobList = new ArrayList<>(preparedJobList);
     for (AbstractTask job : queuedJobList) {
       if (Main.hibernatingFlag || isBroken) { return true; }
-
-      if (submittingCount >= 10 || submittingCount == -1) {
-        if (isStreamMode()) {
-          ((SelfCommunicativeEnvelope) envelope).flush();
-          submittingCount = 0;
-        } else if (submittingCount != -1) {
-          return false;
-        }
-
-        createdJobList.stream().skip(preparedCount).limit(prePrepareSize).parallel().forEach((j)->{
-          try (LockByKey lock = LockByKey.acquire(j.getHexCode())) {
-            prepareJob(envelope, j, preparedSet);
-          } catch (Exception e) {
-            ErrorLogMessage.issue(e);
-          }
-        });
-        if (isStreamMode()) {
-          ((SelfCommunicativeEnvelope) envelope).flush();
-        }
-        preparedCount += prePrepareSize;
-      }
 
       try (LockByKey lock = LockByKey.acquire(job.getHexCode())) {
         ComputerTask run = job.getRun();
@@ -854,11 +906,10 @@ abstract public class AbstractSubmitter {
 
         if (isSubmittable) {
           skippedExecutable = null;
-          submit(envelope, job, preparedSet);
-          submittedJobList.add(job);
-          submittingCount += 1;
-          createdJobList.remove(job);
+          submit(envelope, job);
           preparedJobList.remove(job);
+          submittedJobList.add(job);
+          startupPreparingProcessorManager();
         } else {
           if (run instanceof ExecutableRun) {
             skippedExecutable = ((ExecutableRun) run).getExecutable();
@@ -904,18 +955,6 @@ abstract public class AbstractSubmitter {
       }
     }
     return false;
-  }
-
-  private void reducePreparingTask(ArrayList<AbstractTask> createdJobList, ArrayList<AbstractTask> submittedJobList, ArrayList<AbstractTask> preparedJobList) {
-    if (preparingSize < submittedJobList.size() * 2) {
-      preparingSize = submittedJobList.size() * 2;
-    }
-    int space = preparingSize - preparedJobList.size();
-    space = Math.max(space, 0);
-
-    for (int i = createdJobList.size() -1; i >= space; i -= 1) {
-      createdJobList.remove(i);
-    }
   }
 
   class FinishedProcessor extends Thread {

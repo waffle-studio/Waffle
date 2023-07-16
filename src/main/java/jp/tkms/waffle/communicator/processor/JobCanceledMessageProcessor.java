@@ -17,11 +17,10 @@ public class JobCanceledMessageProcessor extends ResponseProcessor<JobCanceledMe
       AbstractTask job = submitter.findJobFromStore(message.getType(), message.getId());
       if (job != null) {
         try {
-          if (job.getState().equals(State.Abort)) {
-            job.setState(State.Aborted);
-          }
           if (job.getState().equals(State.Cancel)) {
             job.setState(State.Canceled);
+          } else {
+            job.setState(State.Aborted);
           }
         } catch (RunNotFoundException e) {
           WarnLogMessage.issue(e);
