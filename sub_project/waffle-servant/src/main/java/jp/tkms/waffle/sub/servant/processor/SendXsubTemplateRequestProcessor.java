@@ -39,12 +39,37 @@ public class SendXsubTemplateRequestProcessor extends RequestProcessor<SendXsubT
     container.runScriptlet("require 'jruby'");
     container.runScriptlet(PathType.ABSOLUTE, XsubFile.getXsubPath(baseDirectory).toString());
     outputWriter.flush();
-    response.add(new UpdateXsubTemplateMessage(messageList.get(0), outputWriter.toString()));
+    String template = outputWriter.toString();
     outputWriter.close();
     try {
       container.finalize();
     } catch (Throwable e) {
       response.add(new ExceptionMessage(e.getMessage()));
     }
+
+    environments.put(XSUB_TYPE, "");
+    outputWriter = new StringWriter();
+    String options = "[]";
+    try {
+      container = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.TRANSIENT);
+      container.setEnvironment(environments);
+      container.setOutput(outputWriter);
+      container.runScriptlet("require 'jruby'");
+      container.runScriptlet("Dir[File.join('" + XsubFile.getXsubPath(baseDirectory).getParent().getParent().resolve("lib") + "/**/*.rb' )].each {|f| require f}");
+      container.runScriptlet("p Xsub::Scheduler.descendants.map {|k| k.name.split('::').last }");
+      outputWriter.flush();
+      options = outputWriter.toString();
+      outputWriter.close();
+    } catch (Throwable e) {
+      response.add(new ExceptionMessage(e.getMessage()));
+    } finally {
+      try {
+        container.finalize();
+      } catch (Throwable e) {
+        response.add(new ExceptionMessage(e.getMessage()));
+      }
+    }
+
+    response.add(new UpdateXsubTemplateMessage(messageList.get(0), template, options));
   }
 }

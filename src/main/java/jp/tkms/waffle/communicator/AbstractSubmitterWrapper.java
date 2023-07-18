@@ -19,4 +19,6 @@ public abstract class AbstractSubmitterWrapper extends AbstractSubmitter {
       job.setState(State.Aborted);
     }
   }
+
+  public abstract boolean checkTargets();
 }

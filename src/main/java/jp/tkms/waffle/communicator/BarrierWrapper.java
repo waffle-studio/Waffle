@@ -150,4 +150,13 @@ public class BarrierWrapper extends AbstractSubmitterWrapper {
     jsonObject.put(KEY_BARRIER, "2050-01-01 00:00");
     return jsonObject;
   }
+
+  @Override
+  public boolean checkTargets() {
+    if (Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, "")) == null) {
+      computer.setMessage("The target computer is not found.");
+      return false;
+    }
+    return true;
+  }
 }
