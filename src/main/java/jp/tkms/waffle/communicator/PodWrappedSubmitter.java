@@ -68,6 +68,15 @@ public class PodWrappedSubmitter extends AbstractSubmitterWrapper {
   }
 
   @Override
+  public boolean checkTargets() {
+    if (Computer.getInstance(computer.getParameters().getString(KEY_TARGET_COMPUTER, "")) == null) {
+      computer.setMessage("The target computer is not found.");
+      return false;
+    }
+    return true;
+  }
+
+  @Override
   public Envelope sendAndReceiveEnvelope(Envelope envelope) throws Exception {
     return sendAndReceiveEnvelope(targetSubmitter, envelope);
   }

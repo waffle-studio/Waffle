@@ -215,4 +215,19 @@ public class MultiComputerSubmitter extends AbstractSubmitterWrapper {
     jsonObject.put(KEY_TARGET_COMPUTERS, new WrappedJsonArray());
     return jsonObject;
   }
+
+  @Override
+  public boolean checkTargets() {
+    WrappedJsonArray targetComputers = computer.getParameters().getArray(KEY_TARGET_COMPUTERS, null);
+    if (targetComputers != null) {
+      for (Object object : targetComputers) {
+        if (Computer.getInstance(object.toString()) == null) {
+          computer.setMessage("The target computer, " + object.toString() + ", is not found.");
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
 }

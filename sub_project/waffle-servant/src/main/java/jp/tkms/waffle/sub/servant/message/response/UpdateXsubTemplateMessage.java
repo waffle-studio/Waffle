@@ -5,12 +5,14 @@ import jp.tkms.waffle.sub.servant.message.request.SendXsubTemplateMessage;
 public class UpdateXsubTemplateMessage extends AbstractResponseMessage {
   String computerName;
   String template;
+  String options;
 
   public UpdateXsubTemplateMessage() { }
 
-  public UpdateXsubTemplateMessage(SendXsubTemplateMessage message, String template) {
+  public UpdateXsubTemplateMessage(SendXsubTemplateMessage message, String template, String options) {
     this.computerName = message.getComputerName();
     this.template = template;
+    this.options = options;
   }
 
   public String getComputerName() {
@@ -19,5 +21,9 @@ public class UpdateXsubTemplateMessage extends AbstractResponseMessage {
 
   public String getTemplate() {
     return template;
+  }
+
+  public String getOptions() {
+    return options;
   }
 }

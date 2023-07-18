@@ -500,7 +500,14 @@ abstract public class AbstractSubmitter {
 
   public static void updateXsubTemplate(Computer computer, boolean retry) throws RuntimeException, WaffleException {
     AbstractSubmitter submitter = getInstance(Inspector.Mode.Normal, computer);
-    if (!(submitter instanceof AbstractSubmitterWrapper)) {
+    if (submitter instanceof AbstractSubmitterWrapper) {
+      AbstractSubmitterWrapper wrapper = (AbstractSubmitterWrapper)submitter;
+      if (wrapper.checkTargets()) {
+        computer.setState(ComputerState.Viable);
+      } else {
+        computer.setState(ComputerState.Unviable);
+      }
+    } else {
       submitter.connect(retry);
       Envelope request = submitter.getNextEnvelope();
       request.add(new SendXsubTemplateMessage(computer.getName()));
