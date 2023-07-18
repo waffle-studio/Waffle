@@ -4,15 +4,38 @@
 if [ -f "/etc/waffle.conf" ];then
   . "/etc/waffle.conf"
 fi
-if [ -f "$HOME/waffle.conf" ];then
-  . "$HOME/waffle.conf"
+if [ -f "$HOME/.waffle.conf" ];then
+  . "$HOME/.waffle.conf"
+fi
+if [ -f "$(dirname $0)/waffle.conf" ];then
+  . "$(dirname $0)/waffle.conf"
 fi
 
+cd "$(dirname $0)"
 if [ -n "${WAFFLE_BASE}" ];then
   cd "$WAFFLE_BASE"
 fi
 
+if [ ! -n "${WAFFLE_SH}" ];then
+  WAFFLE_SH="./waffle.sh"
+fi
+
+if [ -f "WAFFLE/.INTERNAL/PID" ];then
+  WAFFLE_PID=$(cat "WAFFLE/.INTERNAL/PID")
+  if [ $(( $(ps h -p $WAFFLE_PID | wc -l) + 0 )) -ne 1 ];then
+    WAFFLE_PID=""
+  fi
+else
+  WAFFLE_PID=""
+fi
+
 if [ "$1" = "start" ];then
-  $(dirname $0)/waffle.sh
+  nohup "${WAFFLE_SH}" > WAFFLE/waffle.log 2>&1 &
+elif [ "$1" = "stop" -a "$WAFFLE_PID" != "" ];then
+  kill $WAFFLE_PID
+elif [ "$1" = "kill" -a "$WAFFLE_PID" != "" ];then
+  kill -9 $WAFFLE_PID
+else
+  sh "${WAFFLE_SH}"
 fi
 
