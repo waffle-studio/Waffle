@@ -1,8 +1,6 @@
 #!/bin/bash
 if [ ! -e "./lib/jdk-*" ];then
-  cd lib
-  tar xf ./openjdk.tar.gz
-  cd ..
+  sh ./lib/extend_jdk.sh
 fi
 cd lib/jdk-*/bin
 JAVA_PATH="$(pwd)"
