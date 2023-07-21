@@ -1,4 +1,15 @@
 #!/bin/bash
+if [ ! -e "./lib/jdk-*" ];then
+  cd lib
+  tar xf ./openjdk.tar.gz
+  cd ..
+fi
+cd lib/jdk-*/bin
+JAVA_PATH="$(pwd)"
+cd ../../../
+PATH="${JAVA_PATH}:${PATH}"
+export PATH
+
 OUT="build/waffle-jre"
 cd $(dirname $0)
 ./gradlew build
