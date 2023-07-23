@@ -15,31 +15,42 @@ import java.util.function.Consumer;
 public class EnvelopeTransceiver {
   static final byte B_DLE = 0x10;
   static final byte B_STX = 0x01;
-  static final byte B_SOH = 0x02;
   static final byte B_ETX = 0x03;
   static final byte B_EOT = 0x04;
   static final byte B_ETB = 0x17;
   static final byte B_EM = 0x19;
   static final byte B_ESC = 0x1b;
   static final byte[] TAG_BEGIN = {B_DLE, B_STX};
-  static final byte[] TAG_BEGIN_F = {B_DLE, B_SOH};
   static final byte[] TAG_END = {B_DLE, B_ETX};
   static final byte[] TAG_EXECUTE = {B_DLE, B_EOT};
-  static final byte[] TAG_EXECUTE_F = {B_DLE, B_ETB};
+  static final byte[] TAG_EXECUTE_FILE = {B_DLE, B_ETB};
   static final byte[] TAG_BYE = {B_DLE, B_EM};
   static final byte[] TAG_ESCAPE = {B_DLE, B_ESC};
-  private static final long TIMEOUT = 15000;
+  private static final long TIMEOUT = 30000;
   private static final long MAX_STREAM_SIZE = 1024 * 1024; // 1MB
 
+  Path baseDirectory;
+  Path tmpDirectory;
   InputStreamProcessor inputStreamProcessor;
   BufferedOutputStream outputStream;
   BufferedInputStream inputStream;
+  BiConsumer<Boolean, Path> fileTransmitter;
   boolean isAlive = true;
 
-  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor) {
+  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor) {
+    this.baseDirectory = baseDirectory;
+    this.tmpDirectory = baseDirectory.resolve(".INTERNAL").resolve("tmp");
+    try {
+      Files.createDirectories(tmpDirectory);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
     this.outputStream = new BufferedOutputStream(outputStream);
     this.inputStream = new BufferedInputStream(inputStream);
-    inputStreamProcessor = new InputStreamProcessor(this.inputStream, s -> {
+    this.fileTransmitter = fileTransmitter;
+
+    inputStreamProcessor = new InputStreamProcessor(this.baseDirectory, this.tmpDirectory, this.inputStream, this.fileTransmitter, s -> {
       try {
         messageProcessor.accept(this, Envelope.loadAndExtract(baseDirectory, s));
       } catch (Exception e) {
@@ -74,7 +85,7 @@ public class EnvelopeTransceiver {
           e.printStackTrace();
         }
       } catch (IOException e) {
-        System.err.println("Stream is broken");
+        System.err.println("Stream is broken; it will be recovered");
       }
     }
   }
@@ -94,21 +105,24 @@ public class EnvelopeTransceiver {
         outputStream.flush();
       }
     } else {
-      Path tmpFile = Paths.get(".waffle-" + UUID.randomUUID());
+      System.err.println("Large size data will be created");
+      Files.createDirectories(tmpDirectory);
+      Path tmpFile = tmpDirectory.resolve("envelope-" + UUID.randomUUID());
       Files.createFile(tmpFile);
       tmpFile.toFile().deleteOnExit();
       envelope.save(tmpFile);
       envelope.clear();
-      try (InputStream fileStream = new BufferedInputStream(new FileInputStream(tmpFile.toFile()))) {
-        synchronized (outputStream) {
-          outputStream.write(TAG_BEGIN_F);
-          sanitizeAndWrite(fileStream, outputStream);
-          outputStream.write(TAG_END);
-          sanitizeAndWrite(new ByteArrayInputStream(String.valueOf(Files.size(tmpFile)).getBytes()), outputStream);
-          outputStream.write(TAG_EXECUTE_F);
-          outputStream.write("\n\n".getBytes());
-          outputStream.flush();
-        }
+      if (fileTransmitter != null) {
+        fileTransmitter.accept(true, baseDirectory.relativize(tmpFile));
+      }
+      synchronized (outputStream) {
+        outputStream.write(TAG_BEGIN);
+        sanitizeAndWrite(new ByteArrayInputStream(tmpFile.getFileName().toString().getBytes()), outputStream);
+        outputStream.write(TAG_END);
+        sanitizeAndWrite(new ByteArrayInputStream(String.valueOf(Files.size(tmpFile)).getBytes()), outputStream);
+        outputStream.write(TAG_EXECUTE_FILE);
+        outputStream.write("\n\n".getBytes());
+        outputStream.flush();
       }
       Files.deleteIfExists(tmpFile);
     }
@@ -140,17 +154,21 @@ public class EnvelopeTransceiver {
   }
 
   private static class InputStreamProcessor extends Thread {
+    private Path baseDirectory;
+    private Path tmpDirectory;
     private InputStream inputStream;
+    private BiConsumer<Boolean, Path> fileTransmitter;
     private Consumer<InputStream> messageProcessor;
     private Runnable finalizer;
     private AtomicBoolean aliveFlag = new AtomicBoolean(true);
     private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     private ByteArrayOutputStream secondBuffer = null;
-    private Path tmpFilePath = null;
-    private OutputStream fileOutputStream = null;
 
-    public InputStreamProcessor(InputStream inputStream, Consumer<InputStream> messageProcessor, Runnable finalizer) {
+    public InputStreamProcessor(Path baseDirectory, Path tmpDirectory, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, Consumer<InputStream> messageProcessor, Runnable finalizer) {
+      this.baseDirectory = baseDirectory;
+      this.tmpDirectory = tmpDirectory;
       this.inputStream = inputStream;
+      this.fileTransmitter = fileTransmitter;
       this.messageProcessor = messageProcessor;
       this.finalizer = finalizer;
     }
@@ -158,12 +176,10 @@ public class EnvelopeTransceiver {
     public void shutdown() {
       (new Thread(finalizer)).start();
       aliveFlag.set(false);
-      clearFileStream();
     }
 
     @Override
     public void run() {
-      boolean isFileMode = false;
       boolean isTagMode = false;
       byte[] buf = new byte[1];
       try {
@@ -174,18 +190,9 @@ public class EnvelopeTransceiver {
             isTagMode = false;
             switch (buf[0]) {
               case B_STX:
-                isFileMode = false;
                 resetBuffer();
                 break;
-              case B_SOH:
-                isFileMode = true;
-                startTmpFileStream();
-                break;
               case B_ETX:
-                if (isFileMode) {
-                  closeMessageFile();
-                  isFileMode = false;
-                }
                 pushBuffer();
                 break;
               case B_EOT:
@@ -195,26 +202,15 @@ public class EnvelopeTransceiver {
                 processMessageFile();
                 break;
               case B_ESC:
-                if (isFileMode) {
-                  fileOutputStream.write(B_DLE);
-                } else  {
-                  buffer.write(B_DLE);
-                }
+                buffer.write(B_DLE);
                 break;
               case B_EM:
                 shutdown();
                 return;
               default:
-                if (isFileMode) {
-                  fileOutputStream.write(B_DLE);
-                  fileOutputStream.write(buf);
-                } else  {
-                  buffer.write(B_DLE);
-                  buffer.write(buf);
-                }
+                buffer.write(B_DLE);
+                buffer.write(buf);
             }
-          } else if (isFileMode) {
-            fileOutputStream.write(buf);
           } else {
             buffer.write(buf);
           }
@@ -222,13 +218,6 @@ public class EnvelopeTransceiver {
       } catch (IOException e) {
         shutdown();
       }
-    }
-
-    private boolean checkConsistency() {
-      if (buffer != null && secondBuffer != null) {
-        return Arrays.equals(buffer.toByteArray(), toSHA1(secondBuffer.toByteArray()));
-      }
-      return false;
     }
 
     private void resetBuffer() {
@@ -241,6 +230,13 @@ public class EnvelopeTransceiver {
       buffer = new ByteArrayOutputStream();
     }
 
+    private boolean checkConsistency() {
+      if (buffer != null && secondBuffer != null) {
+        return Arrays.equals(buffer.toByteArray(), toSHA1(secondBuffer.toByteArray()));
+      }
+      return false;
+    }
+
     private void processMessage() {
       if (checkConsistency()) {
         messageProcessor.accept(new ByteArrayInputStream(secondBuffer.toByteArray()));
@@ -249,71 +245,45 @@ public class EnvelopeTransceiver {
       }
     }
 
-    private boolean checkMessageFileConsistency() {
-      if (buffer != null && tmpFilePath != null && Files.exists(tmpFilePath)) {
-        try {
-          return String.valueOf(Files.size(tmpFilePath)).equals(new String(buffer.toByteArray()).trim());
-        } catch (IOException e) {
-          return false;
+    private boolean checkFileConsistency() {
+      if (buffer != null && secondBuffer != null) {
+        Path path = tmpDirectory.resolve(new String(secondBuffer.toByteArray()));
+        if (Files.exists(path)) {
+          try {
+            return Files.size(path) == Long.valueOf(new String(buffer.toByteArray()));
+          } catch (Throwable e) {
+            return false;
+          }
         }
       }
       return false;
     }
 
     private void processMessageFile() {
-      if (checkMessageFileConsistency()) {
-        try (InputStream stream = new BufferedInputStream(new FileInputStream(tmpFilePath.toFile()))) {
-          messageProcessor.accept(stream);
-        } catch (Exception e) {
-          System.err.println(e.getMessage() + " : " + tmpFilePath);
-        }
-        clearFileStream();
-      } else {
-        System.err.println("RECEIVED ENVELOPE IS BROKEN: " + tmpFilePath);
+      if (fileTransmitter != null && secondBuffer != null) {
+        Path filePath = tmpDirectory.resolve(new String(secondBuffer.toByteArray()));
+        fileTransmitter.accept(false, baseDirectory.relativize(filePath));
+        filePath.toFile().deleteOnExit();
       }
-    }
 
-    private void closeMessageFile() {
-      if (fileOutputStream != null) {
-        try {
-          fileOutputStream.close();
-        } catch (IOException e) {
-          //NOP
-        } finally {
-          fileOutputStream = null;
+      if (secondBuffer != null) {
+        Path path = tmpDirectory.resolve(new String(secondBuffer.toByteArray()));
+        path.toFile().deleteOnExit();
+        if (checkFileConsistency()) {
+          try {
+            messageProcessor.accept(new BufferedInputStream(new FileInputStream(path.toFile())));
+          } catch (FileNotFoundException e) {
+            e.printStackTrace();
+          }
+        } else {
+          System.err.println("RECEIVED ENVELOPE IS BROKEN: " + (new String(secondBuffer.toByteArray())) + " (" + (new String(buffer.toByteArray())) + " bytes)");
         }
       }
-    }
 
-    private void startTmpFileStream() {
-      clearFileStream();
-      tmpFilePath = Paths.get(".waffle-" + UUID.randomUUID());
       try {
-        Files.createFile(tmpFilePath);
-        tmpFilePath.toFile().deleteOnExit();
-        fileOutputStream = new BufferedOutputStream(new FileOutputStream(tmpFilePath.toFile()));
-      } catch (IOException e) {
+        Files.deleteIfExists(tmpDirectory.resolve(new String(secondBuffer.toByteArray())));
+      } catch (Throwable e) {
         //NOP
-      }
-    }
-
-    private void clearFileStream() {
-      if (fileOutputStream != null) {
-        try {
-          fileOutputStream.close();
-        } catch (IOException e) {
-          //NOP
-        } finally {
-          fileOutputStream = null;
-        }
-      }
-      if (tmpFilePath != null) {
-        try {
-          Files.deleteIfExists(tmpFilePath);
-        } catch (IOException e) {
-          //NOP
-        }
-        tmpFilePath = null;
       }
     }
   }

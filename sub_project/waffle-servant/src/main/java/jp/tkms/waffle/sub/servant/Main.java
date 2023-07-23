@@ -62,7 +62,7 @@ public class Main {
           updateTimestamp();
           timeoutThread.start();
 
-          EnvelopeTransceiver transceiver = new EnvelopeTransceiver(baseDirectory, System.out, System.in,
+          EnvelopeTransceiver transceiver = new EnvelopeTransceiver(baseDirectory, System.out, System.in, null,
             (me, request) -> {
               try {
                 Main.updateTimestamp();
