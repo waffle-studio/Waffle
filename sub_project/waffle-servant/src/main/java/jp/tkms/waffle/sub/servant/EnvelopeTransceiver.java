@@ -8,12 +8,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class EnvelopeTransceiver {
   static final byte B_DLE = 0x10;
+  static final byte B_NUL = 0x00;
   static final byte B_STX = 0x01;
   static final byte B_ETX = 0x03;
   static final byte B_EOT = 0x04;
@@ -26,6 +29,7 @@ public class EnvelopeTransceiver {
   static final byte[] TAG_EXECUTE_FILE = {B_DLE, B_ETB};
   static final byte[] TAG_BYE = {B_DLE, B_EM};
   static final byte[] TAG_ESCAPE = {B_DLE, B_ESC};
+  static final byte[] TAG_NOP = {B_DLE, B_NUL};
   private static final long TIMEOUT = 30000;
   private static final long MAX_STREAM_SIZE = 1024 * 1024; // 1MB
 
@@ -37,7 +41,7 @@ public class EnvelopeTransceiver {
   BiConsumer<Boolean, Path> fileTransmitter;
   boolean isAlive = true;
 
-  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor) {
+  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor, Runnable updateNotifier) {
     this.baseDirectory = baseDirectory;
     this.tmpDirectory = baseDirectory.resolve(".INTERNAL").resolve("tmp");
     try {
@@ -50,13 +54,15 @@ public class EnvelopeTransceiver {
     this.inputStream = new BufferedInputStream(inputStream);
     this.fileTransmitter = fileTransmitter;
 
-    inputStreamProcessor = new InputStreamProcessor(this.baseDirectory, this.tmpDirectory, this.inputStream, this.fileTransmitter, s -> {
+    inputStreamProcessor = new InputStreamProcessor(this.baseDirectory, this.tmpDirectory, this.inputStream, this.fileTransmitter,
+      () -> new DummySignalThread(outputStream),
+      s -> {
       try {
         messageProcessor.accept(this, Envelope.loadAndExtract(baseDirectory, s));
       } catch (Exception e) {
         e.printStackTrace();
       }
-    },
+    }, updateNotifier,
       () -> {
         try {
           shutdown();
@@ -113,7 +119,10 @@ public class EnvelopeTransceiver {
       envelope.save(tmpFile);
       envelope.clear();
       if (fileTransmitter != null) {
+        DummySignalThread dummySignalThread = new DummySignalThread(outputStream);
+        dummySignalThread.start();
         fileTransmitter.accept(true, baseDirectory.relativize(tmpFile));
+        dummySignalThread.interrupt();
       }
       synchronized (outputStream) {
         outputStream.write(TAG_BEGIN);
@@ -158,18 +167,22 @@ public class EnvelopeTransceiver {
     private Path tmpDirectory;
     private InputStream inputStream;
     private BiConsumer<Boolean, Path> fileTransmitter;
+    private Supplier<DummySignalThread> dummySignalThreadSupplier;
     private Consumer<InputStream> messageProcessor;
+    private Runnable updateNotifier;
     private Runnable finalizer;
     private AtomicBoolean aliveFlag = new AtomicBoolean(true);
     private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     private ByteArrayOutputStream secondBuffer = null;
 
-    public InputStreamProcessor(Path baseDirectory, Path tmpDirectory, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, Consumer<InputStream> messageProcessor, Runnable finalizer) {
+    public InputStreamProcessor(Path baseDirectory, Path tmpDirectory, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, Supplier<DummySignalThread> dummySignalThreadSupplier, Consumer<InputStream> messageProcessor, Runnable updateNotifier, Runnable finalizer) {
       this.baseDirectory = baseDirectory;
       this.tmpDirectory = tmpDirectory;
       this.inputStream = inputStream;
       this.fileTransmitter = fileTransmitter;
+      this.dummySignalThreadSupplier = dummySignalThreadSupplier;
       this.messageProcessor = messageProcessor;
+      this.updateNotifier = updateNotifier;
       this.finalizer = finalizer;
     }
 
@@ -186,6 +199,7 @@ public class EnvelopeTransceiver {
         while (aliveFlag.get() && inputStream.read(buf, 0, 1) != -1) {
           if (buf[0] == B_DLE) {
             isTagMode = true;
+            updateNotifier.run();
           } else if (isTagMode) {
             isTagMode = false;
             switch (buf[0]) {
@@ -207,6 +221,8 @@ public class EnvelopeTransceiver {
               case B_EM:
                 shutdown();
                 return;
+              case B_NUL:
+                break;
               default:
                 buffer.write(B_DLE);
                 buffer.write(buf);
@@ -262,7 +278,10 @@ public class EnvelopeTransceiver {
     private void processMessageFile() {
       if (fileTransmitter != null && secondBuffer != null) {
         Path filePath = tmpDirectory.resolve(new String(secondBuffer.toByteArray()));
+        DummySignalThread dummySignalThread = dummySignalThreadSupplier.get();
+        dummySignalThread.start();
         fileTransmitter.accept(false, baseDirectory.relativize(filePath));
+        dummySignalThread.interrupt();
         filePath.toFile().deleteOnExit();
       }
 
@@ -297,5 +316,26 @@ public class EnvelopeTransceiver {
     }
     messageDigest.update(bytes);
     return messageDigest.digest();
+  }
+
+  private static class DummySignalThread extends Thread {
+    private OutputStream outputStream;
+    public DummySignalThread(OutputStream outputStream) {
+      this.outputStream = outputStream;
+    }
+
+    @Override
+    public void run() {
+      while (true) {
+        try {
+          TimeUnit.SECONDS.sleep(4);
+          synchronized (outputStream) {
+            outputStream.write(TAG_NOP);
+          }
+        } catch (Exception e) {
+          return;
+        }
+      }
+    }
   }
 }

@@ -26,7 +26,7 @@ public class EnvelopeTransceiverTest {
       throw new RuntimeException(e);
     }
     AtomicReference<Envelope> envelope2 = new AtomicReference<>();
-    EnvelopeTransceiver transceiver1 = new EnvelopeTransceiver(tmpPath, outputStream1, inputStream1, (u, p) -> {}, (transceiver, envelope) -> { });
+    EnvelopeTransceiver transceiver1 = new EnvelopeTransceiver(tmpPath, outputStream1, inputStream1, (u, p) -> {}, (transceiver, envelope) -> {}, () -> {});
     Envelope envelope1 = new Envelope(tmpPath);
     envelope1.add(new ExceptionMessage(testString));
     PipedInputStream inputStream2 = null;
@@ -43,7 +43,7 @@ public class EnvelopeTransceiverTest {
     }
     EnvelopeTransceiver transceiver2 = new EnvelopeTransceiver(tmpPath, outputStream2, inputStream2, (u, p) ->{}, (transceiver, envelope) -> {
       envelope2.set(envelope);
-    });
+    }, () -> {});
     try {
       transceiver1.shutdown();
     } catch (IOException e) {

@@ -65,7 +65,6 @@ public class Main {
           EnvelopeTransceiver transceiver = new EnvelopeTransceiver(baseDirectory, System.out, System.in, null,
             (me, request) -> {
               try {
-                Main.updateTimestamp();
                 Envelope response = new Envelope(baseDirectory);
                 StorageWarningMessage.addMessageIfCritical(response);
                 RequestProcessor.processMessages(baseDirectory, request, response);
@@ -73,7 +72,8 @@ public class Main {
               } catch (Exception e) {
                 e.printStackTrace();
               }
-            });
+            },
+            () -> Main.updateTimestamp());
           transceiver.waitForShutdown();
 
           timeoutThread.interrupt();
