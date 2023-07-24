@@ -64,7 +64,7 @@ public class SelfCommunicativeEnvelope extends Envelope {
         if (additionalEnvelopeConsumer != null) {
           additionalEnvelopeConsumer.accept(envelope);
         }
-      }), () -> {});
+      }), (t) -> {});
     autoFlusher.start();
   }
 

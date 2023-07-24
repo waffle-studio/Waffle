@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -16,10 +17,11 @@ import java.util.function.Supplier;
 
 public class EnvelopeTransceiver {
   static final byte B_DLE = 0x10;
-  static final byte B_NUL = 0x00;
   static final byte B_STX = 0x01;
   static final byte B_ETX = 0x03;
   static final byte B_EOT = 0x04;
+  static final byte B_LF = 0x0a;
+  static final byte B_DC4 = 0x14;
   static final byte B_ETB = 0x17;
   static final byte B_EM = 0x19;
   static final byte B_ESC = 0x1b;
@@ -27,9 +29,9 @@ public class EnvelopeTransceiver {
   static final byte[] TAG_END = {B_DLE, B_ETX};
   static final byte[] TAG_EXECUTE = {B_DLE, B_EOT};
   static final byte[] TAG_EXECUTE_FILE = {B_DLE, B_ETB};
+  static final byte[] TAG_WAIT = {B_DLE, B_DC4};
   static final byte[] TAG_BYE = {B_DLE, B_EM};
-  static final byte[] TAG_ESCAPE = {B_DLE, B_ESC};
-  static final byte[] TAG_NOP = {B_DLE, B_NUL};
+  static final byte[] TAG_ESCAPE_DLE = {B_DLE, B_ESC};
   private static final long TIMEOUT = 30000;
   private static final long MAX_STREAM_SIZE = 1024 * 1024; // 1MB
 
@@ -39,10 +41,9 @@ public class EnvelopeTransceiver {
   BufferedOutputStream outputStream;
   BufferedInputStream inputStream;
   BiConsumer<Boolean, Path> fileTransmitter;
-  Runnable updateNotifier;
   boolean isAlive = true;
 
-  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor, Runnable updateNotifier) {
+  public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor, Consumer<Long> updateNotifier) {
     this.baseDirectory = baseDirectory;
     this.tmpDirectory = baseDirectory.resolve(".INTERNAL").resolve("tmp");
     try {
@@ -54,17 +55,25 @@ public class EnvelopeTransceiver {
     this.outputStream = new BufferedOutputStream(outputStream);
     this.inputStream = new BufferedInputStream(inputStream);
     this.fileTransmitter = fileTransmitter;
-    this.updateNotifier = updateNotifier;
 
     inputStreamProcessor = new InputStreamProcessor(this.baseDirectory, this.tmpDirectory, this.inputStream, this.fileTransmitter,
-      () -> new DummySignalThread(outputStream, updateNotifier),
       s -> {
-      try {
-        messageProcessor.accept(this, Envelope.loadAndExtract(baseDirectory, s));
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }, updateNotifier,
+        try {
+          messageProcessor.accept(this, Envelope.loadAndExtract(baseDirectory, s));
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }, updateNotifier, () -> {
+        synchronized (outputStream) {
+          try {
+            outputStream.write("\n\n".getBytes());
+            outputStream.write(TAG_WAIT);
+            outputStream.write("\n\n".getBytes());
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      },
       () -> {
         try {
           shutdown();
@@ -113,19 +122,21 @@ public class EnvelopeTransceiver {
         outputStream.flush();
       }
     } else {
+      synchronized (outputStream) {
+        outputStream.write("\n\n".getBytes());
+        outputStream.write(TAG_WAIT);
+        outputStream.write("\n\n".getBytes());
+      }
       System.err.println("Large size data will be created");
       Files.createDirectories(tmpDirectory);
       Path tmpFile = tmpDirectory.resolve("envelope-" + UUID.randomUUID());
       Files.createFile(tmpFile);
       tmpFile.toFile().deleteOnExit();
-      DummySignalThread dummySignalThread = new DummySignalThread(outputStream, updateNotifier);
-      dummySignalThread.start();
       envelope.save(tmpFile);
       envelope.clear();
       if (fileTransmitter != null) {
         fileTransmitter.accept(true, baseDirectory.relativize(tmpFile));
       }
-      dummySignalThread.interrupt();
       synchronized (outputStream) {
         outputStream.write(TAG_BEGIN);
         sanitizeAndWrite(new ByteArrayInputStream(tmpFile.getFileName().toString().getBytes()), outputStream);
@@ -144,7 +155,7 @@ public class EnvelopeTransceiver {
     try {
       while (in.read(buf, 0, 1) != -1) {
         if (buf[0] == B_DLE) {
-          out.write(TAG_ESCAPE);
+          out.write(TAG_ESCAPE_DLE);
         } else {
           out.write(buf);
         }
@@ -169,22 +180,22 @@ public class EnvelopeTransceiver {
     private Path tmpDirectory;
     private InputStream inputStream;
     private BiConsumer<Boolean, Path> fileTransmitter;
-    private Supplier<DummySignalThread> dummySignalThreadSupplier;
     private Consumer<InputStream> messageProcessor;
-    private Runnable updateNotifier;
+    private Consumer<Long> updateNotifier;
+    Runnable waitCommander;
     private Runnable finalizer;
     private AtomicBoolean aliveFlag = new AtomicBoolean(true);
     private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     private ByteArrayOutputStream secondBuffer = null;
 
-    public InputStreamProcessor(Path baseDirectory, Path tmpDirectory, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, Supplier<DummySignalThread> dummySignalThreadSupplier, Consumer<InputStream> messageProcessor, Runnable updateNotifier, Runnable finalizer) {
+    public InputStreamProcessor(Path baseDirectory, Path tmpDirectory, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, Consumer<InputStream> messageProcessor, Consumer<Long> updateNotifier, Runnable waitCommander, Runnable finalizer) {
       this.baseDirectory = baseDirectory;
       this.tmpDirectory = tmpDirectory;
       this.inputStream = inputStream;
       this.fileTransmitter = fileTransmitter;
-      this.dummySignalThreadSupplier = dummySignalThreadSupplier;
       this.messageProcessor = messageProcessor;
       this.updateNotifier = updateNotifier;
+      this.waitCommander = waitCommander;
       this.finalizer = finalizer;
     }
 
@@ -201,7 +212,6 @@ public class EnvelopeTransceiver {
         while (aliveFlag.get() && inputStream.read(buf, 0, 1) != -1) {
           if (buf[0] == B_DLE) {
             isTagMode = true;
-            updateNotifier.run();
           } else if (isTagMode) {
             isTagMode = false;
             switch (buf[0]) {
@@ -223,7 +233,8 @@ public class EnvelopeTransceiver {
               case B_EM:
                 shutdown();
                 return;
-              case B_NUL:
+              case B_DC4:
+                updateNotifier.accept(System.currentTimeMillis() + 3600000);
                 break;
               default:
                 buffer.write(B_DLE);
@@ -280,10 +291,8 @@ public class EnvelopeTransceiver {
     private void processMessageFile() {
       if (fileTransmitter != null && secondBuffer != null) {
         Path filePath = tmpDirectory.resolve(new String(secondBuffer.toByteArray()));
-        DummySignalThread dummySignalThread = dummySignalThreadSupplier.get();
-        dummySignalThread.start();
+        waitCommander.run();
         fileTransmitter.accept(false, baseDirectory.relativize(filePath));
-        dummySignalThread.interrupt();
         filePath.toFile().deleteOnExit();
       }
 
@@ -318,29 +327,5 @@ public class EnvelopeTransceiver {
     }
     messageDigest.update(bytes);
     return messageDigest.digest();
-  }
-
-  private static class DummySignalThread extends Thread {
-    private OutputStream outputStream;
-    private Runnable localUpdateNotifier;
-    public DummySignalThread(OutputStream outputStream, Runnable localUpdateNotifier) {
-      this.outputStream = outputStream;
-      this.localUpdateNotifier = localUpdateNotifier;
-    }
-
-    @Override
-    public void run() {
-      while (true) {
-        try {
-          TimeUnit.SECONDS.sleep(4);
-          synchronized (outputStream) {
-            outputStream.write(TAG_NOP);
-          }
-          localUpdateNotifier.run();
-        } catch (Exception e) {
-          return;
-        }
-      }
-    }
   }
 }

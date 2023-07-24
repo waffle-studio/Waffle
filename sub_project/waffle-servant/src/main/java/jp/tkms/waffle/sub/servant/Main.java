@@ -11,6 +11,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,9 +19,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Main {
   public  static AtomicLong lastUpdatedTime = new AtomicLong(System.currentTimeMillis());
 
-  public static void updateTimestamp() {
-    lastUpdatedTime.set(System.currentTimeMillis());
+  public static void updateTimestamp(long time) {
+    lastUpdatedTime.set(time);
   }
+
+  public static void updateTimestamp() {
+    updateTimestamp(System.currentTimeMillis());
+  }
+
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
       exitWithInvalidArgumentsMessage("", "");
@@ -46,6 +52,7 @@ public class Main {
             exitWithInvalidArgumentsMessage("main", "- [TIMEOUT]");
           }
 
+          timeout = 3600;
           int timeoutByMillis = timeout * 1000;
           Thread timeoutThread = new Thread(()->{
             while (true) {
@@ -65,6 +72,7 @@ public class Main {
           EnvelopeTransceiver transceiver = new EnvelopeTransceiver(baseDirectory, System.out, System.in, null,
             (me, request) -> {
               try {
+                Main.updateTimestamp();
                 Envelope response = new Envelope(baseDirectory);
                 StorageWarningMessage.addMessageIfCritical(response);
                 RequestProcessor.processMessages(baseDirectory, request, response);
@@ -73,7 +81,9 @@ public class Main {
                 e.printStackTrace();
               }
             },
-            () -> Main.updateTimestamp());
+            (t) -> {
+              Main.updateTimestamp(t);
+            });
           transceiver.waitForShutdown();
 
           timeoutThread.interrupt();
