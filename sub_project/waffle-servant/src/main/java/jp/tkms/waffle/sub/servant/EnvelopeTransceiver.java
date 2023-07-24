@@ -39,6 +39,7 @@ public class EnvelopeTransceiver {
   BufferedOutputStream outputStream;
   BufferedInputStream inputStream;
   BiConsumer<Boolean, Path> fileTransmitter;
+  Runnable updateNotifier;
   boolean isAlive = true;
 
   public EnvelopeTransceiver(Path baseDirectory, OutputStream outputStream, InputStream inputStream, BiConsumer<Boolean, Path> fileTransmitter, BiConsumer<EnvelopeTransceiver, Envelope> messageProcessor, Runnable updateNotifier) {
@@ -53,9 +54,10 @@ public class EnvelopeTransceiver {
     this.outputStream = new BufferedOutputStream(outputStream);
     this.inputStream = new BufferedInputStream(inputStream);
     this.fileTransmitter = fileTransmitter;
+    this.updateNotifier = updateNotifier;
 
     inputStreamProcessor = new InputStreamProcessor(this.baseDirectory, this.tmpDirectory, this.inputStream, this.fileTransmitter,
-      () -> new DummySignalThread(outputStream),
+      () -> new DummySignalThread(outputStream, updateNotifier),
       s -> {
       try {
         messageProcessor.accept(this, Envelope.loadAndExtract(baseDirectory, s));
@@ -116,14 +118,14 @@ public class EnvelopeTransceiver {
       Path tmpFile = tmpDirectory.resolve("envelope-" + UUID.randomUUID());
       Files.createFile(tmpFile);
       tmpFile.toFile().deleteOnExit();
+      DummySignalThread dummySignalThread = new DummySignalThread(outputStream, updateNotifier);
+      dummySignalThread.start();
       envelope.save(tmpFile);
       envelope.clear();
       if (fileTransmitter != null) {
-        DummySignalThread dummySignalThread = new DummySignalThread(outputStream);
-        dummySignalThread.start();
         fileTransmitter.accept(true, baseDirectory.relativize(tmpFile));
-        dummySignalThread.interrupt();
       }
+      dummySignalThread.interrupt();
       synchronized (outputStream) {
         outputStream.write(TAG_BEGIN);
         sanitizeAndWrite(new ByteArrayInputStream(tmpFile.getFileName().toString().getBytes()), outputStream);
@@ -320,8 +322,10 @@ public class EnvelopeTransceiver {
 
   private static class DummySignalThread extends Thread {
     private OutputStream outputStream;
-    public DummySignalThread(OutputStream outputStream) {
+    private Runnable localUpdateNotifier;
+    public DummySignalThread(OutputStream outputStream, Runnable localUpdateNotifier) {
       this.outputStream = outputStream;
+      this.localUpdateNotifier = localUpdateNotifier;
     }
 
     @Override
@@ -332,6 +336,7 @@ public class EnvelopeTransceiver {
           synchronized (outputStream) {
             outputStream.write(TAG_NOP);
           }
+          localUpdateNotifier.run();
         } catch (Exception e) {
           return;
         }
