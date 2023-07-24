@@ -29,6 +29,7 @@ import jp.tkms.waffle.sub.servant.Envelope;
 import jp.tkms.waffle.sub.servant.ExecKey;
 import jp.tkms.waffle.sub.servant.TaskJson;
 import jp.tkms.waffle.sub.servant.message.request.*;
+import org.jruby.ir.instructions.BFalseInstr;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -366,7 +367,7 @@ abstract public class AbstractSubmitter {
           if (binPath != null && !envelope.exists(binPath)) {
             if (remoteExecutableBaseDirectory != null && !exists(remoteExecutableBaseDirectory.toAbsolutePath())) {
               envelope.add(binPath);
-              envelope.add(new ChangePermissionMessage(remoteExecutableBaseDirectory.resolve(Executable.BASE), "a-w"));
+              envelope.add(new ChangePermissionMessage(remoteExecutableBaseDirectory.resolve(Executable.BASE), "a-w", true));
             }
           }
         }
