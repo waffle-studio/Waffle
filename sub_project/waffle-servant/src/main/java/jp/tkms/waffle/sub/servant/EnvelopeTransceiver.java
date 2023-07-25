@@ -146,7 +146,11 @@ public class EnvelopeTransceiver {
         outputStream.write("\n\n".getBytes());
         outputStream.flush();
       }
-      Files.deleteIfExists(tmpFile);
+      if (fileTransmitter != null) {
+        Files.deleteIfExists(tmpFile);
+      } else {
+        tmpFile.toFile().deleteOnExit();
+      }
     }
   }
 
