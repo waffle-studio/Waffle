@@ -140,7 +140,11 @@ public class JobNumberLimitedSshSubmitter extends AbstractSubmitter {
     super.close();
 
     if (session != null) {
-      session.disconnect(true);
+      try {
+        session.disconnect(true);
+      } catch (Throwable e) {
+        //NOP
+      }
     }
   }
 
