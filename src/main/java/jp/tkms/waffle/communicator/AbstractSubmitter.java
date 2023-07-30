@@ -47,7 +47,7 @@ abstract public class AbstractSubmitter {
   protected static final String TASK_JSON = "task.json";
   protected static final String RUN_DIR = "run";
   protected static final String BATCH_FILE = "batch.sh";
-  static final int INITIAL_PREPARING = 100;
+  static final int INITIAL_PREPARING = 16384;
   static final int TIMEOUT = 120000; // 2min
 
   boolean isRunning = false;
